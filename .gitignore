@@ -1,14 +1,48 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
 .env
-.anchor
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
 .DS_Store
-target/debug
-target/deploy
-target/release
-target/sbf-solana-solana
-target/test-ledger
-target/.rustc_info.json
-**/*.rs.bk
-node_modules
-test-ledger
-.yarn
-.yarnrc
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+
+# pnpm specific
+.pnpm-debug.log
+
+# Workspace specific
+packages/*/node_modules/
+packages/*/dist/
+packages/*/build/
+
+# Misc
+.cache/
+.turbo/
