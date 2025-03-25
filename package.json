@@ -1,10 +1,23 @@
 {
-  "name": "monorepo",
-  "version": "1.0.0",
-  "main": "index.js",
-  "license": "MIT",
+  "name": "baskt-monorepo",
+  "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ]
-}
+  "engines": {
+    "node": ">=16.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "clean": "pnpm -r clean",
+    "dev": "pnpm -r dev",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.7.3",
+    "rimraf": "^5.0.5"
+  }
+} 

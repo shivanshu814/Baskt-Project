@@ -16,7 +16,7 @@ describe("asset", () => {
       await client.createAssetWithCustomOracle("BTC");
 
     // Fetch the asset account to verify it was initialized correctly
-    const assetAccount = await client.getAssetAccount(assetKeypair.publicKey);
+    const assetAccount = await client.getAsset(assetKeypair.publicKey);
 
     // Verify the asset was initialized with correct values
     expect(assetAccount.assetId.toString()).to.equal(assetId.toString());
@@ -62,15 +62,15 @@ describe("asset", () => {
 
   it("Successfully adds an asset with Pyth oracle", async () => {
     // Create a Pyth oracle and asset in one step
-    const { assetKeypair, assetId, ticker, oracle } =
-      await client.createAssetWithPythOracle("SOL");
+    const { assetKeypair, assetId, oracle } =
+      await client.createAndAddAssetWithPythOracle("SOL");
 
     // Fetch the asset account to verify it was initialized correctly
-    const assetAccount = await client.getAssetAccount(assetKeypair.publicKey);
+    const assetAccount = await client.getAsset(assetKeypair.publicKey);
 
     // Verify the asset was initialized with correct values
     expect(assetAccount.assetId.toString()).to.equal(assetId.toString());
-    expect(assetAccount.ticker).to.equal(ticker);
+    expect(assetAccount.ticker).to.equal("SOL");
     expect(assetAccount.oracle.oracleAccount.toString()).to.equal(
       oracle.address.toString()
     );
@@ -96,7 +96,7 @@ describe("asset", () => {
       await client.createAssetWithCustomOracle("FUND");
 
     // Fetch the asset account to verify it was initialized correctly
-    const assetAccount = await client.getAssetAccount(assetKeypair.publicKey);
+    const assetAccount = await client.getAsset(assetKeypair.publicKey);
 
     // Verify basic asset properties
     expect(assetAccount.assetId.toString()).to.equal(assetId.toString());
@@ -150,9 +150,7 @@ describe("asset", () => {
     );
 
     // Verify the asset was created with the correct oracle parameters
-    const assetAccount = await client.getAssetAccount(
-      staleAssetKeypair.publicKey
-    );
+    const assetAccount = await client.getAsset(staleAssetKeypair.publicKey);
 
     expect(assetAccount.oracle.oracleAccount.toString()).to.equal(
       staleOracle.address.toString()

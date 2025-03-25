@@ -1,11 +1,29 @@
 {
-  "name": "sdk",
+  "name": "@baskt/sdk",
   "version": "0.1.0",
   "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
-    "test": "mocha tests/**/*.test.ts"
+    "copy-program-files": "node scripts/copy-program-files.js",
+    "build": "rimraf dist && npm run copy-program-files && tsc",
+    "clean": "rimraf dist",
+    "dev": "npm run build -- --watch",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"No tests for SDK package\""
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "@coral-xyz/anchor": "0.31.0",
+    "@solana/spl-token": "^0.4.13",
+    "@solana/web3.js": "1.98.0",
+    "bn.js": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.6",
+    "@types/node": "^22.13.11",
+    "eslint": "^8.56.0",
+    "rimraf": "^5.0.5",
+    "tsc-alias": "^1.8.8",
+    "typescript": "^5.7.3"
+  }
 }

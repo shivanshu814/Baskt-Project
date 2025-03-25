@@ -1,7 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
 import { Keypair, PublicKey } from "@solana/web3.js";
-import { BN } from "bn.js";
+import BN from "bn.js";
 
 // Oracle types enum to match the Rust program
 export enum OracleType {
@@ -19,13 +18,13 @@ export interface OraclePrice {
 }
 
 /**
- * Helper class for creating and managing oracle accounts for testing
+ * Helper class for creating and managing oracle accounts
  */
 export class OracleHelper {
-  program: Program;
+  program: any; // Using any to avoid type conflicts
   provider: anchor.AnchorProvider;
 
-  constructor(program: Program) {
+  constructor(program: any) {
     this.program = program;
     this.provider = program.provider as anchor.AnchorProvider;
   }
@@ -200,7 +199,6 @@ export class OracleHelper {
         oracle: oracleAddress,
         authority: this.provider.wallet.publicKey,
       })
-      .signers([])
       .rpc();
   }
 }
