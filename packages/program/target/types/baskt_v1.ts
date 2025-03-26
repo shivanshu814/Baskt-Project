@@ -34,7 +34,30 @@ export type BasktV1 = {
         {
           "name": "asset",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.ticker"
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol account for access control check"
+          ]
         },
         {
           "name": "systemProgram",
@@ -49,6 +72,42 @@ export type BasktV1 = {
               "name": "addAssetParams"
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "addRole",
+      "discriminator": [
+        45,
+        20,
+        52,
+        132,
+        56,
+        24,
+        179,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "account",
+          "docs": [
+            "Account to assign the role to"
+          ]
+        },
+        {
+          "name": "protocol",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "roleType",
+          "type": "u8"
         }
       ]
     },
@@ -392,6 +451,42 @@ export type BasktV1 = {
       ]
     },
     {
+      "name": "removeRole",
+      "discriminator": [
+        74,
+        69,
+        168,
+        163,
+        248,
+        3,
+        130,
+        0
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "account",
+          "docs": [
+            "Account to remove the role from"
+          ]
+        },
+        {
+          "name": "protocol",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "roleType",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "updateCustomOracle",
       "discriminator": [
         92,
@@ -668,18 +763,87 @@ export type BasktV1 = {
       "code": 6015,
       "name": "insufficientFunds",
       "msg": "Insufficient funds for operation"
+    },
+    {
+      "code": 6016,
+      "name": "roleNotFound",
+      "msg": "Role not found for the account"
+    },
+    {
+      "code": 6017,
+      "name": "missingRequiredRole",
+      "msg": "Missing required role for this operation"
+    },
+    {
+      "code": 6018,
+      "name": "unauthorizedSigner",
+      "msg": "Unauthorized signer for this operation"
+    },
+    {
+      "code": 6019,
+      "name": "invalidRoleType",
+      "msg": "Invalid role type"
     }
   ],
   "types": [
+    {
+      "name": "accessControl",
+      "docs": [
+        "Access control system for the protocol"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "entries",
+            "docs": [
+              "Map of accounts to their roles"
+            ],
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "accessControlEntry"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "accessControlEntry",
+      "docs": [
+        "Access control entry for a specific account"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "account",
+            "docs": [
+              "The account that has this role"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "docs": [
+              "The role assigned to this account"
+            ],
+            "type": {
+              "defined": {
+                "name": "role"
+              }
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "addAssetParams",
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "assetId",
-            "type": "pubkey"
-          },
           {
             "name": "ticker",
             "type": "string"
@@ -1055,7 +1219,7 @@ export type BasktV1 = {
     {
       "name": "protocol",
       "docs": [
-        "* REVIEW: I will need a permissions struct which can be used to turn of certain features of the system \n * It should track all the assets that we have in the system. \n * it should keep track of all the fees we are charging and what not \n * it should keep track of min liqudiation margins \n * it should keep track of fee splits \n * it should keep track of owner and be able to transfer ownership \n * it should keep track of protocol level stats maybe? fees, trading, volume, total baskts, total assets"
+        "* REVIEW: I will need a permissions struct which can be used to turn of certain features of the system\n * It should track all the assets that we have in the system.\n * it should keep track of all the fees we are charging and what not\n * it should keep track of min liqudiation margins\n * it should keep track of fee splits\n * it should keep track of owner and be able to transfer ownership\n * it should keep track of protocol level stats maybe? fees, trading, volume, total baskts, total assets"
       ],
       "type": {
         "kind": "struct",
@@ -1067,6 +1231,34 @@ export type BasktV1 = {
           {
             "name": "owner",
             "type": "pubkey"
+          },
+          {
+            "name": "accessControl",
+            "type": {
+              "defined": {
+                "name": "accessControl"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "role",
+      "docs": [
+        "Roles that can be assigned to accounts for access control"
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "owner"
+          },
+          {
+            "name": "assetManager"
+          },
+          {
+            "name": "oracleManager"
           }
         ]
       }

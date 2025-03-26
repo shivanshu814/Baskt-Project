@@ -1,30 +1,45 @@
-use crate::state::{asset::SyntheticAsset, oracle::OracleParams};
+use crate::state::{asset::SyntheticAsset, oracle::OracleParams, protocol::{Protocol, Role}};
+use crate::error::PerpetualsError;
 use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct AddAssetParams {
-    pub asset_id: Pubkey,
     pub ticker: String,
     pub oracle: OracleParams,
 }
 
 #[derive(Accounts)]
+#[instruction(params: AddAssetParams)]
 pub struct AddAsset<'info> {
-    #[account(mut)]
+    #[account(mut,
+        constraint = protocol.has_permission(&admin.key(), Role::AssetManager) @ PerpetualsError::UnauthorizedSigner
+    )]
     pub admin: Signer<'info>,
 
-    #[account(init, payer = admin, space = 8 + SyntheticAsset::INIT_SPACE)]
+    #[account(
+        init,
+        payer = admin,
+        space = 8 + SyntheticAsset::INIT_SPACE,
+        seeds = [b"asset", params.ticker.as_bytes()],
+        bump
+    )]
     pub asset: Account<'info, SyntheticAsset>,
+    
+    /// Protocol account for access control check
+    pub protocol: Account<'info, Protocol>,
 
     pub system_program: Program<'info, System>,
 }
 
 pub fn add_asset(ctx: Context<AddAsset>, params: AddAssetParams) -> Result<()> {
+    // Get the asset key before borrowing it mutably
+    let asset_key = ctx.accounts.asset.key();
     let asset = &mut ctx.accounts.asset;
     let clock = Clock::get()?;
 
+    // Use the asset account's key as the asset_id
     asset.initialize(
-        params.asset_id,
+        asset_key,
         params.ticker,
         params.oracle,
         clock.unix_timestamp,

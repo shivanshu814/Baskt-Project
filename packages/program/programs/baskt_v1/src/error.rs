@@ -34,4 +34,12 @@ pub enum PerpetualsError {
     InvalidOraclePrice,
     #[msg("Insufficient funds for operation")]
     InsufficientFunds,
+    #[msg("Role not found for the account")]
+    RoleNotFound,
+    #[msg("Missing required role for this operation")]
+    MissingRequiredRole,
+    #[msg("Unauthorized signer for this operation")]
+    UnauthorizedSigner,
+    #[msg("Invalid role type")]
+    InvalidRoleType,
 }

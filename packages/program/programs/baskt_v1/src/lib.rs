@@ -21,6 +21,14 @@ pub mod baskt_v1 {
         instructions::protocol::initialize_protocol(ctx)
     }
 
+    pub fn add_role(ctx: Context<AddRole>, role_type: u8) -> Result<()> {
+        instructions::protocol::add_role(ctx, role_type)
+    }
+
+    pub fn remove_role(ctx: Context<RemoveRole>, role_type: u8) -> Result<()> {
+        instructions::protocol::remove_role(ctx, role_type)
+    }
+
     // Baskt Management
     pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Result<()> {
         instructions::baskt::create_baskt(ctx, params)

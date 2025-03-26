@@ -1,7 +1,8 @@
 import { expect } from "chai";
-import { describe, it } from "mocha";
+import { describe, it, before } from "mocha";
 import { Keypair } from "@solana/web3.js";
 import { TestClient } from "../utils/test-client";
+import { AccessControlRole } from "@baskt/sdk";
 
 describe("asset", () => {
   // Get the test client instance
@@ -10,16 +11,35 @@ describe("asset", () => {
   // Initial price data
   const priceExponent = -6; // 6 decimal places
 
+  // Set up test roles before running tests
+  before(async () => {
+    await client.initializeRoles();
+
+    // Verify roles were assigned correctly
+    const hasAssetManagerRole = await client.hasRole(
+      client.assetManager.publicKey,
+      AccessControlRole.AssetManager
+    );
+    const hasOracleManagerRole = await client.hasRole(
+      client.oracleManager.publicKey,
+      AccessControlRole.OracleManager
+    );
+
+    expect(hasAssetManagerRole).to.be.true;
+    expect(hasOracleManagerRole).to.be.true;
+  });
+
   it("Successfully adds a new synthetic asset with custom oracle", async () => {
     // Create a custom oracle and asset in one step
-    const { assetKeypair, assetId, ticker, oracle } =
+    // The client should have the AssetManager role by default since it's the protocol owner
+    const { assetAddress, ticker, oracle } =
       await client.createAssetWithCustomOracle("BTC");
 
     // Fetch the asset account to verify it was initialized correctly
-    const assetAccount = await client.getAsset(assetKeypair.publicKey);
+    const assetAccount = await client.getAsset(assetAddress);
 
     // Verify the asset was initialized with correct values
-    expect(assetAccount.assetId.toString()).to.equal(assetId.toString());
+    expect(assetAccount.assetId.toString()).to.equal(assetAddress.toString());
     expect(assetAccount.ticker).to.equal(ticker);
     expect(assetAccount.oracle.oracleAccount.toString()).to.equal(
       oracle.address.toString()
@@ -37,6 +57,7 @@ describe("asset", () => {
 
   it("Successfully updates oracle price and verifies the change", async () => {
     // Create a custom oracle and asset for this test
+    // The client should have the OracleManager role by default since it's the protocol owner
     const { oracle } = await client.createAssetWithCustomOracle("ETH", 3000); // Initial price $3,000
 
     // New price to set ($3,500)
@@ -62,14 +83,15 @@ describe("asset", () => {
 
   it("Successfully adds an asset with Pyth oracle", async () => {
     // Create a Pyth oracle and asset in one step
-    const { assetKeypair, assetId, oracle } =
+    // The client should have the AssetManager role by default since it's the protocol owner
+    const { assetAddress, oracle } =
       await client.createAndAddAssetWithPythOracle("SOL");
 
     // Fetch the asset account to verify it was initialized correctly
-    const assetAccount = await client.getAsset(assetKeypair.publicKey);
+    const assetAccount = await client.getAsset(assetAddress);
 
     // Verify the asset was initialized with correct values
-    expect(assetAccount.assetId.toString()).to.equal(assetId.toString());
+    expect(assetAccount.assetId.toString()).to.equal(assetAddress.toString());
     expect(assetAccount.ticker).to.equal("SOL");
     expect(assetAccount.oracle.oracleAccount.toString()).to.equal(
       oracle.address.toString()
@@ -92,14 +114,16 @@ describe("asset", () => {
     // with different market skews using oracle price updates
 
     // Create a custom oracle and asset in one step
-    const { assetKeypair, assetId, oracle } =
-      await client.createAssetWithCustomOracle("FUND");
+    // The client should have the AssetManager role by default since it's the protocol owner
+    const { assetAddress, oracle } = await client.createAssetWithCustomOracle(
+      "FUND"
+    );
 
     // Fetch the asset account to verify it was initialized correctly
-    const assetAccount = await client.getAsset(assetKeypair.publicKey);
+    const assetAccount = await client.getAsset(assetAddress);
 
     // Verify basic asset properties
-    expect(assetAccount.assetId.toString()).to.equal(assetId.toString());
+    expect(assetAccount.assetId.toString()).to.equal(assetAddress.toString());
     expect(assetAccount.oracle.oracleAccount.toString()).to.equal(
       oracle.address.toString()
     );
@@ -115,6 +139,7 @@ describe("asset", () => {
 
   it("Tests oracle price staleness handling", async () => {
     // Create a stale oracle (2 hours ago)
+    // The client should have the OracleManager role by default since it's the protocol owner
     const staleOracle = await client.createStaleOracle(7200); // 2 hours in seconds
 
     // Verify the oracle was created with the stale timestamp
@@ -128,9 +153,6 @@ describe("asset", () => {
       10
     );
 
-    // Create a new asset with a very short max price age (10 seconds)
-    const staleAssetKeypair = Keypair.generate();
-    const staleAssetId = Keypair.generate().publicKey;
     const staleTicker = "STALE";
 
     // Create oracle parameters with a short max age
@@ -142,19 +164,36 @@ describe("asset", () => {
     );
 
     // Add the asset with the stale oracle
-    await client.addAsset(
-      staleAssetKeypair,
-      staleAssetId,
+    const { assetAddress } = await client.addAsset(
       staleTicker,
       staleOracleParams
     );
 
     // Verify the asset was created with the correct oracle parameters
-    const assetAccount = await client.getAsset(staleAssetKeypair.publicKey);
+    const assetAccount = await client.getAsset(assetAddress);
 
     expect(assetAccount.oracle.oracleAccount.toString()).to.equal(
       staleOracle.address.toString()
     );
     expect(assetAccount.oracle.maxPriceAgeSec).to.equal(10);
+  });
+
+  it("Tests permission checks for asset management", async () => {
+    // Create a new keypair without any roles
+    const unauthorizedUser = Keypair.generate();
+
+    // Verify the unauthorized user doesn't have the AssetManager role
+    const hasRole = await client.hasRole(
+      unauthorizedUser.publicKey,
+      AccessControlRole.AssetManager
+    );
+    expect(hasRole).to.be.false;
+
+    // Verify the asset manager has the correct role
+    const hasAssetManagerRole = await client.hasRole(
+      client.assetManager.publicKey,
+      AccessControlRole.AssetManager
+    );
+    expect(hasAssetManagerRole).to.be.true;
   });
 });

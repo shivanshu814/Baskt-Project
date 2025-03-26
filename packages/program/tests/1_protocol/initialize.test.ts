@@ -7,7 +7,6 @@ describe("protocol", () => {
   const client = TestClient.getInstance();
 
   it("Successfully initializes the protocol", async () => {
-    // Initialize the protocol
     await client.initializeProtocol();
 
     // Fetch the protocol account to verify it was initialized correctly

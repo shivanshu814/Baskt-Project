@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { BaseClient } from "@baskt/sdk";
+import { BaseClient, AccessControlRole } from "@baskt/sdk";
 import { BasktV1 } from "../../target/types/baskt_v1";
 
 /**
@@ -13,10 +13,14 @@ import { BasktV1 } from "../../target/types/baskt_v1";
 export class TestClient extends BaseClient {
   private static instance: TestClient;
 
+  // Set up test accounts
+  public assetManager: Keypair;
+  public oracleManager: Keypair;
+
   /**
    * Private constructor - use getInstance() instead
    */
-  private constructor() {
+  public constructor() {
     // Use the AnchorProvider.env() to get the provider from the environment
     const provider = anchor.AnchorProvider.env();
     anchor.setProvider(provider);
@@ -26,6 +30,9 @@ export class TestClient extends BaseClient {
 
     // Initialize the base client
     super(program);
+
+    this.assetManager = Keypair.generate();
+    this.oracleManager = Keypair.generate();
   }
 
   /**
@@ -38,6 +45,21 @@ export class TestClient extends BaseClient {
     return TestClient.instance;
   }
 
+  /**
+   * Initialize test roles
+   * This must be called before using the test client
+   */
+  public async initializeRoles(): Promise<void> {
+    // Add roles to test accounts
+    await this.addRole(
+      this.assetManager.publicKey,
+      AccessControlRole.AssetManager
+    );
+    await this.addRole(
+      this.oracleManager.publicKey,
+      AccessControlRole.OracleManager
+    );
+  }
   /**
    * Create and add a synthetic asset with a custom oracle in one step
    * @param ticker Asset ticker symbol
@@ -59,11 +81,126 @@ export class TestClient extends BaseClient {
 
     // Format the result to match the expected return format of the TestClient
     return {
-      assetKeypair: result.assetKeypair,
-      assetId: result.assetId,
+      assetAddress: result.assetAddress,
       ticker,
       oracle: result.oracle,
-      oracleParams: this.createOracleParams(result.oracle.address, "custom"),
+      txSignature: result.txSignature,
+    };
+  }
+
+  /**
+   * Add a role to an account
+   * @param account Account to assign the role to
+   * @param role AccessControlRole to assign
+   */
+  public async addRole(
+    account: PublicKey,
+    role: AccessControlRole | string
+  ): Promise<string> {
+    // Convert string to AccessControlRole enum if needed
+    const roleEnum = typeof role === "string" ? this.stringToRole(role) : role;
+    return await super.addRole(account, roleEnum);
+  }
+
+  /**
+   * Remove a role from an account
+   * @param account Account to remove the role from
+   * @param role AccessControlRole to remove
+   */
+  public async removeRole(
+    account: PublicKey,
+    role: AccessControlRole | string
+  ): Promise<string> {
+    // Convert string to AccessControlRole enum if needed
+    const roleEnum = typeof role === "string" ? this.stringToRole(role) : role;
+    return await super.removeRole(account, roleEnum);
+  }
+
+  /**
+   * Check if an account has a specific role
+   * @param account Account to check
+   * @param role AccessControlRole to check
+   * @returns Boolean indicating if the account has the role
+   */
+  public async hasRole(
+    account: PublicKey,
+    role: AccessControlRole | string
+  ): Promise<boolean> {
+    // Convert string to AccessControlRole enum if needed
+    const roleEnum = typeof role === "string" ? this.stringToRole(role) : role;
+    return await super.hasRole(account, roleEnum);
+  }
+
+  /**
+   * Check if an account has permission for a specific role (is owner or has the role)
+   * @param account Account to check
+   * @param role AccessControlRole to check
+   * @returns Boolean indicating if the account has permission
+   */
+  public async hasPermission(
+    account: PublicKey,
+    role: AccessControlRole | string
+  ): Promise<boolean> {
+    // Convert string to AccessControlRole enum if needed
+    const roleEnum = typeof role === "string" ? this.stringToRole(role) : role;
+    return await super.hasPermission(account, roleEnum);
+  }
+
+  /**
+   * Helper method to convert a string to a AccessControlRole enum
+   * @param roleStr AccessControlRole as a string
+   * @returns AccessControlRole enum
+   */
+  private stringToRole(roleStr: string): AccessControlRole {
+    switch (roleStr) {
+      case "AssetManager":
+        return AccessControlRole.AssetManager;
+      case "OracleManager":
+        return AccessControlRole.OracleManager;
+      case "Owner":
+        // For Owner role, we can't actually add it as a role in the access control list
+        // but we handle it specially in the hasPermission method
+        throw new Error(
+          `Cannot add ${AccessControlRole.Owner} as a role. Owner is set during protocol initialization.`
+        );
+      default:
+        throw new Error(`Invalid role string: ${roleStr}`);
+    }
+  }
+
+  /**
+   * Create and add a synthetic asset with a Pyth oracle in one step
+   * @param ticker Asset ticker symbol
+   * @param price Oracle price (optional)
+   * @param exponent Price exponent (optional)
+   * @returns Object containing asset and oracle information
+   */
+  public async createAndAddAssetWithPythOracle(
+    ticker: string,
+    price: number | BN = this.DEFAULT_PRICE,
+    exponent: number = this.DEFAULT_PRICE_EXPONENT
+  ) {
+    // Create a Pyth oracle
+    const oracle = await this.createPythOracle(price, exponent);
+
+    // Create oracle parameters
+    const oracleParams = this.createOracleParams(
+      oracle.address,
+      "pyth",
+      this.DEFAULT_PRICE_ERROR,
+      this.DEFAULT_PRICE_AGE_SEC
+    );
+
+    // Add the asset
+    const { assetAddress, txSignature } = await this.addAsset(
+      ticker,
+      oracleParams
+    );
+
+    return {
+      assetAddress,
+      oracle,
+      txSignature,
     };
   }
 }

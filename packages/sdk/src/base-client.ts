@@ -1,11 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program, Idl, AnchorProvider } from "@coral-xyz/anchor";
-import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 import { OracleHelper } from "./utils/oracle-helper";
 import BN from "bn.js";
 
 // Import the types from our local files
 import type { BasktV1 } from "./program/types";
+import { toRoleString } from "./utils/acl-helper";
+import { AccessControlRole } from "./types/role";
 
 /**
  * Abstract base client for Solana programs
@@ -214,7 +215,6 @@ export abstract class BaseClient {
    * Helper method for creating asset parameters
    */
   public createAssetParams(
-    assetId: PublicKey,
     ticker: string,
     oracleParams: any,
     targetPrice: number | BN,
@@ -233,7 +233,6 @@ export abstract class BaseClient {
 
     // Create the asset parameters object
     return {
-      assetId: assetId,
       ticker: ticker,
       oracle: oracleParams,
       targetPrice: targetPriceBN,
@@ -270,9 +269,103 @@ export abstract class BaseClient {
   }
 
   /**
+   * Add a role to an account in the protocol
+   * @param account Public key of the account to assign the role to
+   * @param role AccessControlRole to assign
+   * @returns Transaction signature
+   */
+  public async addRole(
+    account: PublicKey,
+    role: AccessControlRole
+  ): Promise<string> {
+    // Submit the transaction to add the role
+    const tx = await this.program.methods
+      .addRole(parseInt(role.toString()))
+      .accounts({
+        owner: this.provider.wallet.publicKey,
+        account: account,
+        protocol: this.protocolPDA,
+      })
+      .rpc();
+
+    return tx;
+  }
+
+  /**
+   * Remove a role from an account in the protocol
+   * @param account Public key of the account to remove the role from
+   * @param role AccessControlRole to remove
+   * @returns Transaction signature
+   */
+  public async removeRole(
+    account: PublicKey,
+    role: AccessControlRole
+  ): Promise<string> {
+    // Submit the transaction to remove the role
+    const tx = await this.program.methods
+      .removeRole(parseInt(role.toString()))
+      .accounts({
+        owner: this.provider.wallet.publicKey,
+        account: account,
+        protocol: this.protocolPDA,
+      })
+      .rpc();
+
+    return tx;
+  }
+
+  /**
+   * Check if an account has a specific role
+   * @param account Public key of the account to check
+   * @param role AccessControlRole to check
+   * @returns Boolean indicating if the account has the role
+   */
+  public async hasRole(
+    account: PublicKey,
+    role: AccessControlRole
+  ): Promise<boolean> {
+    const protocol = await this.getProtocolAccount();
+
+    // Check if the account has the role
+    if (!protocol.accessControl || !protocol.accessControl.entries) {
+      return false;
+    }
+
+    // Convert role enum to string representation that matches Rust enum variant
+    const roleString = toRoleString(role);
+
+    return protocol.accessControl.entries.some(
+      (entry) =>
+        entry.account.toString() === account.toString() &&
+        JSON.stringify(entry.role)
+          .toLowerCase()
+          .includes(roleString.toLowerCase())
+    );
+  }
+
+  /**
+   * Check if an account has permission for a specific role (is owner or has the role)
+   * @param account Public key of the account to check
+   * @param role AccessControlRole to check
+   * @returns Boolean indicating if the account has permission
+   */
+  public async hasPermission(
+    account: PublicKey,
+    role: AccessControlRole
+  ): Promise<boolean> {
+    const protocol = await this.getProtocolAccount();
+
+    // Check if account is the owner
+    if (protocol.owner.toString() === account.toString()) {
+      return true;
+    }
+
+    // Check if account has the specific role
+    return await this.hasRole(account, role);
+  }
+
+  /**
    * Add a synthetic asset
-   * @param assetKeypair Keypair for the asset account
-   * @param assetId Unique identifier for the asset
    * @param ticker Asset ticker symbol
    * @param oracleParams Oracle parameters
    * @param targetPrice Target price for the asset (optional)
@@ -282,11 +375,9 @@ export abstract class BaseClient {
    * @param liquidationPenalty Liquidation penalty (in BPS, optional)
    * @param interestRate Interest rate (in BPS, optional)
    * @param interestAccrualRate How often interest accrues (in seconds, optional)
-   * @returns Transaction signature
+   * @returns Transaction signature and asset PDA
    */
   public async addAsset(
-    assetKeypair: Keypair,
-    assetId: PublicKey,
     ticker: string,
     oracleParams: any,
     targetPrice?: number | BN,
@@ -296,10 +387,9 @@ export abstract class BaseClient {
     liquidationPenalty?: number,
     interestRate?: number,
     interestAccrualRate?: number
-  ): Promise<string> {
+  ): Promise<{ txSignature: string; assetAddress: PublicKey }> {
     // Create the asset parameters using BaseClient's helper method
     const params = this.createAssetParams(
-      assetId,
       ticker,
       oracleParams,
       targetPrice || 50000, // Default value
@@ -311,21 +401,27 @@ export abstract class BaseClient {
       interestAccrualRate
     );
 
+    // Derive the asset PDA from the ticker
+    const [assetAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from("asset"), Buffer.from(ticker)],
+      this.program.programId
+    );
+
     // Submit the transaction to add the asset
     // We need to use a type assertion because the IDL doesn't include all required accounts
-    const tx = await this.program.methods
-      .addAsset(params)
+    const txSignature = await this.program.methods
+      .addAsset({
+        ticker: params.ticker,
+        oracle: params.oracle,
+      })
       .accounts({
         admin: this.provider.wallet.publicKey,
-        asset: assetKeypair.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
         // Add the protocol account which is required by the program but not in the IDL
-        ...{ protocol: this.protocolPDA },
-      } as any)
-      .signers([assetKeypair])
+        protocol: this.protocolPDA,
+      })
       .rpc();
 
-    return tx;
+    return { txSignature, assetAddress };
   }
 
   /**
@@ -349,8 +445,6 @@ export abstract class BaseClient {
     exponent?: number
   ) {
     // Use BaseClient's default values
-    const DEFAULT_PRICE = 50000;
-    const DEFAULT_PRICE_EXPONENT = -6;
     const DEFAULT_PRICE_ERROR = 100;
     const DEFAULT_PRICE_AGE_SEC = 60;
     // Create a custom oracle
@@ -364,24 +458,14 @@ export abstract class BaseClient {
       DEFAULT_PRICE_AGE_SEC
     );
 
-    // Generate a keypair for the asset
-    const assetKeypair = Keypair.generate();
-
-    // Generate a unique asset ID
-    const assetId = Keypair.generate().publicKey;
-
     // Add the asset
-    const txSignature = await this.addAsset(
-      assetKeypair,
-      assetId,
+    const { txSignature, assetAddress } = await this.addAsset(
       ticker,
       oracleParams
     );
 
     return {
-      assetKeypair,
-      assetId,
-      assetAddress: assetKeypair.publicKey,
+      assetAddress,
       oracle,
       txSignature,
     };
@@ -400,8 +484,6 @@ export abstract class BaseClient {
     exponent?: number
   ) {
     // Use BaseClient's default values
-    const DEFAULT_PRICE = 50000;
-    const DEFAULT_PRICE_EXPONENT = -6;
     const DEFAULT_PRICE_ERROR = 100;
     const DEFAULT_PRICE_AGE_SEC = 60;
     // Create a Pyth oracle
@@ -415,24 +497,14 @@ export abstract class BaseClient {
       DEFAULT_PRICE_AGE_SEC
     );
 
-    // Generate a keypair for the asset
-    const assetKeypair = Keypair.generate();
-
-    // Generate a unique asset ID
-    const assetId = Keypair.generate().publicKey;
-
     // Add the asset
-    const txSignature = await this.addAsset(
-      assetKeypair,
-      assetId,
+    const { txSignature, assetAddress } = await this.addAsset(
       ticker,
       oracleParams
     );
 
     return {
-      assetKeypair,
-      assetId,
-      assetAddress: assetKeypair.publicKey,
+      assetAddress,
       oracle,
       txSignature,
     };

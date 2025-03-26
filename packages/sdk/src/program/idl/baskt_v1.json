@@ -28,7 +28,30 @@
         {
           "name": "asset",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  115,
+                  115,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.ticker"
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol account for access control check"
+          ]
         },
         {
           "name": "system_program",
@@ -43,6 +66,42 @@
               "name": "AddAssetParams"
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "add_role",
+      "discriminator": [
+        45,
+        20,
+        52,
+        132,
+        56,
+        24,
+        179,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "account",
+          "docs": [
+            "Account to assign the role to"
+          ]
+        },
+        {
+          "name": "protocol",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "role_type",
+          "type": "u8"
         }
       ]
     },
@@ -386,6 +445,42 @@
       ]
     },
     {
+      "name": "remove_role",
+      "discriminator": [
+        74,
+        69,
+        168,
+        163,
+        248,
+        3,
+        130,
+        0
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "account",
+          "docs": [
+            "Account to remove the role from"
+          ]
+        },
+        {
+          "name": "protocol",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "role_type",
+          "type": "u8"
+        }
+      ]
+    },
+    {
       "name": "update_custom_oracle",
       "discriminator": [
         92,
@@ -662,18 +757,87 @@
       "code": 6015,
       "name": "InsufficientFunds",
       "msg": "Insufficient funds for operation"
+    },
+    {
+      "code": 6016,
+      "name": "RoleNotFound",
+      "msg": "Role not found for the account"
+    },
+    {
+      "code": 6017,
+      "name": "MissingRequiredRole",
+      "msg": "Missing required role for this operation"
+    },
+    {
+      "code": 6018,
+      "name": "UnauthorizedSigner",
+      "msg": "Unauthorized signer for this operation"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidRoleType",
+      "msg": "Invalid role type"
     }
   ],
   "types": [
+    {
+      "name": "AccessControl",
+      "docs": [
+        "Access control system for the protocol"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "entries",
+            "docs": [
+              "Map of accounts to their roles"
+            ],
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "AccessControlEntry"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "AccessControlEntry",
+      "docs": [
+        "Access control entry for a specific account"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "account",
+            "docs": [
+              "The account that has this role"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "docs": [
+              "The role assigned to this account"
+            ],
+            "type": {
+              "defined": {
+                "name": "Role"
+              }
+            }
+          }
+        ]
+      }
+    },
     {
       "name": "AddAssetParams",
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "asset_id",
-            "type": "pubkey"
-          },
           {
             "name": "ticker",
             "type": "string"
@@ -1049,7 +1213,7 @@
     {
       "name": "Protocol",
       "docs": [
-        "* REVIEW: I will need a permissions struct which can be used to turn of certain features of the system \n * It should track all the assets that we have in the system. \n * it should keep track of all the fees we are charging and what not \n * it should keep track of min liqudiation margins \n * it should keep track of fee splits \n * it should keep track of owner and be able to transfer ownership \n * it should keep track of protocol level stats maybe? fees, trading, volume, total baskts, total assets"
+        "* REVIEW: I will need a permissions struct which can be used to turn of certain features of the system\n * It should track all the assets that we have in the system.\n * it should keep track of all the fees we are charging and what not\n * it should keep track of min liqudiation margins\n * it should keep track of fee splits\n * it should keep track of owner and be able to transfer ownership\n * it should keep track of protocol level stats maybe? fees, trading, volume, total baskts, total assets"
       ],
       "type": {
         "kind": "struct",
@@ -1061,6 +1225,34 @@
           {
             "name": "owner",
             "type": "pubkey"
+          },
+          {
+            "name": "access_control",
+            "type": {
+              "defined": {
+                "name": "AccessControl"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Role",
+      "docs": [
+        "Roles that can be assigned to accounts for access control"
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Owner"
+          },
+          {
+            "name": "AssetManager"
+          },
+          {
+            "name": "OracleManager"
           }
         ]
       }
