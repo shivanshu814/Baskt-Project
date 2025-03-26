@@ -544,4 +544,91 @@ export abstract class BaseClient {
   public async getOracleAccount(oracleAddress: PublicKey) {
     return await this.program.account.customOracle.fetch(oracleAddress);
   }
+
+  /**
+   * Create a new baskt
+   * @param basktName The name of the baskt
+   * @param assetConfigs Array of asset configurations with weights
+   * @param isPublic Whether the baskt is public or private
+   * @returns Object containing the baskt keypair and transaction signature
+   */
+  public async createBaskt(
+    basktName: string,
+    assetConfigs: Array<{ assetId: PublicKey; direction: boolean; weight: number }>,
+    isPublic: boolean
+  ) {
+    // Derive the baskt PDA
+    const [basktId] = PublicKey.findProgramAddressSync(
+      [Buffer.from("baskt"), Buffer.from(basktName)],
+      this.program.programId
+    );
+
+    // Convert asset configs to the format expected by the program
+    const programAssetConfigs = assetConfigs.map(config => ({
+      assetId: config.assetId,
+      direction: config.direction,
+      weight: new BN(config.weight)
+    }));
+
+    const txSignature = await this.program.methods
+      .createBaskt({
+        basktName,
+        assetParams: programAssetConfigs,
+        isPublic
+      })
+      .accounts({
+        creator: this.provider.wallet.publicKey,
+        baskt: basktId,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      } as any) // Use type assertion to handle systemProgram account
+      .rpc();
+
+    return { 
+      basktId,
+      txSignature
+    };
+  }
+
+  /**
+   * Get a baskt account by its public key
+   * @param basktPubkey The public key of the baskt account
+   * @returns The baskt account data
+   */
+  public async getBaskt(basktPubkey: PublicKey) {
+    return await this.program.account.baskt.fetch(basktPubkey);
+  }
+
+  /**
+   * Get all baskt accounts in the protocol
+   * @returns Array of baskt accounts with their public keys
+   */
+  public async getAllBaskts() {
+    return await this.program.account.baskt.all();
+  }
+
+  /**
+   * Get an asset by its ticker symbol
+   * @param ticker Asset ticker symbol
+   * @returns Asset information if found, null otherwise
+   */
+  public async getAssetByTicker(ticker: string) {
+    try {
+      // Get all assets and find the one with matching ticker
+      const allAssets = await this.getAllAssets();
+      const assetInfo = allAssets.find(asset => asset.account.ticker === ticker);
+      
+      if (!assetInfo) {
+        return null;
+      }
+
+      return {
+        assetAddress: assetInfo.publicKey,
+        ticker: assetInfo.account.ticker,
+        oracle: assetInfo.account.oracle,
+      };
+    } catch (error) {
+      console.error(`Error getting asset by ticker ${ticker}:`, error);
+      return null;
+    }
+  }
 }

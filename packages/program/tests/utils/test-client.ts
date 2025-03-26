@@ -62,6 +62,7 @@ export class TestClient extends BaseClient {
   }
   /**
    * Create and add a synthetic asset with a custom oracle in one step
+   * If an asset with the given ticker already exists, returns its information
    * @param ticker Asset ticker symbol
    * @param price Oracle price (optional)
    * @param exponent Price exponent (optional)
@@ -72,7 +73,23 @@ export class TestClient extends BaseClient {
     price: number | BN = this.DEFAULT_PRICE,
     exponent: number = this.DEFAULT_PRICE_EXPONENT
   ) {
-    // We inherit createAndAddAssetWithCustomOracle from BaseClient
+    try {
+      // Try to get the asset by ticker
+      const existingAsset = await this.getAssetByTicker(ticker);
+      if (existingAsset) {
+        // If asset exists, return its information
+        return {
+          assetAddress: existingAsset.assetAddress,
+          ticker: existingAsset.ticker,
+          oracle: existingAsset.oracle,
+          txSignature: null, // No new transaction was created
+        };
+      }
+    } catch (error) {
+      // If the asset already exists, return its information
+    }
+
+    // Create new asset if it doesn't exist
     const result = await this.createAndAddAssetWithCustomOracle(
       ticker,
       price,
@@ -202,5 +219,31 @@ export class TestClient extends BaseClient {
       oracle,
       txSignature,
     };
+  }
+
+  /**
+   * Create a new baskt
+   * @param basktName The name of the baskt
+   * @param assetConfigs Array of asset configurations with weights
+   * @param isPublic Whether the baskt is public or private
+   * @returns Object containing the baskt keypair and transaction signature
+   */
+  public async createBaskt(
+    basktName: string,
+    assetConfigs: Array<{ assetId: PublicKey; direction: boolean; weight: number }>,
+    isPublic: boolean
+  ) {
+    // Use the BaseClient's createBaskt method and return the full result
+    return await super.createBaskt(basktName, assetConfigs, isPublic);
+  }
+
+  /**
+   * Get a baskt account by its public key
+   * @param basktPubkey The public key of the baskt account
+   * @returns The baskt account data
+   */
+  public async getBaskt(basktPubkey: PublicKey) {
+    // Use the BaseClient's getBaskt method
+    return await super.getBaskt(basktPubkey);
   }
 }

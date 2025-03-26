@@ -43,7 +43,7 @@ importers:
         specifier: ^5.1.6
         version: 5.1.6
       '@types/chai':
-        specifier: ^5.0.1
+        specifier: ^5.2.0
         version: 5.2.0
       '@types/jest':
         specifier: ^29.5.14

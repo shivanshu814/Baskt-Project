@@ -166,7 +166,24 @@
         {
           "name": "baskt",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "baskt_name"
+              }
+            ]
+          }
         },
         {
           "name": "system_program",
@@ -760,21 +777,31 @@
     },
     {
       "code": 6016,
+      "name": "InvalidBasktName",
+      "msg": "Invalid baskt name"
+    },
+    {
+      "code": 6017,
+      "name": "BasktInactive",
+      "msg": "Baskt is inactive"
+    },
+    {
+      "code": 6018,
       "name": "RoleNotFound",
       "msg": "Role not found for the account"
     },
     {
-      "code": 6017,
+      "code": 6019,
       "name": "MissingRequiredRole",
       "msg": "Missing required role for this operation"
     },
     {
-      "code": 6018,
+      "code": 6020,
       "name": "UnauthorizedSigner",
       "msg": "Unauthorized signer for this operation"
     },
     {
-      "code": 6019,
+      "code": 6021,
       "name": "InvalidRoleType",
       "msg": "Invalid role type"
     }
@@ -869,6 +896,30 @@
           {
             "name": "weight",
             "type": "u64"
+          },
+          {
+            "name": "baseline_price",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "asset_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "direction",
+            "type": "bool"
+          },
+          {
+            "name": "weight",
+            "type": "u64"
           }
         ]
       }
@@ -883,7 +934,11 @@
             "type": "pubkey"
           },
           {
-            "name": "asset_configs",
+            "name": "baskt_name",
+            "type": "string"
+          },
+          {
+            "name": "current_asset_configs",
             "type": {
               "vec": {
                 "defined": {
@@ -915,6 +970,18 @@
           {
             "name": "total_fees",
             "type": "u64"
+          },
+          {
+            "name": "current_nav",
+            "type": "u64"
+          },
+          {
+            "name": "last_rebalance_index",
+            "type": "u64"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
           }
         ]
       }
@@ -925,15 +992,15 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "baskt_id",
-            "type": "pubkey"
+            "name": "baskt_name",
+            "type": "string"
           },
           {
-            "name": "asset_configs",
+            "name": "asset_params",
             "type": {
               "vec": {
                 "defined": {
-                  "name": "AssetConfig"
+                  "name": "AssetParams"
                 }
               }
             }

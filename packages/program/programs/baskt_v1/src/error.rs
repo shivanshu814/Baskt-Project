@@ -34,6 +34,10 @@ pub enum PerpetualsError {
     InvalidOraclePrice,
     #[msg("Insufficient funds for operation")]
     InsufficientFunds,
+    #[msg("Invalid baskt name")]
+    InvalidBasktName,
+    #[msg("Baskt is inactive")]
+    BasktInactive,
     #[msg("Role not found for the account")]
     RoleNotFound,
     #[msg("Missing required role for this operation")]

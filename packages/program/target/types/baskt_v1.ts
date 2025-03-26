@@ -172,7 +172,24 @@ export type BasktV1 = {
         {
           "name": "baskt",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "basktName"
+              }
+            ]
+          }
         },
         {
           "name": "systemProgram",
@@ -766,21 +783,31 @@ export type BasktV1 = {
     },
     {
       "code": 6016,
+      "name": "invalidBasktName",
+      "msg": "Invalid baskt name"
+    },
+    {
+      "code": 6017,
+      "name": "basktInactive",
+      "msg": "Baskt is inactive"
+    },
+    {
+      "code": 6018,
       "name": "roleNotFound",
       "msg": "Role not found for the account"
     },
     {
-      "code": 6017,
+      "code": 6019,
       "name": "missingRequiredRole",
       "msg": "Missing required role for this operation"
     },
     {
-      "code": 6018,
+      "code": 6020,
       "name": "unauthorizedSigner",
       "msg": "Unauthorized signer for this operation"
     },
     {
-      "code": 6019,
+      "code": 6021,
       "name": "invalidRoleType",
       "msg": "Invalid role type"
     }
@@ -875,6 +902,30 @@ export type BasktV1 = {
           {
             "name": "weight",
             "type": "u64"
+          },
+          {
+            "name": "baselinePrice",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "assetParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "assetId",
+            "type": "pubkey"
+          },
+          {
+            "name": "direction",
+            "type": "bool"
+          },
+          {
+            "name": "weight",
+            "type": "u64"
           }
         ]
       }
@@ -889,7 +940,11 @@ export type BasktV1 = {
             "type": "pubkey"
           },
           {
-            "name": "assetConfigs",
+            "name": "basktName",
+            "type": "string"
+          },
+          {
+            "name": "currentAssetConfigs",
             "type": {
               "vec": {
                 "defined": {
@@ -921,6 +976,18 @@ export type BasktV1 = {
           {
             "name": "totalFees",
             "type": "u64"
+          },
+          {
+            "name": "currentNav",
+            "type": "u64"
+          },
+          {
+            "name": "lastRebalanceIndex",
+            "type": "u64"
+          },
+          {
+            "name": "isActive",
+            "type": "bool"
           }
         ]
       }
@@ -931,15 +998,15 @@ export type BasktV1 = {
         "kind": "struct",
         "fields": [
           {
-            "name": "basktId",
-            "type": "pubkey"
+            "name": "basktName",
+            "type": "string"
           },
           {
-            "name": "assetConfigs",
+            "name": "assetParams",
             "type": {
               "vec": {
                 "defined": {
-                  "name": "assetConfig"
+                  "name": "assetParams"
                 }
               }
             }
