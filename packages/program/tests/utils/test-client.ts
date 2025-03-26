@@ -230,7 +230,11 @@ export class TestClient extends BaseClient {
    */
   public async createBaskt(
     basktName: string,
-    assetConfigs: Array<{ assetId: PublicKey; direction: boolean; weight: number }>,
+    assetConfigs: Array<{
+      assetId: PublicKey;
+      direction: boolean;
+      weight: number;
+    }>,
     isPublic: boolean
   ) {
     // Use the BaseClient's createBaskt method and return the full result

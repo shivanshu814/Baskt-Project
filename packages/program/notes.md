@@ -1,7 +1,16 @@
 1. We are not writing tests for pyth oracles
 
-2. Baskt Implementation Notes:
-   - Rebalance History:
+Mathcing Engine
+
+- How do we design the matching engine?
+- Two transactions per trade?
+  - One for us and one for the user?
+
+Oracle Testing
+
+- How do i check for testing with stale ness of oracles. Stuff like EMA and what not.
+
+1. - Rebalance History:
      - Each rebalance event needs a separate account
      - Account seeds: [b"baskt", baskt_name.as_bytes(), rebalance_index.to_le_bytes()]
      - Account stores previous asset configs and NAV values
@@ -20,3 +29,6 @@
    - PDA Derivation:
      - Baskt accounts use seeds: [b"baskt", baskt_name.as_bytes()]
      - Baskt name is limited to 10 characters
+   - Delisting and Asset
+     - How do I delist an asset?
+       - What happens then?

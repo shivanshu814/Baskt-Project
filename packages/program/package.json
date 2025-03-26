@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "anchor build",
+    "build:anchor": "anchor build",
     "clean": "rimraf dist",
     "localnet": "anchor localnet",
     "test": "anchor test",
