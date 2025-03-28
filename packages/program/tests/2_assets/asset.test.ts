@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { describe, it, before } from "mocha";
-import { Keypair } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 import { TestClient } from "../utils/test-client";
 import { AccessControlRole } from "@baskt/sdk";
 
@@ -58,15 +58,18 @@ describe("asset", () => {
   it("Successfully updates oracle price and verifies the change", async () => {
     // Create a custom oracle and asset for this test
     // The client should have the OracleManager role by default since it's the protocol owner
-    const { assetAddress } = await client.createAssetWithCustomOracle("ETH", 3000); // Initial price $3,000
+    const { assetAddress } = await client.createAssetWithCustomOracle(
+      "ETH",
+      3000
+    ); // Initial price $3,000
 
     // Get the asset to access the oracle account
     const assetAccount = await client.getAsset(assetAddress);
     const oracleAddress = assetAccount.oracle.oracleAccount;
 
     // New price to set ($3,500)
-    const newPrice = 3500; 
- 
+    const newPrice = 3500;
+
     // Update the oracle price
     await client.updateOraclePrice(oracleAddress, newPrice, priceExponent);
 
@@ -87,7 +90,8 @@ describe("asset", () => {
   it("Successfully adds an asset with Pyth oracle", async () => {
     // Create a Pyth oracle and asset in one step
     // The client should have the AssetManager role by default since it's the protocol owner
-    const { assetAddress, oracle } = await client.createAndAddAssetWithPythOracle("SOL");
+    const { assetAddress, oracle } =
+      await client.createAndAddAssetWithPythOracle("SOL");
 
     // Fetch the asset account to verify it was initialized correctly
     const assetAccount = await client.getAsset(assetAddress);
@@ -199,25 +203,103 @@ describe("asset", () => {
     expect(hasAssetManagerRole).to.be.true;
   });
 
+  it("Ensures unauthorized users cannot add assets", async () => {
+    // Create a new keypair without any roles
+    const unauthorizedUser = await TestClient.forUser(Keypair.generate());
+    // Try to add an asset with an unauthorized user
+    // This should fail with an UnauthorizedSigner error
+    try {
+      // Create a custom oracle for this test
+      await unauthorizedUser.createAssetWithCustomOracle("UNAUTH");
+
+      // If we reach here, the test failed
+      expect.fail("Expected transaction to fail with UnauthorizedSigner error");
+    } catch (error) {
+      // Use type assertion for the error
+      const err = error as { message: string };
+      // Verify the error is the expected one
+      expect(err.message).to.include("UnauthorizedSigner");
+    }
+  });
+
+  it("Tests user with AssetManager role can add assets even if not the owner", async () => {
+    // Create a new keypair for a user with AssetManager role
+    const assetManagerUser = await TestClient.forUser(Keypair.generate());
+
+    // Grant the AssetManager role to this user
+    await client.addRole(
+      assetManagerUser.provider.publicKey,
+      AccessControlRole.AssetManager
+    );
+
+    // Verify the user has the AssetManager role
+    const hasRole = await client.hasRole(
+      assetManagerUser.provider.publicKey,
+      AccessControlRole.AssetManager
+    );
+    expect(hasRole).to.be.true;
+    const ticker = "NEWMGR";
+
+    await assetManagerUser.createAssetWithCustomOracle(ticker);
+
+    await client.removeRole(
+      assetManagerUser.provider.publicKey,
+      AccessControlRole.AssetManager
+    );
+
+    // Verify the role was revoked
+    const hasRoleAfterRevocation = await client.hasRole(
+      assetManagerUser.provider.publicKey,
+      AccessControlRole.AssetManager
+    );
+    expect(hasRoleAfterRevocation).to.be.false;
+
+    // Try to add another asset after role revocation
+    try {
+      const newTicker = "REVOKED";
+      await assetManagerUser.createAssetWithCustomOracle(newTicker);
+
+      // If we reach here, the test failed
+      expect.fail("Expected transaction to fail after role revocation");
+    } catch (error) {
+      // Use type assertion for the error
+      const err = error as { message: string };
+      // Verify the error is the expected one
+      expect(err.message).to.include("UnauthorizedSigner");
+    }
+
+    // Derive the asset address from the ticker
+    const [assetAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from("asset"), Buffer.from(ticker)],
+      client.program.programId
+    );
+
+    // Verify the asset was created
+    const assetAccount = await client.getAsset(assetAddress);
+    expect(assetAccount.ticker).to.equal(ticker);
+
+    // Verify this user is not the protocol owner
+    const protocol = await client.getProtocolAccount();
+    expect(protocol.owner.toString()).to.not.equal(
+      assetManagerUser.provider.publicKey.toString()
+    );
+  });
   it("Successfully gets asset price from oracle", async () => {
     // Create a new asset with a custom oracle
     const initialPrice = 3000;
-    const { assetAddress, oracle } = await client.createAssetWithCustomOracle("XYZ", initialPrice);
-    
-    // Get and log oracle account details
-    const oracleAccount = await client.getOracleAccount(oracle);
-    const currentTime = Math.floor(Date.now() / 1000);
-        
+    const { assetAddress, oracle } = await client.createAssetWithCustomOracle(
+      "XYZ",
+      initialPrice
+    );
+
     // Get the asset price using the view function
     const price = await client.getAssetPrice(assetAddress, oracle);
-    
+
+    expect(price.toString()).to.equal((initialPrice * 1e6).toString());
+
     // Update the price to a new value
     const newPrice = 4000; // Scale properly
     await client.updateOraclePrice(oracle, newPrice);
-    
-    // Get and log updated oracle account details
-    const updatedOracleAccount = await client.getOracleAccount(oracle);
-    const updatedCurrentTime = Math.floor(Date.now() / 1000);
 
     // Get the updated price
     const updatedPrice = await client.getAssetPrice(assetAddress, oracle);

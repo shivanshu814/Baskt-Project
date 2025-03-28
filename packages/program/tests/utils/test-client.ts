@@ -1,10 +1,44 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import BN from "bn.js";
 import { BaseClient, AccessControlRole } from "@baskt/sdk";
 import { BasktV1 } from "../../target/types/baskt_v1";
 import { getLogs } from "@solana-developers/helpers";
+
+/**
+ * Helper function to request an airdrop for a given address
+ * @param myAddress The address to fund
+ * @param connection The connection to use
+ */
+export async function requestAirdrop(
+  myAddress: PublicKey,
+  connection: anchor.web3.Connection
+) {
+  const signature = await connection.requestAirdrop(
+    myAddress,
+    LAMPORTS_PER_SOL * 10
+  );
+  await connection.confirmTransaction(signature);
+}
+
+/**
+ * Helper function to create a program instance for a specific user
+ * @param signer The keypair to use as the signer
+ * @param program The original program instance
+ * @returns A new program instance with the specified signer
+ */
+export async function programForUser(
+  signer: Keypair,
+  program: Program<BasktV1>
+): Promise<Program<BasktV1>> {
+  const newProvider = new anchor.AnchorProvider(
+    program.provider.connection,
+    new anchor.Wallet(signer),
+    {}
+  );
+  return new anchor.Program(program.idl, newProvider) as Program<BasktV1>;
+}
 
 /**
  * Singleton test client for the Baskt protocol
@@ -19,17 +53,21 @@ export class TestClient extends BaseClient {
   public oracleManager: Keypair;
 
   /**
-   * Private constructor - use getInstance() instead
+   * Constructor for TestClient
+   * @param program Optional program to use (defaults to workspace program)
+   * @param protocolPDA Optional protocol PDA to use (defaults to finding it)
    */
-  public constructor() {
-    // Use the AnchorProvider.env() to get the provider from the environment
-    const provider = anchor.AnchorProvider.env();
-    anchor.setProvider(provider);
+  public constructor(program?: Program<BasktV1>) {
+    if (!program) {
+      // Use the AnchorProvider.env() to get the provider from the environment
+      const provider = anchor.AnchorProvider.env();
+      anchor.setProvider(provider);
 
-    // Get the program from the workspace
-    const program = anchor.workspace.BasktV1 as Program<BasktV1>;
+      // Get the program from the workspace
+      program = anchor.workspace.BasktV1 as Program<BasktV1>;
+    }
 
-    // Initialize the base client
+    // Initialize the base client with the program and optional protocol PDA
     super(program);
 
     this.assetManager = Keypair.generate();
@@ -44,6 +82,28 @@ export class TestClient extends BaseClient {
       TestClient.instance = new TestClient();
     }
     return TestClient.instance;
+  }
+
+  /**
+   * Create a new test client for a specific user
+   * @param userKeypair The keypair to use for the client
+   * @returns A new test client with the specified user
+   */
+  public static async forUser(userKeypair: Keypair): Promise<TestClient> {
+    // Ensure the user has enough SOL
+    await requestAirdrop(
+      userKeypair.publicKey,
+      anchor.AnchorProvider.env().connection
+    );
+
+    // Create a new program instance for the user
+    const userProgram = await programForUser(
+      userKeypair,
+      anchor.workspace.BasktV1 as Program<BasktV1>
+    );
+
+    // Create a new client with the user's program
+    return new TestClient(userProgram);
   }
 
   /**
@@ -79,7 +139,11 @@ export class TestClient extends BaseClient {
       const existingAsset = await this.getAssetByTicker(ticker);
       if (existingAsset) {
         // If asset exists, return its information
-        await this.updateOraclePrice(existingAsset.oracle.oracleAccount, price, exponent);
+        await this.updateOraclePrice(
+          existingAsset.oracle.oracleAccount,
+          price,
+          exponent
+        );
         return {
           assetAddress: existingAsset.assetAddress,
           ticker: existingAsset.ticker,
@@ -242,23 +306,28 @@ export class TestClient extends BaseClient {
     isPublic: boolean
   ) {
     // Extract asset configs and asset/oracle pairs
-    const assetConfigs = assets.map(item => ({
+    const assetConfigs = assets.map((item) => ({
       assetId: item.asset,
       direction: item.direction,
-      weight: item.weight
+      weight: item.weight,
     }));
 
-    const assetOraclePairs = assets.map(item => ({
+    const assetOraclePairs = assets.map((item) => ({
       asset: item.asset,
-      oracle: item.oracle
+      oracle: item.oracle,
     }));
 
     // Create the baskt with current prices
-    const { basktId, txSignature } = await super.createBaskt(basktName, assetConfigs, isPublic, assetOraclePairs);
+    const { basktId, txSignature } = await super.createBaskt(
+      basktName,
+      assetConfigs,
+      isPublic,
+      assetOraclePairs
+    );
 
     return {
       basktId,
-      txSignature
+      txSignature,
     };
   }
 
@@ -278,17 +347,20 @@ export class TestClient extends BaseClient {
    * @param oracleAddress The oracle account address
    * @returns The current price as a BN
    */
-  public async getAssetPrice(assetAddress: PublicKey, oracleAddress: PublicKey) {
+  public async getAssetPrice(
+    assetAddress: PublicKey,
+    oracleAddress: PublicKey
+  ) {
     try {
       return await this.program.methods
-      .getAssetPrice()
-      .accounts({
-        asset: assetAddress,
-          oracle: oracleAddress
+        .getAssetPrice()
+        .accounts({
+          asset: assetAddress,
+          oracle: oracleAddress,
         })
         .view();
     } catch (error) {
-      console.error( error);
+      console.error(error);
       throw error;
     }
   }
@@ -299,32 +371,35 @@ export class TestClient extends BaseClient {
    * @param assetOraclePairs Array of asset/oracle account pairs
    * @returns The current NAV as a BN
    */
-  public async getBasktNav(basktAddress: PublicKey, assetOraclePairs: Array<{asset: PublicKey, oracle: PublicKey}> = []) {
+  public async getBasktNav(
+    basktAddress: PublicKey,
+    assetOraclePairs: Array<{ asset: PublicKey; oracle: PublicKey }> = []
+  ) {
     // Prepare remaining accounts (asset/oracle pairs)
-    const remainingAccounts = assetOraclePairs.flatMap(pair => [
+    const remainingAccounts = assetOraclePairs.flatMap((pair) => [
       {
         pubkey: pair.asset,
         isWritable: false,
-        isSigner: false
+        isSigner: false,
       },
       {
         pubkey: pair.oracle,
         isWritable: false,
-        isSigner: false
-      }
+        isSigner: false,
+      },
     ]);
-    
+
     // For view instructions with remainingAccounts
     try {
       return await this.program.methods
-      .getBasktNav()
-      .accounts({
-        baskt: basktAddress
-      })
-      .remainingAccounts(remainingAccounts)
-      .view();
+        .getBasktNav()
+        .accounts({
+          baskt: basktAddress,
+        })
+        .remainingAccounts(remainingAccounts)
+        .view();
     } catch (error) {
-      console.error( error);
+      console.error(error);
       throw error;
     }
   }

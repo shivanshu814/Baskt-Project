@@ -158,7 +158,6 @@ export abstract class BaseClient {
     const rawPrice =
       typeof price === "number" ? price * Math.pow(10, -exponent) : price;
 
-
     // Default confidence to 1% of price if not specified
     const rawConfidence =
       confidence ?? (typeof rawPrice === "number" ? rawPrice / 100 : undefined);
@@ -549,7 +548,11 @@ export abstract class BaseClient {
    */
   public async createBaskt(
     basktName: string,
-    assetConfigs: Array<{ assetId: PublicKey; direction: boolean; weight: number }>,
+    assetConfigs: Array<{
+      assetId: PublicKey;
+      direction: boolean;
+      weight: number;
+    }>,
     isPublic: boolean,
     assetOraclePairs?: Array<{ asset: PublicKey; oracle: PublicKey }>
   ) {
@@ -560,10 +563,10 @@ export abstract class BaseClient {
     );
 
     // Convert asset configs to the format expected by the program
-    const programAssetConfigs = assetConfigs.map(config => ({
+    const programAssetConfigs = assetConfigs.map((config) => ({
       assetId: config.assetId,
       direction: config.direction,
-      weight: new BN(config.weight)
+      weight: new BN(config.weight),
     }));
 
     // Prepare the transaction builder
@@ -571,7 +574,7 @@ export abstract class BaseClient {
       .createBaskt({
         basktName,
         assetParams: programAssetConfigs,
-        isPublic
+        isPublic,
       })
       .accounts({
         creator: this.provider.wallet.publicKey,
@@ -581,19 +584,19 @@ export abstract class BaseClient {
 
     // Add remaining accounts if provided
     if (assetOraclePairs && assetOraclePairs.length > 0) {
-      const remainingAccounts = assetOraclePairs.flatMap(pair => [
+      const remainingAccounts = assetOraclePairs.flatMap((pair) => [
         {
           pubkey: pair.asset,
           isWritable: false,
-          isSigner: false
+          isSigner: false,
         },
         {
           pubkey: pair.oracle,
           isWritable: false,
-          isSigner: false
-        }
+          isSigner: false,
+        },
       ]);
-      
+
       txBuilder.remainingAccounts(remainingAccounts);
     }
 
@@ -602,9 +605,8 @@ export abstract class BaseClient {
     const txSignature = await txBuilder.rpc();
     return {
       basktId,
-      txSignature
+      txSignature,
     };
-   
   }
 
   /**
@@ -633,8 +635,10 @@ export abstract class BaseClient {
     try {
       // Get all assets and find the one with matching ticker
       const allAssets = await this.getAllAssets();
-      const assetInfo = allAssets.find(asset => asset.account.ticker === ticker);
-      
+      const assetInfo = allAssets.find(
+        (asset) => asset.account.ticker === ticker
+      );
+
       if (!assetInfo) {
         return null;
       }
