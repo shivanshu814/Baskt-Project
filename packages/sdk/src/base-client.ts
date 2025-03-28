@@ -158,6 +158,7 @@ export abstract class BaseClient {
     const rawPrice =
       typeof price === "number" ? price * Math.pow(10, -exponent) : price;
 
+
     // Default confidence to 1% of price if not specified
     const rawConfidence =
       confidence ?? (typeof rawPrice === "number" ? rawPrice / 100 : undefined);
@@ -418,7 +419,7 @@ export abstract class BaseClient {
         admin: this.provider.wallet.publicKey,
         // Add the protocol account which is required by the program but not in the IDL
         protocol: this.protocolPDA,
-      })
+      } as any)
       .rpc();
 
     return { txSignature, assetAddress };
@@ -466,7 +467,8 @@ export abstract class BaseClient {
 
     return {
       assetAddress,
-      oracle,
+      oracle: oracle.address, // Just return the oracle address directly
+      ticker,
       txSignature,
     };
   }
@@ -505,7 +507,8 @@ export abstract class BaseClient {
 
     return {
       assetAddress,
-      oracle,
+      oracle: oracle.address, // Just return the oracle address directly
+      ticker,
       txSignature,
     };
   }
@@ -528,15 +531,6 @@ export abstract class BaseClient {
   }
 
   /**
-   * Update the price of a custom oracle
-   * @param oracleAddress Address of the oracle to update
-   * @param price New price value
-   * @param exponent Price exponent
-   * @param confidence Confidence interval (optional)
-   */
-  // We inherit updateOraclePrice from BaseClient
-
-  /**
    * Fetch a custom oracle account
    * @param oracleAddress Address of the oracle account
    * @returns Oracle account data
@@ -550,12 +544,14 @@ export abstract class BaseClient {
    * @param basktName The name of the baskt
    * @param assetConfigs Array of asset configurations with weights
    * @param isPublic Whether the baskt is public or private
+   * @param assetOraclePairs Optional array of asset/oracle pairs to use for getting current prices
    * @returns Object containing the baskt keypair and transaction signature
    */
   public async createBaskt(
     basktName: string,
     assetConfigs: Array<{ assetId: PublicKey; direction: boolean; weight: number }>,
-    isPublic: boolean
+    isPublic: boolean,
+    assetOraclePairs?: Array<{ asset: PublicKey; oracle: PublicKey }>
   ) {
     // Derive the baskt PDA
     const [basktId] = PublicKey.findProgramAddressSync(
@@ -570,7 +566,8 @@ export abstract class BaseClient {
       weight: new BN(config.weight)
     }));
 
-    const txSignature = await this.program.methods
+    // Prepare the transaction builder
+    const txBuilder = this.program.methods
       .createBaskt({
         basktName,
         assetParams: programAssetConfigs,
@@ -580,13 +577,34 @@ export abstract class BaseClient {
         creator: this.provider.wallet.publicKey,
         baskt: basktId,
         systemProgram: anchor.web3.SystemProgram.programId,
-      } as any) // Use type assertion to handle systemProgram account
-      .rpc();
+      } as any);
 
-    return { 
+    // Add remaining accounts if provided
+    if (assetOraclePairs && assetOraclePairs.length > 0) {
+      const remainingAccounts = assetOraclePairs.flatMap(pair => [
+        {
+          pubkey: pair.asset,
+          isWritable: false,
+          isSigner: false
+        },
+        {
+          pubkey: pair.oracle,
+          isWritable: false,
+          isSigner: false
+        }
+      ]);
+      
+      txBuilder.remainingAccounts(remainingAccounts);
+    }
+
+    // Execute the transaction
+
+    const txSignature = await txBuilder.rpc();
+    return {
       basktId,
       txSignature
     };
+   
   }
 
   /**

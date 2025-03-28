@@ -42,7 +42,7 @@ describe("asset", () => {
     expect(assetAccount.assetId.toString()).to.equal(assetAddress.toString());
     expect(assetAccount.ticker).to.equal(ticker);
     expect(assetAccount.oracle.oracleAccount.toString()).to.equal(
-      oracle.address.toString()
+      oracle.toString()
     );
     expect(assetAccount.oracle.oracleType).to.deep.include({ custom: {} });
     expect(assetAccount.oracle.maxPriceError.toNumber()).to.equal(100);
@@ -58,24 +58,27 @@ describe("asset", () => {
   it("Successfully updates oracle price and verifies the change", async () => {
     // Create a custom oracle and asset for this test
     // The client should have the OracleManager role by default since it's the protocol owner
-    const { oracle } = await client.createAssetWithCustomOracle("ETH", 3000); // Initial price $3,000
+    const { assetAddress } = await client.createAssetWithCustomOracle("ETH", 3000); // Initial price $3,000
+
+    // Get the asset to access the oracle account
+    const assetAccount = await client.getAsset(assetAddress);
+    const oracleAddress = assetAccount.oracle.oracleAccount;
 
     // New price to set ($3,500)
-    const newPrice = 3500;
-
+    const newPrice = 3500; 
+ 
     // Update the oracle price
-    await client.updateOraclePrice(oracle.address, newPrice, priceExponent);
+    await client.updateOraclePrice(oracleAddress, newPrice, priceExponent);
 
     // Fetch the oracle account to verify the price was updated
-    const oracleAccount = await client.getOracleAccount(oracle.address);
+    const oracleAccount = await client.getOracleAccount(oracleAddress);
 
     // Calculate the on-chain price in dollars
-    const onChainPrice =
-      oracleAccount.price.toNumber() * Math.pow(10, oracleAccount.expo);
+    const onChainPrice = oracleAccount.price.toNumber();
 
     // Verify the price was updated correctly
     // Allow for some small rounding errors in the conversion
-    expect(onChainPrice).to.be.closeTo(newPrice, 0.1);
+    expect(onChainPrice).to.be.equal(newPrice * 1e6);
 
     // Verify the publish time was updated
     expect(oracleAccount.publishTime.toNumber()).to.be.greaterThan(0);
@@ -84,8 +87,7 @@ describe("asset", () => {
   it("Successfully adds an asset with Pyth oracle", async () => {
     // Create a Pyth oracle and asset in one step
     // The client should have the AssetManager role by default since it's the protocol owner
-    const { assetAddress, oracle } =
-      await client.createAndAddAssetWithPythOracle("SOL");
+    const { assetAddress, oracle } = await client.createAndAddAssetWithPythOracle("SOL");
 
     // Fetch the asset account to verify it was initialized correctly
     const assetAccount = await client.getAsset(assetAddress);
@@ -94,7 +96,7 @@ describe("asset", () => {
     expect(assetAccount.assetId.toString()).to.equal(assetAddress.toString());
     expect(assetAccount.ticker).to.equal("SOL");
     expect(assetAccount.oracle.oracleAccount.toString()).to.equal(
-      oracle.address.toString()
+      oracle.toString()
     );
     expect(assetAccount.oracle.oracleType).to.deep.include({ pyth: {} });
     expect(assetAccount.oracle.maxPriceError.toNumber()).to.equal(100);
@@ -125,7 +127,7 @@ describe("asset", () => {
     // Verify basic asset properties
     expect(assetAccount.assetId.toString()).to.equal(assetAddress.toString());
     expect(assetAccount.oracle.oracleAccount.toString()).to.equal(
-      oracle.address.toString()
+      oracle.toString()
     );
 
     // Verify initial funding rate is zero
@@ -195,5 +197,32 @@ describe("asset", () => {
       AccessControlRole.AssetManager
     );
     expect(hasAssetManagerRole).to.be.true;
+  });
+
+  it("Successfully gets asset price from oracle", async () => {
+    // Create a new asset with a custom oracle
+    const initialPrice = 3000;
+    const { assetAddress, oracle } = await client.createAssetWithCustomOracle("XYZ", initialPrice);
+    
+    // Get and log oracle account details
+    const oracleAccount = await client.getOracleAccount(oracle);
+    const currentTime = Math.floor(Date.now() / 1000);
+        
+    // Get the asset price using the view function
+    const price = await client.getAssetPrice(assetAddress, oracle);
+    
+    // Update the price to a new value
+    const newPrice = 4000; // Scale properly
+    await client.updateOraclePrice(oracle, newPrice);
+    
+    // Get and log updated oracle account details
+    const updatedOracleAccount = await client.getOracleAccount(oracle);
+    const updatedCurrentTime = Math.floor(Date.now() / 1000);
+
+    // Get the updated price
+    const updatedPrice = await client.getAssetPrice(assetAddress, oracle);
+
+    // Verify the updated price
+    expect(updatedPrice.toString()).to.be.equal((newPrice * 1e6).toString());
   });
 });

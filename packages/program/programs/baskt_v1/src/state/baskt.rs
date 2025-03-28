@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::error::PerpetualsError;
+use crate::state::asset::SyntheticAsset;
 
 #[derive(InitSpace, PartialEq, Debug, Default, Clone, Copy, AnchorSerialize, AnchorDeserialize)]
 pub struct AssetConfig {
@@ -23,7 +24,7 @@ pub struct Baskt {
     pub creation_time: i64, // Time when the baskt was created
     pub total_volume: u64, // Total trading volume
     pub total_fees: u64,  // Total fees generated
-    pub current_nav: u64, // Current Net Asset Value (in lamports)
+    pub baseline_nav: u64, // NAV at the time of last rebalance (in lamports)
     pub last_rebalance_index: u64, // Index of the last rebalance
     pub is_active: bool, // Whether the baskt is active for trading
 }
@@ -50,7 +51,7 @@ impl Baskt {
         self.creation_time = creation_time;
         self.total_volume = 0;
         self.total_fees = 0;
-        self.current_nav = 1_000_000; // Initial NAV is 1.0 (1e6 lamports)
+        self.baseline_nav = 1_000_000; // Initial baseline NAV is 1.0 (1e6 lamports)
         self.last_rebalance_index = 0;
         self.is_active = true;
 
@@ -70,50 +71,55 @@ impl Baskt {
         self.current_asset_configs.iter().any(|id| id.asset_id == *asset_id)
     }
 
-    /// Update the NAV of the baskt
-    pub fn calculate_nav(&mut self, current_prices: &[(Pubkey, u64)]) -> Result<()> {
-        let mut new_nav = 0u64;
+    /// Calculate the NAV of the baskt based on current prices
+    pub fn calculate_nav(&self, current_prices: &[(Pubkey, u64)]) -> Result<u64> {
+        let mut total_nav_impact: i64 = 0;
         
         for (asset_id, current_price) in current_prices {
             if let Some(asset_config) = self.current_asset_configs.iter().find(|ac| ac.asset_id == *asset_id) {
-                // Calculate price change percentage
-                let price_change = if asset_config.direction {
-                    // Long position: normal price change
-                    current_price
-                        .checked_mul(10000)
-                        .ok_or(PerpetualsError::MathOverflow)?
-                        .checked_div(asset_config.baseline_price)
-                        .ok_or(PerpetualsError::MathOverflow)?
-                } else {
-                    // Short position: inverse price change
-                    asset_config.baseline_price
-                        .checked_mul(10000)
-                        .ok_or(PerpetualsError::MathOverflow)?
-                        .checked_div(*current_price)
-                        .ok_or(PerpetualsError::MathOverflow)?
-                };
-
-                // Apply weight to price change
-                let weighted_change = price_change
-                    .checked_mul(asset_config.weight)
+                // Direction: -1 if short, +1 if long
+                let direction: i64 = if asset_config.direction { 1 } else { -1 };
+                
+                // Calculate price change percentage (scaled by 10000 for precision)
+                let current_price_i64 = *current_price as i64;
+                let baseline_price_i64 = asset_config.baseline_price as i64;
+                
+                if baseline_price_i64 == 0 {
+                    return err!(PerpetualsError::MathOverflow);
+                }
+                
+                // Calculate price change and apply direction and weight
+                let price_change = ((current_price_i64 - baseline_price_i64) * 10000)
+                    .checked_div(baseline_price_i64)
                     .ok_or(PerpetualsError::MathOverflow)?;
-                new_nav = new_nav
-                    .checked_add(weighted_change)
+                
+                let weighted_change = (price_change * direction * (asset_config.weight as i64))
+                    .checked_div(10000)
+                    .ok_or(PerpetualsError::MathOverflow)?;
+                    
+                // Calculate impact on NAV
+                let nav_impact = (weighted_change * (self.baseline_nav as i64))
+                    .checked_div(10000)
+                    .ok_or(PerpetualsError::MathOverflow)?;
+                
+                // Add to total impact
+                total_nav_impact = total_nav_impact
+                    .checked_add(nav_impact)
                     .ok_or(PerpetualsError::MathOverflow)?;
             }
         }
-
-        // Normalize NAV to 1e6 scale
-        self.current_nav = new_nav
-            .checked_div(10000)
+        
+        // Calculate new NAV
+        let new_nav_i64 = (self.baseline_nav as i64)
+            .checked_add(total_nav_impact)
             .ok_or(PerpetualsError::MathOverflow)?;
-
-        // If NAV is 0 or below, deactivate the baskt
-        if self.current_nav == 0 {
-            self.is_active = false;
+        
+        // Ensure NAV is not negative or zero
+        if new_nav_i64 <= 0 {
+            return Ok(0);
         }
-
-        Ok(())
+        
+        Ok(new_nav_i64 as u64)
     }
 
     /// Add volume to the baskt
@@ -137,11 +143,64 @@ impl Baskt {
     }
 
     /// Record a rebalance event
-    pub fn record_rebalance(&mut self) -> Result<()> {
+    pub fn record_rebalance(&mut self, current_nav: u64) -> Result<()> {
         self.last_rebalance_index = self.last_rebalance_index
             .checked_add(1)
             .ok_or(PerpetualsError::MathOverflow)?;
+        self.baseline_nav = current_nav; // Update baseline NAV to current NAV
         Ok(())
+    }
+
+    /// Process asset and oracle account pairs from remaining accounts
+    /// Returns a vector of asset IDs and their current prices
+    /// If validate_membership is true, also validates that each asset belongs to the baskt
+    pub fn process_asset_oracle_pairs(
+        remaining_accounts: &[AccountInfo],
+        current_timestamp: i64,
+        baskt_option: Option<&Baskt>, // Optional baskt to validate against
+    ) -> Result<Vec<(Pubkey, u64)>> {
+        // Validate remaining accounts (should be pairs of asset and oracle accounts)
+        if remaining_accounts.len() % 2 != 0 {
+            return Err(PerpetualsError::InvalidRemainingAccounts.into());
+        }
+
+        let mut asset_prices = Vec::new();
+        let pair_count = remaining_accounts.len() / 2;
+        
+        // Process each asset/oracle pair to get current prices
+        for i in 0..pair_count {
+            // Get account infos for this pair
+            let asset_info = &remaining_accounts[i * 2];
+            let oracle_info = &remaining_accounts[i * 2 + 1];
+            
+            // Deserialize asset account
+            let asset_data = &mut &**asset_info.try_borrow_data()?;
+            let asset: SyntheticAsset = match anchor_lang::AccountDeserialize::try_deserialize(asset_data) {
+                Ok(asset) => asset,
+                Err(_) => return Err(PerpetualsError::InvalidAssetAccount.into()),
+            };
+            
+            // Verify oracle matches asset's oracle
+            if oracle_info.key() != asset.oracle.oracle_account {
+                return Err(PerpetualsError::InvalidOracleAccount.into());
+            }
+            
+            // Validate that the asset is part of the baskt if a baskt is provided
+            if let Some(baskt) = baskt_option {
+                if !baskt.contains_asset(&asset.asset_id) {
+                    return Err(PerpetualsError::AssetNotInBaskt.into());
+                }
+            }
+
+
+
+            // Get current price from oracle
+            // No need to explicitly catch and transform error since get_price already returns the appropriate error
+            let oracle_price = asset.get_price(oracle_info, current_timestamp, false)?;
+            asset_prices.push((asset.asset_id, oracle_price.price));
+        }
+
+        Ok(asset_prices)
     }
 }
 
@@ -198,7 +257,7 @@ mod tests {
         assert_eq!(baskt.creation_time, creation_time);
         assert_eq!(baskt.total_volume, 0);
         assert_eq!(baskt.total_fees, 0);
-        assert_eq!(baskt.current_nav, 1_000_000);
+        assert_eq!(baskt.baseline_nav, 1_000_000);
         assert_eq!(baskt.last_rebalance_index, 0);
         assert!(baskt.is_active);
     }
@@ -227,7 +286,7 @@ mod tests {
 
     #[test]
     fn test_calculate_nav() {
-        let mut baskt = Baskt::default();
+        let baskt = Baskt::default();
         let baskt_id = Pubkey::new_unique();
         let creator = Pubkey::new_unique();
         let creation_time = 1234567890;
@@ -259,6 +318,7 @@ mod tests {
             },
         ];
 
+        let mut baskt = Baskt::default();
         baskt
             .initialize(
                 baskt_id,
@@ -270,21 +330,33 @@ mod tests {
             )
             .unwrap();
 
-        // Test price changes
+        // Test case 1: Basic price changes
         let current_prices = vec![
             (asset1, 1_200_000), // +20%
             (asset2, 900_000),   // -10%
-            (asset3, 1_100_000), // +10% (but short position)
+            (asset3, 1_100_000), // -10% for short position
         ];
 
-        baskt.calculate_nav(&current_prices).unwrap();
+        let result = baskt.calculate_nav(&current_prices).unwrap();
+        assert_eq!(result, 1_020_000);
 
-        // Expected NAV calculation:
-        // Asset1: 40% * 120% = 48%
-        // Asset2: 30% * 90% = 27%
-        // Asset3: 30% * 90.9% = 27.27% (short position)
-        // Total: 102.27% of initial NAV
-        assert!(baskt.current_nav > 1_000_000);
+        let extreme_prices = vec![
+            (asset1, 2_000_000), // +100%
+            (asset2, 500_000),   // -50%
+            (asset3, 2_000_000), // +100% (but short, so -100%)
+        ];
+
+        let result = baskt.calculate_nav(&extreme_prices).unwrap();
+        assert_eq!(result, 950_000);
+
+        // Test case 3: Partial price updates (missing assets)
+        let partial_prices = vec![
+            (asset1, 1_100_000), // +10%
+            (asset3, 900_000),   // -10% (but short, so +10%)
+        ];
+
+        let result = baskt.calculate_nav(&partial_prices).unwrap();
+        assert_eq!(result, 1_070_000);
     }
 
     #[test]
@@ -336,10 +408,188 @@ mod tests {
             .unwrap();
 
         // Test rebalance recording
-        baskt.record_rebalance().unwrap();
+        baskt.record_rebalance(1_000_000).unwrap();
         assert_eq!(baskt.last_rebalance_index, 1);
+        assert_eq!(baskt.baseline_nav, 1_000_000); // Initial baseline NAV
 
-        baskt.record_rebalance().unwrap();
+        // Change NAV and record another rebalance
+        baskt.record_rebalance(1_200_000).unwrap();
         assert_eq!(baskt.last_rebalance_index, 2);
+        assert_eq!(baskt.baseline_nav, 1_200_000); // Updated baseline NAV
     }
+
+    #[test]
+    fn test_baseline_nav_with_price_changes() {
+        let mut baskt = Baskt::default();
+        let baskt_id = Pubkey::new_unique();
+        let creator = Pubkey::new_unique();
+        let creation_time = 1234567890;
+        let baskt_name = "TestBaskt".to_string();
+
+        // Create test assets
+        let asset1 = Pubkey::new_unique();
+        let asset2 = Pubkey::new_unique();
+        let asset3 = Pubkey::new_unique();
+
+        let asset_configs = vec![
+            AssetConfig {
+                asset_id: asset1,
+                weight: 4000, // 40%
+                direction: true,
+                baseline_price: 1_000_000, // 1.0
+            },
+            AssetConfig {
+                asset_id: asset2,
+                weight: 3000, // 30%
+                direction: true,
+                baseline_price: 1_000_000, // 1.0
+            },
+            AssetConfig {
+                asset_id: asset3,
+                weight: 3000, // 30%
+                direction: false, // Short position
+                baseline_price: 1_000_000, // 1.0
+            },
+        ];
+
+        baskt
+            .initialize(
+                baskt_id,
+                baskt_name,
+                asset_configs,
+                true,
+                creator,
+                creation_time,
+            )
+            .unwrap();
+
+        // Initial state
+        assert_eq!(baskt.baseline_nav, 1_000_000);
+
+        // Test case 1: Basic price changes
+        let current_prices = vec![
+            (asset1, 1_200_000), // +20%
+            (asset2, 900_000),   // -10%
+            (asset3, 1_100_000), // -10% for short position
+        ];
+
+        let result = baskt.calculate_nav(&current_prices).unwrap();
+        assert_eq!(result, 1_020_000);
+        assert_eq!(baskt.baseline_nav, 1_000_000); // Baseline NAV should not change
+
+        // Test case 2: Extreme price changes
+        let extreme_prices = vec![
+            (asset1, 2_000_000), // +100%
+            (asset2, 500_000),   // -50%
+            (asset3, 2_000_000), // +100% (but short, so -100%)
+        ];
+
+        let result = baskt.calculate_nav(&extreme_prices).unwrap();
+        assert_eq!(result, 950_000);
+        assert_eq!(baskt.baseline_nav, 1_000_000); // Baseline NAV should remain unchanged until next rebalance
+
+        // Test case 3: Partial price updates (missing assets)
+        let partial_prices = vec![
+            (asset1, 1_100_000), // +10%
+            (asset3, 900_000),   // -10% (but short, so +10%)
+        ];
+
+        let result = baskt.calculate_nav(&partial_prices).unwrap();
+        assert_eq!(result, 1_070_000);
+        assert_eq!(baskt.baseline_nav, 1_000_000); // Baseline NAV should remain unchanged until next rebalance
+    }
+
+    #[test]
+    fn test_nav_edge_cases() {
+        let mut baskt = Baskt::default();
+        let baskt_id = Pubkey::new_unique();
+        let creator = Pubkey::new_unique();
+        let creation_time = 1234567890;
+        let baskt_name = "TestBaskt".to_string();
+
+        // Create test assets
+        let asset1 = Pubkey::new_unique();
+        let asset2 = Pubkey::new_unique();
+        let asset3 = Pubkey::new_unique();
+
+        let asset_configs = vec![
+            AssetConfig {
+                asset_id: asset1,
+                weight: 4000, // 40%
+                direction: true,
+                baseline_price: 1_000_000, // 1.0
+            },
+            AssetConfig {
+                asset_id: asset2,
+                weight: 3000, // 30%
+                direction: true,
+                baseline_price: 1_000_000, // 1.0
+            },
+            AssetConfig {
+                asset_id: asset3,
+                weight: 3000, // 30%
+                direction: false, // Short position
+                baseline_price: 1_000_000, // 1.0
+            },
+        ];
+
+        baskt.initialize(
+            baskt_id,
+            baskt_name,
+            asset_configs,
+            true,
+            creator,
+            creation_time,
+        ).unwrap();
+
+        // Test case 1: Zero price change
+        let zero_change_prices = vec![
+            (asset1, 1_000_000), // 0%
+            (asset2, 1_000_000), // 0%
+            (asset3, 1_000_000), // 0%
+        ];
+        let result = baskt.calculate_nav(&zero_change_prices).unwrap();
+        assert_eq!(result, 1_000_000);
+
+        // Test case 2: Extreme price increase (100x)
+        let extreme_up_prices = vec![
+            (asset1, 100_000_000), // 100x
+            (asset2, 1_000_000),   // 0%
+            (asset3, 1_000_000),   // 0%
+        ];
+        let result = baskt.calculate_nav(&extreme_up_prices).unwrap();
+        // For 40% weight and 100x increase:
+        // 1_000_000 * (1 + 0.4 * 99) = 40_600_000
+        assert_eq!(result, 40_600_000);
+
+        // Test case 3: Extreme price decrease (to zero)
+        let zero_prices = vec![
+            (asset1, 0),         // -100%
+            (asset2, 0),         // -100%
+            (asset3, 0),         // -100%
+        ];
+        let result = baskt.calculate_nav(&zero_prices).unwrap();
+        // When all assets go to zero:
+        // Asset1: 40% long * -100% = -40%
+        // Asset2: 30% long * -100% = -30%
+        // Asset3: 30% short * -100% = +30%
+        // Total impact: -40% - 30% + 30% = -40%
+        // NAV = 1_000_000 * (1 - 0.4) = 600_000
+        assert_eq!(result, 600_000);
+
+        // Test case 4: Opposite price movements
+        let opposite_prices = vec![
+            (asset1, 1_200_000), // +20%
+            (asset2, 800_000),   // -20%
+            (asset3, 1_200_000), // -20% (but short, so +20%)
+        ];
+        let result = baskt.calculate_nav(&opposite_prices).unwrap();
+        // Asset1 (40% long): +20% * 0.4 = +8%
+        // Asset2 (30% long): -20% * 0.3 = -6%
+        // Asset3 (30% short): -20% * 0.3 = +6% (because short)
+        // Total impact: +8% - 6% + 6% = +8%
+        // NAV = 1_000_000 * (1 + 0.08) = 1_080_000
+        assert_eq!(result, 960_000);
+    }
+
 }

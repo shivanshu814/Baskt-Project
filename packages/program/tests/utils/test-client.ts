@@ -4,6 +4,7 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 import { BaseClient, AccessControlRole } from "@baskt/sdk";
 import { BasktV1 } from "../../target/types/baskt_v1";
+import { getLogs } from "@solana-developers/helpers";
 
 /**
  * Singleton test client for the Baskt protocol
@@ -78,10 +79,11 @@ export class TestClient extends BaseClient {
       const existingAsset = await this.getAssetByTicker(ticker);
       if (existingAsset) {
         // If asset exists, return its information
+        await this.updateOraclePrice(existingAsset.oracle.oracleAccount, price, exponent);
         return {
           assetAddress: existingAsset.assetAddress,
           ticker: existingAsset.ticker,
-          oracle: existingAsset.oracle,
+          oracle: existingAsset.oracle.oracleAccount, // Just return the oracle account address
           txSignature: null, // No new transaction was created
         };
       }
@@ -216,7 +218,8 @@ export class TestClient extends BaseClient {
 
     return {
       assetAddress,
-      oracle,
+      oracle: oracle.address,
+      ticker,
       txSignature,
     };
   }
@@ -224,21 +227,39 @@ export class TestClient extends BaseClient {
   /**
    * Create a new baskt
    * @param basktName The name of the baskt
-   * @param assetConfigs Array of asset configurations with weights
+   * @param assets Array of assets with weights and directions
    * @param isPublic Whether the baskt is public or private
-   * @returns Object containing the baskt keypair and transaction signature
+   * @returns Object containing the baskt address and transaction signature
    */
   public async createBaskt(
     basktName: string,
-    assetConfigs: Array<{
-      assetId: PublicKey;
+    assets: Array<{
+      asset: PublicKey;
+      oracle: PublicKey;
       direction: boolean;
       weight: number;
     }>,
     isPublic: boolean
   ) {
-    // Use the BaseClient's createBaskt method and return the full result
-    return await super.createBaskt(basktName, assetConfigs, isPublic);
+    // Extract asset configs and asset/oracle pairs
+    const assetConfigs = assets.map(item => ({
+      assetId: item.asset,
+      direction: item.direction,
+      weight: item.weight
+    }));
+
+    const assetOraclePairs = assets.map(item => ({
+      asset: item.asset,
+      oracle: item.oracle
+    }));
+
+    // Create the baskt with current prices
+    const { basktId, txSignature } = await super.createBaskt(basktName, assetConfigs, isPublic, assetOraclePairs);
+
+    return {
+      basktId,
+      txSignature
+    };
   }
 
   /**
@@ -249,5 +270,62 @@ export class TestClient extends BaseClient {
   public async getBaskt(basktPubkey: PublicKey) {
     // Use the BaseClient's getBaskt method
     return await super.getBaskt(basktPubkey);
+  }
+
+  /**
+   * Get asset price using the view instruction
+   * @param assetAddress The asset account address
+   * @param oracleAddress The oracle account address
+   * @returns The current price as a BN
+   */
+  public async getAssetPrice(assetAddress: PublicKey, oracleAddress: PublicKey) {
+    try {
+      return await this.program.methods
+      .getAssetPrice()
+      .accounts({
+        asset: assetAddress,
+          oracle: oracleAddress
+        })
+        .view();
+    } catch (error) {
+      console.error( error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get baskt NAV using the view instruction
+   * @param basktAddress The baskt account address
+   * @param assetOraclePairs Array of asset/oracle account pairs
+   * @returns The current NAV as a BN
+   */
+  public async getBasktNav(basktAddress: PublicKey, assetOraclePairs: Array<{asset: PublicKey, oracle: PublicKey}> = []) {
+    // Prepare remaining accounts (asset/oracle pairs)
+    const remainingAccounts = assetOraclePairs.flatMap(pair => [
+      {
+        pubkey: pair.asset,
+        isWritable: false,
+        isSigner: false
+      },
+      {
+        pubkey: pair.oracle,
+        isWritable: false,
+        isSigner: false
+      }
+    ]);
+    
+    // For view instructions with remainingAccounts
+    try {
+      return await this.program.methods
+      .getBasktNav()
+      .accounts({
+        baskt: basktAddress
+      })
+      .remainingAccounts(remainingAccounts)
+      .view();
+    } catch (error) {
+      console.error( error);
+      throw error;
+    }
   }
 }

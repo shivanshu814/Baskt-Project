@@ -46,4 +46,12 @@ pub enum PerpetualsError {
     UnauthorizedSigner,
     #[msg("Invalid role type")]
     InvalidRoleType,
+    #[msg("Invalid remaining accounts")]
+    InvalidRemainingAccounts,
+    #[msg("Invalid asset account")]
+    InvalidAssetAccount,
+    #[msg("Invalid or stale oracle price")]
+    InvalidOrStaleOraclePrice,
+    #[msg("Asset not in baskt")]
+    AssetNotInBaskt,
 }

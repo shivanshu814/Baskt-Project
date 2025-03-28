@@ -263,6 +263,49 @@
       ]
     },
     {
+      "name": "get_asset_price",
+      "discriminator": [
+        140,
+        176,
+        162,
+        223,
+        172,
+        213,
+        120,
+        181
+      ],
+      "accounts": [
+        {
+          "name": "asset"
+        },
+        {
+          "name": "oracle"
+        }
+      ],
+      "args": [],
+      "returns": "u64"
+    },
+    {
+      "name": "get_baskt_nav",
+      "discriminator": [
+        163,
+        138,
+        228,
+        250,
+        83,
+        35,
+        149,
+        140
+      ],
+      "accounts": [
+        {
+          "name": "baskt"
+        }
+      ],
+      "args": [],
+      "returns": "u64"
+    },
+    {
       "name": "initialize_custom_oracle",
       "discriminator": [
         104,
@@ -804,6 +847,26 @@
       "code": 6021,
       "name": "InvalidRoleType",
       "msg": "Invalid role type"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidRemainingAccounts",
+      "msg": "Invalid remaining accounts"
+    },
+    {
+      "code": 6023,
+      "name": "InvalidAssetAccount",
+      "msg": "Invalid asset account"
+    },
+    {
+      "code": 6024,
+      "name": "InvalidOrStaleOraclePrice",
+      "msg": "Invalid or stale oracle price"
+    },
+    {
+      "code": 6025,
+      "name": "AssetNotInBaskt",
+      "msg": "Asset not in baskt"
     }
   ],
   "types": [
@@ -972,7 +1035,7 @@
             "type": "u64"
           },
           {
-            "name": "current_nav",
+            "name": "baseline_nav",
             "type": "u64"
           },
           {

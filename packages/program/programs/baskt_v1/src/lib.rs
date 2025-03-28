@@ -88,4 +88,13 @@ pub mod baskt_v1 {
     ) -> Result<()> {
         instructions::oracle::update_custom_oracle(ctx, price, expo, conf, ema, publish_time)
     }
+    
+    // View functions (read-only)
+    pub fn get_asset_price(ctx: Context<GetAssetPrice>) -> Result<u64> {
+        instructions::view::get_asset_price(ctx)
+    }
+    
+    pub fn get_baskt_nav(ctx: Context<GetBasktNav>) -> Result<u64> {
+        instructions::view::get_baskt_nav(ctx)
+    }
 }

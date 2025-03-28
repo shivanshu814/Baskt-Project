@@ -269,6 +269,49 @@ export type BasktV1 = {
       ]
     },
     {
+      "name": "getAssetPrice",
+      "discriminator": [
+        140,
+        176,
+        162,
+        223,
+        172,
+        213,
+        120,
+        181
+      ],
+      "accounts": [
+        {
+          "name": "asset"
+        },
+        {
+          "name": "oracle"
+        }
+      ],
+      "args": [],
+      "returns": "u64"
+    },
+    {
+      "name": "getBasktNav",
+      "discriminator": [
+        163,
+        138,
+        228,
+        250,
+        83,
+        35,
+        149,
+        140
+      ],
+      "accounts": [
+        {
+          "name": "baskt"
+        }
+      ],
+      "args": [],
+      "returns": "u64"
+    },
+    {
       "name": "initializeCustomOracle",
       "discriminator": [
         104,
@@ -810,6 +853,26 @@ export type BasktV1 = {
       "code": 6021,
       "name": "invalidRoleType",
       "msg": "Invalid role type"
+    },
+    {
+      "code": 6022,
+      "name": "invalidRemainingAccounts",
+      "msg": "Invalid remaining accounts"
+    },
+    {
+      "code": 6023,
+      "name": "invalidAssetAccount",
+      "msg": "Invalid asset account"
+    },
+    {
+      "code": 6024,
+      "name": "invalidOrStaleOraclePrice",
+      "msg": "Invalid or stale oracle price"
+    },
+    {
+      "code": 6025,
+      "name": "assetNotInBaskt",
+      "msg": "Asset not in baskt"
     }
   ],
   "types": [
@@ -978,7 +1041,7 @@ export type BasktV1 = {
             "type": "u64"
           },
           {
-            "name": "currentNav",
+            "name": "baselineNav",
             "type": "u64"
           },
           {

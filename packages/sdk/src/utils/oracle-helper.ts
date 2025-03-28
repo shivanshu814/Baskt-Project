@@ -73,7 +73,6 @@ export class OracleHelper {
       .accounts({
         oracle: oracleKeypair.publicKey,
         authority: this.provider.wallet.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([oracleKeypair])
       .rpc();
@@ -180,11 +179,12 @@ export class OracleHelper {
       : priceBN.div(new anchor.BN(100)); // Default to 1% of price if not specified
 
     const currentTime = Math.floor(Date.now() / 1000);
+    // Set publish time to current time - 1 to ensure it's always behind
     const publishTimeBN = publishTime
       ? typeof publishTime === "number"
         ? new anchor.BN(publishTime)
         : publishTime
-      : new anchor.BN(currentTime);
+      : new anchor.BN(currentTime - 1);
 
     // Update the oracle account with the new data
     await this.program.methods

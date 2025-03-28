@@ -12,6 +12,7 @@
   "dependencies": {
     "@baskt/sdk": "workspace:*",
     "@coral-xyz/anchor": "0.31.0",
+    "@solana-developers/helpers": "^2.8.1",
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "1.98.0"
   },

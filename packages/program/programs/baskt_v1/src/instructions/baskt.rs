@@ -1,5 +1,6 @@
 use crate::error::PerpetualsError;
 use crate::state::baskt::{AssetConfig, Baskt};
+use crate::state::asset::SyntheticAsset;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -38,6 +39,7 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
     let baskt = &mut ctx.accounts.baskt;
     let creator = &ctx.accounts.creator;
     let clock = Clock::get()?;
+    let remaining = &ctx.remaining_accounts;
 
     // Validate weights sum to 100%
     let total_weight: u64 = params.asset_params.iter().map(|config| config.weight).sum();
@@ -48,12 +50,24 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
     // Get the key before initializing
     let baskt_key = baskt.key();
 
-    // Map the asset configs to the new AssetParams struct
-    let asset_configs = params.asset_params.iter().map(|config| AssetConfig {
-        asset_id: config.asset_id,
-        direction: config.direction,
-        weight: config.weight,
-        baseline_price: 1000000,
+    // Process asset/oracle pairs to get current prices
+    // Pass None for baskt_option since we're creating the baskt and don't need to validate asset membership
+    let asset_prices = Baskt::process_asset_oracle_pairs(remaining, clock.unix_timestamp, None)?;
+
+    // Map the asset configs to include the correct baseline prices
+    let asset_configs = params.asset_params.iter().map(|config| {
+        // Find current price for this asset
+        let baseline_price = asset_prices.iter()
+            .find(|(id, _)| *id == config.asset_id)
+            .map(|(_, price)| *price)
+            .unwrap_or(1000000); // Default to 1.0 if price not found
+        
+        AssetConfig {
+            asset_id: config.asset_id,
+            direction: config.direction,
+            weight: config.weight,
+            baseline_price,
+        }
     }).collect();
 
     // Initialize the baskt using the new initialize method
