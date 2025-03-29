@@ -4,8 +4,9 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "resolveJsonModule": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "noEmit": false
   },
-  "include": ["src/**/*", "src/program/idl/baskt_v1.json",],
+  "include": ["src/**/*", "src/program/idl/baskt_v1.json"],
   "exclude": ["node_modules", "dist"]
-} 
+}
