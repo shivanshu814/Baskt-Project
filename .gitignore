@@ -5,6 +5,8 @@ node_modules/
 # Build outputs
 dist/
 build/
+.next/
+apps/*/.next/
 *.tsbuildinfo
 
 # Logs

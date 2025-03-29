@@ -1,2 +1,6 @@
+# @format
+
 packages:
-  - 'packages/*' 
+  - 'packages/*'
+  - 'backend'
+  - 'apps/*'
