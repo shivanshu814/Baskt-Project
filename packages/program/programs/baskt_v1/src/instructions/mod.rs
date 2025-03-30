@@ -5,6 +5,6 @@ pub mod oracle;
 pub mod position;
 pub mod protocol;
 pub mod view;
-
+pub mod rebalance;
 // bring everything in scope
-pub use {asset::*, baskt::*, liquidity::*, oracle::*, position::*, protocol::*, view::*};
+pub use {asset::*, baskt::*, liquidity::*, oracle::*, position::*, protocol::*, view::*, rebalance::*};

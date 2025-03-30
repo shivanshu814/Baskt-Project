@@ -268,7 +268,8 @@ describe('asset', () => {
     const protocol = await client.getProtocolAccount();
     expect(protocol.owner.toString()).to.not.equal(assetManagerUser.provider.publicKey.toString());
   });
-  it('Successfully gets asset price from oracle', async () => {
+
+  it("Successfully gets asset price from oracle", async () => {
     // Create a new asset with a custom oracle
     const initialPrice = 3000;
     const { assetAddress, oracle } = await client.createAssetWithCustomOracle('XYZ', initialPrice);

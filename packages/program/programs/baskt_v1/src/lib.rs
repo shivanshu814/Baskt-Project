@@ -11,6 +11,7 @@ declare_id!("GK52S4WZPVEAMAgjRf8XsBd7upmG862AjMF89HavDpkm");
 
 use instructions::oracle::*;
 use instructions::*;
+use crate::state::baskt::AssetParams;
 
 #[program]
 pub mod baskt_v1 {
@@ -64,6 +65,10 @@ pub mod baskt_v1 {
 
     pub fn add_asset(ctx: Context<AddAsset>, params: AddAssetParams) -> Result<()> {
         instructions::asset::add_asset(ctx, params)
+    }
+
+    pub fn rebalance(ctx: Context<Rebalance>, asset_params: Vec<AssetParams>) -> Result<()> {
+        instructions::rebalance::rebalance(ctx, asset_params)
     }
 
     // Position Management

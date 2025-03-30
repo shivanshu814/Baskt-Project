@@ -466,10 +466,6 @@ describe('baskt view functions', () => {
     // Get the baskt NAV
     const nav = await client.getBasktNav(basktId, assetOraclePairs);
 
-    const btcPrice = await client.getAssetPrice(btcAssetId.assetAddress, btcAssetId.oracle);
-    const ethPrice = await client.getAssetPrice(ethAssetId.assetAddress, ethAssetId.oracle);
-    const dogePrice = await client.getAssetPrice(dogeAssetId.assetAddress, dogeAssetId.oracle);
-
     // The NAV should be around 1.0 (or 1_000_000 in the system's precision)
     // with some potential variation due to price changes since creation
     expect(nav.toString()).to.be.eql('1000000');
@@ -477,10 +473,7 @@ describe('baskt view functions', () => {
     // Update BTC price (50% of the baskt) and check how it affects NAV
     const newBtcPrice = 60000; // 20% increase, properly scaled
     await client.updateOraclePrice(btcAssetId.oracle, newBtcPrice);
-
-    const btcPrice1 = await client.getAssetPrice(btcAssetId.assetAddress, btcAssetId.oracle);
-    const ethPrice1 = await client.getAssetPrice(ethAssetId.assetAddress, ethAssetId.oracle);
-    const dogePrice1 = await client.getAssetPrice(dogeAssetId.assetAddress, dogeAssetId.oracle);
+   
 
     // Get updated NAV
     const updatedNav = await client.getBasktNav(basktId, assetOraclePairs);

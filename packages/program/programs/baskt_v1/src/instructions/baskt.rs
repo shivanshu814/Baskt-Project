@@ -1,8 +1,9 @@
 use crate::error::PerpetualsError;
 use crate::state::asset::SyntheticAsset;
-use crate::state::baskt::{AssetConfig, Baskt};
+use crate::state::baskt::{AssetConfig, Baskt, AssetParams};
 use crate::state::protocol::Protocol;
 use anchor_lang::prelude::*;
+
 
 #[derive(Accounts)]
 #[instruction(baskt_name: String)]
@@ -26,12 +27,6 @@ pub struct CreateBaskt<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct AssetParams {
-    pub asset_id: Pubkey,
-    pub direction: bool,
-    pub weight: u64,
-}
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct CreateBasktParams {
@@ -58,11 +53,8 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
         return Err(PerpetualsError::InvalidBasktConfig.into());
     }
 
-    // Get the key before initializing
     let baskt_key = baskt.key();
 
-    // Process asset/oracle pairs to get current prices and validate permissions
-    // Pass None for baskt_option since we're creating the baskt and don't need to validate asset membership
     let asset_prices = Baskt::process_asset_oracle_pairs(remaining, clock.unix_timestamp, None)?;
 
     // Check if assets allow for the specified directions (long/short)
@@ -109,7 +101,6 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
         .collect();
     // Does asset allow longs and shorts
 
-    // Initialize the baskt using the new initialize method
     baskt.initialize(
         baskt_key,
         params.baskt_name,

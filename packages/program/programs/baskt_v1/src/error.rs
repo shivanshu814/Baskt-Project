@@ -58,6 +58,8 @@ pub enum PerpetualsError {
     InvalidOrStaleOraclePrice,
     #[msg("Asset not in baskt")]
     AssetNotInBaskt,
+    #[msg("Invalid asset config")]
+    InvalidAssetConfig,
     #[msg("Feature is currently disabled")]
     FeatureDisabled,
 }

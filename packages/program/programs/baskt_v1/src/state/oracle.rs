@@ -10,7 +10,6 @@ const ORACLE_EXPONENT_SCALE: i32 = -9;
 const ORACLE_PRICE_SCALE: u64 = 1_000_000_000;
 const ORACLE_MAX_PRICE: u64 = (1 << 28) - 1;
 
-//REVIEW What is confidence ratio for the price?
 
 #[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, InitSpace, Debug)]
 pub enum OracleType {
@@ -45,7 +44,6 @@ pub struct OracleParams {
     pub max_price_age_sec: u32,
 }
 
-///REVIEW What the fuck is EMA ?
 #[account]
 #[derive(InitSpace, Default, Debug)]
 pub struct CustomOracle {
@@ -94,7 +92,6 @@ impl OraclePrice {
         Self { price, exponent }
     }
 
-    ///REVIEW Delete this
     pub fn new_from_token(amount_and_decimals: (u64, u8)) -> Self {
         Self {
             price: amount_and_decimals.0,

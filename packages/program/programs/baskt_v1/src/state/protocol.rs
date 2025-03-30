@@ -10,6 +10,8 @@ pub enum Role {
     AssetManager,
     /// Oracle manager role with permission to update oracle data
     OracleManager,
+    /// Rebalancer role with permission to rebalance baskts
+    Rebalancer,
 }
 
 /// Access control entry for a specific account
