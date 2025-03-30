@@ -6,6 +6,28 @@ use crate::{
     utils::Utils,
 };
 use anchor_lang::prelude::*;
+/// Statistics related to volume
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, Debug, PartialEq, InitSpace)]
+pub struct VolumeStats {
+    pub open_position_usd: u64,  // Total open position volume in USD
+    pub close_position_usd: u64, // Total close position volume in USD
+    pub liquidation_usd: u64,    // Total liquidation volume in USD
+}
+
+/// Statistics related to fees
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, Debug, PartialEq, InitSpace)]
+pub struct FeesStats {
+    pub open_position_usd: u64,  // Fees from opening positions in USD
+    pub close_position_usd: u64, // Fees from closing positions in USD
+    pub liquidation_usd: u64,    // Fees from liquidations in USD
+}
+
+/// Permissions for the asset
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Default, Debug, PartialEq, InitSpace)]
+pub struct AssetPermissions {
+    pub allow_longs: bool,  // Whether long positions are allowed
+    pub allow_shorts: bool, // Whether short positions are allowed
+}
 
 #[account]
 #[derive(Default, InitSpace)]
@@ -20,9 +42,9 @@ pub struct SyntheticAsset {
     pub funding_rate: i64, // Current funding rate
     pub total_funding_long: i64, // Total funding paid by longs
     pub total_funding_short: i64, // Total funding paid by shorts
-    pub total_opening_fees: u64, // Total fees collected from opening positions
-    pub total_closing_fees: u64, // Total fees collected from closing positions
-    pub total_liquidation_fees: u64, // Total fees collected from liquidations
+    pub volume_stats: VolumeStats, // Statistics related to volume
+    pub fees_stats: FeesStats, // Statistics related to fees
+    pub permissions: AssetPermissions, // Permissions for the asset
 }
 
 impl SyntheticAsset {
@@ -33,6 +55,7 @@ impl SyntheticAsset {
         ticker: String,
         oracle: OracleParams,
         timestamp: i64,
+        permissions: Option<AssetPermissions>,
     ) -> Result<()> {
         self.asset_id = asset_id;
         self.ticker = ticker;
@@ -43,9 +66,18 @@ impl SyntheticAsset {
         self.funding_rate = 0;
         self.total_funding_long = 0;
         self.total_funding_short = 0;
-        self.total_opening_fees = 0;
-        self.total_closing_fees = 0;
-        self.total_liquidation_fees = 0;
+
+        // Initialize volume stats
+        self.volume_stats = VolumeStats::default();
+
+        // Initialize fees stats
+        self.fees_stats = FeesStats::default();
+
+        // Initialize permissions (default to allowing both longs and shorts)
+        self.permissions = permissions.unwrap_or(AssetPermissions {
+            allow_longs: true,
+            allow_shorts: true,
+        });
 
         Ok(())
     }
@@ -142,12 +174,26 @@ impl SyntheticAsset {
         size: u64,
         is_long: bool,
         opening_fee: u64,
+        position_value_usd: u64,
     ) -> Result<()> {
+        // Check permissions
+        if is_long && !self.permissions.allow_longs {
+            return Err(PerpetualsError::LongPositionsDisabled.into());
+        }
+        if !is_long && !self.permissions.allow_shorts {
+            return Err(PerpetualsError::ShortPositionsDisabled.into());
+        }
+
         // Update open interest
         self.update_open_interest_for_open_position(size, is_long)?;
 
         // Update fees
-        self.total_opening_fees = math::checked_add(self.total_opening_fees, opening_fee)?;
+        self.fees_stats.open_position_usd =
+            math::checked_add(self.fees_stats.open_position_usd, opening_fee)?;
+
+        // Update volume stats
+        self.volume_stats.open_position_usd =
+            math::checked_add(self.volume_stats.open_position_usd, position_value_usd)?;
 
         Ok(())
     }
@@ -159,9 +205,12 @@ impl SyntheticAsset {
         is_long: bool,
         closing_fee: u64,
         funding_payment: i64,
+        pnl: i64,
+        position_value_usd: u64,
     ) -> Result<()> {
         // Update open interest
         self.update_open_interest_for_close_position(size, is_long)?;
+
         // Update total funding
         if funding_payment > 0 {
             // Positive means long pays funding
@@ -174,7 +223,12 @@ impl SyntheticAsset {
         }
 
         // Update fees
-        self.total_closing_fees = math::checked_add(self.total_closing_fees, closing_fee)?;
+        self.fees_stats.close_position_usd =
+            math::checked_add(self.fees_stats.close_position_usd, closing_fee)?;
+
+        // Update volume stats
+        self.volume_stats.close_position_usd =
+            math::checked_add(self.volume_stats.close_position_usd, position_value_usd)?;
 
         Ok(())
     }
@@ -186,9 +240,11 @@ impl SyntheticAsset {
         is_long: bool,
         liquidation_fee: u64,
         funding_payment: i64,
+        position_value_usd: u64,
     ) -> Result<()> {
         // Update open interest (same as closing)
         self.update_open_interest_for_close_position(size, is_long)?;
+
         // Update total funding
         if funding_payment > 0 {
             self.total_funding_long =
@@ -199,8 +255,12 @@ impl SyntheticAsset {
         }
 
         // Update liquidation fees
-        self.total_liquidation_fees =
-            math::checked_add(self.total_liquidation_fees, liquidation_fee)?;
+        self.fees_stats.liquidation_usd =
+            math::checked_add(self.fees_stats.liquidation_usd, liquidation_fee)?;
+
+        // Update volume stats
+        self.volume_stats.liquidation_usd =
+            math::checked_add(self.volume_stats.liquidation_usd, position_value_usd)?;
 
         Ok(())
     }
@@ -223,9 +283,14 @@ mod tests {
         let asset_id = Pubkey::new_unique();
         let oracle = OracleParams::default();
         let timestamp = 1234567890;
-
         asset
-            .initialize(asset_id, "BTC".to_string(), oracle, timestamp)
+            .initialize(
+                asset_id,
+                "BTC".to_string(),
+                oracle,
+                timestamp,
+                Some(AssetPermissions::default()),
+            )
             .unwrap();
 
         assert_eq!(asset.asset_id, asset_id);
@@ -237,9 +302,12 @@ mod tests {
         assert_eq!(asset.funding_rate, 0);
         assert_eq!(asset.total_funding_long, 0);
         assert_eq!(asset.total_funding_short, 0);
-        assert_eq!(asset.total_opening_fees, 0);
-        assert_eq!(asset.total_closing_fees, 0);
-        assert_eq!(asset.total_liquidation_fees, 0);
+        assert_eq!(asset.fees_stats.open_position_usd, 0);
+        assert_eq!(asset.fees_stats.close_position_usd, 0);
+        assert_eq!(asset.fees_stats.liquidation_usd, 0);
+        assert_eq!(asset.permissions, AssetPermissions::default());
+        assert_eq!(asset.volume_stats, VolumeStats::default());
+        assert_eq!(asset.fees_stats, FeesStats::default());
     }
     #[test]
     fn test_calculate_funding_rate_balanced() {
@@ -250,7 +318,13 @@ mod tests {
         let timestamp = 1234567890;
 
         asset
-            .initialize(asset_id, "BTC".to_string(), oracle, timestamp)
+            .initialize(
+                asset_id,
+                "BTC".to_string(),
+                oracle,
+                timestamp,
+                Some(AssetPermissions::default()),
+            )
             .unwrap();
 
         // Set equal long and short interest
@@ -276,7 +350,13 @@ mod tests {
         let timestamp = 1234567890;
 
         asset
-            .initialize(asset_id, "BTC".to_string(), oracle, timestamp)
+            .initialize(
+                asset_id,
+                "BTC".to_string(),
+                oracle,
+                timestamp,
+                Some(AssetPermissions::default()),
+            )
             .unwrap();
 
         // Set more longs than shorts (75% long, 25% short)
@@ -302,7 +382,13 @@ mod tests {
         let timestamp = 1234567890;
 
         asset
-            .initialize(asset_id, "BTC".to_string(), oracle, timestamp)
+            .initialize(
+                asset_id,
+                "BTC".to_string(),
+                oracle,
+                timestamp,
+                Some(AssetPermissions::default()),
+            )
             .unwrap();
 
         // Set more shorts than longs (25% long, 75% short)
@@ -328,7 +414,13 @@ mod tests {
         let timestamp = 1234567890;
 
         asset
-            .initialize(asset_id, "BTC".to_string(), oracle, timestamp)
+            .initialize(
+                asset_id,
+                "BTC".to_string(),
+                oracle,
+                timestamp,
+                Some(AssetPermissions::default()),
+            )
             .unwrap();
 
         // Set positive funding rate (longs pay shorts)
@@ -357,7 +449,13 @@ mod tests {
         let timestamp = 1234567890;
 
         asset
-            .initialize(asset_id, "BTC".to_string(), oracle, timestamp)
+            .initialize(
+                asset_id,
+                "BTC".to_string(),
+                oracle,
+                timestamp,
+                Some(AssetPermissions::default()),
+            )
             .unwrap();
 
         // Set positive funding rate (longs pay shorts)
@@ -386,34 +484,64 @@ mod tests {
         let timestamp = 1234567890;
 
         asset
-            .initialize(asset_id, "BTC".to_string(), oracle, timestamp)
+            .initialize(
+                asset_id,
+                "BTC".to_string(),
+                oracle,
+                timestamp,
+                Some(AssetPermissions {
+                    allow_shorts: true,
+                    allow_longs: true,
+                }),
+            )
             .unwrap();
 
         // Open a long position
         let size = 5000;
         let is_long = true;
         let opening_fee = 10;
+        let position_value_usd = 1000; // Position value in USD
 
         asset
-            .process_open_position(size, is_long, opening_fee)
+            .process_open_position(size, is_long, opening_fee, position_value_usd)
             .unwrap();
 
         assert_eq!(asset.open_interest_long, size);
         assert_eq!(asset.open_interest_short, 0);
-        assert_eq!(asset.total_opening_fees, opening_fee);
+        assert_eq!(asset.fees_stats.open_position_usd, opening_fee);
+        assert_eq!(asset.volume_stats.open_position_usd, position_value_usd);
 
         // Open a short position
         let size2 = 3000;
         let is_long2 = false;
         let opening_fee2 = 6;
+        let position_value_usd2 = 600; // Position value in USD
 
         asset
-            .process_open_position(size2, is_long2, opening_fee2)
+            .process_open_position(size2, is_long2, opening_fee2, position_value_usd2)
             .unwrap();
 
         assert_eq!(asset.open_interest_long, size);
         assert_eq!(asset.open_interest_short, size2);
-        assert_eq!(asset.total_opening_fees, opening_fee + opening_fee2);
+        assert_eq!(
+            asset.fees_stats.open_position_usd,
+            opening_fee + opening_fee2
+        );
+        assert_eq!(
+            asset.volume_stats.open_position_usd,
+            position_value_usd + position_value_usd2
+        );
+
+        // Test permissions - disable longs and try to open a long position
+        asset.permissions.allow_longs = false;
+        let result = asset.process_open_position(size, true, opening_fee, position_value_usd);
+        assert!(result.is_err());
+
+        // Test permissions - disable shorts and try to open a short position
+        asset.permissions.allow_longs = true; // Re-enable longs
+        asset.permissions.allow_shorts = false;
+        let result = asset.process_open_position(size, false, opening_fee, position_value_usd);
+        assert!(result.is_err());
     }
 
     #[test]
@@ -424,7 +552,13 @@ mod tests {
         let timestamp = 1234567890;
 
         asset
-            .initialize(asset_id, "BTC".to_string(), oracle, timestamp)
+            .initialize(
+                asset_id,
+                "BTC".to_string(),
+                oracle,
+                timestamp,
+                Some(AssetPermissions::default()),
+            )
             .unwrap();
 
         // Set initial open interest
@@ -436,16 +570,58 @@ mod tests {
         let is_long = true;
         let closing_fee = 5;
         let funding_payment = 20; // Long pays funding
+        let pnl = 100; // Profit of 100
+        let position_value_usd = 1000; // Position value in USD
 
         asset
-            .process_close_position(size, is_long, closing_fee, funding_payment)
+            .process_close_position(
+                size,
+                is_long,
+                closing_fee,
+                funding_payment,
+                pnl,
+                position_value_usd,
+            )
             .unwrap();
 
         assert_eq!(asset.open_interest_long, 3000); // 5000 - 2000
         assert_eq!(asset.open_interest_short, 3000); // Unchanged
-        assert_eq!(asset.total_closing_fees, closing_fee);
+        assert_eq!(asset.fees_stats.close_position_usd, closing_fee);
         assert_eq!(asset.total_funding_long, funding_payment);
         assert_eq!(asset.total_funding_short, 0);
+        assert_eq!(asset.volume_stats.close_position_usd, position_value_usd);
+
+        // Close a short position with a loss
+        let size2 = 1000;
+        let is_long2 = false;
+        let closing_fee2 = 3;
+        let funding_payment2 = -10; // Short receives funding
+        let pnl2 = -50; // Loss of 50
+        let position_value_usd2 = 500; // Position value in USD
+
+        asset
+            .process_close_position(
+                size2,
+                is_long2,
+                closing_fee2,
+                funding_payment2,
+                pnl2,
+                position_value_usd2,
+            )
+            .unwrap();
+
+        assert_eq!(asset.open_interest_long, 3000); // Unchanged
+        assert_eq!(asset.open_interest_short, 2000); // 3000 - 1000
+        assert_eq!(
+            asset.fees_stats.close_position_usd,
+            closing_fee + closing_fee2
+        );
+        assert_eq!(asset.total_funding_long, funding_payment);
+        assert_eq!(asset.total_funding_short, -funding_payment2);
+        assert_eq!(
+            asset.volume_stats.close_position_usd,
+            position_value_usd + position_value_usd2
+        );
     }
 
     #[test]
@@ -456,7 +632,13 @@ mod tests {
         let timestamp = 1234567890;
 
         asset
-            .initialize(asset_id, "BTC".to_string(), oracle, timestamp)
+            .initialize(
+                asset_id,
+                "BTC".to_string(),
+                oracle,
+                timestamp,
+                Some(AssetPermissions::default()),
+            )
             .unwrap();
 
         // Set initial open interest
@@ -468,15 +650,23 @@ mod tests {
         let is_long = false;
         let liquidation_fee = 25;
         let funding_payment = -15; // Short receives funding
+        let position_value_usd = 800; // Position value in USD
 
         asset
-            .process_liquidation(size, is_long, liquidation_fee, funding_payment)
+            .process_liquidation(
+                size,
+                is_long,
+                liquidation_fee,
+                funding_payment,
+                position_value_usd,
+            )
             .unwrap();
 
         assert_eq!(asset.open_interest_long, 5000); // Unchanged
         assert_eq!(asset.open_interest_short, 2000); // 3000 - 1000
-        assert_eq!(asset.total_liquidation_fees, liquidation_fee);
+        assert_eq!(asset.fees_stats.liquidation_usd, liquidation_fee);
         assert_eq!(asset.total_funding_long, 0); // Not updated when funding_payment < 0
         assert_eq!(asset.total_funding_short, 15); // Short pays 15 (absolute value of -15)
+        assert_eq!(asset.volume_stats.liquidation_usd, position_value_usd);
     }
 }

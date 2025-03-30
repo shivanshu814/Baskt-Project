@@ -186,6 +186,29 @@
           }
         },
         {
+          "name": "protocol",
+          "docs": [
+            "Protocol account to check feature flags"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -587,6 +610,72 @@
       ]
     },
     {
+      "name": "update_feature_flags",
+      "discriminator": [
+        139,
+        88,
+        184,
+        214,
+        40,
+        6,
+        55,
+        247
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "allow_add_liquidity",
+          "type": "bool"
+        },
+        {
+          "name": "allow_remove_liquidity",
+          "type": "bool"
+        },
+        {
+          "name": "allow_open_position",
+          "type": "bool"
+        },
+        {
+          "name": "allow_close_position",
+          "type": "bool"
+        },
+        {
+          "name": "allow_pnl_withdrawal",
+          "type": "bool"
+        },
+        {
+          "name": "allow_collateral_withdrawal",
+          "type": "bool"
+        },
+        {
+          "name": "allow_baskt_creation",
+          "type": "bool"
+        },
+        {
+          "name": "allow_baskt_update",
+          "type": "bool"
+        },
+        {
+          "name": "allow_trading",
+          "type": "bool"
+        },
+        {
+          "name": "allow_liquidations",
+          "type": "bool"
+        }
+      ]
+    },
+    {
       "name": "withdraw_liquidity",
       "discriminator": [
         149,
@@ -860,13 +949,28 @@
     },
     {
       "code": 6024,
+      "name": "LongPositionsDisabled",
+      "msg": "Long positions are disabled for this asset"
+    },
+    {
+      "code": 6025,
+      "name": "ShortPositionsDisabled",
+      "msg": "Short positions are disabled for this asset"
+    },
+    {
+      "code": 6026,
       "name": "InvalidOrStaleOraclePrice",
       "msg": "Invalid or stale oracle price"
     },
     {
-      "code": 6025,
+      "code": 6027,
       "name": "AssetNotInBaskt",
       "msg": "Asset not in baskt"
+    },
+    {
+      "code": 6028,
+      "name": "FeatureDisabled",
+      "msg": "Feature is currently disabled"
     }
   ],
   "types": [
@@ -939,6 +1043,14 @@
                 "name": "OracleParams"
               }
             }
+          },
+          {
+            "name": "permissions",
+            "type": {
+              "defined": {
+                "name": "AssetPermissions"
+              }
+            }
           }
         ]
       }
@@ -983,6 +1095,25 @@
           {
             "name": "weight",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssetPermissions",
+      "docs": [
+        "Permissions for the asset"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "allow_longs",
+            "type": "bool"
+          },
+          {
+            "name": "allow_shorts",
+            "type": "bool"
           }
         ]
       }
@@ -1130,6 +1261,110 @@
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeatureFlags",
+      "docs": [
+        "Feature flags to enable or disable specific protocol features"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "allow_add_liquidity",
+            "docs": [
+              "Allow adding liquidity to the protocol"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allow_remove_liquidity",
+            "docs": [
+              "Allow removing liquidity from the protocol"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allow_open_position",
+            "docs": [
+              "Allow opening new positions"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allow_close_position",
+            "docs": [
+              "Allow closing existing positions"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allow_pnl_withdrawal",
+            "docs": [
+              "Allow withdrawal of PnL"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allow_collateral_withdrawal",
+            "docs": [
+              "Allow withdrawal of collateral"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allow_baskt_creation",
+            "docs": [
+              "Allow creation of new baskts"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allow_baskt_update",
+            "docs": [
+              "Allow updating existing baskts"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allow_trading",
+            "docs": [
+              "Allow trading on the protocol"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allow_liquidations",
+            "docs": [
+              "Allow liquidations to occur"
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeesStats",
+      "docs": [
+        "Statistics related to fees"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "open_position_usd",
+            "type": "u64"
+          },
+          {
+            "name": "close_position_usd",
+            "type": "u64"
+          },
+          {
+            "name": "liquidation_usd",
+            "type": "u64"
           }
         ]
       }
@@ -1363,6 +1598,14 @@
                 "name": "AccessControl"
               }
             }
+          },
+          {
+            "name": "feature_flags",
+            "type": {
+              "defined": {
+                "name": "FeatureFlags"
+              }
+            }
           }
         ]
       }
@@ -1433,15 +1676,50 @@
             "type": "i64"
           },
           {
-            "name": "total_opening_fees",
+            "name": "volume_stats",
+            "type": {
+              "defined": {
+                "name": "VolumeStats"
+              }
+            }
+          },
+          {
+            "name": "fees_stats",
+            "type": {
+              "defined": {
+                "name": "FeesStats"
+              }
+            }
+          },
+          {
+            "name": "permissions",
+            "type": {
+              "defined": {
+                "name": "AssetPermissions"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "VolumeStats",
+      "docs": [
+        "Statistics related to volume"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "open_position_usd",
             "type": "u64"
           },
           {
-            "name": "total_closing_fees",
+            "name": "close_position_usd",
             "type": "u64"
           },
           {
-            "name": "total_liquidation_fees",
+            "name": "liquidation_usd",
             "type": "u64"
           }
         ]

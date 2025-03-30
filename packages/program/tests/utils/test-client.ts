@@ -1,24 +1,18 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { Keypair, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import BN from "bn.js";
-import { BaseClient, AccessControlRole } from "@baskt/sdk";
-import { BasktV1 } from "../../target/types/baskt_v1";
-import { getLogs } from "@solana-developers/helpers";
+import * as anchor from '@coral-xyz/anchor';
+import { Program } from '@coral-xyz/anchor';
+import { Keypair, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import BN from 'bn.js';
+import { BaseClient, AccessControlRole } from '@baskt/sdk';
+import { BasktV1 } from '../../target/types/baskt_v1';
+import { AssetPermissions } from 'packages/sdk/src/types';
 
 /**
  * Helper function to request an airdrop for a given address
  * @param myAddress The address to fund
  * @param connection The connection to use
  */
-export async function requestAirdrop(
-  myAddress: PublicKey,
-  connection: anchor.web3.Connection
-) {
-  const signature = await connection.requestAirdrop(
-    myAddress,
-    LAMPORTS_PER_SOL * 10
-  );
+export async function requestAirdrop(myAddress: PublicKey, connection: anchor.web3.Connection) {
+  const signature = await connection.requestAirdrop(myAddress, LAMPORTS_PER_SOL * 10);
   await connection.confirmTransaction(signature);
 }
 
@@ -30,12 +24,12 @@ export async function requestAirdrop(
  */
 export async function programForUser(
   signer: Keypair,
-  program: Program<BasktV1>
+  program: Program<BasktV1>,
 ): Promise<Program<BasktV1>> {
   const newProvider = new anchor.AnchorProvider(
     program.provider.connection,
     new anchor.Wallet(signer),
-    {}
+    {},
   );
   return new anchor.Program(program.idl, newProvider) as Program<BasktV1>;
 }
@@ -91,15 +85,12 @@ export class TestClient extends BaseClient {
    */
   public static async forUser(userKeypair: Keypair): Promise<TestClient> {
     // Ensure the user has enough SOL
-    await requestAirdrop(
-      userKeypair.publicKey,
-      anchor.AnchorProvider.env().connection
-    );
+    await requestAirdrop(userKeypair.publicKey, anchor.AnchorProvider.env().connection);
 
     // Create a new program instance for the user
     const userProgram = await programForUser(
       userKeypair,
-      anchor.workspace.BasktV1 as Program<BasktV1>
+      anchor.workspace.BasktV1 as Program<BasktV1>,
     );
 
     // Create a new client with the user's program
@@ -112,14 +103,8 @@ export class TestClient extends BaseClient {
    */
   public async initializeRoles(): Promise<void> {
     // Add roles to test accounts
-    await this.addRole(
-      this.assetManager.publicKey,
-      AccessControlRole.AssetManager
-    );
-    await this.addRole(
-      this.oracleManager.publicKey,
-      AccessControlRole.OracleManager
-    );
+    await this.addRole(this.assetManager.publicKey, AccessControlRole.AssetManager);
+    await this.addRole(this.oracleManager.publicKey, AccessControlRole.OracleManager);
   }
   /**
    * Create and add a synthetic asset with a custom oracle in one step
@@ -132,18 +117,15 @@ export class TestClient extends BaseClient {
   public async createAssetWithCustomOracle(
     ticker: string,
     price: number | BN = this.DEFAULT_PRICE,
-    exponent: number = this.DEFAULT_PRICE_EXPONENT
+    exponent: number = this.DEFAULT_PRICE_EXPONENT,
+    permissions?: AssetPermissions,
   ) {
     try {
       // Try to get the asset by ticker
       const existingAsset = await this.getAssetByTicker(ticker);
       if (existingAsset) {
         // If asset exists, return its information
-        await this.updateOraclePrice(
-          existingAsset.oracle.oracleAccount,
-          price,
-          exponent
-        );
+        await this.updateOraclePrice(existingAsset.oracle.oracleAccount, price, exponent);
         return {
           assetAddress: existingAsset.assetAddress,
           ticker: existingAsset.ticker,
@@ -159,7 +141,8 @@ export class TestClient extends BaseClient {
     const result = await this.createAndAddAssetWithCustomOracle(
       ticker,
       price,
-      exponent
+      exponent,
+      permissions,
     );
 
     // Format the result to match the expected return format of the TestClient
@@ -176,12 +159,9 @@ export class TestClient extends BaseClient {
    * @param account Account to assign the role to
    * @param role AccessControlRole to assign
    */
-  public async addRole(
-    account: PublicKey,
-    role: AccessControlRole | string
-  ): Promise<string> {
+  public async addRole(account: PublicKey, role: AccessControlRole | string): Promise<string> {
     // Convert string to AccessControlRole enum if needed
-    const roleEnum = typeof role === "string" ? this.stringToRole(role) : role;
+    const roleEnum = typeof role === 'string' ? this.stringToRole(role) : role;
     return await super.addRole(account, roleEnum);
   }
 
@@ -190,12 +170,9 @@ export class TestClient extends BaseClient {
    * @param account Account to remove the role from
    * @param role AccessControlRole to remove
    */
-  public async removeRole(
-    account: PublicKey,
-    role: AccessControlRole | string
-  ): Promise<string> {
+  public async removeRole(account: PublicKey, role: AccessControlRole | string): Promise<string> {
     // Convert string to AccessControlRole enum if needed
-    const roleEnum = typeof role === "string" ? this.stringToRole(role) : role;
+    const roleEnum = typeof role === 'string' ? this.stringToRole(role) : role;
     return await super.removeRole(account, roleEnum);
   }
 
@@ -205,12 +182,9 @@ export class TestClient extends BaseClient {
    * @param role AccessControlRole to check
    * @returns Boolean indicating if the account has the role
    */
-  public async hasRole(
-    account: PublicKey,
-    role: AccessControlRole | string
-  ): Promise<boolean> {
+  public async hasRole(account: PublicKey, role: AccessControlRole | string): Promise<boolean> {
     // Convert string to AccessControlRole enum if needed
-    const roleEnum = typeof role === "string" ? this.stringToRole(role) : role;
+    const roleEnum = typeof role === 'string' ? this.stringToRole(role) : role;
     return await super.hasRole(account, roleEnum);
   }
 
@@ -222,10 +196,10 @@ export class TestClient extends BaseClient {
    */
   public async hasPermission(
     account: PublicKey,
-    role: AccessControlRole | string
+    role: AccessControlRole | string,
   ): Promise<boolean> {
     // Convert string to AccessControlRole enum if needed
-    const roleEnum = typeof role === "string" ? this.stringToRole(role) : role;
+    const roleEnum = typeof role === 'string' ? this.stringToRole(role) : role;
     return await super.hasPermission(account, roleEnum);
   }
 
@@ -236,15 +210,15 @@ export class TestClient extends BaseClient {
    */
   private stringToRole(roleStr: string): AccessControlRole {
     switch (roleStr) {
-      case "AssetManager":
+      case 'AssetManager':
         return AccessControlRole.AssetManager;
-      case "OracleManager":
+      case 'OracleManager':
         return AccessControlRole.OracleManager;
-      case "Owner":
+      case 'Owner':
         // For Owner role, we can't actually add it as a role in the access control list
         // but we handle it specially in the hasPermission method
         throw new Error(
-          `Cannot add ${AccessControlRole.Owner} as a role. Owner is set during protocol initialization.`
+          `Cannot add ${AccessControlRole.Owner} as a role. Owner is set during protocol initialization.`,
         );
       default:
         throw new Error(`Invalid role string: ${roleStr}`);
@@ -261,7 +235,8 @@ export class TestClient extends BaseClient {
   public async createAndAddAssetWithPythOracle(
     ticker: string,
     price: number | BN = this.DEFAULT_PRICE,
-    exponent: number = this.DEFAULT_PRICE_EXPONENT
+    exponent: number = this.DEFAULT_PRICE_EXPONENT,
+    permissions?: AssetPermissions,
   ) {
     // Create a Pyth oracle
     const oracle = await this.createPythOracle(price, exponent);
@@ -269,16 +244,13 @@ export class TestClient extends BaseClient {
     // Create oracle parameters
     const oracleParams = this.createOracleParams(
       oracle.address,
-      "pyth",
+      'pyth',
       this.DEFAULT_PRICE_ERROR,
-      this.DEFAULT_PRICE_AGE_SEC
+      this.DEFAULT_PRICE_AGE_SEC,
     );
 
     // Add the asset
-    const { assetAddress, txSignature } = await this.addAsset(
-      ticker,
-      oracleParams
-    );
+    const { assetAddress, txSignature } = await this.addAsset(ticker, oracleParams, permissions);
 
     return {
       assetAddress,
@@ -303,7 +275,7 @@ export class TestClient extends BaseClient {
       direction: boolean;
       weight: number;
     }>,
-    isPublic: boolean
+    isPublic: boolean,
   ) {
     // Extract asset configs and asset/oracle pairs
     const assetConfigs = assets.map((item) => ({
@@ -322,7 +294,7 @@ export class TestClient extends BaseClient {
       basktName,
       assetConfigs,
       isPublic,
-      assetOraclePairs
+      assetOraclePairs,
     );
 
     return {
@@ -347,10 +319,7 @@ export class TestClient extends BaseClient {
    * @param oracleAddress The oracle account address
    * @returns The current price as a BN
    */
-  public async getAssetPrice(
-    assetAddress: PublicKey,
-    oracleAddress: PublicKey
-  ) {
+  public async getAssetPrice(assetAddress: PublicKey, oracleAddress: PublicKey) {
     try {
       return await this.program.methods
         .getAssetPrice()
@@ -366,6 +335,63 @@ export class TestClient extends BaseClient {
   }
 
   /**
+   * Update feature flags for the protocol
+   * @param featureFlags Object containing boolean values for each feature flag
+   * @returns Transaction signature
+   */
+  public async updateFeatureFlags(featureFlags: {
+    allowAddLiquidity: boolean;
+    allowRemoveLiquidity: boolean;
+    allowOpenPosition: boolean;
+    allowClosePosition: boolean;
+    allowPnlWithdrawal: boolean;
+    allowCollateralWithdrawal: boolean;
+    allowBasktCreation: boolean;
+    allowBasktUpdate: boolean;
+    allowTrading: boolean;
+    allowLiquidations: boolean;
+  }): Promise<string> {
+    try {
+      const txSignature = await this.program.methods
+        .updateFeatureFlags(
+          featureFlags.allowAddLiquidity,
+          featureFlags.allowRemoveLiquidity,
+          featureFlags.allowOpenPosition,
+          featureFlags.allowClosePosition,
+          featureFlags.allowPnlWithdrawal,
+          featureFlags.allowCollateralWithdrawal,
+          featureFlags.allowBasktCreation,
+          featureFlags.allowBasktUpdate,
+          featureFlags.allowTrading,
+          featureFlags.allowLiquidations,
+        )
+        .accounts({
+          owner: this.wallet.publicKey,
+          protocol: this.protocolPDA,
+        })
+        .rpc();
+
+      return txSignature;
+    } catch (error) {
+      console.error('Error updating feature flags:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get protocol account data
+   * @returns The protocol account data
+   */
+  public async getProtocol() {
+    try {
+      return await this.program.account.protocol.fetch(this.protocolPDA);
+    } catch (error) {
+      console.error('Error fetching protocol account:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get baskt NAV using the view instruction
    * @param basktAddress The baskt account address
    * @param assetOraclePairs Array of asset/oracle account pairs
@@ -373,7 +399,7 @@ export class TestClient extends BaseClient {
    */
   public async getBasktNav(
     basktAddress: PublicKey,
-    assetOraclePairs: Array<{ asset: PublicKey; oracle: PublicKey }> = []
+    assetOraclePairs: Array<{ asset: PublicKey; oracle: PublicKey }> = [],
   ) {
     // Prepare remaining accounts (asset/oracle pairs)
     const remainingAccounts = assetOraclePairs.flatMap((pair) => [

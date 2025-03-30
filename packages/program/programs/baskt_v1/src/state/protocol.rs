@@ -69,6 +69,31 @@ impl AccessControl {
     }
 }
 
+/// Feature flags to enable or disable specific protocol features
+#[derive(AnchorSerialize, AnchorDeserialize, Default, Clone, Debug, InitSpace)]
+pub struct FeatureFlags {
+    /// Allow adding liquidity to the protocol
+    pub allow_add_liquidity: bool,
+    /// Allow removing liquidity from the protocol
+    pub allow_remove_liquidity: bool,
+    /// Allow opening new positions
+    pub allow_open_position: bool,
+    /// Allow closing existing positions
+    pub allow_close_position: bool,
+    /// Allow withdrawal of PnL
+    pub allow_pnl_withdrawal: bool,
+    /// Allow withdrawal of collateral
+    pub allow_collateral_withdrawal: bool,
+    /// Allow creation of new baskts
+    pub allow_baskt_creation: bool,
+    /// Allow updating existing baskts
+    pub allow_baskt_update: bool,
+    /// Allow trading on the protocol
+    pub allow_trading: bool,
+    /// Allow liquidations to occur
+    pub allow_liquidations: bool,
+}
+
 #[account]
 #[derive(Default, InitSpace)]
 
@@ -85,6 +110,7 @@ pub struct Protocol {
     pub is_initialized: bool,
     pub owner: Pubkey,
     pub access_control: AccessControl,
+    pub feature_flags: FeatureFlags,
 }
 
 impl Protocol {
@@ -95,6 +121,20 @@ impl Protocol {
 
         // Add owner to access control with Owner role
         self.access_control.add_role(owner, Role::Owner)?;
+
+        // Initialize feature flags - enable all features by default
+        self.feature_flags = FeatureFlags {
+            allow_add_liquidity: true,
+            allow_remove_liquidity: true,
+            allow_open_position: true,
+            allow_close_position: true,
+            allow_pnl_withdrawal: true,
+            allow_collateral_withdrawal: true,
+            allow_baskt_creation: true,
+            allow_baskt_update: true,
+            allow_trading: true,
+            allow_liquidations: true,
+        };
 
         Ok(())
     }
@@ -132,6 +172,17 @@ impl Protocol {
     /// Get the owner of the protocol
     pub fn get_owner(&self) -> Pubkey {
         self.owner
+    }
+
+    /// Update feature flags
+    pub fn update_feature_flags(&mut self, new_feature_flags: FeatureFlags) -> Result<()> {
+        self.feature_flags = new_feature_flags;
+        Ok(())
+    }
+
+    /// Get feature flags
+    pub fn get_feature_flags(&self) -> &FeatureFlags {
+        &self.feature_flags
     }
 }
 

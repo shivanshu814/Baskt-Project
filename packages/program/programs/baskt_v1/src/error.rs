@@ -50,8 +50,14 @@ pub enum PerpetualsError {
     InvalidRemainingAccounts,
     #[msg("Invalid asset account")]
     InvalidAssetAccount,
+    #[msg("Long positions are disabled for this asset")]
+    LongPositionsDisabled,
+    #[msg("Short positions are disabled for this asset")]
+    ShortPositionsDisabled,
     #[msg("Invalid or stale oracle price")]
     InvalidOrStaleOraclePrice,
     #[msg("Asset not in baskt")]
     AssetNotInBaskt,
+    #[msg("Feature is currently disabled")]
+    FeatureDisabled,
 }

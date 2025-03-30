@@ -192,6 +192,29 @@ export type BasktV1 = {
           }
         },
         {
+          "name": "protocol",
+          "docs": [
+            "Protocol account to check feature flags"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -593,6 +616,72 @@ export type BasktV1 = {
       ]
     },
     {
+      "name": "updateFeatureFlags",
+      "discriminator": [
+        139,
+        88,
+        184,
+        214,
+        40,
+        6,
+        55,
+        247
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "allowAddLiquidity",
+          "type": "bool"
+        },
+        {
+          "name": "allowRemoveLiquidity",
+          "type": "bool"
+        },
+        {
+          "name": "allowOpenPosition",
+          "type": "bool"
+        },
+        {
+          "name": "allowClosePosition",
+          "type": "bool"
+        },
+        {
+          "name": "allowPnlWithdrawal",
+          "type": "bool"
+        },
+        {
+          "name": "allowCollateralWithdrawal",
+          "type": "bool"
+        },
+        {
+          "name": "allowBasktCreation",
+          "type": "bool"
+        },
+        {
+          "name": "allowBasktUpdate",
+          "type": "bool"
+        },
+        {
+          "name": "allowTrading",
+          "type": "bool"
+        },
+        {
+          "name": "allowLiquidations",
+          "type": "bool"
+        }
+      ]
+    },
+    {
       "name": "withdrawLiquidity",
       "discriminator": [
         149,
@@ -866,13 +955,28 @@ export type BasktV1 = {
     },
     {
       "code": 6024,
+      "name": "longPositionsDisabled",
+      "msg": "Long positions are disabled for this asset"
+    },
+    {
+      "code": 6025,
+      "name": "shortPositionsDisabled",
+      "msg": "Short positions are disabled for this asset"
+    },
+    {
+      "code": 6026,
       "name": "invalidOrStaleOraclePrice",
       "msg": "Invalid or stale oracle price"
     },
     {
-      "code": 6025,
+      "code": 6027,
       "name": "assetNotInBaskt",
       "msg": "Asset not in baskt"
+    },
+    {
+      "code": 6028,
+      "name": "featureDisabled",
+      "msg": "Feature is currently disabled"
     }
   ],
   "types": [
@@ -945,6 +1049,14 @@ export type BasktV1 = {
                 "name": "oracleParams"
               }
             }
+          },
+          {
+            "name": "permissions",
+            "type": {
+              "defined": {
+                "name": "assetPermissions"
+              }
+            }
           }
         ]
       }
@@ -989,6 +1101,25 @@ export type BasktV1 = {
           {
             "name": "weight",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "assetPermissions",
+      "docs": [
+        "Permissions for the asset"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "allowLongs",
+            "type": "bool"
+          },
+          {
+            "name": "allowShorts",
+            "type": "bool"
           }
         ]
       }
@@ -1136,6 +1267,110 @@ export type BasktV1 = {
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "featureFlags",
+      "docs": [
+        "Feature flags to enable or disable specific protocol features"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "allowAddLiquidity",
+            "docs": [
+              "Allow adding liquidity to the protocol"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allowRemoveLiquidity",
+            "docs": [
+              "Allow removing liquidity from the protocol"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allowOpenPosition",
+            "docs": [
+              "Allow opening new positions"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allowClosePosition",
+            "docs": [
+              "Allow closing existing positions"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allowPnlWithdrawal",
+            "docs": [
+              "Allow withdrawal of PnL"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allowCollateralWithdrawal",
+            "docs": [
+              "Allow withdrawal of collateral"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allowBasktCreation",
+            "docs": [
+              "Allow creation of new baskts"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allowBasktUpdate",
+            "docs": [
+              "Allow updating existing baskts"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allowTrading",
+            "docs": [
+              "Allow trading on the protocol"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "allowLiquidations",
+            "docs": [
+              "Allow liquidations to occur"
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "feesStats",
+      "docs": [
+        "Statistics related to fees"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "openPositionUsd",
+            "type": "u64"
+          },
+          {
+            "name": "closePositionUsd",
+            "type": "u64"
+          },
+          {
+            "name": "liquidationUsd",
+            "type": "u64"
           }
         ]
       }
@@ -1369,6 +1604,14 @@ export type BasktV1 = {
                 "name": "accessControl"
               }
             }
+          },
+          {
+            "name": "featureFlags",
+            "type": {
+              "defined": {
+                "name": "featureFlags"
+              }
+            }
           }
         ]
       }
@@ -1439,15 +1682,50 @@ export type BasktV1 = {
             "type": "i64"
           },
           {
-            "name": "totalOpeningFees",
+            "name": "volumeStats",
+            "type": {
+              "defined": {
+                "name": "volumeStats"
+              }
+            }
+          },
+          {
+            "name": "feesStats",
+            "type": {
+              "defined": {
+                "name": "feesStats"
+              }
+            }
+          },
+          {
+            "name": "permissions",
+            "type": {
+              "defined": {
+                "name": "assetPermissions"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "volumeStats",
+      "docs": [
+        "Statistics related to volume"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "openPositionUsd",
             "type": "u64"
           },
           {
-            "name": "totalClosingFees",
+            "name": "closePositionUsd",
             "type": "u64"
           },
           {
-            "name": "totalLiquidationFees",
+            "name": "liquidationUsd",
             "type": "u64"
           }
         ]

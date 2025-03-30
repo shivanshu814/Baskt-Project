@@ -1,12 +1,13 @@
-import * as anchor from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
-import { OracleHelper } from "./utils/oracle-helper";
-import BN from "bn.js";
+import * as anchor from '@coral-xyz/anchor';
+import { PublicKey } from '@solana/web3.js';
+import { OracleHelper } from './utils/oracle-helper';
+import BN from 'bn.js';
 
 // Import the types from our local files
-import type { BasktV1 } from "./program/types";
-import { toRoleString } from "./utils/acl-helper";
-import { AccessControlRole } from "./types/role";
+import type { BasktV1 } from './program/types';
+import { toRoleString } from './utils/acl-helper';
+import { AccessControlRole } from './types/role';
+import { AssetPermissions } from './types/asset';
 
 /**
  * Abstract base client for Solana programs
@@ -46,8 +47,8 @@ export abstract class BaseClient {
 
     // Derive protocol PDA
     [this.protocolPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("protocol")],
-      this.program.programId
+      [Buffer.from('protocol')],
+      this.program.programId,
     );
   }
 
@@ -63,22 +64,15 @@ export abstract class BaseClient {
     price: number | BN = this.DEFAULT_PRICE,
     exponent: number = this.DEFAULT_PRICE_EXPONENT,
     confidence?: number | BN,
-    timestamp?: number
+    timestamp?: number,
   ) {
     // Convert to raw price with exponent if a number is provided
-    const rawPrice =
-      typeof price === "number" ? price * Math.pow(10, -exponent) : price;
+    const rawPrice = typeof price === 'number' ? price * Math.pow(10, -exponent) : price;
 
     // Default confidence to 1% of price if not specified
-    const rawConfidence =
-      confidence ?? (typeof rawPrice === "number" ? rawPrice / 100 : undefined);
+    const rawConfidence = confidence ?? (typeof rawPrice === 'number' ? rawPrice / 100 : undefined);
 
-    return await this.oracleHelper.createCustomOracle(
-      rawPrice,
-      exponent,
-      rawConfidence,
-      timestamp
-    );
+    return await this.oracleHelper.createCustomOracle(rawPrice, exponent, rawConfidence, timestamp);
   }
 
   /**
@@ -93,22 +87,15 @@ export abstract class BaseClient {
     price: number | BN = this.DEFAULT_PRICE,
     exponent: number = this.DEFAULT_PRICE_EXPONENT,
     confidence?: number | BN,
-    timestamp?: number
+    timestamp?: number,
   ) {
     // Convert to raw price with exponent if a number is provided
-    const rawPrice =
-      typeof price === "number" ? price * Math.pow(10, -exponent) : price;
+    const rawPrice = typeof price === 'number' ? price * Math.pow(10, -exponent) : price;
 
     // Default confidence to 1% of price if not specified
-    const rawConfidence =
-      confidence ?? (typeof rawPrice === "number" ? rawPrice / 100 : undefined);
+    const rawConfidence = confidence ?? (typeof rawPrice === 'number' ? rawPrice / 100 : undefined);
 
-    return await this.oracleHelper.createPythOracle(
-      rawPrice,
-      exponent,
-      rawConfidence,
-      timestamp
-    );
+    return await this.oracleHelper.createPythOracle(rawPrice, exponent, rawConfidence, timestamp);
   }
 
   /**
@@ -121,22 +108,18 @@ export abstract class BaseClient {
    */
   public createOracleParams(
     oracleAddress: PublicKey,
-    oracleType: "custom" | "pyth",
+    oracleType: 'custom' | 'pyth',
     maxPriceError: number | BN = this.DEFAULT_PRICE_ERROR,
-    maxPriceAgeSec: number = this.DEFAULT_PRICE_AGE_SEC
+    maxPriceAgeSec: number = this.DEFAULT_PRICE_AGE_SEC,
   ) {
     // Convert the oracle type to the format expected by the program
-    const formattedOracleType =
-      oracleType === "custom" ? { custom: {} } : { pyth: {} };
+    const formattedOracleType = oracleType === 'custom' ? { custom: {} } : { pyth: {} };
 
     return {
       oracleAccount: oracleAddress,
       oracleType: formattedOracleType,
       oracleAuthority: this.provider.wallet.publicKey,
-      maxPriceError:
-        typeof maxPriceError === "number"
-          ? new BN(maxPriceError)
-          : maxPriceError,
+      maxPriceError: typeof maxPriceError === 'number' ? new BN(maxPriceError) : maxPriceError,
       maxPriceAgeSec: maxPriceAgeSec,
     };
   }
@@ -152,21 +135,19 @@ export abstract class BaseClient {
     oracleAddress: PublicKey,
     price: number | BN,
     exponent: number = this.DEFAULT_PRICE_EXPONENT,
-    confidence?: number | BN
+    confidence?: number | BN,
   ) {
     // Convert to raw price with exponent if a number is provided
-    const rawPrice =
-      typeof price === "number" ? price * Math.pow(10, -exponent) : price;
+    const rawPrice = typeof price === 'number' ? price * Math.pow(10, -exponent) : price;
 
     // Default confidence to 1% of price if not specified
-    const rawConfidence =
-      confidence ?? (typeof rawPrice === "number" ? rawPrice / 100 : undefined);
+    const rawConfidence = confidence ?? (typeof rawPrice === 'number' ? rawPrice / 100 : undefined);
 
     await this.oracleHelper.updateCustomOraclePrice(
       oracleAddress,
       rawPrice,
       exponent,
-      rawConfidence
+      rawConfidence,
     );
   }
 
@@ -180,20 +161,19 @@ export abstract class BaseClient {
   public async createStaleOracle(
     staleTimeSeconds: number = 7200, // 2 hours by default
     price: number | BN = this.DEFAULT_PRICE,
-    exponent: number = this.DEFAULT_PRICE_EXPONENT
+    exponent: number = this.DEFAULT_PRICE_EXPONENT,
   ) {
     const currentTime = Math.floor(Date.now() / 1000);
     const staleTime = currentTime - staleTimeSeconds;
 
     // Convert to raw price with exponent if a number is provided
-    const rawPrice =
-      typeof price === "number" ? price * Math.pow(10, -exponent) : price;
+    const rawPrice = typeof price === 'number' ? price * Math.pow(10, -exponent) : price;
 
     return await this.oracleHelper.createCustomOracle(
       rawPrice,
       exponent,
       undefined, // Default confidence
-      staleTime // Use stale timestamp
+      staleTime, // Use stale timestamp
     );
   }
 
@@ -223,13 +203,12 @@ export abstract class BaseClient {
     liquidationThreshold: number = 12500, // 125% by default
     liquidationPenalty: number = 1000, // 10% by default
     interestRate: number = 500, // 5% by default
-    interestAccrualRate: number = 86400 // 1 day by default
+    interestAccrualRate: number = 86400, // 1 day by default
+    permissions: AssetPermissions = { allowLongs: true, allowShorts: true },
   ) {
     // Convert numeric values to BN if they aren't already
-    const targetPriceBN =
-      typeof targetPrice === "number" ? new BN(targetPrice) : targetPrice;
-    const maxSupplyBN =
-      typeof maxSupply === "number" ? new BN(maxSupply) : maxSupply;
+    const targetPriceBN = typeof targetPrice === 'number' ? new BN(targetPrice) : targetPrice;
+    const maxSupplyBN = typeof maxSupply === 'number' ? new BN(maxSupply) : maxSupply;
 
     // Create the asset parameters object
     return {
@@ -242,6 +221,7 @@ export abstract class BaseClient {
       liquidationPenalty: liquidationPenalty,
       interestRate: interestRate,
       interestAccrualRate: interestAccrualRate,
+      permissions: permissions,
     };
   }
 
@@ -274,10 +254,7 @@ export abstract class BaseClient {
    * @param role AccessControlRole to assign
    * @returns Transaction signature
    */
-  public async addRole(
-    account: PublicKey,
-    role: AccessControlRole
-  ): Promise<string> {
+  public async addRole(account: PublicKey, role: AccessControlRole): Promise<string> {
     // Submit the transaction to add the role
     const tx = await this.program.methods
       .addRole(parseInt(role.toString()))
@@ -297,10 +274,7 @@ export abstract class BaseClient {
    * @param role AccessControlRole to remove
    * @returns Transaction signature
    */
-  public async removeRole(
-    account: PublicKey,
-    role: AccessControlRole
-  ): Promise<string> {
+  public async removeRole(account: PublicKey, role: AccessControlRole): Promise<string> {
     // Submit the transaction to remove the role
     const tx = await this.program.methods
       .removeRole(parseInt(role.toString()))
@@ -320,10 +294,7 @@ export abstract class BaseClient {
    * @param role AccessControlRole to check
    * @returns Boolean indicating if the account has the role
    */
-  public async hasRole(
-    account: PublicKey,
-    role: AccessControlRole
-  ): Promise<boolean> {
+  public async hasRole(account: PublicKey, role: AccessControlRole): Promise<boolean> {
     const protocol = await this.getProtocolAccount();
 
     // Check if the account has the role
@@ -337,9 +308,7 @@ export abstract class BaseClient {
     return protocol.accessControl.entries.some(
       (entry) =>
         entry.account.toString() === account.toString() &&
-        JSON.stringify(entry.role)
-          .toLowerCase()
-          .includes(roleString.toLowerCase())
+        JSON.stringify(entry.role).toLowerCase().includes(roleString.toLowerCase()),
     );
   }
 
@@ -349,10 +318,7 @@ export abstract class BaseClient {
    * @param role AccessControlRole to check
    * @returns Boolean indicating if the account has permission
    */
-  public async hasPermission(
-    account: PublicKey,
-    role: AccessControlRole
-  ): Promise<boolean> {
+  public async hasPermission(account: PublicKey, role: AccessControlRole): Promise<boolean> {
     const protocol = await this.getProtocolAccount();
 
     // Check if account is the owner
@@ -380,13 +346,14 @@ export abstract class BaseClient {
   public async addAsset(
     ticker: string,
     oracleParams: any,
+    permissions?: AssetPermissions,
     targetPrice?: number | BN,
     maxSupply?: number | BN,
     collateralRatio?: number,
     liquidationThreshold?: number,
     liquidationPenalty?: number,
     interestRate?: number,
-    interestAccrualRate?: number
+    interestAccrualRate?: number,
   ): Promise<{ txSignature: string; assetAddress: PublicKey }> {
     // Create the asset parameters using BaseClient's helper method
     const params = this.createAssetParams(
@@ -398,13 +365,14 @@ export abstract class BaseClient {
       liquidationThreshold,
       liquidationPenalty,
       interestRate,
-      interestAccrualRate
+      interestAccrualRate,
+      permissions,
     );
 
     // Derive the asset PDA from the ticker
     const [assetAddress] = PublicKey.findProgramAddressSync(
-      [Buffer.from("asset"), Buffer.from(ticker)],
-      this.program.programId
+      [Buffer.from('asset'), Buffer.from(ticker)],
+      this.program.programId,
     );
 
     // Submit the transaction to add the asset
@@ -413,12 +381,13 @@ export abstract class BaseClient {
       .addAsset({
         ticker: params.ticker,
         oracle: params.oracle,
+        permissions: params.permissions,
       })
       .accounts({
         admin: this.provider.wallet.publicKey,
         // Add the protocol account which is required by the program but not in the IDL
         protocol: this.protocolPDA,
-      } as any)
+      })
       .rpc();
 
     return { txSignature, assetAddress };
@@ -442,7 +411,8 @@ export abstract class BaseClient {
   public async createAndAddAssetWithCustomOracle(
     ticker: string,
     price?: number | BN,
-    exponent?: number
+    exponent?: number,
+    permissions?: AssetPermissions,
   ) {
     // Use BaseClient's default values
     const DEFAULT_PRICE_ERROR = 100;
@@ -453,16 +423,13 @@ export abstract class BaseClient {
     // Create oracle parameters
     const oracleParams = this.createOracleParams(
       oracle.address,
-      "custom",
+      'custom',
       DEFAULT_PRICE_ERROR,
-      DEFAULT_PRICE_AGE_SEC
+      DEFAULT_PRICE_AGE_SEC,
     );
 
     // Add the asset
-    const { txSignature, assetAddress } = await this.addAsset(
-      ticker,
-      oracleParams
-    );
+    const { txSignature, assetAddress } = await this.addAsset(ticker, oracleParams, permissions);
 
     return {
       assetAddress,
@@ -482,7 +449,8 @@ export abstract class BaseClient {
   public async createAndAddAssetWithPythOracle(
     ticker: string,
     price?: number | BN,
-    exponent?: number
+    exponent?: number,
+    permissions?: AssetPermissions,
   ) {
     // Use BaseClient's default values
     const DEFAULT_PRICE_ERROR = 100;
@@ -493,16 +461,13 @@ export abstract class BaseClient {
     // Create oracle parameters
     const oracleParams = this.createOracleParams(
       oracle.address,
-      "pyth",
+      'pyth',
       DEFAULT_PRICE_ERROR,
-      DEFAULT_PRICE_AGE_SEC
+      DEFAULT_PRICE_AGE_SEC,
     );
 
     // Add the asset
-    const { txSignature, assetAddress } = await this.addAsset(
-      ticker,
-      oracleParams
-    );
+    const { txSignature, assetAddress } = await this.addAsset(ticker, oracleParams, permissions);
 
     return {
       assetAddress,
@@ -554,12 +519,12 @@ export abstract class BaseClient {
       weight: number;
     }>,
     isPublic: boolean,
-    assetOraclePairs?: Array<{ asset: PublicKey; oracle: PublicKey }>
+    assetOraclePairs?: Array<{ asset: PublicKey; oracle: PublicKey }>,
   ) {
     // Derive the baskt PDA
     const [basktId] = PublicKey.findProgramAddressSync(
-      [Buffer.from("baskt"), Buffer.from(basktName)],
-      this.program.programId
+      [Buffer.from('baskt'), Buffer.from(basktName)],
+      this.program.programId,
     );
 
     // Convert asset configs to the format expected by the program
@@ -635,9 +600,7 @@ export abstract class BaseClient {
     try {
       // Get all assets and find the one with matching ticker
       const allAssets = await this.getAllAssets();
-      const assetInfo = allAssets.find(
-        (asset) => asset.account.ticker === ticker
-      );
+      const assetInfo = allAssets.find((asset) => asset.account.ticker === ticker);
 
       if (!assetInfo) {
         return null;

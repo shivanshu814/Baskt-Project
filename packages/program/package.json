@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build:anchor": "anchor build",
+    "build:anchor": "pnpm --filter @baskt/sdk build && anchor build",
     "clean": "rimraf dist",
     "localnet": "anchor localnet",
-    "test": "anchor test",
+    "test": "pnpm --filter @baskt/sdk build && anchor test",
     "lint": "eslint tests --ext test.ts"
   },
   "dependencies": {

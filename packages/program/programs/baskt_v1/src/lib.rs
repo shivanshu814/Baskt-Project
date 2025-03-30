@@ -29,6 +29,34 @@ pub mod baskt_v1 {
         instructions::protocol::remove_role(ctx, role_type)
     }
 
+    pub fn update_feature_flags(
+        ctx: Context<UpdateFeatureFlags>,
+        allow_add_liquidity: bool,
+        allow_remove_liquidity: bool,
+        allow_open_position: bool,
+        allow_close_position: bool,
+        allow_pnl_withdrawal: bool,
+        allow_collateral_withdrawal: bool,
+        allow_baskt_creation: bool,
+        allow_baskt_update: bool,
+        allow_trading: bool,
+        allow_liquidations: bool,
+    ) -> Result<()> {
+        instructions::protocol::update_feature_flags(
+            ctx,
+            allow_add_liquidity,
+            allow_remove_liquidity,
+            allow_open_position,
+            allow_close_position,
+            allow_pnl_withdrawal,
+            allow_collateral_withdrawal,
+            allow_baskt_creation,
+            allow_baskt_update,
+            allow_trading,
+            allow_liquidations,
+        )
+    }
+
     // Baskt Management
     pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Result<()> {
         instructions::baskt::create_baskt(ctx, params)
@@ -88,12 +116,12 @@ pub mod baskt_v1 {
     ) -> Result<()> {
         instructions::oracle::update_custom_oracle(ctx, price, expo, conf, ema, publish_time)
     }
-    
+
     // View functions (read-only)
     pub fn get_asset_price(ctx: Context<GetAssetPrice>) -> Result<u64> {
         instructions::view::get_asset_price(ctx)
     }
-    
+
     pub fn get_baskt_nav(ctx: Context<GetBasktNav>) -> Result<u64> {
         instructions::view::get_baskt_nav(ctx)
     }

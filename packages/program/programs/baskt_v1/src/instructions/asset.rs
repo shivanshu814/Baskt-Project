@@ -1,11 +1,16 @@
-use crate::state::{asset::SyntheticAsset, oracle::OracleParams, protocol::{Protocol, Role}};
 use crate::error::PerpetualsError;
+use crate::state::{
+    asset::{AssetPermissions, SyntheticAsset},
+    oracle::OracleParams,
+    protocol::{Protocol, Role},
+};
 use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct AddAssetParams {
     pub ticker: String,
     pub oracle: OracleParams,
+    pub permissions: AssetPermissions,
 }
 
 #[derive(Accounts)]
@@ -24,7 +29,7 @@ pub struct AddAsset<'info> {
         bump
     )]
     pub asset: Account<'info, SyntheticAsset>,
-    
+
     /// Protocol account for access control check
     pub protocol: Account<'info, Protocol>,
 
@@ -43,6 +48,7 @@ pub fn add_asset(ctx: Context<AddAsset>, params: AddAssetParams) -> Result<()> {
         params.ticker,
         params.oracle,
         clock.unix_timestamp,
+        Some(params.permissions),
     )?;
 
     Ok(())

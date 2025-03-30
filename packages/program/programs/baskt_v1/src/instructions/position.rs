@@ -122,7 +122,7 @@ pub fn open_position(
     } else {
         asset.open_interest_short += size;
     }
-    asset.total_opening_fees += opening_fee;
+    asset.fees_stats.open_position_usd += opening_fee;
 
     // Update funding rate
     let funding_rate = Utils::calculate_funding_rate(
@@ -215,7 +215,7 @@ pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
     } else {
         asset.open_interest_short -= position.size;
     }
-    asset.total_closing_fees += closing_fee;
+    asset.fees_stats.close_position_usd += closing_fee;
 
     // Update funding rate
     let funding_rate = Utils::calculate_funding_rate(
@@ -322,7 +322,7 @@ pub fn liquidate_position(ctx: Context<LiquidatePosition>) -> Result<()> {
     } else {
         asset.open_interest_short -= position.size;
     }
-    asset.total_liquidation_fees += liquidation_fee;
+    asset.fees_stats.liquidation_usd += liquidation_fee;
 
     // Update funding rate
     let funding_rate = Utils::calculate_funding_rate(

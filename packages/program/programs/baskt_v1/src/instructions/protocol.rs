@@ -1,5 +1,5 @@
 use crate::error::PerpetualsError;
-use crate::state::protocol::{Protocol, Role};
+use crate::state::protocol::{FeatureFlags, Protocol, Role};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -86,6 +86,50 @@ pub fn remove_role(ctx: Context<RemoveRole>, role_type: u8) -> Result<()> {
 
     // Remove the role from the account
     protocol.remove_role(&account, role)?;
+
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct UpdateFeatureFlags<'info> {
+    #[account(mut, constraint = protocol.is_owner(&owner.key()) @ PerpetualsError::UnauthorizedSigner)]
+    pub owner: Signer<'info>,
+
+    #[account(mut)]
+    pub protocol: Account<'info, Protocol>,
+}
+
+pub fn update_feature_flags(
+    ctx: Context<UpdateFeatureFlags>,
+    allow_add_liquidity: bool,
+    allow_remove_liquidity: bool,
+    allow_open_position: bool,
+    allow_close_position: bool,
+    allow_pnl_withdrawal: bool,
+    allow_collateral_withdrawal: bool,
+    allow_baskt_creation: bool,
+    allow_baskt_update: bool,
+    allow_trading: bool,
+    allow_liquidations: bool,
+) -> Result<()> {
+    let protocol = &mut ctx.accounts.protocol;
+    
+    // Create new feature flags with provided values
+    let new_feature_flags = FeatureFlags {
+        allow_add_liquidity,
+        allow_remove_liquidity,
+        allow_open_position,
+        allow_close_position,
+        allow_pnl_withdrawal,
+        allow_collateral_withdrawal,
+        allow_baskt_creation,
+        allow_baskt_update,
+        allow_trading,
+        allow_liquidations,
+    };
+
+    // Update the feature flags
+    protocol.update_feature_flags(new_feature_flags)?;
 
     Ok(())
 }
