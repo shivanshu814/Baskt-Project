@@ -89,6 +89,7 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
                 .iter()
                 .find(|(id, _)| *id == config.asset_id)
                 .map(|(_, price)| *price)
+                //TODO: This should throw an error if the price is not found
                 .unwrap_or(1000000); // Default to 1.0 if price not found
 
             AssetConfig {

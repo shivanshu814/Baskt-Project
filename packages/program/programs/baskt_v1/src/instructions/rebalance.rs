@@ -29,7 +29,8 @@ pub struct Rebalance<'info> {
     )]
 
     pub payer: Signer<'info>,
-
+    
+    #[account(seeds = [b"protocol"], bump)]
     pub protocol: Account<'info, Protocol>,
 
     pub system_program: Program<'info, System>,

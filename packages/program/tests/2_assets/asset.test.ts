@@ -32,7 +32,7 @@ describe('asset', () => {
   it('Successfully adds a new synthetic asset with custom oracle', async () => {
     // Create a custom oracle and asset in one step
     // The client should have the AssetManager role by default since it's the protocol owner
-    const { assetAddress, ticker, oracle } = await client.createAssetWithCustomOracle('BTC');
+  const { assetAddress, ticker, oracle } = await client.createAssetWithCustomOracle('BTC');
 
     // Fetch the asset account to verify it was initialized correctly
     const assetAccount = await client.getAsset(assetAddress);
@@ -78,7 +78,7 @@ describe('asset', () => {
     const newPrice = 3500;
 
     // Update the oracle price
-    await client.updateOraclePrice(oracleAddress, newPrice, priceExponent);
+    await client.updateOraclePrice('ETH', oracleAddress, newPrice, priceExponent);
 
     // Fetch the oracle account to verify the price was updated
     const oracleAccount = await client.getOracleAccount(oracleAddress);
@@ -97,7 +97,7 @@ describe('asset', () => {
   it('Successfully adds an asset with Pyth oracle', async () => {
     // Create a Pyth oracle and asset in one step
     // The client should have the AssetManager role by default since it's the protocol owner
-    const { assetAddress, oracle } = await client.createAndAddAssetWithPythOracle('SOL');
+    const { assetAddress, oracle } = await client.createAndAddAssetWithMockPythOracle('SOL');
 
     // Fetch the asset account to verify it was initialized correctly
     const assetAccount = await client.getAsset(assetAddress);
@@ -146,7 +146,7 @@ describe('asset', () => {
   it('Tests oracle price staleness handling', async () => {
     // Create a stale oracle (2 hours ago)
     // The client should have the OracleManager role by default since it's the protocol owner
-    const staleOracle = await client.createStaleOracle(7200); // 2 hours in seconds
+    const staleOracle = await client.createStaleOracle("STALE", 7200); // 2 hours in seconds
 
     // Verify the oracle was created with the stale timestamp
     const oracleAccount = await client.getOracleAccount(staleOracle.address);
@@ -281,7 +281,7 @@ describe('asset', () => {
 
     // Update the price to a new value
     const newPrice = 4000; // Scale properly
-    await client.updateOraclePrice(oracle, newPrice);
+    await client.updateOraclePrice('XYZ', oracle, newPrice);
 
     // Get the updated price
     const updatedPrice = await client.getAssetPrice(assetAddress, oracle);

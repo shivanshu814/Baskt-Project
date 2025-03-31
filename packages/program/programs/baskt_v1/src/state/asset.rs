@@ -205,7 +205,7 @@ impl SyntheticAsset {
         is_long: bool,
         closing_fee: u64,
         funding_payment: i64,
-        pnl: i64,
+        _pnl: i64,
         position_value_usd: u64,
     ) -> Result<()> {
         // Update open interest

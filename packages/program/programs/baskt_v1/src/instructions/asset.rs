@@ -31,6 +31,7 @@ pub struct AddAsset<'info> {
     pub asset: Account<'info, SyntheticAsset>,
 
     /// Protocol account for access control check
+    #[account(seeds = [b"protocol"], bump)]
     pub protocol: Account<'info, Protocol>,
 
     pub system_program: Program<'info, System>,

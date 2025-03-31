@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Keypair, PublicKey } from "@solana/web3.js";
-import BN from "bn.js";
+import { BasktV1 } from "../program/types";
 
 // Oracle types enum to match the Rust program
 export enum OracleType {
@@ -21,10 +21,10 @@ export interface OraclePrice {
  * Helper class for creating and managing oracle accounts
  */
 export class OracleHelper {
-  program: any; // Using any to avoid type conflicts
+  program: anchor.Program<BasktV1>;
   provider: anchor.AnchorProvider;
 
-  constructor(program: any) {
+  constructor(program: anchor.Program<BasktV1>) {
     this.program = program;
     this.provider = program.provider as anchor.AnchorProvider;
   }
@@ -38,11 +38,13 @@ export class OracleHelper {
    * @returns The keypair and address of the created oracle account
    */
   async createCustomOracle(
+    protocol: PublicKey,
+    oracleName: string,
     price: number | anchor.BN,
     exponent: number,
     conf?: number | anchor.BN,
     publishTime?: number | anchor.BN
-  ): Promise<{ keypair: Keypair; address: PublicKey }> {
+  ): Promise<{ address: PublicKey }> {
     // Convert inputs to BN if they are numbers
     const priceBN = typeof price === "number" ? new anchor.BN(price) : price;
     const confBN = conf
@@ -58,50 +60,34 @@ export class OracleHelper {
         : publishTime
       : new anchor.BN(currentTime);
 
-    // Create a new keypair for the oracle account
-    const oracleKeypair = Keypair.generate();
+    
+    const oracle = PublicKey.findProgramAddressSync(
+      [Buffer.from("oracle"), Buffer.from(oracleName)],
+      this.program.programId
+    )[0];
+
 
     // Initialize the oracle account with the provided data
     await this.program.methods
-      .initializeCustomOracle(
-        priceBN,
-        exponent,
-        confBN,
-        priceBN, // Use price as EMA for simplicity
-        publishTimeBN
-      )
-      .accounts({
-        oracle: oracleKeypair.publicKey,
+      .initializeCustomOracle({
+        price: priceBN,
+        expo: exponent,
+        conf: confBN,
+        ema: priceBN, // Use price as EMA for simplicity
+        publishTime: publishTimeBN,
+        oracleName: oracleName,
+      })
+      .accountsPartial({
+        oracle,
         authority: this.provider.wallet.publicKey,
       })
-      .signers([oracleKeypair])
       .rpc();
 
     return {
-      keypair: oracleKeypair,
-      address: oracleKeypair.publicKey,
+      address: oracle,
     };
   }
 
-  /**
-   * Creates a mock Pyth oracle account for testing
-   * Note: This is a simplified version for testing and doesn't include all Pyth features
-   * @param price Price value (mantissa)
-   * @param exponent Price exponent (e.g., -9 for 1 GWEI = 10^-9)
-   * @param conf Confidence interval (optional, defaults to 1% of price)
-   * @param publishTime Timestamp of price publication (optional, defaults to current time)
-   * @returns The keypair and address of the created oracle account
-   */
-  async createPythOracle(
-    price: number | anchor.BN,
-    exponent: number,
-    conf?: number | anchor.BN,
-    publishTime?: number | anchor.BN
-  ): Promise<{ keypair: Keypair; address: PublicKey }> {
-    // For testing purposes, we'll use the same implementation as custom oracle
-    // In a real environment, you would interact with the actual Pyth program
-    return this.createCustomOracle(price, exponent, conf, publishTime);
-  }
 
   /**
    * Creates an oracle account of the specified type
@@ -113,17 +99,17 @@ export class OracleHelper {
    * @returns The keypair and address of the created oracle account
    */
   async createOracle(
+    protocol: PublicKey,
+    oracleName: string,
     oracleType: OracleType,
     price: number | anchor.BN,
     exponent: number,
     conf?: number | anchor.BN,
     publishTime?: number | anchor.BN
-  ): Promise<{ keypair: Keypair; address: PublicKey }> {
+  ): Promise<{ address: PublicKey }> {
     switch (oracleType) {
       case OracleType.Custom:
-        return this.createCustomOracle(price, exponent, conf, publishTime);
-      case OracleType.Pyth:
-        return this.createPythOracle(price, exponent, conf, publishTime);
+        return this.createCustomOracle(protocol, oracleName, price, exponent, conf, publishTime);
       default:
         throw new Error(`Unsupported oracle type: ${oracleType}`);
     }
@@ -164,6 +150,7 @@ export class OracleHelper {
    * @param publishTime New timestamp of price publication (optional, defaults to current time)
    */
   async updateCustomOraclePrice(
+    oracleName: string,
     oracleAddress: PublicKey,
     price: number | anchor.BN,
     exponent: number,
@@ -188,13 +175,14 @@ export class OracleHelper {
 
     // Update the oracle account with the new data
     await this.program.methods
-      .updateCustomOracle(
-        priceBN,
-        exponent,
-        confBN,
-        priceBN, // Use price as EMA for simplicity
-        publishTimeBN
-      )
+      .updateCustomOracle({
+        price: priceBN,
+        conf: confBN,
+        ema: priceBN,
+        publishTime: publishTimeBN,
+        oracleName: oracleName,
+        expo: exponent,
+      })
       .accounts({
         oracle: oracleAddress,
         authority: this.provider.wallet.publicKey,

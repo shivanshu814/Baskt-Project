@@ -31,11 +31,11 @@ impl Utils {
         }
 
         // Calculate time in hours (as a fraction)
-        /// REVIEW: This basically would mean the user would have to keep positions open for atleast an hour to receive the fuding
-        /// We can't have that since it would be detrimental for us.
-        /// We should be charging them a fuding rate even if the positions are open for > X amount.
-        /// The current math won't allow anything else other than hours.
-        /// Example if elapsed time is 15mins. it would be zero in this case.
+        // REVIEW: This basically would mean the user would have to keep positions open for atleast an hour to receive the fuding
+        // We can't have that since it would be detrimental for us.
+        // We should be charging them a fuding rate even if the positions are open for > X amount.
+        // The current math won't allow anything else other than hours.
+        // Example if elapsed time is 15mins. it would be zero in this case.
         let hours_elapsed = (elapsed_time_seconds as f64) / 3600.0;
         let hours_elapsed_scaled = (hours_elapsed * price_precision as f64) as i64;
 

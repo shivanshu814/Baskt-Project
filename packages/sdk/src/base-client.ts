@@ -5,7 +5,7 @@ import BN from 'bn.js';
 
 // Import the types from our local files
 import type { BasktV1 } from './program/types';
-import { toRoleString } from './utils/acl-helper';
+import { stringToRole, toRoleString } from './utils/acl-helper';
 import { AccessControlRole } from './types/role';
 import { AssetPermissions } from './types/asset';
 
@@ -61,6 +61,8 @@ export abstract class BaseClient {
    * @returns Oracle information including keypair and address
    */
   public async createCustomOracle(
+    protocol: PublicKey,
+    oracleName: string,
     price: number | BN = this.DEFAULT_PRICE,
     exponent: number = this.DEFAULT_PRICE_EXPONENT,
     confidence?: number | BN,
@@ -72,31 +74,9 @@ export abstract class BaseClient {
     // Default confidence to 1% of price if not specified
     const rawConfidence = confidence ?? (typeof rawPrice === 'number' ? rawPrice / 100 : undefined);
 
-    return await this.oracleHelper.createCustomOracle(rawPrice, exponent, rawConfidence, timestamp);
+    return await this.oracleHelper.createCustomOracle(protocol, oracleName, rawPrice, exponent, rawConfidence, timestamp);
   }
 
-  /**
-   * Create a Pyth oracle with specified parameters
-   * @param price Price value
-   * @param exponent Price exponent
-   * @param confidence Confidence interval (optional)
-   * @param timestamp Optional timestamp (for testing)
-   * @returns Oracle information including keypair and address
-   */
-  public async createPythOracle(
-    price: number | BN = this.DEFAULT_PRICE,
-    exponent: number = this.DEFAULT_PRICE_EXPONENT,
-    confidence?: number | BN,
-    timestamp?: number,
-  ) {
-    // Convert to raw price with exponent if a number is provided
-    const rawPrice = typeof price === 'number' ? price * Math.pow(10, -exponent) : price;
-
-    // Default confidence to 1% of price if not specified
-    const rawConfidence = confidence ?? (typeof rawPrice === 'number' ? rawPrice / 100 : undefined);
-
-    return await this.oracleHelper.createPythOracle(rawPrice, exponent, rawConfidence, timestamp);
-  }
 
   /**
    * Create oracle parameters for asset initialization
@@ -132,6 +112,7 @@ export abstract class BaseClient {
    * @param confidence Confidence interval (optional)
    */
   public async updateOraclePrice(
+    oracleName: string,
     oracleAddress: PublicKey,
     price: number | BN,
     exponent: number = this.DEFAULT_PRICE_EXPONENT,
@@ -144,36 +125,11 @@ export abstract class BaseClient {
     const rawConfidence = confidence ?? (typeof rawPrice === 'number' ? rawPrice / 100 : undefined);
 
     await this.oracleHelper.updateCustomOraclePrice(
+      oracleName,
       oracleAddress,
       rawPrice,
       exponent,
       rawConfidence,
-    );
-  }
-
-  /**
-   * Create a stale oracle for testing
-   * @param staleTimeSeconds How many seconds in the past
-   * @param price Oracle price
-   * @param exponent Price exponent
-   * @returns Oracle information
-   */
-  public async createStaleOracle(
-    staleTimeSeconds: number = 7200, // 2 hours by default
-    price: number | BN = this.DEFAULT_PRICE,
-    exponent: number = this.DEFAULT_PRICE_EXPONENT,
-  ) {
-    const currentTime = Math.floor(Date.now() / 1000);
-    const staleTime = currentTime - staleTimeSeconds;
-
-    // Convert to raw price with exponent if a number is provided
-    const rawPrice = typeof price === 'number' ? price * Math.pow(10, -exponent) : price;
-
-    return await this.oracleHelper.createCustomOracle(
-      rawPrice,
-      exponent,
-      undefined, // Default confidence
-      staleTime, // Use stale timestamp
     );
   }
 
@@ -254,10 +210,11 @@ export abstract class BaseClient {
    * @param role AccessControlRole to assign
    * @returns Transaction signature
    */
-  public async addRole(account: PublicKey, role: AccessControlRole): Promise<string> {
+  public async addRole(account: PublicKey, role: AccessControlRole | string): Promise<string> {
+    const roleEnum = typeof role === 'string' ? stringToRole(role) : role;
     // Submit the transaction to add the role
     const tx = await this.program.methods
-      .addRole(parseInt(role.toString()))
+      .addRole(parseInt(roleEnum.toString()))
       .accounts({
         owner: this.provider.wallet.publicKey,
         account: account,
@@ -274,10 +231,11 @@ export abstract class BaseClient {
    * @param role AccessControlRole to remove
    * @returns Transaction signature
    */
-  public async removeRole(account: PublicKey, role: AccessControlRole): Promise<string> {
+  public async removeRole(account: PublicKey, role: AccessControlRole | string): Promise<string> {
+    const roleEnum = typeof role === 'string' ? stringToRole(role) : role;
     // Submit the transaction to remove the role
     const tx = await this.program.methods
-      .removeRole(parseInt(role.toString()))
+      .removeRole(parseInt(roleEnum.toString()))
       .accounts({
         owner: this.provider.wallet.publicKey,
         account: account,
@@ -294,16 +252,15 @@ export abstract class BaseClient {
    * @param role AccessControlRole to check
    * @returns Boolean indicating if the account has the role
    */
-  public async hasRole(account: PublicKey, role: AccessControlRole): Promise<boolean> {
+  public async hasRole(account: PublicKey, role: AccessControlRole | string): Promise<boolean> {
     const protocol = await this.getProtocolAccount();
-
+    const roleEnum = typeof role === 'string' ? stringToRole(role) : role;
     // Check if the account has the role
-    if (!protocol.accessControl || !protocol.accessControl.entries) {
+    if (!protocol.accessControl || !protocol.accessControl.entries) { 
       return false;
     }
-
     // Convert role enum to string representation that matches Rust enum variant
-    const roleString = toRoleString(role);
+    const roleString = toRoleString(roleEnum);
 
     return protocol.accessControl.entries.some(
       (entry) =>
@@ -318,9 +275,9 @@ export abstract class BaseClient {
    * @param role AccessControlRole to check
    * @returns Boolean indicating if the account has permission
    */
-  public async hasPermission(account: PublicKey, role: AccessControlRole): Promise<boolean> {
+  public async hasPermission(account: PublicKey, role: AccessControlRole | string): Promise<boolean> {
     const protocol = await this.getProtocolAccount();
-
+    const roleEnum = typeof role === 'string' ? stringToRole(role) : role;
     // Check if account is the owner
     if (protocol.owner.toString() === account.toString()) {
       return true;
@@ -385,8 +342,6 @@ export abstract class BaseClient {
       })
       .accounts({
         admin: this.provider.wallet.publicKey,
-        // Add the protocol account which is required by the program but not in the IDL
-        protocol: this.protocolPDA,
       })
       .rpc();
 
@@ -418,50 +373,12 @@ export abstract class BaseClient {
     const DEFAULT_PRICE_ERROR = 100;
     const DEFAULT_PRICE_AGE_SEC = 60;
     // Create a custom oracle
-    const oracle = await this.createCustomOracle(price, exponent);
+    const oracle = await this.createCustomOracle(this.protocolPDA, ticker, price, exponent);
 
     // Create oracle parameters
     const oracleParams = this.createOracleParams(
       oracle.address,
       'custom',
-      DEFAULT_PRICE_ERROR,
-      DEFAULT_PRICE_AGE_SEC,
-    );
-
-    // Add the asset
-    const { txSignature, assetAddress } = await this.addAsset(ticker, oracleParams, permissions);
-
-    return {
-      assetAddress,
-      oracle: oracle.address, // Just return the oracle address directly
-      ticker,
-      txSignature,
-    };
-  }
-
-  /**
-   * Create and add a synthetic asset with a Pyth oracle in one step
-   * @param ticker Asset ticker symbol
-   * @param price Price value (optional, defaults to 50,000)
-   * @param exponent Price exponent (optional, defaults to -6)
-   * @returns Object containing asset and oracle information
-   */
-  public async createAndAddAssetWithPythOracle(
-    ticker: string,
-    price?: number | BN,
-    exponent?: number,
-    permissions?: AssetPermissions,
-  ) {
-    // Use BaseClient's default values
-    const DEFAULT_PRICE_ERROR = 100;
-    const DEFAULT_PRICE_AGE_SEC = 60;
-    // Create a Pyth oracle
-    const oracle = await this.createPythOracle(price, exponent);
-
-    // Create oracle parameters
-    const oracleParams = this.createOracleParams(
-      oracle.address,
-      'pyth',
       DEFAULT_PRICE_ERROR,
       DEFAULT_PRICE_AGE_SEC,
     );
@@ -614,6 +531,112 @@ export abstract class BaseClient {
     } catch (error) {
       console.error(`Error getting asset by ticker ${ticker}:`, error);
       return null;
+    }
+  }
+
+
+
+  /**
+   * Get asset price using the view instruction
+   * @param assetAddress The asset account address
+   * @param oracleAddress The oracle account address
+   * @returns The current price as a BN
+   */
+  public async getAssetPrice(assetAddress: PublicKey, oracleAddress: PublicKey) {
+    try {
+      return await this.program.methods
+        .getAssetPrice()
+        .accounts({
+          asset: assetAddress,
+          oracle: oracleAddress,
+        })
+        .view();
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update feature flags for the protocol
+   * @param featureFlags Object containing boolean values for each feature flag
+   * @returns Transaction signature
+   */
+  public async updateFeatureFlags(featureFlags: {
+    allowAddLiquidity: boolean;
+    allowRemoveLiquidity: boolean;
+    allowOpenPosition: boolean;
+    allowClosePosition: boolean;
+    allowPnlWithdrawal: boolean;
+    allowCollateralWithdrawal: boolean;
+    allowBasktCreation: boolean;
+    allowBasktUpdate: boolean;
+    allowTrading: boolean;
+    allowLiquidations: boolean;
+  }): Promise<string> {
+    try {
+      const txSignature = await this.program.methods
+        .updateFeatureFlags(
+          featureFlags.allowAddLiquidity,
+          featureFlags.allowRemoveLiquidity,
+          featureFlags.allowOpenPosition,
+          featureFlags.allowClosePosition,
+          featureFlags.allowPnlWithdrawal,
+          featureFlags.allowCollateralWithdrawal,
+          featureFlags.allowBasktCreation,
+          featureFlags.allowBasktUpdate,
+          featureFlags.allowTrading,
+          featureFlags.allowLiquidations,
+        )
+        .accounts({
+          owner: this.wallet.publicKey,
+          protocol: this.protocolPDA,
+        })
+        .rpc();
+
+      return txSignature;
+    } catch (error) {
+      console.error('Error updating feature flags:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get baskt NAV using the view instruction
+   * @param basktAddress The baskt account address
+   * @param assetOraclePairs Array of asset/oracle account pairs
+   * @returns The current NAV as a BN
+   */
+  public async getBasktNav(
+    basktAddress: PublicKey,
+    assetOraclePairs: Array<{ asset: PublicKey; oracle: PublicKey }> = [],
+  ) {
+    // Prepare remaining accounts (asset/oracle pairs)
+    const remainingAccounts = assetOraclePairs.flatMap((pair) => [
+      {
+        pubkey: pair.asset,
+        isWritable: false,
+        isSigner: false,
+      },
+      {
+        pubkey: pair.oracle,
+        isWritable: false,
+        isSigner: false,
+      },
+    ]);
+
+    // For view instructions with remainingAccounts
+    try {
+      return await this.program.methods
+        .getBasktNav()
+        .accounts({
+          baskt: basktAddress,
+        })
+        .remainingAccounts(remainingAccounts)
+        .view();
+    } catch (error) {
+      console.error(error);
+      throw error;
     }
   }
 }

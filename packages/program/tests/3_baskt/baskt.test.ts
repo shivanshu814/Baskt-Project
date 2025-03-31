@@ -1,9 +1,7 @@
 import { expect } from 'chai';
-import { describe, it, before, beforeEach } from 'mocha';
-import { Keypair, PublicKey } from '@solana/web3.js';
+import { describe, it, before } from 'mocha';
+import { PublicKey } from '@solana/web3.js';
 import { TestClient } from '../utils/test-client';
-import { BN } from '@coral-xyz/anchor';
-import { AccessControlRole } from '@baskt/sdk';
 
 // Define AssetPermissions type locally since it's not exported from SDK
 type AssetPermissions = {
@@ -78,16 +76,15 @@ describe('baskt', () => {
     ];
 
     // Create the baskt
-    const { basktId, txSignature } = await client.createBaskt(
+    const { basktId } = await client.createMockBaskt(
       'TestBaskt',
       assets,
-      true, // is_public
+    true, // is_public
     );
 
     // Fetch the baskt account to verify it was initialized correctly
     const basktAccount = await client.getBaskt(basktId);
 
-    const oracleAccount = await client.getOracleAccount(ethAssetId.oracle);
 
     // Verify the baskt was initialized with correct values
     expect(basktAccount.basktId.toString()).to.equal(basktId.toString());
@@ -132,7 +129,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt('BadBaskt', assets, true);
+      await client.createMockBaskt('BadBaskt', assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('InvalidBasktConfig');
@@ -151,7 +148,7 @@ describe('baskt', () => {
     ];
 
     // Create the private baskt
-    const { basktId } = await client.createBaskt(
+    const { basktId } = await client.createMockBaskt(
       'PrivBaskt',
       assets,
       false, // is_public
@@ -199,7 +196,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt('DisabledBaskt', assets, true);
+      await client.createMockBaskt('DisabledBaskt', assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('FeatureDisabled');
@@ -244,7 +241,7 @@ describe('baskt', () => {
     ];
 
     // Create the baskt
-    const { basktId } = await client.createBaskt(
+    const { basktId } = await client.createMockBaskt(
       'MultiBaskt',
       assets,
       true, // is_public
@@ -288,7 +285,7 @@ describe('baskt', () => {
     ];
 
     // Create the baskt - should succeed
-    const { basktId } = await client.createBaskt(
+    const { basktId } = await client.createMockBaskt(
       'LongBaskt',
       assets,
       true, // is_public
@@ -319,7 +316,7 @@ describe('baskt', () => {
     ];
 
     // Create the baskt - should succeed
-    const { basktId } = await client.createBaskt(
+    const { basktId } = await client.createMockBaskt(
       'ShortBaskt',
       assets,
       true, // is_public
@@ -351,7 +348,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt('InvalidBaskt1', assets, true);
+      await client.createMockBaskt('InvalidBaskt1', assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('ShortPositionsDisabled');
@@ -371,7 +368,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt('InvalidBaskt2', assets, true);
+      await client.createMockBaskt('InvalidBaskt2', assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('LongPositionsDisabled');
@@ -397,7 +394,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt('InvalidBaskt3', assets, true);
+      await client.createMockBaskt('InvalidBaskt3', assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('LongPositionsDisabled');
@@ -446,7 +443,7 @@ describe('baskt view functions', () => {
     ];
 
     // Create the baskt
-    const result = await client.createBaskt(
+    const result = await client.createMockBaskt(
       'ViewBaskt',
       assets,
       true, // is_public
@@ -472,7 +469,7 @@ describe('baskt view functions', () => {
 
     // Update BTC price (50% of the baskt) and check how it affects NAV
     const newBtcPrice = 60000; // 20% increase, properly scaled
-    await client.updateOraclePrice(btcAssetId.oracle, newBtcPrice);
+    await client.updateOraclePrice('BTC_VIEW', btcAssetId.oracle, newBtcPrice);
    
 
     // Get updated NAV

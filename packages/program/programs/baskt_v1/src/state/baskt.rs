@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 use crate::error::PerpetualsError;
 use crate::state::asset::SyntheticAsset;
-use crate::state::oracle::{OracleParams, OracleType, CustomOracle};
 use anchor_lang::solana_program::account_info::AccountInfo;
 
 
@@ -17,7 +16,7 @@ pub struct AssetConfig {
     pub asset_id: Pubkey,
     pub direction: bool,
     pub weight: u64,
-    pub baseline_price: u64, // Price when the asset was added to the baskt
+    pub baseline_price: u64,
 }
 
 #[account]
@@ -56,7 +55,7 @@ pub struct Baskt {
     #[max_len(10)]
     pub baskt_name: String, // Name of the baskt (max 10 chars)
     #[max_len(20)]
-    pub current_asset_configs: Vec<AssetConfig>, // Current asset configurations
+    pub current_asset_configs: Vec<AssetConfig>, // Current baskt configurations
     pub total_positions: u64, // Total positions within Baskt
     pub is_public: bool,  // is baskt public or private
     pub creator: Pubkey,  // Creator of the baskt
@@ -66,6 +65,7 @@ pub struct Baskt {
     pub baseline_nav: u64, // NAV at the time of last rebalance (in lamports)
     pub last_rebalance_index: u64, // Index of the last rebalance
     pub is_active: bool, // Whether the baskt is active for trading
+    pub last_rebalance_time: i64, // Time when the last rebalance occurred
 }
 
 impl Baskt {
@@ -90,9 +90,11 @@ impl Baskt {
         self.creation_time = creation_time;
         self.total_volume = 0;
         self.total_fees = 0;
+        //TODO: This should be price_precision
         self.baseline_nav = 1_000_000; // Initial baseline NAV is 1.0 (1e6 lamports)
         self.last_rebalance_index = 0;
         self.is_active = true;
+        self.last_rebalance_time = creation_time;
 
         Ok(())
     }
@@ -126,7 +128,7 @@ impl Baskt {
                 if baseline_price_i64 == 0 {
                     return err!(PerpetualsError::MathOverflow);
                 }
-                
+                //TODO: Move these to math.rs and use checked_add, checked_sub, checked_mul, checked_div
                 // Calculate price change and apply direction and weight
                 let price_change = ((current_price_i64 - baseline_price_i64) * 10000)
                     .checked_div(baseline_price_i64)
@@ -270,6 +272,7 @@ impl Baskt {
         self.last_rebalance_index = self.last_rebalance_index
             .checked_add(1)
             .ok_or(PerpetualsError::MathOverflow)?;
+        self.last_rebalance_time = current_timestamp;
 
         Ok(())
     }
@@ -711,50 +714,12 @@ mod tests {
             max_price_age_sec: 60,
         };
 
-        let asset1 = SyntheticAsset {
-            asset_id: asset1_id,
-            ticker: "ASSET1".to_string(),
-            oracle: oracle_params1,
-            open_interest_long: 0,
-            open_interest_short: 0,
-            last_funding_update: 0,
-            funding_rate: 0,
-            total_funding_long: 0,
-            total_funding_short: 0,
-            total_opening_fees: 0,
-            total_closing_fees: 0,
-            total_liquidation_fees: 0,
-        };
+        let asset1 = SyntheticAsset::default();
 
-        let asset2 = SyntheticAsset {
-            asset_id: asset2_id,
-            ticker: "ASSET2".to_string(),
-            oracle: oracle_params2,
-            open_interest_long: 0,
-            open_interest_short: 0,
-            last_funding_update: 0,
-            funding_rate: 0,
-            total_funding_long: 0,
-            total_funding_short: 0,
-            total_opening_fees: 0,
-            total_closing_fees: 0,
-            total_liquidation_fees: 0,
-        };
+        let asset2 = SyntheticAsset::default();
 
-        let asset3 = SyntheticAsset {
-            asset_id: asset3_id,
-            ticker: "ASSET3".to_string(),
-            oracle: oracle_params3,
-            open_interest_long: 0,
-            open_interest_short: 0,
-            last_funding_update: 0,
-            funding_rate: 0,
-            total_funding_long: 0,
-            total_funding_short: 0,
-            total_opening_fees: 0,
-            total_closing_fees: 0,
-            total_liquidation_fees: 0,
-        };
+        let asset3 = SyntheticAsset::default();
+    
 
         // Initialize oracle data
         let oracle1 = CustomOracle {

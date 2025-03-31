@@ -9,7 +9,6 @@ pub mod utils;
 
 declare_id!("GK52S4WZPVEAMAgjRf8XsBd7upmG862AjMF89HavDpkm");
 
-use instructions::oracle::*;
 use instructions::*;
 use crate::state::baskt::AssetParams;
 
@@ -102,24 +101,16 @@ pub mod baskt_v1 {
     // Oracle Management (for testing)
     pub fn initialize_custom_oracle(
         ctx: Context<InitializeCustomOracle>,
-        price: u64,
-        expo: i32,
-        conf: u64,
-        ema: u64,
-        publish_time: i64,
+        params: CustomOracleInstructionParams,
     ) -> Result<()> {
-        instructions::oracle::initialize_custom_oracle(ctx, price, expo, conf, ema, publish_time)
+        instructions::oracle::initialize_custom_oracle(ctx, params)
     }
 
     pub fn update_custom_oracle(
         ctx: Context<UpdateCustomOracle>,
-        price: u64,
-        expo: i32,
-        conf: u64,
-        ema: u64,
-        publish_time: i64,
+        params: CustomOracleInstructionParams,
     ) -> Result<()> {
-        instructions::oracle::update_custom_oracle(ctx, price, expo, conf, ema, publish_time)
+        instructions::oracle::update_custom_oracle(ctx, params)
     }
 
     // View functions (read-only)

@@ -57,7 +57,24 @@ export type BasktV1 = {
           "name": "protocol",
           "docs": [
             "Protocol account for access control check"
-          ]
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "systemProgram",
@@ -350,12 +367,50 @@ export type BasktV1 = {
         {
           "name": "oracle",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "instruction_params.oracle_name"
+              }
+            ]
+          }
         },
         {
           "name": "authority",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "systemProgram",
@@ -364,24 +419,12 @@ export type BasktV1 = {
       ],
       "args": [
         {
-          "name": "price",
-          "type": "u64"
-        },
-        {
-          "name": "expo",
-          "type": "i32"
-        },
-        {
-          "name": "conf",
-          "type": "u64"
-        },
-        {
-          "name": "ema",
-          "type": "u64"
-        },
-        {
-          "name": "publishTime",
-          "type": "i64"
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "customOracleInstructionParams"
+            }
+          }
         }
       ]
     },
@@ -534,6 +577,106 @@ export type BasktV1 = {
       ]
     },
     {
+      "name": "rebalance",
+      "discriminator": [
+        108,
+        158,
+        77,
+        9,
+        210,
+        52,
+        88,
+        62
+      ],
+      "accounts": [
+        {
+          "name": "baskt",
+          "writable": true
+        },
+        {
+          "name": "rebalanceHistory",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  104,
+                  105,
+                  115,
+                  116,
+                  111,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt.baskt_id",
+                "account": "baskt"
+              },
+              {
+                "kind": "account",
+                "path": "baskt.last_rebalance_index",
+                "account": "baskt"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "assetParams",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "assetParams"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "removeRole",
       "discriminator": [
         74,
@@ -590,28 +733,36 @@ export type BasktV1 = {
           "name": "authority",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         }
       ],
       "args": [
         {
-          "name": "price",
-          "type": "u64"
-        },
-        {
-          "name": "expo",
-          "type": "i32"
-        },
-        {
-          "name": "conf",
-          "type": "u64"
-        },
-        {
-          "name": "ema",
-          "type": "u64"
-        },
-        {
-          "name": "publishTime",
-          "type": "i64"
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "customOracleInstructionParams"
+            }
+          }
         }
       ]
     },
@@ -819,6 +970,19 @@ export type BasktV1 = {
       ]
     },
     {
+      "name": "rebalanceHistory",
+      "discriminator": [
+        99,
+        118,
+        90,
+        210,
+        209,
+        145,
+        80,
+        204
+      ]
+    },
+    {
       "name": "syntheticAsset",
       "discriminator": [
         106,
@@ -975,6 +1139,11 @@ export type BasktV1 = {
     },
     {
       "code": 6028,
+      "name": "invalidAssetConfig",
+      "msg": "Invalid asset config"
+    },
+    {
+      "code": 6029,
       "name": "featureDisabled",
       "msg": "Feature is currently disabled"
     }
@@ -1182,6 +1351,10 @@ export type BasktV1 = {
           {
             "name": "isActive",
             "type": "bool"
+          },
+          {
+            "name": "lastRebalanceTime",
+            "type": "i64"
           }
         ]
       }
@@ -1214,9 +1387,6 @@ export type BasktV1 = {
     },
     {
       "name": "customOracle",
-      "docs": [
-        "REVIEW What the fuck is EMA ?"
-      ],
       "type": {
         "kind": "struct",
         "fields": [
@@ -1239,6 +1409,38 @@ export type BasktV1 = {
           {
             "name": "publishTime",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "customOracleInstructionParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "expo",
+            "type": "i32"
+          },
+          {
+            "name": "conf",
+            "type": "u64"
+          },
+          {
+            "name": "ema",
+            "type": "u64"
+          },
+          {
+            "name": "publishTime",
+            "type": "i64"
+          },
+          {
+            "name": "oracleName",
+            "type": "string"
           }
         ]
       }
@@ -1617,6 +1819,40 @@ export type BasktV1 = {
       }
     },
     {
+      "name": "rebalanceHistory",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "rebalanceIndex",
+            "type": "u64"
+          },
+          {
+            "name": "assetConfigs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "assetConfig"
+                }
+              }
+            }
+          },
+          {
+            "name": "baselineNav",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "role",
       "docs": [
         "Roles that can be assigned to accounts for access control"
@@ -1632,6 +1868,9 @@ export type BasktV1 = {
           },
           {
             "name": "oracleManager"
+          },
+          {
+            "name": "rebalancer"
           }
         ]
       }

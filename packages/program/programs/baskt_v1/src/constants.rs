@@ -1,6 +1,5 @@
+#[allow(non_snake_case)]
 pub struct Constants {
-    // Seeds
-    pub ASSET_SEED: &'static str,
 
     // Fee constants
     pub OPENING_FEE_BPS: u64,
@@ -34,9 +33,6 @@ pub struct Constants {
 impl Default for Constants {
     fn default() -> Self {
         Self {
-            // Seeds
-            ASSET_SEED: "asset",
-            
             // Fee constants
             OPENING_FEE_BPS: 10,     // 0.1%
             CLOSING_FEE_BPS: 10,     // 0.1%

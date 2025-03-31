@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program, Idl } from "@coral-xyz/anchor";
+import { Program } from "@coral-xyz/anchor";
 import { Connection } from "@solana/web3.js";
 import { BaseClient } from "./base-client";
 

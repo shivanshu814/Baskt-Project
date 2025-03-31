@@ -12,7 +12,7 @@ describe('protocol feature flags', () => {
 
   it('Successfully initializes protocol with all features enabled by default', async () => {
     // Get the protocol account
-    const protocol = await client.getProtocol();
+    const protocol = await client.getProtocolAccount();
 
     // Verify all features are enabled by default
     const featureFlags = protocol.featureFlags;
@@ -44,7 +44,7 @@ describe('protocol feature flags', () => {
     });
 
     // Get the protocol account to verify changes
-    const protocol = await client.getProtocol();
+    const protocol = await client.getProtocolAccount();
     const featureFlags = protocol.featureFlags;
 
     // Verify the feature flags were updated correctly

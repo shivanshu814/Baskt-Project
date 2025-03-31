@@ -51,7 +51,24 @@
           "name": "protocol",
           "docs": [
             "Protocol account for access control check"
-          ]
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "system_program",
@@ -344,12 +361,50 @@
         {
           "name": "oracle",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "instruction_params.oracle_name"
+              }
+            ]
+          }
         },
         {
           "name": "authority",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "system_program",
@@ -358,24 +413,12 @@
       ],
       "args": [
         {
-          "name": "price",
-          "type": "u64"
-        },
-        {
-          "name": "expo",
-          "type": "i32"
-        },
-        {
-          "name": "conf",
-          "type": "u64"
-        },
-        {
-          "name": "ema",
-          "type": "u64"
-        },
-        {
-          "name": "publish_time",
-          "type": "i64"
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "CustomOracleInstructionParams"
+            }
+          }
         }
       ]
     },
@@ -528,6 +571,106 @@
       ]
     },
     {
+      "name": "rebalance",
+      "discriminator": [
+        108,
+        158,
+        77,
+        9,
+        210,
+        52,
+        88,
+        62
+      ],
+      "accounts": [
+        {
+          "name": "baskt",
+          "writable": true
+        },
+        {
+          "name": "rebalance_history",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101,
+                  95,
+                  104,
+                  105,
+                  115,
+                  116,
+                  111,
+                  114,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt.baskt_id",
+                "account": "Baskt"
+              },
+              {
+                "kind": "account",
+                "path": "baskt.last_rebalance_index",
+                "account": "Baskt"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "asset_params",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "AssetParams"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "remove_role",
       "discriminator": [
         74,
@@ -584,28 +727,36 @@
           "name": "authority",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         }
       ],
       "args": [
         {
-          "name": "price",
-          "type": "u64"
-        },
-        {
-          "name": "expo",
-          "type": "i32"
-        },
-        {
-          "name": "conf",
-          "type": "u64"
-        },
-        {
-          "name": "ema",
-          "type": "u64"
-        },
-        {
-          "name": "publish_time",
-          "type": "i64"
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "CustomOracleInstructionParams"
+            }
+          }
         }
       ]
     },
@@ -813,6 +964,19 @@
       ]
     },
     {
+      "name": "RebalanceHistory",
+      "discriminator": [
+        99,
+        118,
+        90,
+        210,
+        209,
+        145,
+        80,
+        204
+      ]
+    },
+    {
       "name": "SyntheticAsset",
       "discriminator": [
         106,
@@ -969,6 +1133,11 @@
     },
     {
       "code": 6028,
+      "name": "InvalidAssetConfig",
+      "msg": "Invalid asset config"
+    },
+    {
+      "code": 6029,
       "name": "FeatureDisabled",
       "msg": "Feature is currently disabled"
     }
@@ -1176,6 +1345,10 @@
           {
             "name": "is_active",
             "type": "bool"
+          },
+          {
+            "name": "last_rebalance_time",
+            "type": "i64"
           }
         ]
       }
@@ -1208,9 +1381,6 @@
     },
     {
       "name": "CustomOracle",
-      "docs": [
-        "REVIEW What the fuck is EMA ?"
-      ],
       "type": {
         "kind": "struct",
         "fields": [
@@ -1233,6 +1403,38 @@
           {
             "name": "publish_time",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CustomOracleInstructionParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "expo",
+            "type": "i32"
+          },
+          {
+            "name": "conf",
+            "type": "u64"
+          },
+          {
+            "name": "ema",
+            "type": "u64"
+          },
+          {
+            "name": "publish_time",
+            "type": "i64"
+          },
+          {
+            "name": "oracle_name",
+            "type": "string"
           }
         ]
       }
@@ -1611,6 +1813,40 @@
       }
     },
     {
+      "name": "RebalanceHistory",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "baskt_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "rebalance_index",
+            "type": "u64"
+          },
+          {
+            "name": "asset_configs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "AssetConfig"
+                }
+              }
+            }
+          },
+          {
+            "name": "baseline_nav",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "Role",
       "docs": [
         "Roles that can be assigned to accounts for access control"
@@ -1626,6 +1862,9 @@
           },
           {
             "name": "OracleManager"
+          },
+          {
+            "name": "Rebalancer"
           }
         ]
       }
