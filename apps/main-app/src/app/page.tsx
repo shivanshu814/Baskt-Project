@@ -2,13 +2,17 @@
 
 'use client';
 
-import { TestButton } from '../components/TestButton';
+import { Toaster } from '../components/src/toaster';
+import { Toaster as Sonner } from '../components/src/sonner';
+import { TooltipProvider } from '../components/src/tooltip';
+import Homepage from './homepage/page';
 
 export default function Home() {
-	return (
-		<main className='min-h-screen p-8'>
-			<h1 className='text-3xl font-bold mb-8'>Main App</h1>
-			<TestButton />
-		</main>
-	);
+  return (
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <Homepage />
+    </TooltipProvider>
+  );
 }

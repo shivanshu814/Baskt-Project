@@ -1,6 +1,4 @@
-# @format
-
-name: Test and Build Web
+name: Baskt Test and Build Web
 
 on:
   pull_request:
@@ -20,6 +18,11 @@ jobs:
         with:
           version: 9.0.0
           run_install: false
+
+      - name: Set up npm authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
 
       - name: Install Node.js
         uses: actions/setup-node@v4
