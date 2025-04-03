@@ -1140,6 +1140,11 @@
       "code": 6029,
       "name": "FeatureDisabled",
       "msg": "Feature is currently disabled"
+    },
+    {
+      "code": 6030,
+      "name": "PriceNotFound",
+      "msg": "Price not found"
     }
   ],
   "types": [

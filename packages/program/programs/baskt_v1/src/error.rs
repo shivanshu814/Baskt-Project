@@ -62,4 +62,6 @@ pub enum PerpetualsError {
     InvalidAssetConfig,
     #[msg("Feature is currently disabled")]
     FeatureDisabled,
+    #[msg("Price not found")]
+    PriceNotFound,
 }

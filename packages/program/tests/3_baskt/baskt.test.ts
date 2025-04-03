@@ -79,12 +79,11 @@ describe('baskt', () => {
     const { basktId } = await client.createMockBaskt(
       'TestBaskt',
       assets,
-    true, // is_public
+      true, // is_public
     );
 
     // Fetch the baskt account to verify it was initialized correctly
     const basktAccount = await client.getBaskt(basktId);
-
 
     // Verify the baskt was initialized with correct values
     expect(basktAccount.basktId.toString()).to.equal(basktId.toString());
@@ -400,6 +399,28 @@ describe('baskt', () => {
       expect((error as Error).message).to.include('LongPositionsDisabled');
     }
   });
+
+  it('Adding 20 Assets to a baskt', async () => {
+    const assetsAndOracles = [];
+    for (let i = 0; i < 20; i++) {
+      const { assetAddress, oracle } = await client.createAndAddAssetWithCustomOracle(
+        `Asset${i}`,
+        10000,
+      );
+      assetsAndOracles.push({ asset: assetAddress, oracle, direction: true, weight: 500 });
+    }
+
+    // Wait for a block
+    await client.waitForBlocks();
+    const { basktId } = await client.createMockBaskt('20Baskt', assetsAndOracles, true);
+
+    // Verify the baskt has 20 assets
+    const basktAccount = await client.getBaskt(basktId);
+    expect(basktAccount.currentAssetConfigs.length).to.equal(20);
+
+    const nav = await client.getBasktNav(basktId);
+    expect(nav.toNumber() / 1e6).to.equal(1);
+  });
 });
 
 // Test the view functions separately
@@ -419,7 +440,7 @@ describe('baskt view functions', () => {
     btcAssetId = await client.createAssetWithCustomOracle('BTC_VIEW', 50_000);
     ethAssetId = await client.createAssetWithCustomOracle('ETH_VIEW', 3_000);
     dogeAssetId = await client.createAssetWithCustomOracle('DOGE_VIEW', 100);
-
+    await client.waitForBlocks();
     // Create assets with weights and directions
     const assets = [
       {
@@ -470,7 +491,6 @@ describe('baskt view functions', () => {
     // Update BTC price (50% of the baskt) and check how it affects NAV
     const newBtcPrice = 60000; // 20% increase, properly scaled
     await client.updateOraclePrice('BTC_VIEW', btcAssetId.oracle, newBtcPrice);
-   
 
     // Get updated NAV
     const updatedNav = await client.getBasktNav(basktId, assetOraclePairs);

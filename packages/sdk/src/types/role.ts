@@ -5,4 +5,5 @@ export enum AccessControlRole {
   Owner = 0,
   AssetManager = 1,
   OracleManager = 2,
+  Rebalancer = 3,
 }

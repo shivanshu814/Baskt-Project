@@ -32,7 +32,7 @@ describe('asset', () => {
   it('Successfully adds a new synthetic asset with custom oracle', async () => {
     // Create a custom oracle and asset in one step
     // The client should have the AssetManager role by default since it's the protocol owner
-  const { assetAddress, ticker, oracle } = await client.createAssetWithCustomOracle('BTC');
+    const { assetAddress, ticker, oracle } = await client.createAssetWithCustomOracle('BTC');
 
     // Fetch the asset account to verify it was initialized correctly
     const assetAccount = await client.getAsset(assetAddress);
@@ -146,7 +146,7 @@ describe('asset', () => {
   it('Tests oracle price staleness handling', async () => {
     // Create a stale oracle (2 hours ago)
     // The client should have the OracleManager role by default since it's the protocol owner
-    const staleOracle = await client.createStaleOracle("STALE", 7200); // 2 hours in seconds
+    const staleOracle = await client.createStaleOracle('STALE', 7200); // 2 hours in seconds
 
     // Verify the oracle was created with the stale timestamp
     const oracleAccount = await client.getOracleAccount(staleOracle.address);
@@ -167,7 +167,10 @@ describe('asset', () => {
     );
 
     // Add the asset with the stale oracle
-    const { assetAddress } = await client.addAsset(staleTicker, staleOracleParams);
+    const { assetAddress } = await client.addAsset({
+      ticker: staleTicker,
+      oracle: staleOracleParams,
+    });
 
     // Verify the asset was created with the correct oracle parameters
     const assetAccount = await client.getAsset(assetAddress);
@@ -269,7 +272,7 @@ describe('asset', () => {
     expect(protocol.owner.toString()).to.not.equal(assetManagerUser.provider.publicKey.toString());
   });
 
-  it("Successfully gets asset price from oracle", async () => {
+  it('Successfully gets asset price from oracle', async () => {
     // Create a new asset with a custom oracle
     const initialPrice = 3000;
     const { assetAddress, oracle } = await client.createAssetWithCustomOracle('XYZ', initialPrice);

@@ -107,7 +107,6 @@ export class TestClient extends BaseClient {
     await this.addRole(this.oracleManager.publicKey, AccessControlRole.OracleManager);
   }
 
-
   public async createAssetWithCustomOracle(
     ticker: string,
     price: number | BN = this.DEFAULT_PRICE,
@@ -133,22 +132,17 @@ export class TestClient extends BaseClient {
     }
 
     // Create new asset if it doesn't exist
-    return await this.createAndAddAssetWithCustomOracle(
-      ticker,
-      price,
-      exponent,
-      permissions,
-    );
+    return await this.createAndAddAssetWithCustomOracle(ticker, price, exponent, permissions);
   }
 
-   /**
+  /**
    * Create a stale oracle for testing
    * @param staleTimeSeconds How many seconds in the past
    * @param price Oracle price
    * @param exponent Price exponent
    * @returns Oracle information
    */
-   public async createStaleOracle(
+  public async createStaleOracle(
     ticker: string,
     staleTimeSeconds: number = 7200, // 2 hours by default
     price: number | BN = this.DEFAULT_PRICE,
@@ -160,7 +154,7 @@ export class TestClient extends BaseClient {
     // Convert to raw price with exponent if a number is provided
     const rawPrice = typeof price === 'number' ? price * Math.pow(10, -exponent) : price;
 
-    return await this.oracleHelper.createCustomOracle(  
+    return await this.oracleHelper.createCustomOracle(
       this.protocolPDA,
       ticker,
       rawPrice,
@@ -195,7 +189,11 @@ export class TestClient extends BaseClient {
     );
 
     // Add the asset
-    const { txSignature, assetAddress } = await this.addAsset(ticker, oracleParams, permissions);
+    const { txSignature, assetAddress } = await this.addAsset({
+      ticker,
+      oracle: oracleParams,
+      permissions: permissions || { allowLongs: true, allowShorts: true },
+    });
 
     return {
       assetAddress,
@@ -229,6 +227,5 @@ export class TestClient extends BaseClient {
 
     // Create the baskt with current prices
     return await super.createBaskt(basktName, assetConfigs, isPublic, assetOraclePairs);
-
   }
 }

@@ -50,6 +50,7 @@ pub fn add_role(ctx: Context<AddRole>, role_type: u8) -> Result<()> {
         0 => Role::Owner,
         1 => Role::AssetManager,
         2 => Role::OracleManager,
+        3 => Role::Rebalancer,
         _ => return Err(PerpetualsError::InvalidRoleType.into()),
     };
 
@@ -113,7 +114,7 @@ pub fn update_feature_flags(
     allow_liquidations: bool,
 ) -> Result<()> {
     let protocol = &mut ctx.accounts.protocol;
-    
+
     // Create new feature flags with provided values
     let new_feature_flags = FeatureFlags {
         allow_add_liquidity,

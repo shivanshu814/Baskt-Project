@@ -1,8 +1,7 @@
-use anchor_lang::prelude::*;
 use crate::error::PerpetualsError;
 use crate::state::asset::SyntheticAsset;
+use anchor_lang::prelude::*;
 use anchor_lang::solana_program::account_info::AccountInfo;
-
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct AssetParams {
@@ -64,7 +63,7 @@ pub struct Baskt {
     pub total_fees: u64,  // Total fees generated
     pub baseline_nav: u64, // NAV at the time of last rebalance (in lamports)
     pub last_rebalance_index: u64, // Index of the last rebalance
-    pub is_active: bool, // Whether the baskt is active for trading
+    pub is_active: bool,  // Whether the baskt is active for trading
     pub last_rebalance_time: i64, // Time when the last rebalance occurred
 }
 
@@ -80,7 +79,7 @@ impl Baskt {
         creation_time: i64,
     ) -> Result<()> {
         require!(baskt_name.len() <= 10, PerpetualsError::InvalidBasktName);
-        
+
         self.baskt_id = baskt_id;
         self.baskt_name = baskt_name;
         self.current_asset_configs = asset_configs;
@@ -109,22 +108,28 @@ impl Baskt {
 
     /// Check if the baskt contains a specific asset
     pub fn contains_asset(&self, asset_id: &Pubkey) -> bool {
-        self.current_asset_configs.iter().any(|id| id.asset_id == *asset_id)
+        self.current_asset_configs
+            .iter()
+            .any(|id| id.asset_id == *asset_id)
     }
 
     /// Calculate the NAV of the baskt based on current prices
     pub fn calculate_nav(&self, current_prices: &[(Pubkey, u64)]) -> Result<u64> {
         let mut total_nav_impact: i64 = 0;
-        
+
         for (asset_id, current_price) in current_prices {
-            if let Some(asset_config) = self.current_asset_configs.iter().find(|ac| ac.asset_id == *asset_id) {
+            if let Some(asset_config) = self
+                .current_asset_configs
+                .iter()
+                .find(|ac| ac.asset_id == *asset_id)
+            {
                 // Direction: -1 if short, +1 if long
                 let direction: i64 = if asset_config.direction { 1 } else { -1 };
-                
+
                 // Calculate price change percentage (scaled by 10000 for precision)
                 let current_price_i64 = *current_price as i64;
                 let baseline_price_i64 = asset_config.baseline_price as i64;
-                
+
                 if baseline_price_i64 == 0 {
                     return err!(PerpetualsError::MathOverflow);
                 }
@@ -133,33 +138,33 @@ impl Baskt {
                 let price_change = ((current_price_i64 - baseline_price_i64) * 10000)
                     .checked_div(baseline_price_i64)
                     .ok_or(PerpetualsError::MathOverflow)?;
-                
+
                 let weighted_change = (price_change * direction * (asset_config.weight as i64))
                     .checked_div(10000)
                     .ok_or(PerpetualsError::MathOverflow)?;
-                    
+
                 // Calculate impact on NAV
                 let nav_impact = (weighted_change * (self.baseline_nav as i64))
                     .checked_div(10000)
                     .ok_or(PerpetualsError::MathOverflow)?;
-                
+
                 // Add to total impact
                 total_nav_impact = total_nav_impact
                     .checked_add(nav_impact)
                     .ok_or(PerpetualsError::MathOverflow)?;
             }
         }
-        
+
         // Calculate new NAV
         let new_nav_i64 = (self.baseline_nav as i64)
             .checked_add(total_nav_impact)
             .ok_or(PerpetualsError::MathOverflow)?;
-        
+
         // Ensure NAV is not negative or zero
         if new_nav_i64 <= 0 {
             return Ok(0);
         }
-        
+
         Ok(new_nav_i64 as u64)
     }
 
@@ -183,7 +188,6 @@ impl Baskt {
         Ok(())
     }
 
-
     /// Process asset and oracle account pairs from remaining accounts
     /// Returns a vector of asset IDs and their current prices
     /// If validate_membership is true, also validates that each asset belongs to the baskt
@@ -199,25 +203,26 @@ impl Baskt {
 
         let mut asset_prices = Vec::new();
         let pair_count = remaining_accounts.len() / 2;
-        
+
         // Process each asset/oracle pair to get current prices
         for i in 0..pair_count {
             // Get account infos for this pair
             let asset_info = &remaining_accounts[i * 2];
             let oracle_info = &remaining_accounts[i * 2 + 1];
-            
+
             // Deserialize asset account
             let asset_data = &mut &**asset_info.try_borrow_data()?;
-            let asset: SyntheticAsset = match anchor_lang::AccountDeserialize::try_deserialize(asset_data) {
-                Ok(asset) => asset,
-                Err(_) => return Err(PerpetualsError::InvalidAssetAccount.into()),
-            };
-            
+            let asset: SyntheticAsset =
+                match anchor_lang::AccountDeserialize::try_deserialize(asset_data) {
+                    Ok(asset) => asset,
+                    Err(_) => return Err(PerpetualsError::InvalidAssetAccount.into()),
+                };
+
             // Verify oracle matches asset's oracle
             if oracle_info.key() != asset.oracle.oracle_account {
                 return Err(PerpetualsError::InvalidOracleAccount.into());
             }
-            
+
             // Validate that the asset is part of the baskt if a baskt is provided
             if let Some(baskt) = baskt_option {
                 if !baskt.contains_asset(&asset.asset_id) {
@@ -245,16 +250,19 @@ impl Baskt {
         let mut new_asset_configs = Vec::new();
         for config in asset_params {
             // Find current price for this asset
-            let baseline_price = asset_prices.iter()
+            let baseline_price = asset_prices
+                .iter()
                 .find(|(id, _)| *id == config.asset_id)
                 .map(|(_, price)| *price)
-                .unwrap_or(1000000); // Default to 1.0 if price not found
-            
+                .ok_or(PerpetualsError::PriceNotFound)?; // Return error if price not found
+
             // Find existing config to preserve direction
-            let existing_config = self.current_asset_configs.iter()
+            let existing_config = self
+                .current_asset_configs
+                .iter()
                 .find(|ac| ac.asset_id == config.asset_id)
                 .ok_or(PerpetualsError::AssetNotInBaskt)?;
-            
+
             new_asset_configs.push(AssetConfig {
                 asset_id: config.asset_id,
                 direction: existing_config.direction, // Preserve existing direction
@@ -269,7 +277,8 @@ impl Baskt {
         // Update baskt state
         self.current_asset_configs = new_asset_configs;
         self.baseline_nav = current_nav;
-        self.last_rebalance_index = self.last_rebalance_index
+        self.last_rebalance_index = self
+            .last_rebalance_index
             .checked_add(1)
             .ok_or(PerpetualsError::MathOverflow)?;
         self.last_rebalance_time = current_timestamp;
@@ -281,9 +290,9 @@ impl Baskt {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anchor_lang::solana_program::account_info::AccountInfo;
-    use crate::state::oracle::{OracleParams, OracleType, CustomOracle};
     use crate::state::asset::SyntheticAsset;
+    use crate::state::oracle::{CustomOracle, OracleParams, OracleType};
+    use anchor_lang::solana_program::account_info::AccountInfo;
 
     #[test]
     fn test_baskt_size() {
@@ -389,8 +398,8 @@ mod tests {
             },
             AssetConfig {
                 asset_id: asset3,
-                weight: 3000, // 30%
-                direction: false, // Short position
+                weight: 3000,              // 30%
+                direction: false,          // Short position
                 baseline_price: 1_000_000, // 1.0
             },
         ];
@@ -463,7 +472,6 @@ mod tests {
         assert!(result.is_err());
     }
 
-
     #[test]
     fn test_baseline_nav_with_price_changes() {
         let mut baskt = Baskt::default();
@@ -492,8 +500,8 @@ mod tests {
             },
             AssetConfig {
                 asset_id: asset3,
-                weight: 3000, // 30%
-                direction: false, // Short position
+                weight: 3000,              // 30%
+                direction: false,          // Short position
                 baseline_price: 1_000_000, // 1.0
             },
         ];
@@ -573,20 +581,22 @@ mod tests {
             },
             AssetConfig {
                 asset_id: asset3,
-                weight: 3000, // 30%
-                direction: false, // Short position
+                weight: 3000,              // 30%
+                direction: false,          // Short position
                 baseline_price: 1_000_000, // 1.0
             },
         ];
 
-        baskt.initialize(
-            baskt_id,
-            baskt_name,
-            asset_configs,
-            true,
-            creator,
-            creation_time,
-        ).unwrap();
+        baskt
+            .initialize(
+                baskt_id,
+                baskt_name,
+                asset_configs,
+                true,
+                creator,
+                creation_time,
+            )
+            .unwrap();
 
         // Test case 1: Zero price change
         let zero_change_prices = vec![
@@ -610,9 +620,9 @@ mod tests {
 
         // Test case 3: Extreme price decrease (to zero)
         let zero_prices = vec![
-            (asset1, 0),         // -100%
-            (asset2, 0),         // -100%
-            (asset3, 0),         // -100%
+            (asset1, 0), // -100%
+            (asset2, 0), // -100%
+            (asset3, 0), // -100%
         ];
         let result = baskt.calculate_nav(&zero_prices).unwrap();
         // When all assets go to zero:
@@ -671,14 +681,16 @@ mod tests {
             },
         ];
 
-        baskt.initialize(
-            baskt_id,
-            baskt_name,
-            asset_configs,
-            true,
-            creator,
-            creation_time,
-        ).unwrap();
+        baskt
+            .initialize(
+                baskt_id,
+                baskt_name,
+                asset_configs,
+                true,
+                creator,
+                creation_time,
+            )
+            .unwrap();
 
         // Create mock account data
         let mut asset1_data = vec![0u8; 1000];
@@ -714,12 +726,20 @@ mod tests {
             max_price_age_sec: 60,
         };
 
-        let asset1 = SyntheticAsset::default();
+        // Initialize asset1 with proper oracle parameters
+        let mut asset1 = SyntheticAsset::default();
+        asset1.asset_id = asset1_id;
+        asset1.oracle = oracle_params1;
 
-        let asset2 = SyntheticAsset::default();
+        // Initialize asset2 with proper oracle parameters
+        let mut asset2 = SyntheticAsset::default();
+        asset2.asset_id = asset2_id;
+        asset2.oracle = oracle_params2;
 
-        let asset3 = SyntheticAsset::default();
-    
+        // Initialize asset3 with proper oracle parameters
+        let mut asset3 = SyntheticAsset::default();
+        asset3.asset_id = asset3_id;
+        asset3.oracle = oracle_params3;
 
         // Initialize oracle data
         let oracle1 = CustomOracle {
@@ -761,7 +781,9 @@ mod tests {
         oracle1.try_serialize(&mut &mut oracle1_data[..]).unwrap();
         oracle2.try_serialize(&mut &mut oracle2_data[..]).unwrap();
         oracle3.try_serialize(&mut &mut oracle3_data[..]).unwrap();
-        wrong_oracle.try_serialize(&mut &mut wrong_oracle_data[..]).unwrap();
+        wrong_oracle
+            .try_serialize(&mut &mut wrong_oracle_data[..])
+            .unwrap();
 
         // Create default owner pubkey
         let owner = Pubkey::default();
@@ -853,7 +875,12 @@ mod tests {
 
         // Test case 1: Valid asset/oracle pairs
         let result = Baskt::process_asset_oracle_pairs(
-            &[asset1_info.clone(), oracle1_info.clone(), asset2_info.clone(), oracle2_info.clone()],
+            &[
+                asset1_info.clone(),
+                oracle1_info.clone(),
+                asset2_info.clone(),
+                oracle2_info.clone(),
+            ],
             1234567890,
             Some(&baskt),
         );
@@ -867,7 +894,11 @@ mod tests {
 
         // Test case 2: Invalid number of accounts
         let result = Baskt::process_asset_oracle_pairs(
-            &[asset1_info.clone(), oracle1_info.clone(), asset2_info.clone()],
+            &[
+                asset1_info.clone(),
+                oracle1_info.clone(),
+                asset2_info.clone(),
+            ],
             1234567890,
             Some(&baskt),
         );
@@ -897,7 +928,12 @@ mod tests {
 
         // Test case 5: No baskt validation
         let result = Baskt::process_asset_oracle_pairs(
-            &[asset1_info.clone(), oracle1_info.clone(), asset2_info.clone(), oracle2_info.clone()],
+            &[
+                asset1_info.clone(),
+                oracle1_info.clone(),
+                asset2_info.clone(),
+                oracle2_info.clone(),
+            ],
             1234567890,
             None,
         );

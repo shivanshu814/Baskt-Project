@@ -1,5 +1,11 @@
 import * as anchor from '@coral-xyz/anchor';
-import { PublicKey } from '@solana/web3.js';
+import {
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+  TransactionMessage,
+  VersionedTransaction,
+} from '@solana/web3.js';
 import { OracleHelper } from './utils/oracle-helper';
 import BN from 'bn.js';
 
@@ -8,6 +14,7 @@ import type { BasktV1 } from './program/types';
 import { stringToRole, toRoleString } from './utils/acl-helper';
 import { AccessControlRole } from './types/role';
 import { AssetPermissions } from './types/asset';
+import { createLookupTableInstructions, extendLookupTable } from './utils/lookup-table-helper';
 
 /**
  * Abstract base client for Solana programs
@@ -33,6 +40,9 @@ export abstract class BaseClient {
   protected readonly DEFAULT_PRICE_EXPONENT = -6; // 6 decimal places
   protected readonly DEFAULT_PRICE_ERROR = 100; // 1% (100 BPS)
   protected readonly DEFAULT_PRICE_AGE_SEC = 60; // 1 minute
+
+  // Lookup table
+  public lookupTable: PublicKey | undefined;
 
   /**
    * Create a new client instance
@@ -74,9 +84,36 @@ export abstract class BaseClient {
     // Default confidence to 1% of price if not specified
     const rawConfidence = confidence ?? (typeof rawPrice === 'number' ? rawPrice / 100 : undefined);
 
-    return await this.oracleHelper.createCustomOracle(protocol, oracleName, rawPrice, exponent, rawConfidence, timestamp);
-  }
+    const oracle = PublicKey.findProgramAddressSync(
+      [Buffer.from('oracle'), Buffer.from(oracleName)],
+      this.program.programId,
+    )[0];
 
+    const postInstructions = [];
+    if (this.lookupTable) {
+      postInstructions.push(
+        await extendLookupTable(
+          this.program.provider.connection,
+          this.lookupTable,
+          this.provider.wallet.publicKey,
+          this.provider.wallet.publicKey,
+          [oracle],
+        ),
+      );
+    }
+
+    const result = await this.oracleHelper.createCustomOracle(
+      protocol,
+      oracleName,
+      rawPrice,
+      exponent,
+      rawConfidence,
+      timestamp,
+      postInstructions,
+    );
+
+    return result;
+  }
 
   /**
    * Create oracle parameters for asset initialization
@@ -152,7 +189,7 @@ export abstract class BaseClient {
    */
   public createAssetParams(
     ticker: string,
-    oracleParams: any,
+    oracleParams: Record<string, unknown>,
     targetPrice: number | BN,
     maxSupply: number | BN,
     collateralRatio: number = 15000, // 150% by default
@@ -185,7 +222,10 @@ export abstract class BaseClient {
    * Initialize the protocol
    * @returns Transaction signature
    */
-  public async initializeProtocol(): Promise<string> {
+  public async initializeProtocol(): Promise<{
+    initializeProtocolSignature: string;
+    initializeLookupTableSignature: string | undefined;
+  }> {
     const tx = await this.program.methods
       .initializeProtocol()
       .accounts({
@@ -193,7 +233,36 @@ export abstract class BaseClient {
       })
       .rpc();
 
-    return tx;
+    return {
+      initializeProtocolSignature: tx,
+      initializeLookupTableSignature: await this.initializeLookupTable(),
+    };
+  }
+
+  public async initializeLookupTable(): Promise<string | undefined> {
+    if (this.lookupTable) {
+      return undefined;
+    }
+
+    const { lookupTableAddress, createInstruction } = await createLookupTableInstructions(
+      this.program.provider.connection,
+      this.wallet.publicKey,
+      this.wallet.publicKey,
+    );
+
+    const transaction = new Transaction();
+
+    transaction.add(createInstruction);
+
+    if (!this.program.provider.sendAndConfirm) {
+      return undefined;
+    }
+
+    const signature = await this.program.provider.sendAndConfirm(transaction);
+
+    this.lookupTable = lookupTableAddress;
+
+    return signature;
   }
 
   /**
@@ -256,7 +325,7 @@ export abstract class BaseClient {
     const protocol = await this.getProtocolAccount();
     const roleEnum = typeof role === 'string' ? stringToRole(role) : role;
     // Check if the account has the role
-    if (!protocol.accessControl || !protocol.accessControl.entries) { 
+    if (!protocol.accessControl || !protocol.accessControl.entries) {
       return false;
     }
     // Convert role enum to string representation that matches Rust enum variant
@@ -275,9 +344,11 @@ export abstract class BaseClient {
    * @param role AccessControlRole to check
    * @returns Boolean indicating if the account has permission
    */
-  public async hasPermission(account: PublicKey, role: AccessControlRole | string): Promise<boolean> {
+  public async hasPermission(
+    account: PublicKey,
+    role: AccessControlRole | string,
+  ): Promise<boolean> {
     const protocol = await this.getProtocolAccount();
-    const roleEnum = typeof role === 'string' ? stringToRole(role) : role;
     // Check if account is the owner
     if (protocol.owner.toString() === account.toString()) {
       return true;
@@ -291,58 +362,46 @@ export abstract class BaseClient {
    * Add a synthetic asset
    * @param ticker Asset ticker symbol
    * @param oracleParams Oracle parameters
-   * @param targetPrice Target price for the asset (optional)
-   * @param maxSupply Maximum supply of the asset (optional)
-   * @param collateralRatio Collateral ratio for the asset (in BPS, optional)
-   * @param liquidationThreshold Liquidation threshold (in BPS, optional)
-   * @param liquidationPenalty Liquidation penalty (in BPS, optional)
-   * @param interestRate Interest rate (in BPS, optional)
-   * @param interestAccrualRate How often interest accrues (in seconds, optional)
+   * @param permissions Permissions for the asset
    * @returns Transaction signature and asset PDA
    */
-  public async addAsset(
-    ticker: string,
-    oracleParams: any,
-    permissions?: AssetPermissions,
-    targetPrice?: number | BN,
-    maxSupply?: number | BN,
-    collateralRatio?: number,
-    liquidationThreshold?: number,
-    liquidationPenalty?: number,
-    interestRate?: number,
-    interestAccrualRate?: number,
-  ): Promise<{ txSignature: string; assetAddress: PublicKey }> {
-    // Create the asset parameters using BaseClient's helper method
-    const params = this.createAssetParams(
-      ticker,
-      oracleParams,
-      targetPrice || 50000, // Default value
-      maxSupply || new BN(1000000000), // Default value
-      collateralRatio,
-      liquidationThreshold,
-      liquidationPenalty,
-      interestRate,
-      interestAccrualRate,
-      permissions,
-    );
-
-    // Derive the asset PDA from the ticker
-    const [assetAddress] = PublicKey.findProgramAddressSync(
-      [Buffer.from('asset'), Buffer.from(ticker)],
+  public async addAsset(params: {
+    ticker: string;
+    oracle: Record<string, unknown>;
+    permissions?: AssetPermissions;
+  }): Promise<{ txSignature: string; assetAddress: PublicKey }> {
+    // Find the asset PDA
+    const [assetAddress] = await PublicKey.findProgramAddress(
+      [Buffer.from('asset'), Buffer.from(params.ticker)],
       this.program.programId,
     );
+    const postInstructions: TransactionInstruction[] = [];
+
+    // Add the asset to the lookup table
+    if (this.lookupTable) {
+      postInstructions.push(
+        await extendLookupTable(
+          this.program.provider.connection,
+          this.lookupTable,
+          this.provider.wallet.publicKey,
+          this.provider.wallet.publicKey,
+          [assetAddress],
+        ),
+      );
+    }
 
     // Submit the transaction to add the asset
     // We need to use a type assertion because the IDL doesn't include all required accounts
     const txSignature = await this.program.methods
       .addAsset({
         ticker: params.ticker,
-        oracle: params.oracle,
-        permissions: params.permissions,
+        oracle: params.oracle as any,
+        permissions: params.permissions as any,
       })
       .accounts({
         admin: this.provider.wallet.publicKey,
       })
+      .postInstructions(postInstructions)
       .rpc();
 
     return { txSignature, assetAddress };
@@ -384,7 +443,11 @@ export abstract class BaseClient {
     );
 
     // Add the asset
-    const { txSignature, assetAddress } = await this.addAsset(ticker, oracleParams, permissions);
+    const { txSignature, assetAddress } = await this.addAsset({
+      ticker,
+      oracle: oracleParams,
+      permissions: permissions || { allowLongs: true, allowShorts: true },
+    });
 
     return {
       assetAddress,
@@ -482,13 +545,51 @@ export abstract class BaseClient {
       txBuilder.remainingAccounts(remainingAccounts);
     }
 
+    // Add lookup table account if provided
+    if (this.lookupTable) {
+      txBuilder.accounts({
+        lookupTable: this.lookupTable,
+      } as any);
+    }
+
+    const instruction = await txBuilder.instruction();
+
     // Execute the transaction
 
-    const txSignature = await txBuilder.rpc();
+    const txSignature = await this.sendAndConfirm([instruction]);
     return {
       basktId,
       txSignature,
     };
+  }
+
+  private async sendAndConfirm(instructions: TransactionInstruction[]) {
+    // Get the latest blockhash
+    const { blockhash } = await this.provider.connection.getLatestBlockhash();
+
+    const lookupTables = [];
+
+    if (this.lookupTable) {
+      const lookupTableAccount = (
+        await this.provider.connection.getAddressLookupTable(new PublicKey(this.lookupTable))
+      ).value;
+
+      if (lookupTableAccount) {
+        lookupTables.push(lookupTableAccount);
+      }
+    }
+    // Create the transaction message
+    const message = new TransactionMessage({
+      payerKey: this.provider.wallet.publicKey, // Account paying for the transaction
+      recentBlockhash: blockhash, // Latest blockhash
+      instructions, // Instructions to be included in the transaction
+    }).compileToV0Message(lookupTables);
+
+    // Create the versioned transaction from the message
+    const transaction = new VersionedTransaction(message);
+
+    // Send the signed transaction to the network
+    return await this.provider.sendAndConfirm(transaction);
   }
 
   /**
@@ -533,8 +634,6 @@ export abstract class BaseClient {
       return null;
     }
   }
-
-
 
   /**
    * Get asset price using the view instruction
@@ -626,17 +725,85 @@ export abstract class BaseClient {
     ]);
 
     // For view instructions with remainingAccounts
-    try {
-      return await this.program.methods
-        .getBasktNav()
-        .accounts({
-          baskt: basktAddress,
-        })
-        .remainingAccounts(remainingAccounts)
-        .view();
-    } catch (error) {
-      console.error(error);
-      throw error;
+    return await this.program.methods
+      .getBasktNav()
+      .accounts({
+        baskt: basktAddress,
+      })
+      .remainingAccounts(remainingAccounts)
+      .view();
+  }
+
+  /**
+   * Rebalance a baskt with new asset weights
+   * @param basktId The public key of the baskt to rebalance
+   * @param assetConfigs Array of asset configurations with new weights
+   * @param assetOraclePairs Optional array of asset/oracle pairs to use for getting current prices
+   * @returns Transaction signature
+   */
+  public async rebalanceBaskt(
+    basktId: PublicKey,
+    assetConfigs: Array<{
+      assetId: PublicKey;
+      weight: number;
+      direction?: boolean; // Optional, will be preserved from existing config if not provided
+    }>,
+    assetOraclePairs?: Array<{ asset: PublicKey; oracle: PublicKey }>,
+  ): Promise<string> {
+    // Get the current baskt to determine existing asset directions
+    const baskt = await this.getBaskt(basktId);
+
+    // Prepare asset parameters with directions
+    const assetParams = assetConfigs.map((config) => {
+      // Find existing config to preserve direction if not provided
+      const existingConfig = baskt.currentAssetConfigs.find(
+        (ac) => ac.assetId.toString() === config.assetId.toString(),
+      );
+
+      if (!existingConfig) {
+        throw new Error(`Asset ${config.assetId.toString()} not found in baskt`);
+      }
+
+      return {
+        assetId: config.assetId,
+        // Use provided direction or preserve from existing config
+        direction: config.direction !== undefined ? config.direction : existingConfig.direction,
+        weight: new BN(config.weight),
+      };
+    });
+
+    // Prepare the transaction builder
+    const txBuilder = this.program.methods.rebalance(assetParams).accounts({
+      baskt: basktId,
+      payer: this.wallet.publicKey,
+    });
+
+    // Add remaining accounts if provided
+    if (assetOraclePairs && assetOraclePairs.length > 0) {
+      const remainingAccounts = assetOraclePairs.flatMap((pair) => [
+        {
+          pubkey: pair.asset,
+          isWritable: false,
+          isSigner: false,
+        },
+        {
+          pubkey: pair.oracle,
+          isWritable: false,
+          isSigner: false,
+        },
+      ]);
+
+      txBuilder.remainingAccounts(remainingAccounts);
     }
+
+    const itx = await txBuilder.instruction();
+
+    // Execute the transaction
+    const txSignature = await this.sendAndConfirm([itx]);
+    return txSignature;
+  }
+
+  public async waitForBlocks() {
+    return new Promise((resolve) => setTimeout(resolve, 1000));
   }
 }

@@ -1,6 +1,14 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Keypair, PublicKey } from "@solana/web3.js";
-import { BasktV1 } from "../program/types";
+import * as anchor from '@coral-xyz/anchor';
+import { PublicKey, TransactionInstruction } from '@solana/web3.js';
+import { BasktV1 } from '../program/types';
+
+export type OracleParams = {
+  oracleAccount: PublicKey;
+  oracleType: OracleType;
+  oracleAuthority: PublicKey;
+  maxPriceError: number | anchor.BN;
+  maxPriceAgeSec: number;
+};
 
 // Oracle types enum to match the Rust program
 export enum OracleType {
@@ -43,29 +51,28 @@ export class OracleHelper {
     price: number | anchor.BN,
     exponent: number,
     conf?: number | anchor.BN,
-    publishTime?: number | anchor.BN
+    publishTime?: number | anchor.BN,
+    postInstructions: TransactionInstruction[] = [],
   ): Promise<{ address: PublicKey }> {
     // Convert inputs to BN if they are numbers
-    const priceBN = typeof price === "number" ? new anchor.BN(price) : price;
+    const priceBN = typeof price === 'number' ? new anchor.BN(price) : price;
     const confBN = conf
-      ? typeof conf === "number"
+      ? typeof conf === 'number'
         ? new anchor.BN(conf)
         : conf
       : priceBN.div(new anchor.BN(100)); // Default to 1% of price if not specified
 
     const currentTime = Math.floor(Date.now() / 1000);
     const publishTimeBN = publishTime
-      ? typeof publishTime === "number"
+      ? typeof publishTime === 'number'
         ? new anchor.BN(publishTime)
         : publishTime
       : new anchor.BN(currentTime);
 
-    
     const oracle = PublicKey.findProgramAddressSync(
-      [Buffer.from("oracle"), Buffer.from(oracleName)],
-      this.program.programId
+      [Buffer.from('oracle'), Buffer.from(oracleName)],
+      this.program.programId,
     )[0];
-
 
     // Initialize the oracle account with the provided data
     await this.program.methods
@@ -81,13 +88,13 @@ export class OracleHelper {
         oracle,
         authority: this.provider.wallet.publicKey,
       })
+      .postInstructions(postInstructions)
       .rpc();
 
     return {
       address: oracle,
     };
   }
-
 
   /**
    * Creates an oracle account of the specified type
@@ -105,7 +112,7 @@ export class OracleHelper {
     price: number | anchor.BN,
     exponent: number,
     conf?: number | anchor.BN,
-    publishTime?: number | anchor.BN
+    publishTime?: number | anchor.BN,
   ): Promise<{ address: PublicKey }> {
     switch (oracleType) {
       case OracleType.Custom:
@@ -127,16 +134,14 @@ export class OracleHelper {
     oracleAddress: PublicKey,
     oracleType: OracleType,
     maxPriceError: number | anchor.BN = 1000, // Default to 10% (1000 BPS)
-    maxPriceAgeSec: number = 60 // Default to 60 seconds
+    maxPriceAgeSec: number = 60, // Default to 60 seconds
   ) {
     return {
       oracleAccount: oracleAddress,
       oracleType: oracleType,
       oracleAuthority: this.provider.wallet.publicKey,
       maxPriceError:
-        typeof maxPriceError === "number"
-          ? new anchor.BN(maxPriceError)
-          : maxPriceError,
+        typeof maxPriceError === 'number' ? new anchor.BN(maxPriceError) : maxPriceError,
       maxPriceAgeSec: maxPriceAgeSec,
     };
   }
@@ -155,12 +160,12 @@ export class OracleHelper {
     price: number | anchor.BN,
     exponent: number,
     conf?: number | anchor.BN,
-    publishTime?: number | anchor.BN
+    publishTime?: number | anchor.BN,
   ) {
     // Convert inputs to BN if they are numbers
-    const priceBN = typeof price === "number" ? new anchor.BN(price) : price;
+    const priceBN = typeof price === 'number' ? new anchor.BN(price) : price;
     const confBN = conf
-      ? typeof conf === "number"
+      ? typeof conf === 'number'
         ? new anchor.BN(conf)
         : conf
       : priceBN.div(new anchor.BN(100)); // Default to 1% of price if not specified
@@ -168,7 +173,7 @@ export class OracleHelper {
     const currentTime = Math.floor(Date.now() / 1000);
     // Set publish time to current time - 1 to ensure it's always behind
     const publishTimeBN = publishTime
-      ? typeof publishTime === "number"
+      ? typeof publishTime === 'number'
         ? new anchor.BN(publishTime)
         : publishTime
       : new anchor.BN(currentTime - 1);

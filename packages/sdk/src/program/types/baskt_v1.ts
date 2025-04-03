@@ -1146,6 +1146,11 @@ export type BasktV1 = {
       "code": 6029,
       "name": "featureDisabled",
       "msg": "Feature is currently disabled"
+    },
+    {
+      "code": 6030,
+      "name": "priceNotFound",
+      "msg": "Price not found"
     }
   ],
   "types": [

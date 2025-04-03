@@ -1,9 +1,8 @@
 use crate::error::PerpetualsError;
 use crate::state::asset::SyntheticAsset;
-use crate::state::baskt::{AssetConfig, Baskt, AssetParams};
+use crate::state::baskt::{AssetConfig, AssetParams, Baskt};
 use crate::state::protocol::Protocol;
 use anchor_lang::prelude::*;
-
 
 #[derive(Accounts)]
 #[instruction(baskt_name: String)]
@@ -14,7 +13,7 @@ pub struct CreateBaskt<'info> {
     #[account(
         init,
         payer = creator,
-        space = Baskt::INIT_SPACE,
+        space = 8 + Baskt::INIT_SPACE,
         seeds = [b"baskt", baskt_name.as_bytes()],
         bump
     )]
@@ -26,7 +25,6 @@ pub struct CreateBaskt<'info> {
 
     pub system_program: Program<'info, System>,
 }
-
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct CreateBasktParams {
