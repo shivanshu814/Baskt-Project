@@ -1,7 +1,7 @@
 import { Layout } from '../../components/Layout';
 import { AdminAssetsList } from '../../components/admin/AdminAssetsList';
 import { ListNewAssetButton } from '../../components/admin/ListNewAssetButton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/src/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { OraclesList } from '../../components/admin/OraclesList';
 
 export default function AdminDashboard() {

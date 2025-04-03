@@ -8,9 +8,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../../components/src/table';
-import { Button } from '../../components/src/button';
-import { Badge } from '../../components/src/badge';
+} from '../../components/ui/table';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 import { Plus } from 'lucide-react';
 import { AddOracleModal } from './AddOracleModal';
 

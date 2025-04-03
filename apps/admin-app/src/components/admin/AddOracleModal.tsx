@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '../../components/src/dialog';
+} from '../../components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -19,16 +19,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '../../components/src/form';
-import { Input } from '../../components/src/input';
-import { Button } from '../../components/src/button';
+} from '../../components/ui/form';
+import { Input } from '../../components/ui/input';
+import { Button } from '../../components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../components/src/select';
+} from '../../components/ui/select';
 import { useToast } from '../../hooks/use-toast';
 
 const formSchema = z

@@ -7,10 +7,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../../components/src/table';
-import { Button } from '../../components/src/button';
-import { Switch } from '../../components/src/switch';
-import { Badge } from '../../components/src/badge';
+} from '../../components/ui/table';
+import { Button } from '../../components/ui/button';
+import { Switch } from '../../components/ui/switch';
+import { Badge } from '../../components/ui/badge';
 
 type Asset = {
   id: string;

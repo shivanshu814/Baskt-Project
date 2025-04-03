@@ -2,17 +2,17 @@
 
 'use client';
 
-import { Toaster } from '../components/src/toaster';
-import { Toaster as Sonner } from '../components/src/sonner';
-import { TooltipProvider } from '../components/src/tooltip';
-import Homepage from './homepage/page';
+import { Toaster } from '../components/ui/toaster';
+import { Toaster as Sonner } from '../components/ui/sonner';
+import { TooltipProvider } from '../components/ui/tooltip';
+import AdminDashboard from './admin/page';
 
 export default function Home() {
   return (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <Homepage />
+      <AdminDashboard />
     </TooltipProvider>
   );
 }

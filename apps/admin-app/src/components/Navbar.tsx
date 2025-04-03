@@ -1,4 +1,4 @@
-import { Button } from '../components/src/button';
+import { Button } from '../components/ui/button';
 import { User, LogOut, ShieldCheck } from 'lucide-react';
 import { cn } from '../lib/utils';
 import Link from 'next/link';
@@ -7,15 +7,14 @@ import {
   NavigationMenuItem,
   NavigationMenuList,
   navigationMenuTriggerStyle,
-} from '../components/src/navigation-menu';
+} from '../components/ui/navigation-menu';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-} from '../components/src/dropdown-menu';
-import { ThemeSwitch } from './ThemeSwitch';
+} from '../components/ui/dropdown-menu';
 
 interface NavbarProps {
   setSidebarOpen: (open: boolean) => void;
@@ -32,29 +31,10 @@ export function Navbar({ className }: NavbarProps) {
     >
       <div className="w-full mx-auto flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
-            <span className="text-primary">Baskt</span>
-          </Link>
-
           <NavigationMenu className="hidden md:flex">
             <NavigationMenuList>
-              {/* <NavigationMenuItem>
-                <Link href="/baskts" className={navigationMenuTriggerStyle()}>
-                  Explore
-                </Link>
-              </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link href="/portfolio" className={navigationMenuTriggerStyle()}>
-                  Portfolio
-                </Link>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <Link href="/how-it-works" className={navigationMenuTriggerStyle()}>
-                  How It Works
-                </Link>
-              </NavigationMenuItem> */}
-              <NavigationMenuItem>
-                <Link href="/admin" className={navigationMenuTriggerStyle()}>
+                <Link href="/" className={navigationMenuTriggerStyle()}>
                   <ShieldCheck className="h-4 w-4 mr-1" />
                   Admin
                 </Link>
@@ -63,17 +43,6 @@ export function Navbar({ className }: NavbarProps) {
           </NavigationMenu>
         </div>
         <div className="flex items-center gap-2">
-          {/* <Link href="/create-baskt">
-            <Button variant="outline" size="sm" className="hidden md:flex">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Baskt
-            </Button>
-          </Link>
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <Bell className="h-5 w-5" />
-            <span className="sr-only">Notifications</span>
-          </Button> */}
-          <ThemeSwitch />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="rounded-full">
@@ -88,7 +57,7 @@ export function Navbar({ className }: NavbarProps) {
               </DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer">
                 <ShieldCheck className="mr-2 h-4 w-4" />
-                <Link href="/admin">Admin Dashboard</Link>
+                <Link href="/">Admin Dashboard</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="cursor-pointer">

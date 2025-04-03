@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '../../components/src/button';
+import { Button } from '../../components/ui/button';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Dialog,
@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '../../components/src/dialog';
+} from '../../components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -23,21 +23,21 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '../../components/src/form';
-import { Input } from '../../components/src/input';
-import { Switch } from '../../components/src/switch';
+} from '../../components/ui/form';
+import { Input } from '../../components/ui/input';
+import { Switch } from '../../components/ui/switch';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../components/src/select';
+} from '../../components/ui/select';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '../../components/src/collapsible';
+} from '../../components/ui/collapsible';
 import { useToast } from '../../hooks/use-toast';
 import { AddOracleModal } from './AddOracleModal';
 
