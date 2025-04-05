@@ -1,59 +1,31 @@
 'use client';
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '../../components/ui/button';
-import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '../../components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '../../components/ui/form';
-import { Input } from '../../components/ui/input';
-import { Switch } from '../../components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/ui/select';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '../../components/ui/collapsible';
+import { useState } from 'react';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
+import { useForm } from 'react-hook-form';
 import { useToast } from '../../hooks/use-toast';
+import { Plus, ChevronDown } from 'lucide-react';
 import { AddOracleModal } from './AddOracleModal';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 
 const formSchema = z.object({
   ticker: z.string().min(1, { message: 'Ticker is required' }),
   oracleType: z.enum(['Pyth', 'Switchboard', 'Custom']),
   oracleAddress: z.string().min(32, { message: 'Valid oracle address required' }),
-  // Asset permissions
+
   permissions: z.object({
     allowLong: z.boolean().default(true),
     allowShort: z.boolean().default(true),
   }),
-  // Oracle parameters
+
   maxPriceError: z.string(),
   maxPriceAgeSec: z.string(),
-  // Fee structure
+
   fees: z.object({
     openFee: z.string().default('0.1'),
     closeFee: z.string().default('0.1'),
@@ -64,10 +36,8 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function ListNewAssetButton() {
-  const [open, setOpen] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [showAddOracleModal, setShowAddOracleModal] = useState(false);
-  const [permissionsOpen, setPermissionsOpen] = useState(false);
-  const [feesOpen, setFeesOpen] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<FormValues>({
@@ -96,261 +66,174 @@ export function ListNewAssetButton() {
       description: `The asset ${values.ticker} has been listed and is now available for basket creation.`,
     });
 
-    setOpen(false);
+    setShowModal(false);
     form.reset();
-  };
-
-  const handleAddNewOracle = () => {
-    setShowAddOracleModal(true);
   };
 
   return (
     <>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" /> List New Asset
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-xl">
+      <Button onClick={() => setShowModal(true)}>
+        <Plus className="mr-2 h-4 w-4" /> List New Asset
+      </Button>
+
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="bg-[#010b1d] border-white/10 text-white sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>List New Asset</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl text-white">List New Asset</DialogTitle>
+            <DialogDescription className="text-[#E5E7EB]">
               Add a new asset to make it available for user baskets.
             </DialogDescription>
           </DialogHeader>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="ticker"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Asset Ticker</FormLabel>
-                      <FormControl>
-                        <Input placeholder="BTC-USD" {...field} />
-                      </FormControl>
-                      <FormDescription>Specify a ticker for the asset</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+          <div className="space-y-6 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-base font-medium text-white">Asset Name</label>
+                <Input
+                  placeholder="Bitcoin"
+                  className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
                 />
-
-                <FormField
-                  control={form.control}
-                  name="oracleType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Oracle Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select oracle type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Pyth">Pyth</SelectItem>
-                          <SelectItem value="Switchboard">Switchboard</SelectItem>
-                          <SelectItem value="Custom">Custom</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>Select the oracle feed type</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="oracleAddress"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel>Oracle Address</FormLabel>
-                      <div className="flex gap-2">
-                        <FormControl>
-                          <Input placeholder="Enter oracle address" {...field} />
-                        </FormControl>
-                        <Button type="button" variant="outline" onClick={handleAddNewOracle}>
-                          New Oracle
-                        </Button>
-                      </div>
-                      <FormDescription>
-                        Specify the oracle account address or create a new one
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="maxPriceError"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Max Price Error</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormDescription>Maximum allowed price error</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="maxPriceAgeSec"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Max Price Age (seconds)</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormDescription>Maximum age of price in seconds</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Asset Permissions Collapsible */}
-                <div className="md:col-span-2">
-                  <Collapsible
-                    open={permissionsOpen}
-                    onOpenChange={setPermissionsOpen}
-                    className="border rounded-md p-2"
-                  >
-                    <div className="flex items-center justify-between px-4">
-                      <h4 className="text-sm font-semibold">Asset Permissions</h4>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="p-0 h-8 w-8">
-                          {permissionsOpen ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </CollapsibleTrigger>
-                    </div>
-
-                    <CollapsibleContent className="pt-2 px-4 space-y-2">
-                      <FormField
-                        control={form.control}
-                        name="permissions.allowLong"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base">Allow Long</FormLabel>
-                              <FormDescription>
-                                Allow users to go long on this asset
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="permissions.allowShort"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base">Allow Short</FormLabel>
-                              <FormDescription>
-                                Allow users to go short on this asset
-                              </FormDescription>
-                            </div>
-                            <FormControl>
-                              <Switch checked={field.value} onCheckedChange={field.onChange} />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
-
-                {/* Fee Structure Collapsible */}
-                <div className="md:col-span-2">
-                  <Collapsible
-                    open={feesOpen}
-                    onOpenChange={setFeesOpen}
-                    className="border rounded-md p-2"
-                  >
-                    <div className="flex items-center justify-between px-4">
-                      <h4 className="text-sm font-semibold">Fee Structure</h4>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="p-0 h-8 w-8">
-                          {feesOpen ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </CollapsibleTrigger>
-                    </div>
-
-                    <CollapsibleContent className="pt-2 px-4 space-y-2">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="fees.openFee"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Open Fee (%)</FormLabel>
-                              <FormControl>
-                                <Input type="number" step="0.01" {...field} />
-                              </FormControl>
-                              <FormDescription>Fee charged when opening positions</FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="fees.closeFee"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Close Fee (%)</FormLabel>
-                              <FormControl>
-                                <Input type="number" step="0.01" {...field} />
-                              </FormControl>
-                              <FormDescription>Fee charged when closing positions</FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="fees.fundingFee"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Funding Fee (%)</FormLabel>
-                              <FormControl>
-                                <Input type="number" step="0.01" {...field} />
-                              </FormControl>
-                              <FormDescription>Recurring funding fee</FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
+                <p className="text-sm text-[#666]">Enter the name of the asset</p>
               </div>
+              <div className="space-y-2">
+                <label className="text-base font-medium text-white">Asset Type</label>
+                <Select>
+                  <SelectTrigger className="h-12 bg-[#0d1117] border-0 ring-[0.5px] ring-white/5 text-white text-base rounded-2xl focus-visible:ring-[0.5px] focus-visible:ring-white/10 focus-visible:ring-offset-0 data-[value]:ring-[0.5px] data-[value]:ring-white/5">
+                    <SelectValue placeholder="Select asset type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0d1117] border-0 ring-[0.5px] ring-white/5 rounded-2xl max-h-[200px] overflow-y-auto">
+                    <SelectItem
+                      value="crypto"
+                      className="text-white hover:bg-white/5 data-[state=checked]:bg-white/10"
+                    >
+                      Cryptocurrency
+                    </SelectItem>
+                    <SelectItem
+                      value="forex"
+                      className="text-white hover:bg-white/5 data-[state=checked]:bg-white/10"
+                    >
+                      Forex
+                    </SelectItem>
+                    <SelectItem
+                      value="commodity"
+                      className="text-white hover:bg-white/5 data-[state=checked]:bg-white/10"
+                    >
+                      Commodity
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-[#666]">Select the type of asset</p>
+              </div>
+            </div>
 
-              <DialogFooter>
-                <Button type="submit">List Asset</Button>
-              </DialogFooter>
-            </form>
-          </Form>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-white">Oracle Type</label>
+              <Select>
+                <SelectTrigger className="h-12 bg-[#0d1117] border-0 ring-[0.5px] ring-white/5 text-white text-base rounded-2xl focus-visible:ring-[0.5px] focus-visible:ring-white/10 focus-visible:ring-offset-0 data-[value]:ring-[0.5px] data-[value]:ring-white/5">
+                  <SelectValue placeholder="Select oracle type" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0d1117] border-0 ring-[0.5px] ring-white/5 rounded-2xl max-h-[200px] overflow-y-auto">
+                  <SelectItem
+                    value="pyth"
+                    className="text-white hover:bg-white/5 data-[state=checked]:bg-white/10"
+                  >
+                    Pyth
+                  </SelectItem>
+                  <SelectItem
+                    value="chainlink"
+                    className="text-white hover:bg-white/5 data-[state=checked]:bg-white/10"
+                  >
+                    Chainlink
+                  </SelectItem>
+                  <SelectItem
+                    value="custom"
+                    className="text-white hover:bg-white/5 data-[state=checked]:bg-white/10"
+                  >
+                    Custom
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-[#E5E7EB]/60">Select the oracle feed type</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-white">Oracle Address</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter oracle address"
+                  className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
+                />
+                <Button
+                  variant="outline"
+                  className="h-12 bg-[#0d1117] text-white hover:bg-[#1a1f2e] hover:text-white border-0 ring-1 ring-white/5 rounded-2xl"
+                >
+                  New Oracle
+                </Button>
+              </div>
+              <p className="text-xs text-[#E5E7EB]/60">
+                Specify the oracle account address or create a new one
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white">Max Price Error</label>
+                <Input
+                  type="number"
+                  placeholder="100"
+                  className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
+                />
+                <p className="text-xs text-[#E5E7EB]/60">Maximum allowed price error</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white">Max Price Age (seconds)</label>
+                <Input
+                  type="number"
+                  placeholder="60"
+                  className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
+                />
+                <p className="text-xs text-[#E5E7EB]/60">Maximum age of price in seconds</p>
+              </div>
+            </div>
+
+            <Collapsible className="space-y-2">
+              <div className="flex items-center justify-between space-x-4">
+                <h4 className="text-sm font-medium text-white">Asset Permissions</h4>
+                <CollapsibleTrigger className="hover:bg-[#1a1f2e] p-1 rounded">
+                  <ChevronDown className="h-4 w-4 text-white/60" />
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent className="space-y-2">
+                <div className="rounded-md border border-white/10 p-4 bg-[#0d1117]">
+                  <p className="text-sm text-[#E5E7EB]/60">Configure asset permissions here</p>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            <Collapsible className="space-y-2">
+              <div className="flex items-center justify-between space-x-4">
+                <h4 className="text-sm font-medium text-white">Fee Structure</h4>
+                <CollapsibleTrigger className="hover:bg-[#1a1f2e] p-1 rounded">
+                  <ChevronDown className="h-4 w-4 text-white/60" />
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent className="space-y-2">
+                <div className="rounded-md border border-white/10 p-4 bg-[#0d1117]">
+                  <p className="text-sm text-[#E5E7EB]/60">Configure fee structure here</p>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              className="h-11 px-8 bg-blue-500 text-white hover:bg-blue-500/90 rounded-full"
+              onClick={() => onSubmit(form.getValues())}
+            >
+              List New Asset
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

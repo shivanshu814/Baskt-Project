@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Navbar } from './Navbar';
 import { cn } from '../lib/utils';
+import { AdminNavbar } from './auth/AdminNavbar';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,9 +13,11 @@ export function Layout({ children, className }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false); // eslint-disable-line @typescript-eslint/no-unused-vars
 
   return (
-    <div className="flex flex-col mt-16 min-h-screen">
-      <Navbar setSidebarOpen={setSidebarOpen} />
-      <main className={cn('flex-1 pt-16 p-4 md:p-6 overflow-y-auto', className)}>{children}</main>
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#010b1d] to-[#011330] relative overflow-hidden">
+      <AdminNavbar setSidebarOpen={setSidebarOpen} />
+      <div className="w-full max-w-[1600px] mx-auto px-6">
+        <main className={cn('pt-24 pb-12', className)}>{children}</main>
+      </div>
     </div>
   );
 }

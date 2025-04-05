@@ -33,14 +33,22 @@
     "test:choose": "echo 'Which service would you like to test?' && select choice in 'Main App' 'Admin App' 'Backend' 'SDK' 'UI' 'Program'; do case $choice in 'Main App') pnpm test:main; break;; 'Admin App') pnpm test:admin; break;; 'Backend') pnpm test:backend; break;; 'SDK') pnpm test:sdk; break;; 'UI') pnpm test:ui; break;; 'Program') pnpm test:program; break;; *) echo 'Invalid choice, try again.';; esac; done"
   },
   "devDependencies": {
-    "turbo": "latest",
-    "prettier": "^3.0.0",
-    "eslint": "^8.56.0",
-    "typescript": "^5.7.3",
-    "rimraf": "^5.0.5",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0"
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.0.0",
+    "rimraf": "^5.0.5",
+    "turbo": "latest",
+    "typescript": "^5.7.3"
   },
-  "workspaces": ["apps/*", "packages/*", "backend"],
-  "packageManager": "pnpm@9.0.0"
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "backend"
+  ],
+  "packageManager": "pnpm@9.0.0",
+  "dependencies": {
+    "@types/js-cookie": "^3.0.6",
+    "js-cookie": "^3.0.5"
+  }
 }

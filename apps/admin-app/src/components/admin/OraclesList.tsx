@@ -23,46 +23,20 @@ type Oracle = {
   status: 'active' | 'stale' | 'error';
 };
 
-const mockOracles: Oracle[] = [
-  {
-    id: '1',
-    name: 'BTC/USD Price Feed',
-    type: 'Pyth',
-    address: '8ibFbzbAKTTQjECGDtjVfGEMwvQSKYARrm4FUcxbPPBW',
-    lastUpdateTime: '2 minutes ago',
-    status: 'active',
-  },
-  {
-    id: '2',
-    name: 'ETH/USD Price Feed',
-    type: 'Switchboard',
-    address: 'CrZCEJdAkWvz2pv1gQ4HJ6Rvnm4N4NBBi2Q6mPC7PwEF',
-    lastUpdateTime: '5 minutes ago',
-    status: 'active',
-  },
-  {
-    id: '3',
-    name: 'SOL/USD Price Feed',
-    type: 'Custom',
-    address: '5aBLm4P1L1qGhVnKMULwAKnTEcnwzd22x3HSFhoqwmJo',
-    lastUpdateTime: '30 minutes ago',
-    status: 'stale',
-  },
-];
-
 export function OraclesList() {
   const [showAddOracleModal, setShowAddOracleModal] = useState(false);
+  const oracles: Oracle[] = [];
 
   return (
     <>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Oracle Feeds</h2>
+        <h2 className="text-xl text-white font-semibold">Oracle Feeds</h2>
         <Button onClick={() => setShowAddOracleModal(true)}>
           <Plus className="mr-2 h-4 w-4" /> Add Oracle
         </Button>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border border-white/10">
         <Table>
           <TableHeader>
             <TableRow>
@@ -75,47 +49,65 @@ export function OraclesList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockOracles.map((oracle) => (
-              <TableRow key={oracle.id}>
-                <TableCell className="font-medium">{oracle.name}</TableCell>
-                <TableCell>{oracle.type}</TableCell>
-                <TableCell
-                  className="font-mono text-xs truncate max-w-[150px]"
-                  title={oracle.address}
-                >
-                  {oracle.address}
-                </TableCell>
-                <TableCell>{oracle.lastUpdateTime}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={oracle.status === 'active' ? 'default' : 'outline'}
-                    className={
-                      oracle.status === 'active'
-                        ? 'bg-green-500'
-                        : oracle.status === 'stale'
-                          ? 'bg-yellow-500'
-                          : 'bg-destructive'
-                    }
-                  >
-                    {oracle.status === 'active'
-                      ? 'Active'
-                      : oracle.status === 'stale'
-                        ? 'Stale'
-                        : 'Error'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      View
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      Update
-                    </Button>
+            {oracles.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-32 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <p className="text-white/60 text-sm">No oracles found</p>
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              oracles.map((oracle) => (
+                <TableRow key={oracle.id}>
+                  <TableCell className="font-medium">{oracle.name}</TableCell>
+                  <TableCell>{oracle.type}</TableCell>
+                  <TableCell
+                    className="font-mono text-xs truncate max-w-[150px]"
+                    title={oracle.address}
+                  >
+                    {oracle.address}
+                  </TableCell>
+                  <TableCell>{oracle.lastUpdateTime}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        oracle.status === 'active'
+                          ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                          : oracle.status === 'stale'
+                            ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                            : 'bg-red-500/10 text-red-500 border-red-500/20'
+                      }
+                    >
+                      {oracle.status === 'active'
+                        ? 'Active'
+                        : oracle.status === 'stale'
+                          ? 'Stale'
+                          : 'Error'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-[#1a1f2e] text-white hover:bg-[#1a1f2e]/90 hover:text-white rounded-lg border-white/10"
+                      >
+                        View
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-[#1a1f2e] text-white hover:bg-[#1a1f2e]/90 hover:text-white rounded-lg border-white/10"
+                      >
+                        Update
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
