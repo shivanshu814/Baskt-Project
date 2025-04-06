@@ -10,7 +10,7 @@ import Cookies from 'js-cookie';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
 import { User, LogOut, ShieldCheck, Wallet } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from '../ui/navigation-menu';
@@ -23,9 +23,8 @@ interface AdminNavbarProps {
 
 export function AdminNavbar({ className }: AdminNavbarProps) {
   const router = useRouter();
-  const { logout } = usePrivy();
-  const { wallets } = useWallets();
-  const activeWallet = wallets[0];
+  const { logout, user } = usePrivy();
+  const activeWallet = user?.wallet;
   const [isLoggingOut, setIsLoggingOut] = useState(false); //eslint-disable-line
 
   const handleLogout = async () => {
@@ -44,10 +43,6 @@ export function AdminNavbar({ className }: AdminNavbarProps) {
           </div>
         </div>`,
       );
-
-      if (activeWallet) {
-        await activeWallet.disconnect(); //eslint-disable-line
-      }
 
       await logout();
       Cookies.remove('wallet-connected');
@@ -101,7 +96,7 @@ export function AdminNavbar({ className }: AdminNavbarProps) {
                   {activeWallet ? (
                     <>
                       <Wallet className="h-4 w-4 mr-2" />
-                      {formatWalletAddress(activeWallet.address)}
+                      {formatWalletAddress(activeWallet?.address || '')}
                     </>
                   ) : (
                     'Connecting...'
