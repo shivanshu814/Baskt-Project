@@ -1,3 +1,4 @@
+use crate::state::oracle::OraclePrice;
 use anchor_lang::prelude::*;
 
 pub mod constants;
@@ -9,8 +10,8 @@ pub mod utils;
 
 declare_id!("GK52S4WZPVEAMAgjRf8XsBd7upmG862AjMF89HavDpkm");
 
-use instructions::*;
 use crate::state::baskt::AssetParams;
+use instructions::*;
 
 #[program]
 pub mod baskt_v1 {
@@ -114,7 +115,7 @@ pub mod baskt_v1 {
     }
 
     // View functions (read-only)
-    pub fn get_asset_price(ctx: Context<GetAssetPrice>) -> Result<u64> {
+    pub fn get_asset_price(ctx: Context<GetAssetPrice>) -> Result<OraclePrice> {
         instructions::view::get_asset_price(ctx)
     }
 

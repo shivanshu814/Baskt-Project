@@ -1,5 +1,6 @@
 import * as anchor from '@coral-xyz/anchor';
 import {
+  Connection,
   PublicKey,
   Transaction,
   TransactionInstruction,
@@ -13,8 +14,11 @@ import BN from 'bn.js';
 import type { BasktV1 } from './program/types';
 import { stringToRole, toRoleString } from './utils/acl-helper';
 import { AccessControlRole } from './types/role';
-import { AssetPermissions } from './types/asset';
+import { Asset, AssetPermissions, OracleParams } from './types/asset';
 import { createLookupTableInstructions, extendLookupTable } from './utils/lookup-table-helper';
+import { ProtocolInterface } from './types/protocol';
+import { LightweightProvider } from './types';
+import { BasktV1Idl } from './program/idl';
 
 /**
  * Abstract base client for Solana programs
@@ -23,14 +27,10 @@ import { createLookupTableInstructions, extendLookupTable } from './utils/lookup
 export abstract class BaseClient {
   // Program and provider
   public program: anchor.Program<BasktV1>;
-  public provider: anchor.AnchorProvider;
+  public provider: LightweightProvider;
+  public connection: Connection;
   // Protocol PDA
   public protocolPDA: PublicKey;
-
-  // Wallet (payer)
-  public get wallet() {
-    return this.provider.wallet;
-  }
 
   // Helpers
   public oracleHelper: OracleHelper;
@@ -48,12 +48,17 @@ export abstract class BaseClient {
    * Create a new client instance
    * @param program Program instance
    */
-  constructor(program: anchor.Program<BasktV1>) {
-    this.program = program;
-    this.provider = program.provider as anchor.AnchorProvider;
+  constructor(connection: Connection, provider: LightweightProvider, userPublicKey?: PublicKey) {
+    this.program = new anchor.Program<BasktV1>(BasktV1Idl);
+    this.connection = connection;
+    this.provider = provider;
 
     // Initialize helpers
-    this.oracleHelper = new OracleHelper(this.program);
+    this.oracleHelper = new OracleHelper(
+      this.program,
+      userPublicKey || this.getPublicKey(),
+      this.provider,
+    );
 
     // Derive protocol PDA
     [this.protocolPDA] = PublicKey.findProgramAddressSync(
@@ -61,6 +66,8 @@ export abstract class BaseClient {
       this.program.programId,
     );
   }
+
+  abstract getPublicKey(): PublicKey;
 
   /**
    * Create a custom oracle with specified parameters
@@ -93,10 +100,10 @@ export abstract class BaseClient {
     if (this.lookupTable) {
       postInstructions.push(
         await extendLookupTable(
-          this.program.provider.connection,
+          this.connection,
           this.lookupTable,
-          this.provider.wallet.publicKey,
-          this.provider.wallet.publicKey,
+          this.getPublicKey(),
+          this.getPublicKey(),
           [oracle],
         ),
       );
@@ -128,16 +135,17 @@ export abstract class BaseClient {
     oracleType: 'custom' | 'pyth',
     maxPriceError: number | BN = this.DEFAULT_PRICE_ERROR,
     maxPriceAgeSec: number = this.DEFAULT_PRICE_AGE_SEC,
-  ) {
+    priceFeedId: string = '',
+  ): OracleParams {
     // Convert the oracle type to the format expected by the program
     const formattedOracleType = oracleType === 'custom' ? { custom: {} } : { pyth: {} };
 
     return {
       oracleAccount: oracleAddress,
       oracleType: formattedOracleType,
-      oracleAuthority: this.provider.wallet.publicKey,
       maxPriceError: typeof maxPriceError === 'number' ? new BN(maxPriceError) : maxPriceError,
       maxPriceAgeSec: maxPriceAgeSec,
+      priceFeedId,
     };
   }
 
@@ -229,12 +237,12 @@ export abstract class BaseClient {
     const tx = await this.program.methods
       .initializeProtocol()
       .accounts({
-        payer: this.provider.wallet.publicKey,
+        payer: this.getPublicKey(),
       })
-      .rpc();
+      .transaction();
 
     return {
-      initializeProtocolSignature: tx,
+      initializeProtocolSignature: await this.provider.sendAndConfirmLegacy(tx),
       initializeLookupTableSignature: await this.initializeLookupTable(),
     };
   }
@@ -245,9 +253,9 @@ export abstract class BaseClient {
     }
 
     const { lookupTableAddress, createInstruction } = await createLookupTableInstructions(
-      this.program.provider.connection,
-      this.wallet.publicKey,
-      this.wallet.publicKey,
+      this.connection,
+      this.getPublicKey(),
+      this.getPublicKey(),
     );
 
     const transaction = new Transaction();
@@ -267,10 +275,36 @@ export abstract class BaseClient {
 
   /**
    * Fetch the protocol account
-   * @returns Protocol account data
+   * @returns Protocol account data in a standardized format
    */
-  public async getProtocolAccount() {
-    return await this.program.account.protocol.fetch(this.protocolPDA);
+  public async getProtocolAccount(): Promise<ProtocolInterface> {
+    // Fetch the raw protocol account data
+    const rawProtocol = await this.program.account.protocol.fetch(this.protocolPDA);
+
+    // Convert the raw protocol account to our standardized ProtocolInterface
+    return {
+      isInitialized: rawProtocol.isInitialized,
+      owner: rawProtocol.owner.toString(),
+      accessControl: {
+        entries: rawProtocol.accessControl.entries.map((entry) => ({
+          account: entry.account.toString(),
+          // Extract the role name from the enum object
+          role: Object.keys(entry.role)[0],
+        })),
+      },
+      featureFlags: {
+        allowAddLiquidity: rawProtocol.featureFlags.allowAddLiquidity,
+        allowRemoveLiquidity: rawProtocol.featureFlags.allowRemoveLiquidity,
+        allowOpenPosition: rawProtocol.featureFlags.allowOpenPosition,
+        allowClosePosition: rawProtocol.featureFlags.allowClosePosition,
+        allowPnlWithdrawal: rawProtocol.featureFlags.allowPnlWithdrawal,
+        allowCollateralWithdrawal: rawProtocol.featureFlags.allowCollateralWithdrawal,
+        allowBasktCreation: rawProtocol.featureFlags.allowBasktCreation,
+        allowBasktUpdate: rawProtocol.featureFlags.allowBasktUpdate,
+        allowTrading: rawProtocol.featureFlags.allowTrading,
+        allowLiquidations: rawProtocol.featureFlags.allowLiquidations,
+      },
+    };
   }
 
   /**
@@ -285,13 +319,13 @@ export abstract class BaseClient {
     const tx = await this.program.methods
       .addRole(parseInt(roleEnum.toString()))
       .accounts({
-        owner: this.provider.wallet.publicKey,
+        owner: this.getPublicKey(),
         account: account,
         protocol: this.protocolPDA,
       })
-      .rpc();
+      .transaction();
 
-    return tx;
+    return await this.provider.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -306,13 +340,13 @@ export abstract class BaseClient {
     const tx = await this.program.methods
       .removeRole(parseInt(roleEnum.toString()))
       .accounts({
-        owner: this.provider.wallet.publicKey,
+        owner: this.getPublicKey(),
         account: account,
         protocol: this.protocolPDA,
       })
-      .rpc();
+      .transaction();
 
-    return tx;
+    return await this.provider.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -367,7 +401,7 @@ export abstract class BaseClient {
    */
   public async addAsset(params: {
     ticker: string;
-    oracle: Record<string, unknown>;
+    oracle: OracleParams;
     permissions?: AssetPermissions;
   }): Promise<{ txSignature: string; assetAddress: PublicKey }> {
     // Find the asset PDA
@@ -381,10 +415,10 @@ export abstract class BaseClient {
     if (this.lookupTable) {
       postInstructions.push(
         await extendLookupTable(
-          this.program.provider.connection,
+          this.connection,
           this.lookupTable,
-          this.provider.wallet.publicKey,
-          this.provider.wallet.publicKey,
+          this.getPublicKey(),
+          this.getPublicKey(),
           [assetAddress],
         ),
       );
@@ -392,19 +426,19 @@ export abstract class BaseClient {
 
     // Submit the transaction to add the asset
     // We need to use a type assertion because the IDL doesn't include all required accounts
-    const txSignature = await this.program.methods
+    const tx = await this.program.methods
       .addAsset({
         ticker: params.ticker,
         oracle: params.oracle as any,
         permissions: params.permissions as any,
       })
       .accounts({
-        admin: this.provider.wallet.publicKey,
+        admin: this.getPublicKey(),
       })
       .postInstructions(postInstructions)
-      .rpc();
+      .transaction();
 
-    return { txSignature, assetAddress };
+    return { txSignature: await this.provider.sendAndConfirmLegacy(tx), assetAddress };
   }
 
   /**
@@ -427,20 +461,14 @@ export abstract class BaseClient {
     price?: number | BN,
     exponent?: number,
     permissions?: AssetPermissions,
+    priceError: number = 100,
+    priceAgeSec: number = 60,
   ) {
-    // Use BaseClient's default values
-    const DEFAULT_PRICE_ERROR = 100;
-    const DEFAULT_PRICE_AGE_SEC = 60;
     // Create a custom oracle
     const oracle = await this.createCustomOracle(this.protocolPDA, ticker, price, exponent);
 
     // Create oracle parameters
-    const oracleParams = this.createOracleParams(
-      oracle.address,
-      'custom',
-      DEFAULT_PRICE_ERROR,
-      DEFAULT_PRICE_AGE_SEC,
-    );
+    const oracleParams = this.createOracleParams(oracle.address, 'custom', priceError, priceAgeSec);
 
     // Add the asset
     const { txSignature, assetAddress } = await this.addAsset({
@@ -458,20 +486,104 @@ export abstract class BaseClient {
   }
 
   /**
+   * Create and add a synthetic asset with a custom oracle in one step
+   * @param ticker Asset ticker symbol
+   * @param price Price value (optional, defaults to 50,000)
+   * @param exponent Price exponent (optional, defaults to -6)
+   * @returns Object containing asset and oracle information
+   */
+  public async addAssetWithPythOracle(
+    ticker: string,
+    pythAddress: PublicKey,
+    permissions?: AssetPermissions,
+  ) {
+    // Use BaseClient's default values
+    const DEFAULT_PRICE_ERROR = 100;
+    const DEFAULT_PRICE_AGE_SEC = 60;
+    // Create oracle parameters
+    const oracleParams = this.createOracleParams(
+      pythAddress,
+      'pyth',
+      DEFAULT_PRICE_ERROR,
+      DEFAULT_PRICE_AGE_SEC,
+    );
+
+    // Add the asset
+    const { txSignature, assetAddress } = await this.addAsset({
+      ticker,
+      oracle: oracleParams,
+      permissions: permissions || { allowLongs: true, allowShorts: true },
+    });
+
+    return {
+      assetAddress,
+      oracle: pythAddress, // Just return the oracle address directly
+      ticker,
+      txSignature,
+    };
+  }
+
+  public async getOraclePrice(oracle: PublicKey): Promise<{
+    price: BN;
+    exponent: number;
+  }> {
+    const account = await this.program.account.customOracle.fetch(oracle);
+    return { price: account.price, exponent: account.expo };
+  }
+
+  /**
+   * Get an asset account by its public key
+   * @param assetPublicKey Public key of the asset account
+   * @returns Asset account data
+   */
+  public async getAssetRaw(assetPublicKey: PublicKey) {
+    return await this.program.account.syntheticAsset.fetch(assetPublicKey);
+  }
+
+  /**
    * Get an asset account by its public key
    * @param assetPublicKey Public key of the asset account
    * @returns Asset account data
    */
   public async getAsset(assetPublicKey: PublicKey) {
-    return await this.program.account.syntheticAsset.fetch(assetPublicKey);
+    const asset = await this.getAssetRaw(assetPublicKey);
+    return this.convertAsset(asset);
   }
 
   /**
    * Get all assets in the protocol
    * @returns Array of asset accounts with their public keys
    */
-  public async getAllAssets() {
+  public async getAllAssetsRaw() {
     return await this.program.account.syntheticAsset.all();
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private convertAsset(account: any) {
+    return {
+      address: account.publicKey,
+      ticker: account.account.ticker,
+      oracle: {
+        oracleAccount: account.account.oracle.oracleAccount,
+        oracleType: Object.keys(account.account.oracle.oracleType)[0] || 'unknown',
+        maxPriceError: account.account.oracle.maxPriceError,
+        maxPriceAgeSec: account.account.oracle.maxPriceAgeSec,
+      } as OracleParams,
+      permissions: {
+        allowLongs: account.account.permissions.allowLongs,
+        allowShorts: account.account.permissions.allowShorts,
+      } as AssetPermissions,
+      isActive: true, // Default to active since paused property might not exist
+    } as Asset;
+  }
+
+  /**
+   * Get all assets in the protocol in a structured format
+   * @returns Array of Asset objects with standardized properties
+   */
+  public async getAllAssets() {
+    const assetAccounts = await this.getAllAssetsRaw();
+    return assetAccounts.map((account) => this.convertAsset(account));
   }
 
   /**
@@ -481,6 +593,23 @@ export abstract class BaseClient {
    */
   public async getOracleAccount(oracleAddress: PublicKey) {
     return await this.program.account.customOracle.fetch(oracleAddress);
+  }
+
+  /**
+   * Get all custom oracles in the protocol
+   * @returns Array of custom oracle accounts with their public keys
+   */
+  public async getAllOracles() {
+    try {
+      const oracleAccounts = await this.program.account.customOracle.all();
+      return oracleAccounts.map((account) => ({
+        address: account.publicKey,
+        ...account.account,
+      }));
+    } catch (error) {
+      console.error('Error fetching all oracles:', error);
+      throw error;
+    }
   }
 
   /**
@@ -522,7 +651,7 @@ export abstract class BaseClient {
         isPublic,
       })
       .accounts({
-        creator: this.provider.wallet.publicKey,
+        creator: this.getPublicKey(),
         baskt: basktId,
         systemProgram: anchor.web3.SystemProgram.programId,
       } as any);
@@ -565,13 +694,13 @@ export abstract class BaseClient {
 
   private async sendAndConfirm(instructions: TransactionInstruction[]) {
     // Get the latest blockhash
-    const { blockhash } = await this.provider.connection.getLatestBlockhash();
+    const { blockhash } = await this.connection.getLatestBlockhash();
 
     const lookupTables = [];
 
     if (this.lookupTable) {
       const lookupTableAccount = (
-        await this.provider.connection.getAddressLookupTable(new PublicKey(this.lookupTable))
+        await this.connection.getAddressLookupTable(new PublicKey(this.lookupTable))
       ).value;
 
       if (lookupTableAccount) {
@@ -580,7 +709,7 @@ export abstract class BaseClient {
     }
     // Create the transaction message
     const message = new TransactionMessage({
-      payerKey: this.provider.wallet.publicKey, // Account paying for the transaction
+      payerKey: this.getPublicKey(), // Account paying for the transaction
       recentBlockhash: blockhash, // Latest blockhash
       instructions, // Instructions to be included in the transaction
     }).compileToV0Message(lookupTables);
@@ -589,7 +718,7 @@ export abstract class BaseClient {
     const transaction = new VersionedTransaction(message);
 
     // Send the signed transaction to the network
-    return await this.provider.sendAndConfirm(transaction);
+    return await this.provider.sendAndConfirmV0(transaction);
   }
 
   /**
@@ -617,7 +746,7 @@ export abstract class BaseClient {
   public async getAssetByTicker(ticker: string) {
     try {
       // Get all assets and find the one with matching ticker
-      const allAssets = await this.getAllAssets();
+      const allAssets = await this.getAllAssetsRaw();
       const assetInfo = allAssets.find((asset) => asset.account.ticker === ticker);
 
       if (!assetInfo) {
@@ -674,7 +803,7 @@ export abstract class BaseClient {
     allowLiquidations: boolean;
   }): Promise<string> {
     try {
-      const txSignature = await this.program.methods
+      const tx = await this.program.methods
         .updateFeatureFlags(
           featureFlags.allowAddLiquidity,
           featureFlags.allowRemoveLiquidity,
@@ -688,12 +817,12 @@ export abstract class BaseClient {
           featureFlags.allowLiquidations,
         )
         .accounts({
-          owner: this.wallet.publicKey,
+          owner: this.getPublicKey(),
           protocol: this.protocolPDA,
         })
-        .rpc();
+        .transaction();
 
-      return txSignature;
+      return await this.provider.sendAndConfirmLegacy(tx);
     } catch (error) {
       console.error('Error updating feature flags:', error);
       throw error;
@@ -775,7 +904,7 @@ export abstract class BaseClient {
     // Prepare the transaction builder
     const txBuilder = this.program.methods.rebalance(assetParams).accounts({
       baskt: basktId,
-      payer: this.wallet.publicKey,
+      payer: this.getPublicKey(),
     });
 
     // Add remaining accounts if provided

@@ -704,24 +704,24 @@ mod tests {
         // Initialize assets with oracle params
         let oracle_params1 = OracleParams {
             oracle_account: oracle1_id,
+            price_feed_id: String::new(),
             oracle_type: OracleType::Custom,
-            oracle_authority: Pubkey::default(),
             max_price_error: 100,
             max_price_age_sec: 60,
         };
 
         let oracle_params2 = OracleParams {
             oracle_account: oracle2_id,
+            price_feed_id: String::new(),
             oracle_type: OracleType::Custom,
-            oracle_authority: Pubkey::default(),
             max_price_error: 100,
             max_price_age_sec: 60,
         };
 
         let oracle_params3 = OracleParams {
             oracle_account: oracle3_id,
+            price_feed_id: String::new(),
             oracle_type: OracleType::Custom,
-            oracle_authority: Pubkey::default(),
             max_price_error: 100,
             max_price_age_sec: 60,
         };

@@ -6,12 +6,15 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { useForm } from 'react-hook-form';
 import { useToast } from '../../hooks/use-toast';
-import { Plus, ChevronDown } from 'lucide-react';
+import { Plus, ChevronDown, ExternalLink } from 'lucide-react';
 import { AddOracleModal } from './AddOracleModal';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { getSolscanTxUrl } from '../../utils/explorer';
+import { useBasktClient } from '../../providers/BasktClientProvider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import { PublicKey } from '@solana/web3.js';
 
 const formSchema = z.object({
   ticker: z.string().min(1, { message: 'Ticker is required' }),
@@ -23,8 +26,8 @@ const formSchema = z.object({
     allowShort: z.boolean().default(true),
   }),
 
-  maxPriceError: z.string(),
-  maxPriceAgeSec: z.string(),
+  maxPriceError: z.string().min(1, { message: 'Max price error is required' }),
+  maxPriceAgeSec: z.string().min(1, { message: 'Max price age is required' }),
 
   fees: z.object({
     openFee: z.string().default('0.1'),
@@ -38,7 +41,9 @@ type FormValues = z.infer<typeof formSchema>;
 export function ListNewAssetButton() {
   const [showModal, setShowModal] = useState(false);
   const [showAddOracleModal, setShowAddOracleModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { client } = useBasktClient();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -60,14 +65,86 @@ export function ListNewAssetButton() {
     },
   });
 
-  const onSubmit = (values: FormValues) => {
-    toast({
-      title: 'Asset Listed Successfully',
-      description: `The asset ${values.ticker} has been listed and is now available for basket creation.`,
-    });
+  const onSubmit = async (values: FormValues) => {
+    // Basic validation
+    if (!values.ticker || !values.oracleAddress || !values.maxPriceError || !values.maxPriceAgeSec) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    setShowModal(false);
-    form.reset();
+    if (!client) {
+      toast({
+        title: 'Client Error',
+        description: 'Client not initialized',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // Collate all the information
+      const assetData = {
+        ticker: values.ticker,
+        oracleType: values.oracleType,
+        oracleAddress: values.oracleAddress,
+        permissions: {
+          allowLongs: values.permissions.allowLong,
+          allowShorts: values.permissions.allowShort,
+        },
+        maxPriceError: parseInt(values.maxPriceError),
+        maxPriceAgeSec: parseInt(values.maxPriceAgeSec),
+        fees: {
+          openFee: parseFloat(values.fees.openFee),
+          closeFee: parseFloat(values.fees.closeFee),
+          fundingFee: parseFloat(values.fees.fundingFee),
+        },
+      };
+
+
+      // Call the client method to add a new asset
+      const result = await client.addAssetWithPythOracle(
+        assetData.ticker,
+        new PublicKey(assetData.oracleAddress),
+        assetData.permissions,
+      );
+
+      const txUrl = getSolscanTxUrl(result.txSignature);
+
+      toast({
+        title: 'Asset Listed Successfully',
+        description: (
+          <div className="space-y-2">
+            <p>The asset {values.ticker} has been listed and is now available for basket creation.</p>
+            <a
+              href={txUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:underline flex items-center gap-1"
+            >
+              View transaction <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+        ),
+      });
+
+      setShowModal(false);
+      form.reset();
+    } catch (error) {
+      console.error('Error adding asset:', error);
+      toast({
+        title: 'Error Adding Asset',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -86,49 +163,19 @@ export function ListNewAssetButton() {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-base font-medium text-white">Asset Name</label>
-                <Input
-                  placeholder="Bitcoin"
-                  className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
-                />
-                <p className="text-sm text-[#666]">Enter the name of the asset</p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-base font-medium text-white">Asset Type</label>
-                <Select>
-                  <SelectTrigger className="h-12 bg-[#0d1117] border-0 ring-[0.5px] ring-white/5 text-white text-base rounded-2xl focus-visible:ring-[0.5px] focus-visible:ring-white/10 focus-visible:ring-offset-0 data-[value]:ring-[0.5px] data-[value]:ring-white/5">
-                    <SelectValue placeholder="Select asset type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#0d1117] border-0 ring-[0.5px] ring-white/5 rounded-2xl max-h-[200px] overflow-y-auto">
-                    <SelectItem
-                      value="crypto"
-                      className="text-white hover:bg-white/5 data-[state=checked]:bg-white/10"
-                    >
-                      Cryptocurrency
-                    </SelectItem>
-                    <SelectItem
-                      value="forex"
-                      className="text-white hover:bg-white/5 data-[state=checked]:bg-white/10"
-                    >
-                      Forex
-                    </SelectItem>
-                    <SelectItem
-                      value="commodity"
-                      className="text-white hover:bg-white/5 data-[state=checked]:bg-white/10"
-                    >
-                      Commodity
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-[#666]">Select the type of asset</p>
-              </div>
+            <div className="space-y-2">
+              <label className="text-base font-medium text-white">Asset Name</label>
+              <Input
+                placeholder="Bitcoin"
+                {...form.register('ticker')}
+                className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
+              />
+              <p className="text-sm text-[#666]">Enter the name of the asset</p>
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-white">Oracle Type</label>
-              <Select>
+              <Select onValueChange={(value) => form.setValue('oracleType', value as 'Pyth' | 'Custom')}>
                 <SelectTrigger className="h-12 bg-[#0d1117] border-0 ring-[0.5px] ring-white/5 text-white text-base rounded-2xl focus-visible:ring-[0.5px] focus-visible:ring-white/10 focus-visible:ring-offset-0 data-[value]:ring-[0.5px] data-[value]:ring-white/5">
                   <SelectValue placeholder="Select oracle type" />
                 </SelectTrigger>
@@ -139,12 +186,7 @@ export function ListNewAssetButton() {
                   >
                     Pyth
                   </SelectItem>
-                  <SelectItem
-                    value="chainlink"
-                    className="text-white hover:bg-white/5 data-[state=checked]:bg-white/10"
-                  >
-                    Chainlink
-                  </SelectItem>
+
                   <SelectItem
                     value="custom"
                     className="text-white hover:bg-white/5 data-[state=checked]:bg-white/10"
@@ -158,20 +200,13 @@ export function ListNewAssetButton() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-white">Oracle Address</label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter oracle address"
-                  className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
-                />
-                <Button
-                  variant="outline"
-                  className="h-12 bg-[#0d1117] text-white hover:bg-[#1a1f2e] hover:text-white border-0 ring-1 ring-white/5 rounded-2xl"
-                >
-                  New Oracle
-                </Button>
-              </div>
+              <Input
+                placeholder="Enter oracle address"
+                {...form.register('oracleAddress')}
+                className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
+              />
               <p className="text-xs text-[#E5E7EB]/60">
-                Specify the oracle account address or create a new one
+                Specify the oracle account address
               </p>
             </div>
 
@@ -181,6 +216,7 @@ export function ListNewAssetButton() {
                 <Input
                   type="number"
                   placeholder="100"
+                  {...form.register('maxPriceError')}
                   className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
                 />
                 <p className="text-xs text-[#E5E7EB]/60">Maximum allowed price error</p>
@@ -190,6 +226,7 @@ export function ListNewAssetButton() {
                 <Input
                   type="number"
                   placeholder="60"
+                  {...form.register('maxPriceAgeSec')}
                   className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
                 />
                 <p className="text-xs text-[#E5E7EB]/60">Maximum age of price in seconds</p>
@@ -204,8 +241,31 @@ export function ListNewAssetButton() {
                 </CollapsibleTrigger>
               </div>
               <CollapsibleContent className="space-y-2">
-                <div className="rounded-md border border-white/10 p-4 bg-[#0d1117]">
-                  <p className="text-sm text-[#E5E7EB]/60">Configure asset permissions here</p>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="allowLong"
+                      defaultChecked={true}
+                      {...form.register('permissions.allowLong')}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="allowLong" className="text-sm text-white">
+                      Allow Long
+                    </label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="allowShort"
+                      defaultChecked={true}
+                      {...form.register('permissions.allowShort')}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="allowShort" className="text-sm text-white">
+                      Allow Short
+                    </label>
+                  </div>
                 </div>
               </CollapsibleContent>
             </Collapsible>
@@ -230,8 +290,9 @@ export function ListNewAssetButton() {
               type="submit"
               className="h-11 px-8 bg-blue-500 text-white hover:bg-blue-500/90 rounded-full"
               onClick={() => onSubmit(form.getValues())}
+              disabled={isSubmitting}
             >
-              List New Asset
+              {isSubmitting ? 'Adding Asset...' : 'List New Asset'}
             </Button>
           </div>
         </DialogContent>

@@ -32,6 +32,7 @@ pub struct AssetPermissions {
 #[account]
 #[derive(Default, InitSpace)]
 pub struct SyntheticAsset {
+    // TODO: We should have an isActive for assets
     pub asset_id: Pubkey, // Account ID of the asset
     #[max_len(10)]
     pub ticker: String, // Ticker symbol for the asset (e.g., "BTC", "ETH")
@@ -287,7 +288,7 @@ mod tests {
             .initialize(
                 asset_id,
                 "BTC".to_string(),
-                oracle,
+                oracle.clone(),
                 timestamp,
                 Some(AssetPermissions::default()),
             )

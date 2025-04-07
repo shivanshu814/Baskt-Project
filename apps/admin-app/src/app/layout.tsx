@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from '../components/ui/toaster';
 import { PrivyProvider } from '../providers/PrivyProvider';
+import { BasktClientProvider } from '../providers/BasktClientProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,8 +23,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={inter.className}>
         <PrivyProvider>
-          {children}
-          <Toaster />
+          <BasktClientProvider>
+            {children}
+            <Toaster />
+          </BasktClientProvider>
         </PrivyProvider>
       </body>
     </html>

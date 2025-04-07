@@ -323,7 +323,11 @@
         }
       ],
       "args": [],
-      "returns": "u64"
+      "returns": {
+        "defined": {
+          "name": "OraclePrice"
+        }
+      }
     },
     {
       "name": "get_baskt_nav",
@@ -1648,6 +1652,10 @@
             "type": "pubkey"
           },
           {
+            "name": "price_feed_id",
+            "type": "string"
+          },
+          {
             "name": "oracle_type",
             "type": {
               "defined": {
@@ -1656,16 +1664,28 @@
             }
           },
           {
-            "name": "oracle_authority",
-            "type": "pubkey"
-          },
-          {
             "name": "max_price_error",
             "type": "u64"
           },
           {
             "name": "max_price_age_sec",
             "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OraclePrice",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "exponent",
+            "type": "i32"
           }
         ]
       }

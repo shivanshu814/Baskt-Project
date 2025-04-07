@@ -88,7 +88,7 @@ describe('baskt', () => {
     // Verify the baskt was initialized with correct values
     expect(basktAccount.basktId.toString()).to.equal(basktId.toString());
     expect(basktAccount.isPublic).to.be.true;
-    expect(basktAccount.creator.toString()).to.equal(client.wallet.publicKey.toString());
+    expect(basktAccount.creator.toString()).to.equal(client.getPublicKey().toString());
     expect(basktAccount.currentAssetConfigs).to.have.length(2);
 
     // Verify asset configs
@@ -159,7 +159,7 @@ describe('baskt', () => {
     // Verify the baskt was initialized with correct values
     expect(basktAccount.basktId.toString()).to.equal(basktId.toString());
     expect(basktAccount.isPublic).to.be.false;
-    expect(basktAccount.creator.toString()).to.equal(client.wallet.publicKey.toString());
+    expect(basktAccount.creator.toString()).to.equal(client.getPublicKey().toString());
     expect(basktAccount.currentAssetConfigs).to.have.length(1);
 
     // Verify asset config
@@ -252,7 +252,7 @@ describe('baskt', () => {
     // Verify the baskt was initialized with correct values
     expect(basktAccount.basktId.toString()).to.equal(basktId.toString());
     expect(basktAccount.isPublic).to.be.true;
-    expect(basktAccount.creator.toString()).to.equal(client.wallet.publicKey.toString());
+    expect(basktAccount.creator.toString()).to.equal(client.getPublicKey().toString());
     expect(basktAccount.currentAssetConfigs).to.have.length(3);
 
     // Verify all asset configs
@@ -494,6 +494,46 @@ describe('baskt view functions', () => {
 
     // Get updated NAV
     const updatedNav = await client.getBasktNav(basktId, assetOraclePairs);
+
+    // NAV should increase by approximately 10% (50% weight * 20% price increase)
+    expect(updatedNav.toNumber()).to.be.approximately(1100000, 100000);
+  });
+
+  it('Successfully gets baskt NAV with Pyth Oracle', async () => {
+    const pythBtcAssetId = await client.storedAssets.get('BTC-P');
+
+    // Prepare asset/oracle pairs
+    const assetOraclePairs = [
+      { asset: ethAssetId.assetAddress, oracle: ethAssetId.oracle, direction: true, weight: 5000 }, // Custom oracle
+      {
+        asset: pythBtcAssetId?.asset,
+        oracle: pythBtcAssetId?.oracle,
+        direction: true,
+        weight: 2500,
+      }, // BTC Pyth Oracle
+      {
+        asset: dogeAssetId.assetAddress,
+        oracle: dogeAssetId.oracle,
+        direction: true,
+        weight: 2500,
+      }, // Doge Custom oracle
+    ].filter((pair) => pair.asset && pair.oracle);
+
+    const { basktId } = await client.createMockBaskt('MxOrcBaskt', assetOraclePairs as any, true);
+
+    // Get the baskt NAV
+    const nav = await client.getBasktNav(basktId, assetOraclePairs as any);
+
+    // The NAV should be around 1.0 (or 1_000_000 in the system's precision)
+    // with some potential variation due to price changes since creation
+    expect(nav.toString()).to.be.eql('1000000');
+
+    // Update ETH price (25% of the baskt) and check how it affects NAV
+    const newEthPrice = 4000; // 20% increase, properly scaled
+    await client.updateOraclePrice('ETH_VIEW', ethAssetId.oracle, newEthPrice);
+
+    // Get updated NAV
+    const updatedNav = await client.getBasktNav(basktId, assetOraclePairs as any);
 
     // NAV should increase by approximately 10% (50% weight * 20% price increase)
     expect(updatedNav.toNumber()).to.be.approximately(1100000, 100000);

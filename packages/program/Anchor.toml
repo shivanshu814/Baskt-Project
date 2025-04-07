@@ -9,7 +9,7 @@ skip-lint = false
 baskt_v1 = "GK52S4WZPVEAMAgjRf8XsBd7upmG862AjMF89HavDpkm"
 
 [registry]
-url = "https://mainnet.helius-rpc.com/?api-key=270fe69b-befa-4094-ab27-357f2f3b4028"
+url = "https://stylish-divine-market.solana-mainnet.quiknode.pro/1aec6db0690864cdcaf90a2ba4daf161786b0117/"
 
 [provider]
 cluster = "localnet"
@@ -27,3 +27,11 @@ upgradeable = false
 bind_address = "127.0.0.1"
 ledger = ".anchor/test-ledger"
 rpc_port = 8899
+url = "https://mainnet.helius-rpc.com/?api-key=afb3963a-b2da-4d38-9f61-9b0588617e74"
+
+[[test.genesis]]
+address = "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ"
+program = "pyth.so"
+
+[[test.validator.clone]]
+address = "4cSM2e6rvbGQUFiJbqytoVMi5GgghSMr8LwVrT9VPSPo"

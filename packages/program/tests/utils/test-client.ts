@@ -4,7 +4,7 @@ import { Keypair, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import BN from 'bn.js';
 import { BaseClient, AccessControlRole } from '@baskt/sdk';
 import { BasktV1 } from '../../target/types/baskt_v1';
-import { AssetPermissions } from 'packages/sdk/src/types';
+import { AssetPermissions, OracleParams } from 'packages/sdk/src/types';
 
 /**
  * Helper function to request an airdrop for a given address
@@ -39,6 +39,14 @@ export async function programForUser(
  * Provides utility methods for interacting with the protocol in tests
  * This extends the BaseClient directly instead of wrapping BasktClient
  */
+
+let anchorProvider: anchor.AnchorProvider;
+try {
+  anchorProvider = anchor.AnchorProvider.env();
+} catch (error) {
+  console.error('Error loading anchor provider:', error);
+}
+
 export class TestClient extends BaseClient {
   private static instance: TestClient;
 
@@ -46,26 +54,51 @@ export class TestClient extends BaseClient {
   public assetManager: Keypair;
   public oracleManager: Keypair;
 
+  public publicKey: PublicKey;
+
+  public storedAssets = new Map<
+    string,
+    {
+      asset: PublicKey;
+      oracle: PublicKey;
+      ticker: string;
+    }
+  >();
   /**
    * Constructor for TestClient
    * @param program Optional program to use (defaults to workspace program)
-   * @param protocolPDA Optional protocol PDA to use (defaults to finding it)
    */
   public constructor(program?: Program<BasktV1>) {
     if (!program) {
       // Use the AnchorProvider.env() to get the provider from the environment
-      const provider = anchor.AnchorProvider.env();
-      anchor.setProvider(provider);
+      anchor.setProvider(anchor.AnchorProvider.env());
 
       // Get the program from the workspace
       program = anchor.workspace.BasktV1 as Program<BasktV1>;
     }
 
     // Initialize the base client with the program and optional protocol PDA
-    super(program);
+
+    // Initialize the base client with the program and optional protocol PDA
+    const provider = program.provider as anchor.AnchorProvider;
+    super(provider.connection, {
+      sendAndConfirmLegacy: (tx) => provider.sendAndConfirm(tx),
+      sendAndConfirmV0: (tx) => provider.sendAndConfirm(tx),
+    });
+
+    this.publicKey = anchorProvider?.publicKey;
 
     this.assetManager = Keypair.generate();
     this.oracleManager = Keypair.generate();
+  }
+
+  public getPublicKey(): PublicKey {
+    return this.publicKey;
+  }
+
+  public setPublicKey(publicKey: PublicKey): void {
+    this.publicKey = publicKey;
+    this.oracleHelper.publicKey = publicKey;
   }
 
   /**
@@ -94,7 +127,9 @@ export class TestClient extends BaseClient {
     );
 
     // Create a new client with the user's program
-    return new TestClient(userProgram);
+    const client = new TestClient(userProgram);
+    client.setPublicKey(userKeypair.publicKey);
+    return client;
   }
 
   /**
@@ -164,45 +199,6 @@ export class TestClient extends BaseClient {
     );
   }
 
-  /**
-   * Create and add a synthetic asset with a Pyth oracle in one step
-   * @param ticker Asset ticker symbol
-   * @param price Price value (optional, defaults to 50,000)
-   * @param exponent Price exponent (optional, defaults to -6)
-   * @returns Object containing asset and oracle information
-   */
-  public async createAndAddAssetWithMockPythOracle(
-    ticker: string,
-    price?: number | BN,
-    exponent?: number,
-    permissions?: AssetPermissions,
-  ) {
-    // Create a Pyth oracle
-    const oracle = await this.createCustomOracle(this.protocolPDA, ticker, price, exponent);
-
-    // Create oracle parameters
-    const oracleParams = this.createOracleParams(
-      oracle.address,
-      'pyth',
-      this.DEFAULT_PRICE_ERROR,
-      this.DEFAULT_PRICE_AGE_SEC,
-    );
-
-    // Add the asset
-    const { txSignature, assetAddress } = await this.addAsset({
-      ticker,
-      oracle: oracleParams,
-      permissions: permissions || { allowLongs: true, allowShorts: true },
-    });
-
-    return {
-      assetAddress,
-      oracle: oracle.address, // Just return the oracle address directly
-      ticker,
-      txSignature,
-    };
-  }
-
   public async createMockBaskt(
     basktName: string,
     assets: Array<{
@@ -227,5 +223,19 @@ export class TestClient extends BaseClient {
 
     // Create the baskt with current prices
     return await super.createBaskt(basktName, assetConfigs, isPublic, assetOraclePairs);
+  }
+
+  public async addAsset(params: {
+    ticker: string;
+    oracle: OracleParams;
+    permissions?: AssetPermissions;
+  }): Promise<{ txSignature: string; assetAddress: PublicKey }> {
+    const { txSignature, assetAddress } = await super.addAsset(params);
+    this.storedAssets.set(params.ticker, {
+      asset: assetAddress,
+      oracle: params.oracle.oracleAccount,
+      ticker: params.ticker,
+    });
+    return { txSignature, assetAddress };
   }
 }

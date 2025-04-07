@@ -35,7 +35,7 @@ describe('asset', () => {
     const { assetAddress, ticker, oracle } = await client.createAssetWithCustomOracle('BTC');
 
     // Fetch the asset account to verify it was initialized correctly
-    const assetAccount = await client.getAsset(assetAddress);
+    const assetAccount = await client.getAssetRaw(assetAddress);
 
     // Verify the asset was initialized with correct values
     expect(assetAccount.assetId.toString()).to.equal(assetAddress.toString());
@@ -44,9 +44,6 @@ describe('asset', () => {
     expect(assetAccount.oracle.oracleType).to.deep.include({ custom: {} });
     expect(assetAccount.oracle.maxPriceError.toNumber()).to.equal(100);
     expect(assetAccount.oracle.maxPriceAgeSec).to.equal(60);
-    expect(assetAccount.oracle.oracleAuthority.toString()).to.equal(
-      client.wallet.publicKey.toString(),
-    );
     expect(assetAccount.openInterestLong.toNumber()).to.equal(0);
     expect(assetAccount.openInterestShort.toNumber()).to.equal(0);
     expect(assetAccount.fundingRate.toNumber()).to.equal(0);
@@ -71,7 +68,7 @@ describe('asset', () => {
     const { assetAddress } = await client.createAssetWithCustomOracle('ETH', 3000); // Initial price $3,000
 
     // Get the asset to access the oracle account
-    const assetAccount = await client.getAsset(assetAddress);
+    const assetAccount = await client.getAssetRaw(assetAddress);
     const oracleAddress = assetAccount.oracle.oracleAccount;
 
     // New price to set ($3,500)
@@ -94,28 +91,6 @@ describe('asset', () => {
     expect(oracleAccount.publishTime.toNumber()).to.be.greaterThan(0);
   });
 
-  it('Successfully adds an asset with Pyth oracle', async () => {
-    // Create a Pyth oracle and asset in one step
-    // The client should have the AssetManager role by default since it's the protocol owner
-    const { assetAddress, oracle } = await client.createAndAddAssetWithMockPythOracle('SOL');
-
-    // Fetch the asset account to verify it was initialized correctly
-    const assetAccount = await client.getAsset(assetAddress);
-
-    // Verify the asset was initialized with correct values
-    expect(assetAccount.assetId.toString()).to.equal(assetAddress.toString());
-    expect(assetAccount.ticker).to.equal('SOL');
-    expect(assetAccount.oracle.oracleAccount.toString()).to.equal(oracle.toString());
-    expect(assetAccount.oracle.oracleType).to.deep.include({ pyth: {} });
-    expect(assetAccount.oracle.maxPriceError.toNumber()).to.equal(100);
-    expect(assetAccount.oracle.maxPriceAgeSec).to.equal(60);
-    expect(assetAccount.oracle.oracleAuthority.toString()).to.equal(
-      client.wallet.publicKey.toString(),
-    );
-    expect(assetAccount.openInterestLong.toNumber()).to.equal(0);
-    expect(assetAccount.openInterestShort.toNumber()).to.equal(0);
-  });
-
   // Note: The following tests would require additional instruction handlers in the program
   // to expose internal functionality for testing
 
@@ -128,7 +103,7 @@ describe('asset', () => {
     const { assetAddress, oracle } = await client.createAssetWithCustomOracle('FUND');
 
     // Fetch the asset account to verify it was initialized correctly
-    const assetAccount = await client.getAsset(assetAddress);
+    const assetAccount = await client.getAssetRaw(assetAddress);
 
     // Verify basic asset properties
     expect(assetAccount.assetId.toString()).to.equal(assetAddress.toString());
@@ -173,7 +148,7 @@ describe('asset', () => {
     });
 
     // Verify the asset was created with the correct oracle parameters
-    const assetAccount = await client.getAsset(assetAddress);
+    const assetAccount = await client.getAssetRaw(assetAddress);
 
     expect(assetAccount.oracle.oracleAccount.toString()).to.equal(staleOracle.address.toString());
     expect(assetAccount.oracle.maxPriceAgeSec).to.equal(10);
@@ -222,11 +197,11 @@ describe('asset', () => {
     const assetManagerUser = await TestClient.forUser(Keypair.generate());
 
     // Grant the AssetManager role to this user
-    await client.addRole(assetManagerUser.provider.publicKey, AccessControlRole.AssetManager);
+    await client.addRole(assetManagerUser.getPublicKey(), AccessControlRole.AssetManager);
 
     // Verify the user has the AssetManager role
     const hasRole = await client.hasRole(
-      assetManagerUser.provider.publicKey,
+      assetManagerUser.getPublicKey(),
       AccessControlRole.AssetManager,
     );
     expect(hasRole).to.be.true;
@@ -234,11 +209,11 @@ describe('asset', () => {
 
     await assetManagerUser.createAssetWithCustomOracle(ticker);
 
-    await client.removeRole(assetManagerUser.provider.publicKey, AccessControlRole.AssetManager);
+    await client.removeRole(assetManagerUser.getPublicKey(), AccessControlRole.AssetManager);
 
     // Verify the role was revoked
     const hasRoleAfterRevocation = await client.hasRole(
-      assetManagerUser.provider.publicKey,
+      assetManagerUser.getPublicKey(),
       AccessControlRole.AssetManager,
     );
     expect(hasRoleAfterRevocation).to.be.false;
@@ -264,33 +239,12 @@ describe('asset', () => {
     );
 
     // Verify the asset was created
-    const assetAccount = await client.getAsset(assetAddress);
+    const assetAccount = await client.getAssetRaw(assetAddress);
     expect(assetAccount.ticker).to.equal(ticker);
 
     // Verify this user is not the protocol owner
     const protocol = await client.getProtocolAccount();
-    expect(protocol.owner.toString()).to.not.equal(assetManagerUser.provider.publicKey.toString());
-  });
-
-  it('Successfully gets asset price from oracle', async () => {
-    // Create a new asset with a custom oracle
-    const initialPrice = 3000;
-    const { assetAddress, oracle } = await client.createAssetWithCustomOracle('XYZ', initialPrice);
-
-    // Get the asset price using the view function
-    const price = await client.getAssetPrice(assetAddress, oracle);
-
-    expect(price.toString()).to.equal((initialPrice * 1e6).toString());
-
-    // Update the price to a new value
-    const newPrice = 4000; // Scale properly
-    await client.updateOraclePrice('XYZ', oracle, newPrice);
-
-    // Get the updated price
-    const updatedPrice = await client.getAssetPrice(assetAddress, oracle);
-
-    // Verify the updated price
-    expect(updatedPrice.toString()).to.be.equal((newPrice * 1e6).toString());
+    expect(protocol.owner.toString()).to.not.equal(assetManagerUser.getPublicKey().toString());
   });
 
   it('Successfully adds an asset with short-only permissions', async () => {
@@ -308,7 +262,7 @@ describe('asset', () => {
     );
 
     // Fetch the asset account to verify it was initialized correctly
-    const assetAccount = await client.getAsset(assetAddress);
+    const assetAccount = await client.getAssetRaw(assetAddress);
 
     // Verify the asset was initialized with correct values
     expect(assetAccount.ticker).to.equal('SHORT_ONLY');

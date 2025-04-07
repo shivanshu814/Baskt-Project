@@ -6,26 +6,6 @@ import { useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Cookies from 'js-cookie';
 
-const SOLANA_CHAIN = {
-  name: 'Solana Devnet',
-  id: 1,
-  rpcUrls: {
-    default: { http: ['https://api.devnet.solana.com'] },
-    public: { http: ['https://api.devnet.solana.com'] },
-  },
-  nativeCurrency: {
-    name: 'SOL',
-    symbol: 'SOL',
-    decimals: 18,
-  },
-  blockExplorers: {
-    default: {
-      name: 'Solana Explorer',
-      url: 'https://explorer.solana.com/?cluster=devnet',
-    },
-  },
-  testnet: true,
-};
 
 function AuthStateHandler({ children }: { children: React.ReactNode }) {
   const { authenticated, ready, user } = usePrivy();
@@ -83,8 +63,7 @@ function PrivyProviderComponent({ children }: { children: React.ReactNode }) {
             connectors,
           },
         },
-        supportedChains: [SOLANA_CHAIN],
-        defaultChain: SOLANA_CHAIN,
+        solanaClusters: [{ name: 'mainnet-beta', rpcUrl: 'https://api.mainnet-beta.solana.com' }]
       }}
     >
       <AuthStateHandler>{children}</AuthStateHandler>

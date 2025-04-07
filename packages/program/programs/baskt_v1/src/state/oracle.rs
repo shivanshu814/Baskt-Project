@@ -10,7 +10,6 @@ const ORACLE_EXPONENT_SCALE: i32 = -9;
 const ORACLE_PRICE_SCALE: u64 = 1_000_000_000;
 const ORACLE_MAX_PRICE: u64 = (1 << 28) - 1;
 
-
 #[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, InitSpace, Debug)]
 pub enum OracleType {
     None,
@@ -34,12 +33,13 @@ pub struct OraclePrice {
     pub exponent: i32,
 }
 
-#[derive(Copy, Clone, PartialEq, InitSpace, AnchorSerialize, AnchorDeserialize, Default, Debug)]
+#[derive(Clone, PartialEq, InitSpace, AnchorSerialize, AnchorDeserialize, Default, Debug)]
 pub struct OracleParams {
     pub oracle_account: Pubkey,
+    // Used only for Pyth
+    #[max_len(100)]
+    pub price_feed_id: String,
     pub oracle_type: OracleType,
-    // The oracle_authority pubkey is allowed to sign permissionless off-chain price updates.
-    pub oracle_authority: Pubkey,
     pub max_price_error: u64,
     pub max_price_age_sec: u32,
 }
@@ -115,9 +115,9 @@ impl OraclePrice {
             ),
             OracleType::Pyth => Self::get_pyth_price(
                 oracle_account,
+                oracle_params.price_feed_id.clone(),
                 oracle_params.max_price_error,
                 oracle_params.max_price_age_sec,
-                current_time,
                 use_ema,
             ),
             //Extend for streamflow
@@ -307,40 +307,42 @@ impl OraclePrice {
 
     fn get_pyth_price(
         pyth_price_info: &AccountInfo,
+        feed_id_hex: String,
         max_price_error: u64,
         max_price_age_sec: u32,
-        current_time: i64,
+        //TODO: Use EMA for Pyth Pricing
         use_ema: bool,
     ) -> Result<OraclePrice> {
         require!(
             !Utils::is_empty_account(pyth_price_info)?,
             PerpetualsError::InvalidOracleAccount
         );
-        let price_feed =
-            pyth_sdk_solana::state::SolanaPriceAccount::account_info_to_feed(pyth_price_info)
+        let pyth_price_data = &mut &**pyth_price_info.try_borrow_data()?;
+        msg!("Price data");
+        let price_update_account =
+            pyth_solana_receiver_sdk::price_update::PriceUpdateV2::try_deserialize(pyth_price_data)
                 .map_err(|_| PerpetualsError::InvalidOracleAccount)?;
-        let pyth_price = if use_ema {
-            price_feed.get_ema_price_unchecked()
-        } else {
-            price_feed.get_price_unchecked()
-        };
 
-        let last_update_age_sec = (current_time - pyth_price.publish_time) as u64; // Safe conversion for time difference
-        if last_update_age_sec > max_price_age_sec as u64 {
-            msg!("Error: Pyth oracle price is stale");
-            return err!(PerpetualsError::StaleOraclePrice);
-        }
+        msg!("Price update account");
+        let feed_id: [u8; 32] =
+            pyth_solana_receiver_sdk::price_update::get_feed_id_from_hex(&feed_id_hex)?;
 
-        if pyth_price.price <= 0 {
+        let price_update = price_update_account.get_price_no_older_than(
+            &Clock::get()?,
+            max_price_age_sec.into(),
+            &feed_id,
+        )?;
+
+        if price_update.price <= 0 {
             msg!("Error: Pyth oracle price is negative or zero");
             return err!(PerpetualsError::InvalidOraclePrice);
         }
 
         // Calculate confidence ratio as percentage of price
-        let conf_ratio = (pyth_price.conf as u128)
+        let conf_ratio = (price_update.conf as u128)
             .checked_mul(Constants::BPS_POWER as u128)
             .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(pyth_price.price.abs() as u128)
+            .checked_div(price_update.price.abs() as u128)
             .ok_or(PerpetualsError::MathOverflow)?;
 
         if conf_ratio > max_price_error as u128 {
@@ -350,8 +352,8 @@ impl OraclePrice {
 
         Ok(OraclePrice {
             // price is i64 and > 0 per check above
-            price: pyth_price.price.abs() as u64,
-            exponent: pyth_price.expo,
+            price: price_update.price.abs() as u64,
+            exponent: price_update.exponent,
         })
     }
 }

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@baskt/program": "workspace:*",
+    "@baskt/sdk": "workspace:*",
     "@baskt/ui": "workspace:*",
     "@hookform/resolvers": "^3.9.0",
     "@privy-io/react-auth": "^2.8.2",

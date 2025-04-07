@@ -1,19 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { Layout } from '../../components/Layout';
-import { Switch } from '../../components/ui/switch';
 import { OraclesList } from '../../components/admin/OraclesList';
 import { AdminAssetsList } from '../../components/admin/AdminAssetsList';
 import { ListNewAssetButton } from '../../components/admin/ListNewAssetButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { ProtocolDetails } from '../../components/admin/ProtocolDetails';
 
 export default function AdminDashboard() {
   const router = useRouter();
   const { authenticated, ready } = usePrivy();
-  const [isSystemActive, setIsSystemActive] = useState(true);
+
 
   useEffect(() => {
     if (ready && !authenticated) {
@@ -57,17 +57,25 @@ export default function AdminDashboard() {
             >
               Oracles
             </TabsTrigger>
+
             <TabsTrigger
-              value="system"
+              value="protocol"
               className="rounded-md px-4 py-2 text-sm font-medium text-white/60 data-[state=active]:bg-[#0d1117] data-[state=active]:text-white hover:text-white transition-colors"
             >
-              System
+              Protocol
             </TabsTrigger>
+
           </TabsList>
 
           <TabsContent value="assets" className="space-y-4">
             <div className="glass-modal rounded-3xl">
               <AdminAssetsList />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="protocol" className="space-y-4">
+            <div className="glass-modal rounded-3xl">
+              <ProtocolDetails />
             </div>
           </TabsContent>
 
@@ -77,40 +85,7 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
-          <TabsContent value="system" className="space-y-4">
-            <div className="glass-modal rounded-3xl">
-              <div className="p-8">
-                <div className="flex flex-col space-y-8">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1.5">
-                      <h3 className="text-lg font-medium text-white">System Status</h3>
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-2.5 h-2.5 rounded-full ${isSystemActive ? 'bg-green-400' : 'bg-red-400'}`}
-                        ></div>
-                        <span className="text-[#E5E7EB]">
-                          {isSystemActive ? 'System Operational' : 'System Paused'}
-                        </span>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={isSystemActive}
-                      onCheckedChange={setIsSystemActive}
-                      className="data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-white"
-                    />
-                  </div>
-                  <div className="space-y-2 border-t border-white/10 pt-6">
-                    <h4 className="text-sm font-medium text-white/60">System Health</h4>
-                    <p className="text-sm text-white/80 leading-relaxed">
-                      All systems are operating normally. Oracle feeds are updating regularly, and
-                      all assets are being tracked correctly. The system is processing trades and
-                      maintaining accurate price data across all supported assets.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
+
         </Tabs>
       </div>
     </Layout>

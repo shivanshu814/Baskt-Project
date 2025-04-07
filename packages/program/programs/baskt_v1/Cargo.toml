@@ -21,8 +21,8 @@ test = []
 anchor-lang = {version = "0.31.0", features = ["init-if-needed"]}
 anchor-spl = "0.31.0"
 solana-program = "2.2.1"
-pyth-sdk-solana = "0.10.4"
 ahash = "0.8.3"
+pyth-solana-receiver-sdk = "0.6.0"
 num-traits = "0.2.15"
 bytemuck = { version = "1.14.0", features = ["derive"] }
 solana-security-txt = "1.1.1"

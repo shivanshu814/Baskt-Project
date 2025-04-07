@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -13,19 +13,61 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Plus } from 'lucide-react';
 import { AddOracleModal } from './AddOracleModal';
+import { useBasktClient } from '../../providers/BasktClientProvider';
+import { PublicKey } from '@solana/web3.js';
+import { getSolscanAddressUrl } from '../../utils/explorer';
 
 type Oracle = {
-  id: string;
-  name: string;
-  type: 'Pyth' | 'Switchboard' | 'Custom';
-  address: string;
-  lastUpdateTime: string;
+  address: PublicKey;
+  price: any; // BN type from anchor
+  expo: number;
+  conf: any; // BN type from anchor
+  ema: any; // BN type from anchor
+  publishTime: any; // BN type from anchor
   status: 'active' | 'stale' | 'error';
 };
 
 export function OraclesList() {
   const [showAddOracleModal, setShowAddOracleModal] = useState(false);
-  const oracles: Oracle[] = [];
+  const [oracles, setOracles] = useState<Oracle[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const { client } = useBasktClient();
+
+  useEffect(() => {
+    const fetchOracles = async () => {
+      if (!client) return;
+
+      try {
+        setIsLoading(true);
+        const oraclesList = await client.getAllOracles();
+        
+        // Process the oracles and determine their status
+        const processedOracles = oraclesList.map(oracle => {
+          // Calculate if the oracle is stale based on publish time
+          // Current time in seconds
+          const currentTime = Math.floor(Date.now() / 1000);
+          // Oracle publish time is in seconds
+          const publishTime = oracle.publishTime.toNumber();
+          // If publish time is more than 5 minutes old, consider it stale
+          const isStale = currentTime - publishTime > 300; // 5 minutes
+          
+          return {
+            ...oracle,
+            status: isStale ? 'stale' as const : 'active' as const
+          };
+        });
+        
+        setOracles(processedOracles);
+      } catch (error) {
+        console.error('Error fetching oracles:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchOracles();
+  }, [client]);
 
   return (
     <>
@@ -40,18 +82,28 @@ export function OraclesList() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
               <TableHead>Address</TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead>Exponent</TableHead>
+              <TableHead>Confidence</TableHead>
+              <TableHead>EMA</TableHead>
               <TableHead>Last Update</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {oracles.length === 0 ? (
+            {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center">
+                <TableCell colSpan={8} className="h-32 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <p className="text-white/60 text-sm">Loading oracles...</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : oracles.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <p className="text-white/60 text-sm">No oracles found</p>
                   </div>
@@ -59,16 +111,24 @@ export function OraclesList() {
               </TableRow>
             ) : (
               oracles.map((oracle) => (
-                <TableRow key={oracle.id}>
-                  <TableCell className="font-medium">{oracle.name}</TableCell>
-                  <TableCell>{oracle.type}</TableCell>
-                  <TableCell
-                    className="font-mono text-xs truncate max-w-[150px]"
-                    title={oracle.address}
-                  >
-                    {oracle.address}
+                <TableRow key={oracle.address.toString()}>
+                  <TableCell className="font-mono text-xs">
+                    <a
+                      href={getSolscanAddressUrl(oracle.address.toString())}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline"
+                    >
+                      {oracle.address.toString().slice(0, 8)}...{oracle.address.toString().slice(-8)}
+                    </a>
                   </TableCell>
-                  <TableCell>{oracle.lastUpdateTime}</TableCell>
+                  <TableCell>{oracle.price.toString()}</TableCell>
+                  <TableCell>{oracle.expo}</TableCell>
+                  <TableCell>{oracle.conf.toString()}</TableCell>
+                  <TableCell>{oracle.ema.toString()}</TableCell>
+                  <TableCell>
+                    {new Date(oracle.publishTime.toNumber() * 1000).toLocaleString()}
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"

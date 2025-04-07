@@ -1,14 +1,7 @@
 import * as anchor from '@coral-xyz/anchor';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import { BasktV1 } from '../program/types';
-
-export type OracleParams = {
-  oracleAccount: PublicKey;
-  oracleType: OracleType;
-  oracleAuthority: PublicKey;
-  maxPriceError: number | anchor.BN;
-  maxPriceAgeSec: number;
-};
+import { LightweightProvider } from '../types';
 
 // Oracle types enum to match the Rust program
 export enum OracleType {
@@ -30,11 +23,17 @@ export interface OraclePrice {
  */
 export class OracleHelper {
   program: anchor.Program<BasktV1>;
-  provider: anchor.AnchorProvider;
+  public publicKey: PublicKey;
+  provider: LightweightProvider;
 
-  constructor(program: anchor.Program<BasktV1>) {
+  constructor(
+    program: anchor.Program<BasktV1>,
+    publicKey: PublicKey,
+    provider: LightweightProvider,
+  ) {
     this.program = program;
-    this.provider = program.provider as anchor.AnchorProvider;
+    this.publicKey = publicKey;
+    this.provider = provider;
   }
 
   /**
@@ -75,21 +74,23 @@ export class OracleHelper {
     )[0];
 
     // Initialize the oracle account with the provided data
-    await this.program.methods
-      .initializeCustomOracle({
-        price: priceBN,
-        expo: exponent,
-        conf: confBN,
-        ema: priceBN, // Use price as EMA for simplicity
-        publishTime: publishTimeBN,
-        oracleName: oracleName,
-      })
-      .accountsPartial({
-        oracle,
-        authority: this.provider.wallet.publicKey,
-      })
-      .postInstructions(postInstructions)
-      .rpc();
+    await this.provider.sendAndConfirmLegacy(
+      await this.program.methods
+        .initializeCustomOracle({
+          price: priceBN,
+          expo: exponent,
+          conf: confBN,
+          ema: priceBN, // Use price as EMA for simplicity
+          publishTime: publishTimeBN,
+          oracleName: oracleName,
+        })
+        .accountsPartial({
+          oracle,
+          authority: this.publicKey,
+        })
+        .postInstructions(postInstructions)
+        .transaction(),
+    );
 
     return {
       address: oracle,
@@ -139,7 +140,7 @@ export class OracleHelper {
     return {
       oracleAccount: oracleAddress,
       oracleType: oracleType,
-      oracleAuthority: this.provider.wallet.publicKey,
+      oracleAuthority: this.publicKey,
       maxPriceError:
         typeof maxPriceError === 'number' ? new anchor.BN(maxPriceError) : maxPriceError,
       maxPriceAgeSec: maxPriceAgeSec,
@@ -179,19 +180,21 @@ export class OracleHelper {
       : new anchor.BN(currentTime - 1);
 
     // Update the oracle account with the new data
-    await this.program.methods
-      .updateCustomOracle({
-        price: priceBN,
-        conf: confBN,
-        ema: priceBN,
-        publishTime: publishTimeBN,
-        oracleName: oracleName,
-        expo: exponent,
-      })
-      .accounts({
-        oracle: oracleAddress,
-        authority: this.provider.wallet.publicKey,
-      })
-      .rpc();
+    await this.provider.sendAndConfirmLegacy(
+      await this.program.methods
+        .updateCustomOracle({
+          price: priceBN,
+          conf: confBN,
+          ema: priceBN,
+          publishTime: publishTimeBN,
+          oracleName: oracleName,
+          expo: exponent,
+        })
+        .accounts({
+          oracle: oracleAddress,
+          authority: this.publicKey,
+        })
+        .transaction(),
+    );
   }
 }

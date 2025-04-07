@@ -329,7 +329,11 @@ export type BasktV1 = {
         }
       ],
       "args": [],
-      "returns": "u64"
+      "returns": {
+        "defined": {
+          "name": "oraclePrice"
+        }
+      }
     },
     {
       "name": "getBasktNav",
@@ -1654,6 +1658,10 @@ export type BasktV1 = {
             "type": "pubkey"
           },
           {
+            "name": "priceFeedId",
+            "type": "string"
+          },
+          {
             "name": "oracleType",
             "type": {
               "defined": {
@@ -1662,16 +1670,28 @@ export type BasktV1 = {
             }
           },
           {
-            "name": "oracleAuthority",
-            "type": "pubkey"
-          },
-          {
             "name": "maxPriceError",
             "type": "u64"
           },
           {
             "name": "maxPriceAgeSec",
             "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "oraclePrice",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "exponent",
+            "type": "i32"
           }
         ]
       }

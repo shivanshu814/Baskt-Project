@@ -86,7 +86,7 @@ pub fn open_position(
     position.collateral = collateral;
     position.is_long = is_long;
     // Get price from oracle
-    let oracle_params = asset.oracle;
+    let oracle_params = asset.oracle.clone();
 
     let oracle_price = OraclePrice::new_from_oracle(
         &ctx.accounts.oracle,
@@ -178,7 +178,7 @@ pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
     )?;
 
     // Get price from oracle
-    let oracle_params = asset.oracle;
+    let oracle_params = asset.oracle.clone();
 
     let oracle_price = OraclePrice::new_from_oracle(
         &ctx.accounts.oracle,
@@ -263,7 +263,7 @@ pub fn liquidate_position(ctx: Context<LiquidatePosition>) -> Result<()> {
     let clock = Clock::get()?;
 
     // Get price from oracle
-    let oracle_params = asset.oracle;
+    let oracle_params = asset.oracle.clone();
 
     let oracle_price = OraclePrice::new_from_oracle(
         &ctx.accounts.oracle,
