@@ -1,6 +1,5 @@
 'use client';
 
-import { ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSolscanAddressUrl, getSolscanTxUrl } from '../../utils/explorer';
@@ -17,7 +16,6 @@ interface TransactionToastProps {
  * Displays a transaction toast with links to Solscan
  */
 export function showTransactionToast({
-  title,
   description,
   txSignature,
   address,
@@ -54,7 +52,7 @@ export function showTransactionToast({
     </div>,
     {
       duration: 5000,
-      className: "bg-[#010b1d] text-white border border-white/10",
-    }
+      className: 'bg-[#010b1d] text-white border border-white/10',
+    },
   );
 }

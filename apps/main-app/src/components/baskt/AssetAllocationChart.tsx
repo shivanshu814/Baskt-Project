@@ -1,5 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Asset } from '../../data/baskts-data';
+import { Asset } from '../../types/baskt';
 import { cn } from '../../lib/utils';
 
 interface AssetAllocationChartProps {

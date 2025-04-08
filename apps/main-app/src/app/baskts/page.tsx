@@ -3,9 +3,8 @@
 import { Layout } from '../../components/Layout';
 import { Button } from '../../components/src/button';
 import { Input } from '../../components/src/input';
-import { popularBaskts } from '../../data/baskts-data';
 import { Grid2X2, Search, SlidersHorizontal } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -17,12 +16,34 @@ import {
 import { cn } from '../../lib/utils';
 import { TrendingBaskts } from '../../components/baskt/TrendingBaskts';
 import Link from 'next/link';
+import { Baskt } from '../../types/baskt';
 
 export default function Baskts() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
+  const [baskts, setBaskts] = useState<Baskt[]>([]);
+  const [isLoading, setIsLoading] = useState(true); //eslint-disable-line
 
-  const filteredBaskts = popularBaskts.filter((baskt) => {
+  useEffect(() => {
+    const fetchBaskts = async () => {
+      try {
+        // TODO: Replace with actual API call to fetch baskts
+        // const response = await fetch('/api/baskts');
+        // const data = await response.json();
+        // setBaskts(data);
+        setBaskts([]); // Empty array for now
+      } catch (error) {
+        console.error('Error fetching baskts:', error); //eslint-disable-line
+        setBaskts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBaskts();
+  }, []);
+
+  const filteredBaskts = baskts.filter((baskt) => {
     const matchesSearch =
       baskt.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       baskt.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -39,45 +60,6 @@ export default function Baskts() {
   const handleFilterClick = (filter: string) => {
     setActiveFilter(filter);
   };
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const recentTrades = [
-    {
-      id: 1,
-      baskt: 'aiBASKT',
-      type: 'Long',
-      amount: '$2,500',
-      price: '$105.25',
-      time: '2 mins ago',
-      status: 'Filled',
-    },
-    {
-      id: 2,
-      baskt: 'astroBASKT',
-      type: 'Short',
-      amount: '$1,800',
-      price: '$78.12',
-      time: '15 mins ago',
-      status: 'Filled',
-    },
-    {
-      id: 3,
-      baskt: 'muradBASKT',
-      type: 'Long',
-      amount: '$5,200',
-      price: '$115.75',
-      time: '1 hour ago',
-      status: 'Filled',
-    },
-    {
-      id: 4,
-      baskt: 'aiBASKT',
-      type: 'Short',
-      amount: '$3,100',
-      price: '$102.90',
-      time: '3 hours ago',
-      status: 'Filled',
-    },
-  ];
 
   return (
     <Layout>

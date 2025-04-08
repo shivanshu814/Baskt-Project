@@ -4,23 +4,88 @@ import { Layout } from '../../components/Layout';
 import { BasktPositionsTable } from '../../components/baskt/BasktPositionsTable';
 import { Button } from '../../components/src/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/src/card';
-import { getBasktById, userBasktPositions } from '../../data/baskts-data';
 import { ArrowRightLeft, DollarSign, LineChart, TrendingDown, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { Baskt, UserBasktPosition } from '../../types/baskt';
+import { usePrivy } from '@privy-io/react-auth';
+import { useRouter } from 'next/navigation';
+import { LoadingScreen } from '../../components/LoadingScreen';
+interface BasktPosition {
+  baskt: Baskt;
+  position: UserBasktPosition;
+}
+
+interface PortfolioPerformance {
+  day: number;
+  week: number;
+  month: number;
+}
 
 export default function MyPortfolio() {
-  // Generate baskt positions by mapping position IDs to actual baskts
-  const basktPositions = userBasktPositions.map((position) => {
-    const baskt = getBasktById(position.basktId);
-    return { baskt: baskt!, position };
+  const { authenticated, ready } = usePrivy();
+  const router = useRouter();
+  const [basktPositions, setBasktPositions] = useState<BasktPosition[]>([]);
+  const [isLoading, setIsLoading] = useState(true); //eslint-disable-line
+  const [performance, setPerformance] = useState<PortfolioPerformance>({
+    day: 0,
+    week: 0,
+    month: 0,
   });
+
+  useEffect(() => {
+    if (ready && !authenticated) {
+      router.push('/login');
+    }
+  }, [ready, authenticated, router]);
+
+  useEffect(() => {
+    const fetchPortfolioData = async () => {
+      try {
+        // TODO: Replace with actual API calls
+        // const positionsResponse = await fetch('/api/portfolio/positions');
+        // const positionsData = await positionsResponse.json();
+        // const basktsResponse = await fetch('/api/baskts');
+        // const basktsData = await basktsResponse.json();
+        // const performanceResponse = await fetch('/api/portfolio/performance');
+        // const performanceData = await performanceResponse.json();
+
+        // Map positions to baskts
+        // const mappedPositions = positionsData.map((position: UserBasktPosition) => {
+        //   const baskt = basktsData.find((b: Baskt) => b.id === position.basktId);
+        //   return { baskt, position };
+        // });
+
+        // setBasktPositions(mappedPositions);
+        // setPerformance(performanceData);
+        setBasktPositions([]);
+        setPerformance({ day: 0, week: 0, month: 0 });
+      } catch (error) {
+        console.error('Error fetching portfolio data:', error); //eslint-disable-line
+        setBasktPositions([]);
+        setPerformance({ day: 0, week: 0, month: 0 });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPortfolioData();
+  }, []);
+
+  if (!ready || !authenticated) {
+    return <LoadingScreen />;
+  }
 
   // Calculate portfolio metrics
   const totalValue = basktPositions.reduce((sum, item) => sum + item.position.currentValue, 0);
   const totalInvested = basktPositions.reduce((sum, item) => sum + item.position.positionSize, 0);
   const totalPnl = basktPositions.reduce((sum, item) => sum + item.position.pnl, 0);
-  const pnlPercentage = (totalPnl / totalInvested) * 100;
+  const pnlPercentage = totalInvested > 0 ? (totalPnl / totalInvested) * 100 : 0;
   const isProfitable = totalPnl >= 0;
+
+  const getPerformanceColor = (value: number) => {
+    return value >= 0 ? 'text-success' : 'text-destructive';
+  };
 
   return (
     <Layout>
@@ -96,15 +161,24 @@ export default function MyPortfolio() {
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="p-2 rounded-md bg-secondary/30">
                   <p className="text-xs text-muted-foreground">1d</p>
-                  <p className="text-success">+1.2%</p>
+                  <p className={getPerformanceColor(performance.day)}>
+                    {performance.day >= 0 ? '+' : ''}
+                    {performance.day.toFixed(1)}%
+                  </p>
                 </div>
                 <div className="p-2 rounded-md bg-secondary/30">
                   <p className="text-xs text-muted-foreground">7d</p>
-                  <p className="text-success">+3.8%</p>
+                  <p className={getPerformanceColor(performance.week)}>
+                    {performance.week >= 0 ? '+' : ''}
+                    {performance.week.toFixed(1)}%
+                  </p>
                 </div>
                 <div className="p-2 rounded-md bg-secondary/30">
                   <p className="text-xs text-muted-foreground">30d</p>
-                  <p className="text-destructive">-2.1%</p>
+                  <p className={getPerformanceColor(performance.month)}>
+                    {performance.month >= 0 ? '+' : ''}
+                    {performance.month.toFixed(1)}%
+                  </p>
                 </div>
               </div>
             </CardContent>

@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from '../../components/src/card';
 import { AssetAllocationChart } from './AssetAllocationChart';
-import { Baskt } from '../../data/baskts-data';
+import { Baskt } from '../../types/baskt';
 import { cn } from '../../lib/utils';
 import { ChevronDown, ChevronUp, ChevronsDown, ChevronsUp } from 'lucide-react';
 import {

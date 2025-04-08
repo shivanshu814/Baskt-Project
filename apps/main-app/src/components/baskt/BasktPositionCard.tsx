@@ -1,6 +1,6 @@
 import { Button } from '../../components/src/button';
 import { Card, CardContent, CardHeader } from '../../components/src/card';
-import { Baskt, UserBasktPosition } from '../../data/baskts-data';
+import { Baskt, UserBasktPosition } from '../../types/baskt';
 import { cn } from '../../lib/utils';
 import { ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';

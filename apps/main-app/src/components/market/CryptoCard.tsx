@@ -1,5 +1,5 @@
-import { Card, CardContent } from '../../components/src/card';
-import { CryptoAsset } from '../../data/market-data';
+import { Card, CardContent, CardHeader, CardTitle } from '../src/card';
+import { CryptoAsset } from '../../types/baskt';
 import { cn } from '../../lib/utils';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
@@ -25,23 +25,20 @@ export function CryptoCard({ crypto, className }: CryptoCardProps) {
         className,
       )}
     >
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="font-semibold">{crypto.symbol}</div>
-            <div className="text-sm text-muted-foreground">{crypto.name}</div>
-          </div>
-          <div className={cn('text-sm font-medium', changeColor)}>
-            {changeSign}
-            {crypto.change24h.toFixed(2)}%
-          </div>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{crypto.symbol}</CardTitle>
+        <div className={`text-sm ${changeColor}`}>
+          {changeSign}
+          {crypto.change24h.toFixed(2)}%
         </div>
-        <div className="text-2xl font-bold mb-3">
-          $
-          {crypto.price.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">${crypto.price.toLocaleString()}</div>
+        <div className="text-xs text-muted-foreground">
+          Volume: ${crypto.volume24h.toLocaleString()}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Market Cap: ${crypto.marketCap.toLocaleString()}
         </div>
         <div className="h-16 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -69,10 +66,6 @@ export function CryptoCard({ crypto, className }: CryptoCardProps) {
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
-        <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-          <div>Vol: ${(crypto.volume24h / 1000000000).toFixed(1)}B</div>
-          <div>Cap: ${(crypto.marketCap / 1000000000).toFixed(1)}B</div>
         </div>
       </CardContent>
     </Card>

@@ -2,7 +2,7 @@ import { ScrollArea } from '../components/src/scroll-area';
 import { cn } from '../lib/utils';
 import { ArrowRightLeft, Home, LogOut, PieChart, Settings, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { Baskt } from '../data/baskts-data';
+import { Baskt } from '../types/baskt';
 import Link from 'next/link';
 
 interface SidebarProps {

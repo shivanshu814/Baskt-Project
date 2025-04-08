@@ -25,7 +25,12 @@ interface UpdateOracleModalProps {
   };
 }
 
-export function UpdateOracleModal({ open, onOpenChange, onOracleUpdated, oracle }: UpdateOracleModalProps) {
+export function UpdateOracleModal({
+  open,
+  onOpenChange,
+  onOracleUpdated,
+  oracle,
+}: UpdateOracleModalProps) {
   const [price, setPrice] = useState('');
   const [confidence, setConfidence] = useState('');
   const [ema, setEma] = useState('');
@@ -45,7 +50,12 @@ export function UpdateOracleModal({ open, onOpenChange, onOracleUpdated, oracle 
   });
 
   const schema = z.object({
-    price: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, "Price must be a positive number"),
+    price: z
+      .string()
+      .refine(
+        (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
+        'Price must be a positive number',
+      ),
     confidence: z.string().optional(),
     ema: z.string().optional(),
   });
@@ -63,7 +73,7 @@ export function UpdateOracleModal({ open, onOpenChange, onOracleUpdated, oracle 
 
       if (!validationResult.success) {
         const formattedErrors: { [key: string]: string } = {};
-        validationResult.error.errors.forEach(error => {
+        validationResult.error.errors.forEach((error) => {
           formattedErrors[error.path[0].toString()] = error.message;
         });
         setErrors(formattedErrors);
@@ -88,7 +98,7 @@ export function UpdateOracleModal({ open, onOpenChange, onOracleUpdated, oracle 
         new anchor.BN(priceValue),
         oracle.expo,
         emaValue,
-        confidenceValue
+        confidenceValue,
       );
 
       showTransactionToast({
@@ -102,9 +112,9 @@ export function UpdateOracleModal({ open, onOpenChange, onOracleUpdated, oracle 
       onOpenChange(false);
       onOracleUpdated();
     } catch (error) {
-      console.error('Error updating oracle:', error);
+      console.error('Error updating oracle:', error); //eslint-disable-line
       setErrors({
-        submit: `Failed to update oracle: ${error instanceof Error ? error.message : String(error)}`
+        submit: `Failed to update oracle: ${error instanceof Error ? error.message : String(error)}`,
       });
     } finally {
       setIsSubmitting(false);
@@ -144,9 +154,13 @@ export function UpdateOracleModal({ open, onOpenChange, onOracleUpdated, oracle 
                 {errors.price && <p className="text-sm text-red-500">{errors.price}</p>}
                 {price && !isNaN(parseFloat(price)) && (
                   <p className="text-sm text-[#666]">
-                    Actual price: {(parseFloat(price) * Math.pow(10, oracle?.expo || 0)).toLocaleString(undefined, {
-                      maximumFractionDigits: Math.abs(oracle?.expo || 0),
-                    })}
+                    Actual price:{' '}
+                    {(parseFloat(price) * Math.pow(10, oracle?.expo || 0)).toLocaleString(
+                      undefined,
+                      {
+                        maximumFractionDigits: Math.abs(oracle?.expo || 0),
+                      },
+                    )}
                   </p>
                 )}
               </div>

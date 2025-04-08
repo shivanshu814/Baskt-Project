@@ -6,14 +6,13 @@ import { getSolscanAddressUrl } from '../../utils/explorer';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Asset } from '@baskt/sdk';
 
-
-
-
 export function AdminAssetsList() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   // State to store oracle and asset prices
-  const [assetPrices, setAssetPrices] = useState<Record<string, { oracleValue: string; assetValue: string }>>({});
+  const [assetPrices, setAssetPrices] = useState<
+    Record<string, { oracleValue: string; assetValue: string }>
+  >({});
 
   const { client } = useBasktClient();
 
@@ -28,15 +27,18 @@ export function AdminAssetsList() {
 
         // Initialize price loading states
         const initialPrices: Record<string, { oracleValue: string; assetValue: string }> = {};
-        assetsList.forEach(asset => {
-          initialPrices[asset.address.toString()] = { oracleValue: 'Loading...', assetValue: 'Loading...' };
+        assetsList.forEach((asset) => {
+          initialPrices[asset.address.toString()] = {
+            oracleValue: 'Loading...',
+            assetValue: 'Loading...',
+          };
         });
         setAssetPrices(initialPrices);
 
         // Fetch prices for all assets
-        assetsList.forEach(asset => fetchPrice(asset));
+        assetsList.forEach((asset) => fetchPrice(asset));
       } catch (error) {
-        console.error('Error fetching assets:', error);
+        console.error('Error fetching assets:', error); //eslint-disable-line
       } finally {
         setIsLoading(false);
       }
@@ -51,9 +53,7 @@ export function AdminAssetsList() {
 
     try {
       // Fetch Oracle price
-      const priceObject = await client.getOraclePrice(
-        asset.oracle.oracleAccount
-      );
+      const priceObject = await client.getOraclePrice(asset.oracle.oracleAccount);
       const oraclePrice = priceObject.price.toNumber() / Math.pow(10, -priceObject.exponent);
 
       // Fetch Asset price
@@ -61,30 +61,32 @@ export function AdminAssetsList() {
       try {
         const assetPriceResult = await client.getAssetPrice(
           asset.address,
-          asset.oracle.oracleAccount
+          asset.oracle.oracleAccount,
         );
 
         if (assetPriceResult && assetPriceResult.price) {
-          assetPrice = (assetPriceResult.price.toNumber() / Math.pow(10, -assetPriceResult.exponent)).toString();
+          assetPrice = (
+            assetPriceResult.price.toNumber() / Math.pow(10, -assetPriceResult.exponent)
+          ).toString();
         }
       } catch (error) {
         // Keep assetPrice as 'Stale' if there's an error
       }
 
-      setAssetPrices(prev => ({
+      setAssetPrices((prev) => ({
         ...prev,
         [asset.address.toString()]: {
           oracleValue: oraclePrice.toString(),
-          assetValue: assetPrice
-        }
+          assetValue: assetPrice,
+        },
       }));
     } catch (error) {
-      setAssetPrices(prev => ({
+      setAssetPrices((prev) => ({
         ...prev,
         [asset.address.toString()]: {
           oracleValue: 'N/A',
-          assetValue: 'Stale'
-        }
+          assetValue: 'Stale',
+        },
       }));
     }
   };
@@ -127,13 +129,15 @@ export function AdminAssetsList() {
             assets.map((asset) => (
               <TableRow key={asset.address.toString()}>
                 <TableCell className="font-medium">{asset.ticker}</TableCell>
-                <TableCell>
-                  {assetPrices[asset.address.toString()]?.oracleValue || 'N/A'}
-                </TableCell>
+                <TableCell>{assetPrices[asset.address.toString()]?.oracleValue || 'N/A'}</TableCell>
                 <TableCell>
                   {assetPrices[asset.address.toString()]?.assetValue || 'Stale'}
                 </TableCell>
-                <TableCell>{typeof asset.oracle.oracleType === "string" ? asset.oracle.oracleType : JSON.stringify(asset.oracle.oracleType)}</TableCell>
+                <TableCell>
+                  {typeof asset.oracle.oracleType === 'string'
+                    ? asset.oracle.oracleType
+                    : JSON.stringify(asset.oracle.oracleType)}
+                </TableCell>
                 <TableCell className="font-mono text-xs">
                   <a
                     href={getSolscanAddressUrl(asset.oracle.oracleAccount.toString())}
@@ -141,7 +145,8 @@ export function AdminAssetsList() {
                     rel="noopener noreferrer"
                     className="text-blue-500 hover:underline"
                   >
-                    {asset.oracle.oracleAccount.toString().slice(0, 8)}...{asset.oracle.oracleAccount.toString().slice(-8)}
+                    {asset.oracle.oracleAccount.toString().slice(0, 8)}...
+                    {asset.oracle.oracleAccount.toString().slice(-8)}
                   </a>
                 </TableCell>
                 <TableCell>{asset.oracle.maxPriceAgeSec}s</TableCell>

@@ -13,17 +13,67 @@ import {
 } from '../../components/src/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/src/tabs';
 import { Input } from '../../components/src/input';
-import { tradingPairs } from '../../data/market-data';
 import { Shield, ChartCandlestick, TrendingUp, Bitcoin } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Separator } from '../../components/src/separator';
 import { Badge } from '../../components/src/badge';
 import { toast } from '../../hooks/use-toast';
+import { TradingPair, OrderBookEntry } from '../../types/baskt';
+import type { Trade } from '../../types/baskt';
 
 export default function Trade() {
   const [tradeType, setTradeType] = useState('spot');
   const [leverageValue, setLeverageValue] = useState(2);
   const [selectedPair, setSelectedPair] = useState('BTCUSDT');
+  const [tradingPairs, setTradingPairs] = useState<TradingPair[]>([]);
+  const [orderBook, setOrderBook] = useState<{
+    buys: OrderBookEntry[];
+    sells: OrderBookEntry[];
+    currentPrice: number;
+  }>({
+    buys: [],
+    sells: [],
+    currentPrice: 0,
+  });
+  const [recentTrades, setRecentTrades] = useState<Trade[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTradingData = async () => {
+      try {
+        // TODO: Replace with actual API calls
+        // const pairsResponse = await fetch('/api/market/trading-pairs');
+        // const orderBookResponse = await fetch(`/api/market/order-book/${selectedPair}`);
+        // const tradesResponse = await fetch(`/api/market/recent-trades/${selectedPair}`);
+
+        // const pairsData = await pairsResponse.json();
+        // const orderBookData = await orderBookResponse.json();
+        // const tradesData = await tradesResponse.json();
+
+        // setTradingPairs(pairsData);
+        // setOrderBook(orderBookData);
+        // setRecentTrades(tradesData);
+        setTradingPairs([]);
+        setOrderBook({
+          buys: [],
+          sells: [],
+          currentPrice: 0,
+        });
+        setRecentTrades([]);
+      } catch (error) {
+        console.error('Error fetching trading data:', error); //eslint-disable-line
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch trading data. Please try again later.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTradingData();
+  }, [selectedPair]);
 
   const handleTrade = (action: 'buy' | 'sell') => {
     toast({
@@ -32,6 +82,10 @@ export default function Trade() {
       variant: action === 'buy' ? 'default' : 'destructive',
     });
   };
+
+  if (isLoading) {
+    return <Layout>Loading...</Layout>;
+  }
 
   return (
     <Layout>
@@ -59,7 +113,13 @@ export default function Trade() {
                 </div>
               </CardHeader>
               <CardContent>
-                <TradingViewChart className="h-[400px]" />
+                <TradingViewChart
+                  className="h-[400px]"
+                  dailyData={[]}
+                  weeklyData={[]}
+                  monthlyData={[]}
+                  yearlyData={[]}
+                />
               </CardContent>
             </Card>
           </div>
@@ -133,7 +193,7 @@ export default function Trade() {
                     <div className="space-y-2">
                       <div className="text-sm text-muted-foreground">Price</div>
                       <div className="relative">
-                        <Input defaultValue="51283.42" />
+                        <Input defaultValue="0" />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
                           USDT
                         </div>
@@ -142,7 +202,7 @@ export default function Trade() {
                     <div className="space-y-2">
                       <div className="text-sm text-muted-foreground">Amount</div>
                       <div className="relative">
-                        <Input defaultValue="0.1" />
+                        <Input defaultValue="0" />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
                           BTC
                         </div>
@@ -151,7 +211,7 @@ export default function Trade() {
                     <div className="space-y-2">
                       <div className="text-sm text-muted-foreground">Total</div>
                       <div className="relative">
-                        <Input defaultValue="5128.34" />
+                        <Input defaultValue="0" />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
                           USDT
                         </div>
@@ -168,7 +228,7 @@ export default function Trade() {
                     <div className="space-y-2">
                       <div className="text-sm text-muted-foreground">Price</div>
                       <div className="relative">
-                        <Input defaultValue="51283.42" />
+                        <Input defaultValue="0" />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
                           USDT
                         </div>
@@ -177,7 +237,7 @@ export default function Trade() {
                     <div className="space-y-2">
                       <div className="text-sm text-muted-foreground">Amount</div>
                       <div className="relative">
-                        <Input defaultValue="0.1" />
+                        <Input defaultValue="0" />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
                           BTC
                         </div>
@@ -186,7 +246,7 @@ export default function Trade() {
                     <div className="space-y-2">
                       <div className="text-sm text-muted-foreground">Total</div>
                       <div className="relative">
-                        <Input defaultValue="5128.34" />
+                        <Input defaultValue="0" />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
                           USDT
                         </div>
@@ -218,25 +278,23 @@ export default function Trade() {
                   <div className="text-right">Total (USDT)</div>
                 </div>
                 <div className="space-y-1">
-                  {[...Array(5)].map((_, i) => (
+                  {orderBook.sells.map((entry, i) => (
                     <div key={`sell-${i}`} className="grid grid-cols-3 text-sm">
-                      <div className="text-destructive">{(51283.42 + (i + 1) * 10).toFixed(2)}</div>
-                      <div className="text-right">{(Math.random() * 0.5).toFixed(4)}</div>
-                      <div className="text-right">
-                        {(51283.42 * Math.random() * 0.5).toFixed(2)}
-                      </div>
+                      <div className="text-destructive">{entry.price.toFixed(2)}</div>
+                      <div className="text-right">{entry.amount.toFixed(4)}</div>
+                      <div className="text-right">{entry.total.toFixed(2)}</div>
                     </div>
                   ))}
                 </div>
-                <div className="text-center font-bold text-xl py-2">51,283.42</div>
+                <div className="text-center font-bold text-xl py-2">
+                  {orderBook.currentPrice.toLocaleString()}
+                </div>
                 <div className="space-y-1">
-                  {[...Array(5)].map((_, i) => (
+                  {orderBook.buys.map((entry, i) => (
                     <div key={`buy-${i}`} className="grid grid-cols-3 text-sm">
-                      <div className="text-success">{(51283.42 - (i + 1) * 10).toFixed(2)}</div>
-                      <div className="text-right">{(Math.random() * 0.5).toFixed(4)}</div>
-                      <div className="text-right">
-                        {(51283.42 * Math.random() * 0.5).toFixed(2)}
-                      </div>
+                      <div className="text-success">{entry.price.toFixed(2)}</div>
+                      <div className="text-right">{entry.amount.toFixed(4)}</div>
+                      <div className="text-right">{entry.total.toFixed(2)}</div>
                     </div>
                   ))}
                 </div>
@@ -256,20 +314,15 @@ export default function Trade() {
                   <div className="text-right">Time</div>
                 </div>
                 <div className="space-y-2">
-                  {[...Array(10)].map((_, i) => {
-                    const isBuy = Math.random() > 0.5;
-                    return (
-                      <div key={`trade-${i}`} className="grid grid-cols-3 text-sm">
-                        <div className={isBuy ? 'text-success' : 'text-destructive'}>
-                          {(51283.42 + (Math.random() - 0.5) * 20).toFixed(2)}
-                        </div>
-                        <div className="text-right">{(Math.random() * 0.5).toFixed(4)}</div>
-                        <div className="text-right text-muted-foreground">
-                          {`${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`}
-                        </div>
+                  {recentTrades.map((trade, i) => (
+                    <div key={`trade-${i}`} className="grid grid-cols-3 text-sm">
+                      <div className={trade.type === 'buy' ? 'text-success' : 'text-destructive'}>
+                        {trade.price.toFixed(2)}
                       </div>
-                    );
-                  })}
+                      <div className="text-right">{trade.amount.toFixed(4)}</div>
+                      <div className="text-right text-muted-foreground">{trade.time}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </CardContent>

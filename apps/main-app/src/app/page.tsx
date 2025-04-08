@@ -2,17 +2,24 @@
 
 'use client';
 
-import { Toaster } from '../components/src/toaster';
-import { Toaster as Sonner } from '../components/src/sonner';
-import { TooltipProvider } from '../components/src/tooltip';
-import Homepage from './homepage/page';
+import { usePrivy } from '@privy-io/react-auth';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { LoadingScreen } from '../components/LoadingScreen';
 
-export default function Home() {
-  return (
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Homepage />
-    </TooltipProvider>
-  );
+export default function HomePage() {
+  const { authenticated, ready } = usePrivy();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (ready) {
+      if (authenticated) {
+        router.push('/my-portfolio');
+      } else {
+        router.push('/login');
+      }
+    }
+  }, [ready, authenticated, router]);
+
+  return <LoadingScreen />;
 }

@@ -7,15 +7,57 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/src/table';
-import { popularCryptos } from '../../data/market-data';
 import { cn } from '../../lib/utils';
 import { ArrowDown, ArrowUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Asset } from '../../types/baskt';
+import { toast } from '../../hooks/use-toast';
 
 interface MarketOverviewProps {
   className?: string;
 }
 
 export function MarketOverview({ className }: MarketOverviewProps) {
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMarketData = async () => {
+      try {
+        setIsLoading(true);
+        // TODO: Replace with actual API call
+        // const response = await fetch('/api/market/assets');
+        // const data = await response.json();
+        // setAssets(data);
+        setAssets([]);
+      } catch (error) {
+        console.error('Error fetching market data:', error); //eslint-disable-line
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch market data. Please try again later.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMarketData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <Card className={cn('overflow-hidden', className)}>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-medium">Market Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">Loading market data...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className={cn('overflow-hidden', className)}>
       <CardHeader className="pb-2">
@@ -33,16 +75,16 @@ export function MarketOverview({ className }: MarketOverviewProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {popularCryptos.map((crypto) => (
-              <TableRow key={crypto.id} className="cursor-pointer hover:bg-muted/50">
+            {assets.map((asset) => (
+              <TableRow key={asset.id} className="cursor-pointer hover:bg-muted/50">
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
-                    <span>{crypto.symbol}</span>
+                    <span>{asset.symbol}</span>
                   </div>
                 </TableCell>
                 <TableCell>
                   $
-                  {crypto.price.toLocaleString(undefined, {
+                  {asset.price.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -51,22 +93,22 @@ export function MarketOverview({ className }: MarketOverviewProps) {
                   <div
                     className={cn(
                       'flex items-center',
-                      crypto.change24h >= 0 ? 'text-success' : 'text-destructive',
+                      asset.change24h >= 0 ? 'text-success' : 'text-destructive',
                     )}
                   >
-                    {crypto.change24h >= 0 ? (
+                    {asset.change24h >= 0 ? (
                       <ArrowUp className="mr-1 h-4 w-4" />
                     ) : (
                       <ArrowDown className="mr-1 h-4 w-4" />
                     )}
-                    {Math.abs(crypto.change24h).toFixed(2)}%
+                    {Math.abs(asset.change24h).toFixed(2)}%
                   </div>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  ${(crypto.volume24h / 1000000000).toFixed(1)}B
+                  ${(asset.volume24h / 1000000000).toFixed(1)}B
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
-                  ${(crypto.marketCap / 1000000000).toFixed(1)}B
+                  ${(asset.marketCap / 1000000000).toFixed(1)}B
                 </TableCell>
               </TableRow>
             ))}

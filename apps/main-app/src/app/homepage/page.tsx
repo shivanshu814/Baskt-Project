@@ -5,12 +5,32 @@ import { Button } from '../../components/src/button';
 import Link from 'next/link';
 import { ArrowRight, BarChart3, LineChart, ShieldCheck } from 'lucide-react';
 import { Footer } from '../../components/Footer';
-import { popularBaskts } from '../../data/baskts-data';
 import { BasktCard } from '../../components/baskt/BasktCard';
+import { useState, useEffect } from 'react';
+import { Baskt } from '../../types/baskt';
 
 export default function Homepage() {
-  // Get featured baskts for homepage
-  const featuredBaskts = popularBaskts.slice(0, 3);
+  const [featuredBaskts, setFeaturedBaskts] = useState<Baskt[]>([]);
+  const [isLoading, setIsLoading] = useState(true); //eslint-disable-line
+
+  useEffect(() => {
+    // TODO: Replace with actual API call to fetch featured baskts
+    const fetchFeaturedBaskts = async () => {
+      try {
+        // const response = await fetch('/api/baskts/featured');
+        // const data = await response.json();
+        // setFeaturedBaskts(data);
+        setFeaturedBaskts([]); // Empty array for now
+      } catch (error) {
+        console.error('Error fetching featured baskts:', error); //eslint-disable-line
+        setFeaturedBaskts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeaturedBaskts();
+  }, []);
 
   return (
     <Layout className="p-0 md:p-0">

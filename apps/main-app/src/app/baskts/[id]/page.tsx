@@ -5,21 +5,50 @@ import { BasktTradingForm } from '../../../components/baskt/BasktTradingForm';
 import { TradingViewChart } from '../../../components/market/TradingViewChart';
 import { Button } from '../../../components/src/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/src/card';
-import { getBasktById, getUserPositionForBaskt } from '../../../data/baskts-data';
 import { ArrowLeft, PlusCircle } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { IndexComposition } from '../../../components/baskt/IndexComposition';
 import { CreateBasktDialog } from '../../../components/baskt/CreateBasktDialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Baskt, UserBasktPosition } from '../../../types/baskt';
 
 export default function BasktDetailPage() {
   const router = useRouter();
   const params = useParams();
   const basktId = params.id as string;
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [baskt, setBaskt] = useState<Baskt | null>(null);
+  const [userPosition, setUserPosition] = useState<UserBasktPosition | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const baskt = getBasktById(basktId);
-  const userPosition = getUserPositionForBaskt(basktId);
+  useEffect(() => {
+    const fetchBasktData = async () => {
+      try {
+        // TODO: Replace with actual API calls
+        // const basktResponse = await fetch(`/api/baskts/${basktId}`);
+        // const basktData = await basktResponse.json();
+        // const positionResponse = await fetch(`/api/portfolio/positions/${basktId}`);
+        // const positionData = await positionResponse.json();
+
+        // setBaskt(basktData);
+        // setUserPosition(positionData);
+        setBaskt(null);
+        setUserPosition(null);
+      } catch (error) {
+        console.error('Error fetching baskt data:', error); //eslint-disable-line
+        setBaskt(null);
+        setUserPosition(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBasktData();
+  }, [basktId]);
+
+  if (isLoading) {
+    return <Layout>Loading...</Layout>;
+  }
 
   if (!baskt) {
     return (
@@ -121,7 +150,13 @@ export default function BasktDetailPage() {
                 <CardTitle className="text-lg font-medium">Price Chart</CardTitle>
               </CardHeader>
               <CardContent>
-                <TradingViewChart className="h-[300px]" />
+                <TradingViewChart
+                  className="h-[300px]"
+                  dailyData={baskt.priceHistory?.daily || []}
+                  weeklyData={baskt.priceHistory?.weekly || []}
+                  monthlyData={baskt.priceHistory?.monthly || []}
+                  yearlyData={baskt.priceHistory?.yearly || []}
+                />
               </CardContent>
             </Card>
 
@@ -214,7 +249,7 @@ export default function BasktDetailPage() {
           <div className="col-span-3">
             <Card>
               <CardContent className="pt-6">
-                <BasktTradingForm baskt={baskt} />
+                <BasktTradingForm baskt={baskt} userPosition={userPosition} />
               </CardContent>
             </Card>
           </div>

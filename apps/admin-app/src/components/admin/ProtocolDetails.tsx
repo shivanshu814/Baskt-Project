@@ -16,11 +16,9 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
     try {
       await client?.initializeProtocol();
     } catch (error) {
-      console.error('Error initializing protocol:', error);
+      console.error('Error initializing protocol:', error); //eslint-disable-line
     }
   };
-
-
 
   if (!protocol) {
     return (
@@ -58,18 +56,19 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
       <div className="mb-6">
         <h3 className="text-lg font-medium text-gray-900 mb-2">Feature Flags</h3>
         <div className="grid grid-cols-2 gap-2">
-          {protocol.featureFlags && Object.entries(protocol.featureFlags).map(([key, value]) => (
-            <React.Fragment key={key}>
-              <div className="text-gray-600">{formatFeatureFlagName(key)}:</div>
-              <div className="font-medium">
-                {value ? (
-                  <span className="text-green-600">Enabled</span>
-                ) : (
-                  <span className="text-red-600">Disabled</span>
-                )}
-              </div>
-            </React.Fragment>
-          ))}
+          {protocol.featureFlags &&
+            Object.entries(protocol.featureFlags).map(([key, value]) => (
+              <React.Fragment key={key}>
+                <div className="text-gray-600">{formatFeatureFlagName(key)}:</div>
+                <div className="font-medium">
+                  {value ? (
+                    <span className="text-green-600">Enabled</span>
+                  ) : (
+                    <span className="text-red-600">Disabled</span>
+                  )}
+                </div>
+              </React.Fragment>
+            ))}
         </div>
       </div>
 
@@ -80,10 +79,16 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Account
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Role
                   </th>
                 </tr>

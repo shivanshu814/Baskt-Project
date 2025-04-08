@@ -9,39 +9,15 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { TradingViewChartProps } from '../../types/baskt';
 
-interface TradingViewChartProps {
-  className?: string;
-}
-
-// Mock data for the chart
-const generateMockData = (days: number, startPrice: number, volatility: number) => {
-  const data = [];
-  let price = startPrice;
-
-  for (let i = 0; i < days; i++) {
-    const change = (Math.random() - 0.5) * volatility;
-    price = Math.max(0, price + change);
-
-    const date = new Date();
-    date.setDate(date.getDate() - (days - i));
-
-    data.push({
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      price,
-      volume: Math.random() * 10000 + 5000,
-    });
-  }
-
-  return data;
-};
-
-const dailyData = generateMockData(24, 50000, 500);
-const weeklyData = generateMockData(7, 48000, 1000);
-const monthlyData = generateMockData(30, 45000, 2000);
-const yearlyData = generateMockData(12, 40000, 5000);
-
-export function TradingViewChart({ className }: TradingViewChartProps) {
+export function TradingViewChart({
+  className,
+  dailyData,
+  weeklyData,
+  monthlyData,
+  yearlyData,
+}: TradingViewChartProps) {
   return (
     <div className={cn('overflow-hidden', className)}>
       <Tabs defaultValue="1d" className="w-full">

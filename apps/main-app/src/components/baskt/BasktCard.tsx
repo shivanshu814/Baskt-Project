@@ -1,6 +1,6 @@
 import { Button } from '../../components/src/button';
 import { Card, CardContent, CardHeader } from '../../components/src/card';
-import { Baskt } from '../../data/baskts-data';
+import { Baskt } from '../../types/baskt';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '../../lib/utils';

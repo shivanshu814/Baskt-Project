@@ -6,8 +6,7 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { useForm } from 'react-hook-form';
 import { useToast } from '../../hooks/use-toast';
-import { Plus, ChevronDown, ExternalLink } from 'lucide-react';
-import { AddOracleModal } from './AddOracleModal';
+import { Plus, ChevronDown } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useBasktClient } from '../../providers/BasktClientProvider';
 import { showTransactionToast } from '../ui/transaction-toast';
@@ -67,7 +66,12 @@ export function ListNewAssetButton() {
 
   const onSubmit = async (values: FormValues) => {
     // Basic validation
-    if (!values.ticker || !values.oracleAddress || !values.maxPriceError || !values.maxPriceAgeSec) {
+    if (
+      !values.ticker ||
+      !values.oracleAddress ||
+      !values.maxPriceError ||
+      !values.maxPriceAgeSec
+    ) {
       toast({
         title: 'Validation Error',
         description: 'Please fill in all required fields',
@@ -114,7 +118,7 @@ export function ListNewAssetButton() {
             oracleAccount: new PublicKey(assetData.oracleAddress),
             maxPriceAgeSec: assetData.maxPriceAgeSec,
             maxPriceError: new anchor.BN(assetData.maxPriceError),
-            priceFeedId: "",
+            priceFeedId: '',
           },
           permissions: assetData.permissions,
         });
@@ -134,13 +138,13 @@ export function ListNewAssetButton() {
       showTransactionToast({
         title: 'Asset Listed Successfully',
         description: `The asset ${values.ticker} has been listed and is now available for basket creation.`,
-        txSignature: result.txSignature
+        txSignature: result.txSignature,
       });
 
       setShowModal(false);
       form.reset();
     } catch (error) {
-      console.error('Error adding asset:', error);
+      console.error('Error adding asset:', error); //eslint-disable-line
       toast({
         title: 'Error Adding Asset',
         description: error instanceof Error ? error.message : 'An unknown error occurred',
@@ -179,7 +183,9 @@ export function ListNewAssetButton() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-white">Oracle Type</label>
-              <Select onValueChange={(value) => form.setValue('oracleType', value as 'Pyth' | 'Custom')}>
+              <Select
+                onValueChange={(value) => form.setValue('oracleType', value as 'Pyth' | 'Custom')}
+              >
                 <SelectTrigger className="h-12 bg-[#0d1117] border-0 ring-[0.5px] ring-white/5 text-white text-base rounded-2xl focus-visible:ring-[0.5px] focus-visible:ring-white/10 focus-visible:ring-offset-0 data-[value]:ring-[0.5px] data-[value]:ring-white/5">
                   <SelectValue placeholder="Select oracle type" />
                 </SelectTrigger>
@@ -209,9 +215,7 @@ export function ListNewAssetButton() {
                 {...form.register('oracleAddress')}
                 className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
               />
-              <p className="text-xs text-[#E5E7EB]/60">
-                Specify the oracle account address
-              </p>
+              <p className="text-xs text-[#E5E7EB]/60">Specify the oracle account address</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

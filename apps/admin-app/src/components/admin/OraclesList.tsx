@@ -41,7 +41,7 @@ export function OraclesList() {
   const { client } = useBasktClient();
 
   const refreshOracles = () => {
-    setRefreshTrigger(prev => prev + 1);
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   useEffect(() => {
@@ -52,9 +52,8 @@ export function OraclesList() {
         setIsLoading(true);
         const oraclesList = await client.getAllOracles();
 
-
         // Process the oracles and determine their status
-        const processedOracles = oraclesList.map(oracle => {
+        const processedOracles = oraclesList.map((oracle) => {
           // Calculate if the oracle is stale based on publish time
           // Current time in seconds
           const currentTime = Math.floor(Date.now() / 1000);
@@ -64,19 +63,19 @@ export function OraclesList() {
           const isStale = currentTime - publishTime > 300; // 5 minutes
           return {
             ...oracle,
-            status: isStale ? 'stale' as const : 'active' as const
+            status: isStale ? ('stale' as const) : ('active' as const),
           };
         });
         setOracles(processedOracles);
       } catch (error) {
-        console.error('Error fetching oracles:', error);
+        console.error('Error fetching oracles:', error); //eslint-disable-line
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchOracles();
-  }, [client, refreshTrigger]);
+  }, [client, refreshTrigger]); //eslint-disable-line
 
   return (
     <>
@@ -128,7 +127,8 @@ export function OraclesList() {
                       rel="noopener noreferrer"
                       className="text-blue-500 hover:underline"
                     >
-                      {oracle.address.toString().slice(0, 8)}...{oracle.address.toString().slice(-8)}
+                      {oracle.address.toString().slice(0, 8)}...
+                      {oracle.address.toString().slice(-8)}
                     </a>
                   </TableCell>
                   <TableCell>{oracle.price.toString()}</TableCell>
@@ -166,8 +166,8 @@ export function OraclesList() {
                           const address = oracle.address.toString();
                           navigator.clipboard.writeText(address);
                           setCopiedAddress(address);
-                          toast.success("Oracle address copied to clipboard", {
-                            className: "bg-[#010b1d] text-white border border-white/10",
+                          toast.success('Oracle address copied to clipboard', {
+                            className: 'bg-[#010b1d] text-white border border-white/10',
                           });
                           setTimeout(() => setCopiedAddress(null), 2000);
                         }}

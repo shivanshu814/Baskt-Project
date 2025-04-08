@@ -9,8 +9,14 @@ import {
   AccordionTrigger,
 } from '../../components/src/accordion';
 import { Layers, MousePointer, TrendingUp, Rocket, Check, Search, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Baskt } from '../../types/baskt';
+import { toast } from '../../hooks/use-toast';
 
 const HowItWorks = () => {
+  const [featuredBaskts, setFeaturedBaskts] = useState<Baskt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const features = [
     {
       icon: (
@@ -120,6 +126,34 @@ const HowItWorks = () => {
     },
   ];
 
+  useEffect(() => {
+    const fetchFeaturedBaskts = async () => {
+      try {
+        setIsLoading(true);
+        // TODO: Replace with actual API call
+        // const response = await fetch('/api/baskts/featured');
+        // const data = await response.json();
+        // setFeaturedBaskts(data);
+        setFeaturedBaskts([]);
+      } catch (error) {
+        console.error('Error fetching featured Baskts:', error); //eslint-disable-line
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch featured Baskts. Please try again later.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeaturedBaskts();
+  }, []);
+
+  if (isLoading) {
+    return <Layout>Loading...</Layout>;
+  }
+
   return (
     <Layout>
       <div className="max-w-6xl mx-auto">
@@ -191,93 +225,43 @@ const HowItWorks = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="dark:bg-black/40 backdrop-blur-md border border-border rounded-lg p-4 hover:shadow-lg">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-gradient-to-r from-purple-500 to-pink-500 w-10 h-10 rounded-lg flex items-center justify-center text-white">
-                    AI
+            {featuredBaskts.map((baskt) => (
+              <Card
+                key={baskt.id}
+                className="dark:bg-black/40 backdrop-blur-md border border-border rounded-lg p-4 hover:shadow-lg"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-gradient-to-r from-purple-500 to-pink-500 w-10 h-10 rounded-lg flex items-center justify-center text-white">
+                      {baskt.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">{baskt.name}</h3>
+                      <p className="text-sm text-muted-foreground">{baskt.description}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg">AI Index</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Next gen mindshare and attention capture by AI
-                    </p>
+                  <div className="grid grid-cols-3 gap-4 text-sm pt-4 border-t border-border">
+                    <div>
+                      <div className="text-muted-foreground mb-1">AUM</div>
+                      <div className="font-medium">${baskt.aum.toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground mb-1">Volume</div>
+                      <div className="font-medium">
+                        $
+                        {baskt.assets
+                          .reduce((sum, asset) => sum + asset.volume24h, 0)
+                          .toLocaleString()}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground mb-1">Supply</div>
+                      <div className="font-medium">{baskt.totalAssets.toLocaleString()}</div>
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4 text-sm pt-4 border-t border-border">
-                  <div>
-                    <div className="text-muted-foreground mb-1">AUM</div>
-                    <div className="font-medium">$31.78K</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground mb-1">Volume</div>
-                    <div className="font-medium">$648.61K</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground mb-1">Supply</div>
-                    <div className="font-medium">340.84</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="dark:bg-black/40 backdrop-blur-md border border-border rounded-lg p-4 hover:shadow-lg">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-gradient-to-r from-blue-500 to-teal-500 w-10 h-10 rounded-lg flex items-center justify-center text-white">
-                    ♈
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">Astrofolio Index</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Index of all 12 astrological coins
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4 text-sm pt-4 border-t border-border">
-                  <div>
-                    <div className="text-muted-foreground mb-1">AUM</div>
-                    <div className="font-medium">$12.79K</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground mb-1">Volume</div>
-                    <div className="font-medium">$118.74K</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground mb-1">Supply</div>
-                    <div className="font-medium">400.50</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="dark:bg-black/40 backdrop-blur-md border border-border rounded-lg p-4 hover:shadow-lg">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-gradient-to-r from-amber-500 to-red-500 w-10 h-10 rounded-lg flex items-center justify-center text-white">
-                    M
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">Murad Index</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Memecoin index from ..MustStopMurad
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4 text-sm pt-4 border-t border-border">
-                  <div>
-                    <div className="text-muted-foreground mb-1">AUM</div>
-                    <div className="font-medium">$2.16K</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground mb-1">Volume</div>
-                    <div className="font-medium">$44.98K</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground mb-1">Supply</div>
-                    <div className="font-medium">28.55</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </section>
 

@@ -1,23 +1,30 @@
 /** @format */
 
 import '../styles/globals.css';
-import { Providers } from './providers';
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import { Providers } from '../components/Providers';
+import { Navbar } from '../components/Navbar';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Baskt + Waifu | AI-Powered Trading & Indexing',
+  title: 'Baskt | AI-Powered Trading & Index Management',
   description:
-    'BASKT AI empowers you to create custom AI-driven indexes and trading strategies. Trade Meme Token Arbitrage, DeFi Yield, AI Indexes, and more with real-time AI-powered execution.',
+    'BASKT is an AI-driven trading platform that allows you to manage indexes, trading strategies, and platform settings with real-time AI-powered insights.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/logo.png" type="image/png" />
       </head>
-      <body>
-        <Providers>{children}</Providers>
+      <body className={inter.className}>
+        <Providers>
+          <Navbar />
+          <main className="pt-16">{children}</main>
+        </Providers>
       </body>
     </html>
   );

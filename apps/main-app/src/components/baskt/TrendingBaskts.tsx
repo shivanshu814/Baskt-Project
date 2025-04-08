@@ -1,10 +1,30 @@
 import { BasktCard } from '../../components/baskt/BasktCard';
-import { popularBaskts } from '../../data/baskts-data';
 import { TrendingUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Baskt } from '../../types/baskt';
 
 export function TrendingBaskts() {
-  // Get top 4 trending baskts
-  const trendingBaskts = popularBaskts.slice(0, 4);
+  const [trendingBaskts, setTrendingBaskts] = useState<Baskt[]>([]);
+  const [isLoading, setIsLoading] = useState(true); //eslint-disable-line
+
+  useEffect(() => {
+    const fetchTrendingBaskts = async () => {
+      try {
+        // TODO: Replace with actual API call to fetch trending baskts
+        // const response = await fetch('/api/baskts/trending');
+        // const data = await response.json();
+        // setTrendingBaskts(data);
+        setTrendingBaskts([]); // Empty array for now
+      } catch (error) {
+        console.error('Error fetching trending baskts:', error); // eslint-disable-line
+        setTrendingBaskts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTrendingBaskts();
+  }, []);
 
   return (
     <div className="mb-8">

@@ -2,17 +2,17 @@ import { Button } from '../../components/src/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/src/tabs';
 import { Input } from '../../components/src/input';
 import { Slider } from '../../components/src/slider';
-import { Baskt } from '../../data/baskts-data';
+import { Baskt, UserBasktPosition } from '../../types/baskt';
 import { useState } from 'react';
 import { toast } from '../../hooks/use-toast';
 
 interface BasktTradingFormProps {
   baskt: Baskt;
-  userBalance?: number;
+  userPosition?: UserBasktPosition | null;
   className?: string;
 }
 
-export function BasktTradingForm({ baskt, userBalance = 50000, className }: BasktTradingFormProps) {
+export function BasktTradingForm({ baskt, userPosition = null, className }: BasktTradingFormProps) {
   const [collateral, setCollateral] = useState<number>(1500);
 
   const handleCollateralChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,7 +62,7 @@ export function BasktTradingForm({ baskt, userBalance = 50000, className }: Bask
             <div className="flex justify-between items-center">
               <label className="text-sm font-medium">Collateral (USDT)</label>
               <span className="text-sm text-muted-foreground">
-                Balance: ${userBalance.toLocaleString()}
+                Balance: ${userPosition?.userBalance.toLocaleString() || 50000}
               </span>
             </div>
             <Input
@@ -74,15 +74,15 @@ export function BasktTradingForm({ baskt, userBalance = 50000, className }: Bask
             <Slider
               defaultValue={[1500]}
               min={100}
-              max={userBalance}
+              max={userPosition?.userBalance || 50000}
               step={100}
               value={[collateral]}
               onValueChange={handleCollateralSliderChange}
             />
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>$100</span>
-              <span>${(userBalance / 2).toLocaleString()}</span>
-              <span>${userBalance.toLocaleString()}</span>
+              <span>${((userPosition?.userBalance || 50000) / 2).toLocaleString()}</span>
+              <span>${(userPosition?.userBalance || 50000).toLocaleString()}</span>
             </div>
           </div>
 
