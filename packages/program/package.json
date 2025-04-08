@@ -7,7 +7,8 @@
     "clean": "rimraf dist",
     "localnet": "anchor localnet",
     "test": "pnpm --filter @baskt/sdk build && anchor test",
-    "lint": "eslint tests --ext test.ts"
+    "lint": "eslint tests --ext test.ts",
+    "deploy:local": "npx tsx scripts/deploy-local.ts"
   },
   "dependencies": {
     "@baskt/sdk": "workspace:*",

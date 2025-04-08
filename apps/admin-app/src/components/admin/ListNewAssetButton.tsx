@@ -9,12 +9,13 @@ import { useToast } from '../../hooks/use-toast';
 import { Plus, ChevronDown, ExternalLink } from 'lucide-react';
 import { AddOracleModal } from './AddOracleModal';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { getSolscanTxUrl } from '../../utils/explorer';
 import { useBasktClient } from '../../providers/BasktClientProvider';
+import { showTransactionToast } from '../ui/transaction-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { PublicKey } from '@solana/web3.js';
+import * as anchor from '@coral-xyz/anchor';
 
 const formSchema = z.object({
   ticker: z.string().min(1, { message: 'Ticker is required' }),
@@ -40,7 +41,6 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function ListNewAssetButton() {
   const [showModal, setShowModal] = useState(false);
-  const [showAddOracleModal, setShowAddOracleModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { client } = useBasktClient();
@@ -105,32 +105,36 @@ export function ListNewAssetButton() {
           fundingFee: parseFloat(values.fees.fundingFee),
         },
       };
+      let result = null;
+      if (assetData.oracleType === 'Custom') {
+        result = await client.addAsset({
+          ticker: assetData.ticker,
+          oracle: {
+            oracleType: 'Custom',
+            oracleAccount: new PublicKey(assetData.oracleAddress),
+            maxPriceAgeSec: assetData.maxPriceAgeSec,
+            maxPriceError: new anchor.BN(assetData.maxPriceError),
+            priceFeedId: "",
+          },
+          permissions: assetData.permissions,
+        });
+      } else {
+        //TODO incomplete
+        result = await client.addAssetWithPythOracle(
+          assetData.ticker,
+          new PublicKey(assetData.oracleAddress),
+          assetData.permissions,
+        );
+      }
 
+      if (!result) {
+        throw new Error('Failed to add asset');
+      }
 
-      // Call the client method to add a new asset
-      const result = await client.addAssetWithPythOracle(
-        assetData.ticker,
-        new PublicKey(assetData.oracleAddress),
-        assetData.permissions,
-      );
-
-      const txUrl = getSolscanTxUrl(result.txSignature);
-
-      toast({
+      showTransactionToast({
         title: 'Asset Listed Successfully',
-        description: (
-          <div className="space-y-2">
-            <p>The asset {values.ticker} has been listed and is now available for basket creation.</p>
-            <a
-              href={txUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-500 hover:underline flex items-center gap-1"
-            >
-              View transaction <ExternalLink className="h-3 w-3" />
-            </a>
-          </div>
-        ),
+        description: `The asset ${values.ticker} has been listed and is now available for basket creation.`,
+        txSignature: result.txSignature
       });
 
       setShowModal(false);
@@ -297,17 +301,6 @@ export function ListNewAssetButton() {
           </div>
         </DialogContent>
       </Dialog>
-
-      <AddOracleModal
-        open={showAddOracleModal}
-        onOpenChange={setShowAddOracleModal}
-        onOracleAdded={(address) => {
-          if (address) {
-            form.setValue('oracleAddress', address);
-          }
-          setShowAddOracleModal(false);
-        }}
-      />
     </>
   );
 }

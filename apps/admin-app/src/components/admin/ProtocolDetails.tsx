@@ -13,7 +13,6 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
   const { protocol } = useProtocol();
 
   const handleInitializeProtocol = async () => {
-    console.log(client);
     try {
       await client?.initializeProtocol();
     } catch (error) {

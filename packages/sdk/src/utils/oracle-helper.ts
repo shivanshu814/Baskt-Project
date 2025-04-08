@@ -49,10 +49,11 @@ export class OracleHelper {
     oracleName: string,
     price: number | anchor.BN,
     exponent: number,
+    ema: number | anchor.BN,
     conf?: number | anchor.BN,
     publishTime?: number | anchor.BN,
     postInstructions: TransactionInstruction[] = [],
-  ): Promise<{ address: PublicKey }> {
+  ): Promise<{ address: PublicKey; txSignature: string }> {
     // Convert inputs to BN if they are numbers
     const priceBN = typeof price === 'number' ? new anchor.BN(price) : price;
     const confBN = conf
@@ -60,6 +61,7 @@ export class OracleHelper {
         ? new anchor.BN(conf)
         : conf
       : priceBN.div(new anchor.BN(100)); // Default to 1% of price if not specified
+    const emaBN = typeof ema === 'number' ? new anchor.BN(ema) : ema;
 
     const currentTime = Math.floor(Date.now() / 1000);
     const publishTimeBN = publishTime
@@ -74,13 +76,13 @@ export class OracleHelper {
     )[0];
 
     // Initialize the oracle account with the provided data
-    await this.provider.sendAndConfirmLegacy(
+    const txSignature = await this.provider.sendAndConfirmLegacy(
       await this.program.methods
         .initializeCustomOracle({
           price: priceBN,
           expo: exponent,
           conf: confBN,
-          ema: priceBN, // Use price as EMA for simplicity
+          ema: emaBN,
           publishTime: publishTimeBN,
           oracleName: oracleName,
         })
@@ -91,9 +93,9 @@ export class OracleHelper {
         .postInstructions(postInstructions)
         .transaction(),
     );
-
     return {
       address: oracle,
+      txSignature,
     };
   }
 
@@ -112,12 +114,21 @@ export class OracleHelper {
     oracleType: OracleType,
     price: number | anchor.BN,
     exponent: number,
+    ema: number | anchor.BN,
     conf?: number | anchor.BN,
     publishTime?: number | anchor.BN,
   ): Promise<{ address: PublicKey }> {
     switch (oracleType) {
       case OracleType.Custom:
-        return this.createCustomOracle(protocol, oracleName, price, exponent, conf, publishTime);
+        return this.createCustomOracle(
+          protocol,
+          oracleName,
+          price,
+          exponent,
+          ema,
+          conf,
+          publishTime,
+        );
       default:
         throw new Error(`Unsupported oracle type: ${oracleType}`);
     }
@@ -160,11 +171,13 @@ export class OracleHelper {
     oracleAddress: PublicKey,
     price: number | anchor.BN,
     exponent: number,
+    ema: number | anchor.BN,
     conf?: number | anchor.BN,
     publishTime?: number | anchor.BN,
   ) {
     // Convert inputs to BN if they are numbers
     const priceBN = typeof price === 'number' ? new anchor.BN(price) : price;
+    const emaBN = typeof ema === 'number' ? new anchor.BN(ema) : ema;
     const confBN = conf
       ? typeof conf === 'number'
         ? new anchor.BN(conf)
@@ -185,7 +198,7 @@ export class OracleHelper {
         .updateCustomOracle({
           price: priceBN,
           conf: confBN,
-          ema: priceBN,
+          ema: emaBN,
           publishTime: publishTimeBN,
           oracleName: oracleName,
           expo: exponent,

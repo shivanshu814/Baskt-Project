@@ -1,13 +1,14 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import * as anchor from '@coral-xyz/anchor';
-import { Connection, Keypair } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import fs from 'fs';
 import path, { join } from 'path';
 import { homedir } from 'os';
 import { BasktV1 } from '../target/types/baskt_v1';
 import { TestClient } from '../tests/utils/test-client';
 import { BasktV1Idl } from 'packages/sdk/src/program/idl';
+import { AccessControlRole } from '@baskt/sdk';
 
 // Configure the provider.connection to devnet
 export const getProvider = () => {
@@ -83,14 +84,20 @@ async function main() {
     fs.mkdirSync(deployDir, { recursive: true });
   }
 
+  const fundingAccount = new PublicKey(process.env.FUNDING_ACCOUNT || '');
+
   // Giving some funding to the FUNDING_ACCOUNT
   const transaction = new anchor.web3.Transaction().add(
     anchor.web3.SystemProgram.transfer({
       fromPubkey: wallet.publicKey,
-      toPubkey: new anchor.web3.PublicKey(process.env.FUNDING_ACCOUNT || ''),
+      toPubkey: fundingAccount,
       lamports: anchor.web3.LAMPORTS_PER_SOL * 10, // Transfer 10 SOL
     }),
   );
+
+  await client.addRole(fundingAccount, AccessControlRole.Owner);
+
+  console.log('Has Role', await client.hasRole(fundingAccount, AccessControlRole.Owner));
 
   if (program.provider.sendAndConfirm) await program.provider.sendAndConfirm(transaction);
 

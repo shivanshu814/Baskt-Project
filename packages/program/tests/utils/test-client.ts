@@ -194,6 +194,7 @@ export class TestClient extends BaseClient {
       ticker,
       rawPrice,
       exponent,
+      rawPrice,
       undefined, // Default confidence
       staleTime, // Use stale timestamp
     );

@@ -83,10 +83,12 @@ export abstract class BaseClient {
     price: number | BN = this.DEFAULT_PRICE,
     exponent: number = this.DEFAULT_PRICE_EXPONENT,
     confidence?: number | BN,
+    ema?: number | BN,
     timestamp?: number,
   ) {
     // Convert to raw price with exponent if a number is provided
     const rawPrice = typeof price === 'number' ? price * Math.pow(10, -exponent) : price;
+    const emaBN = typeof ema === 'number' ? ema * Math.pow(10, -exponent) : (ema ?? rawPrice);
 
     // Default confidence to 1% of price if not specified
     const rawConfidence = confidence ?? (typeof rawPrice === 'number' ? rawPrice / 100 : undefined);
@@ -114,6 +116,7 @@ export abstract class BaseClient {
       oracleName,
       rawPrice,
       exponent,
+      emaBN,
       rawConfidence,
       timestamp,
       postInstructions,
@@ -161,8 +164,11 @@ export abstract class BaseClient {
     oracleAddress: PublicKey,
     price: number | BN,
     exponent: number = this.DEFAULT_PRICE_EXPONENT,
+    ema?: number | BN,
     confidence?: number | BN,
   ) {
+    /// TODO: This is extremely risky. I will somehow end up causing a massive problem  due to this.
+    /// This needs to be removed. The multiply. Caller should do the multiply
     // Convert to raw price with exponent if a number is provided
     const rawPrice = typeof price === 'number' ? price * Math.pow(10, -exponent) : price;
 
@@ -174,6 +180,7 @@ export abstract class BaseClient {
       oracleAddress,
       rawPrice,
       exponent,
+      ema ?? rawPrice,
       rawConfidence,
     );
   }
@@ -495,24 +502,18 @@ export abstract class BaseClient {
   public async addAssetWithPythOracle(
     ticker: string,
     pythAddress: PublicKey,
-    permissions?: AssetPermissions,
+    permissions: AssetPermissions = { allowLongs: true, allowShorts: true },
+    priceError: number = 100,
+    priceAgeSec: number = 60,
   ) {
-    // Use BaseClient's default values
-    const DEFAULT_PRICE_ERROR = 100;
-    const DEFAULT_PRICE_AGE_SEC = 60;
     // Create oracle parameters
-    const oracleParams = this.createOracleParams(
-      pythAddress,
-      'pyth',
-      DEFAULT_PRICE_ERROR,
-      DEFAULT_PRICE_AGE_SEC,
-    );
+    const oracleParams = this.createOracleParams(pythAddress, 'pyth', priceError, priceAgeSec);
 
     // Add the asset
     const { txSignature, assetAddress } = await this.addAsset({
       ticker,
       oracle: oracleParams,
-      permissions: permissions || { allowLongs: true, allowShorts: true },
+      permissions: permissions,
     });
 
     return {

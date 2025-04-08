@@ -27,20 +27,6 @@ export interface FeatureFlags {
 }
 
 /**
- * Roles that can be assigned to accounts for access control
- */
-export enum Role {
-  /** Owner role with full permissions */
-  Owner = 'owner',
-  /** Asset manager role with permission to add and manage assets */
-  AssetManager = 'assetManager',
-  /** Oracle manager role with permission to update oracle data */
-  OracleManager = 'oracleManager',
-  /** Rebalancer role with permission to rebalance baskts */
-  Rebalancer = 'rebalancer',
-}
-
-/**
  * Access control entry for a specific account
  */
 export interface AccessControlEntry {

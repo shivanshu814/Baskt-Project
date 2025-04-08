@@ -11,11 +11,13 @@ import {
 } from '../../components/ui/table';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Plus } from 'lucide-react';
+import { Plus, Copy, Check } from 'lucide-react';
 import { AddOracleModal } from './AddOracleModal';
+import { UpdateOracleModal } from './UpdateOracleModal';
 import { useBasktClient } from '../../providers/BasktClientProvider';
 import { PublicKey } from '@solana/web3.js';
 import { getSolscanAddressUrl } from '../../utils/explorer';
+import { toast } from 'sonner';
 
 type Oracle = {
   address: PublicKey;
@@ -29,10 +31,18 @@ type Oracle = {
 
 export function OraclesList() {
   const [showAddOracleModal, setShowAddOracleModal] = useState(false);
+  const [showUpdateOracleModal, setShowUpdateOracleModal] = useState(false);
+  const [selectedOracle, setSelectedOracle] = useState<Oracle | undefined>(undefined);
   const [oracles, setOracles] = useState<Oracle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+
   const { client } = useBasktClient();
+
+  const refreshOracles = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   useEffect(() => {
     const fetchOracles = async () => {
@@ -41,7 +51,8 @@ export function OraclesList() {
       try {
         setIsLoading(true);
         const oraclesList = await client.getAllOracles();
-        
+
+
         // Process the oracles and determine their status
         const processedOracles = oraclesList.map(oracle => {
           // Calculate if the oracle is stale based on publish time
@@ -51,13 +62,11 @@ export function OraclesList() {
           const publishTime = oracle.publishTime.toNumber();
           // If publish time is more than 5 minutes old, consider it stale
           const isStale = currentTime - publishTime > 300; // 5 minutes
-          
           return {
             ...oracle,
             status: isStale ? 'stale' as const : 'active' as const
           };
         });
-        
         setOracles(processedOracles);
       } catch (error) {
         console.error('Error fetching oracles:', error);
@@ -67,7 +76,7 @@ export function OraclesList() {
     };
 
     fetchOracles();
-  }, [client]);
+  }, [client, refreshTrigger]);
 
   return (
     <>
@@ -153,13 +162,30 @@ export function OraclesList() {
                         variant="outline"
                         size="sm"
                         className="bg-[#1a1f2e] text-white hover:bg-[#1a1f2e]/90 hover:text-white rounded-lg border-white/10"
+                        onClick={() => {
+                          const address = oracle.address.toString();
+                          navigator.clipboard.writeText(address);
+                          setCopiedAddress(address);
+                          toast.success("Oracle address copied to clipboard", {
+                            className: "bg-[#010b1d] text-white border border-white/10",
+                          });
+                          setTimeout(() => setCopiedAddress(null), 2000);
+                        }}
                       >
-                        View
+                        {copiedAddress === oracle.address.toString() ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         className="bg-[#1a1f2e] text-white hover:bg-[#1a1f2e]/90 hover:text-white rounded-lg border-white/10"
+                        onClick={() => {
+                          setSelectedOracle(oracle);
+                          setShowUpdateOracleModal(true);
+                        }}
                       >
                         Update
                       </Button>
@@ -175,7 +201,18 @@ export function OraclesList() {
       <AddOracleModal
         open={showAddOracleModal}
         onOpenChange={setShowAddOracleModal}
-        onOracleAdded={() => setShowAddOracleModal(false)}
+        onOracleAdded={() => {
+          refreshOracles();
+        }}
+      />
+
+      <UpdateOracleModal
+        open={showUpdateOracleModal}
+        onOpenChange={setShowUpdateOracleModal}
+        onOracleUpdated={() => {
+          refreshOracles();
+        }}
+        oracle={selectedOracle}
       />
     </>
   );
