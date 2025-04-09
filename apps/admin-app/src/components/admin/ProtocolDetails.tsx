@@ -22,11 +22,11 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
 
   if (!protocol) {
     return (
-      <div className={`p-4 bg-yellow-50 rounded-lg shadow ${className}`}>
-        <p className="text-yellow-700">No protocol information available.</p>
+      <div className={`p-4 rounded-lg border border-white/10 ${className}`}>
+        <p className="text-white/60">No protocol information available.</p>
         <div className="mt-4 flex space-x-2">
           <button
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-[#0EA5E9] text-white rounded hover:bg-[#0EA5E9]/90 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => handleInitializeProtocol()}
           >
             Initialize Protocol
@@ -37,34 +37,34 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
   }
 
   return (
-    <div className={`p-6 bg-white rounded-lg shadow ${className}`}>
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">Protocol Details</h2>
+    <div className={`p-6 rounded-lg border border-white/10 ${className}`}>
+      <h2 className="text-2xl font-bold text-white mb-4">Protocol Details</h2>
 
       <div className="mb-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">General Information</h3>
+        <h3 className="text-lg font-medium text-white mb-2">General Information</h3>
         <div className="grid grid-cols-2 gap-2">
-          <div className="text-gray-600">Status:</div>
+          <div className="text-white/60">Status:</div>
           <div className="font-medium">
-            <span className="text-green-600">Initialized</span>
+            <span className="text-[#0EA5E9]">Initialized</span>
           </div>
 
-          <div className="text-gray-600">Owner:</div>
-          <div className="font-medium text-sm break-all">{protocol.owner}</div>
+          <div className="text-white/60">Owner:</div>
+          <div className="font-medium text-sm break-all text-white">{protocol.owner}</div>
         </div>
       </div>
 
       <div className="mb-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Feature Flags</h3>
+        <h3 className="text-lg font-medium text-white mb-2">Feature Flags</h3>
         <div className="grid grid-cols-2 gap-2">
           {protocol.featureFlags &&
             Object.entries(protocol.featureFlags).map(([key, value]) => (
               <React.Fragment key={key}>
-                <div className="text-gray-600">{formatFeatureFlagName(key)}:</div>
+                <div className="text-white/60">{formatFeatureFlagName(key)}:</div>
                 <div className="font-medium">
                   {value ? (
-                    <span className="text-green-600">Enabled</span>
+                    <span className="text-[#0EA5E9]">Enabled</span>
                   ) : (
-                    <span className="text-red-600">Disabled</span>
+                    <span className="text-red-500">Disabled</span>
                   )}
                 </div>
               </React.Fragment>
@@ -73,33 +73,33 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Access Control</h3>
+        <h3 className="text-lg font-medium text-white mb-2">Access Control</h3>
         {protocol.accessControl.entries.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-white/10">
+              <thead className="bg-[#1a1f2e]">
                 <tr>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-white/60 uppercase tracking-wider"
                   >
                     Account
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-white/60 uppercase tracking-wider"
                   >
                     Role
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-white/10">
                 {protocol.accessControl.entries.map((entry, index) => (
                   <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 break-all">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white/60 break-all font-mono">
                       {entry.account}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-white/60">
                       {entry.role}
                     </td>
                   </tr>
@@ -108,7 +108,7 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
             </table>
           </div>
         ) : (
-          <p className="text-gray-500">No access control entries found.</p>
+          <p className="text-white/60">No access control entries found.</p>
         )}
       </div>
     </div>

@@ -17,11 +17,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <link rel="icon" href="/logo.png" type="image/png" />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-background`}>
         <PrivyProvider>
           <BasktClientProvider>
             {children}

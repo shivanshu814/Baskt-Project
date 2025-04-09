@@ -239,4 +239,36 @@ export class TestClient extends BaseClient {
     });
     return { txSignature, assetAddress };
   }
+
+  /**
+   * Update the price of a custom oracle
+   * @param oracleAddress Address of the oracle to update
+   * @param price New price value
+   * @param exponent Price exponent
+   * @param confidence Confidence interval (optional)
+   */
+  public async updateOraclePrice(
+    oracleName: string,
+    oracleAddress: PublicKey,
+    price: number | BN,
+    exponent: number = this.DEFAULT_PRICE_EXPONENT,
+    ema?: number | BN,
+    confidence?: number | BN,
+  ) {
+    // Convert to raw price with exponent if a number is provided
+    const rawPrice = typeof price === 'number' ? new anchor.BN(price) : price;
+
+    const rawPriceBN = rawPrice.mul(
+      new anchor.BN(10 ** -(exponent || this.DEFAULT_PRICE_EXPONENT)),
+    );
+
+    return super.updateOraclePrice(
+      oracleName,
+      oracleAddress,
+      rawPriceBN,
+      exponent,
+      ema,
+      confidence,
+    );
+  }
 }

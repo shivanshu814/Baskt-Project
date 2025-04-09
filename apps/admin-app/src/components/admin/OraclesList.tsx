@@ -21,11 +21,11 @@ import { toast } from 'sonner';
 
 type Oracle = {
   address: PublicKey;
-  price: any; // BN type from anchor
+  price: any; // BN type from anchor //eslint-disable-line
   expo: number;
-  conf: any; // BN type from anchor
-  ema: any; // BN type from anchor
-  publishTime: any; // BN type from anchor
+  conf: any; // BN type from anchor //eslint-disable-line
+  ema: any; // BN type from anchor //eslint-disable-line
+  publishTime: any; // BN type from anchor //eslint-disable-line
   status: 'active' | 'stale' | 'error';
 };
 

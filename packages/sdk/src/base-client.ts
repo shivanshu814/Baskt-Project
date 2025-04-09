@@ -87,8 +87,8 @@ export abstract class BaseClient {
     timestamp?: number,
   ) {
     // Convert to raw price with exponent if a number is provided
-    const rawPrice = typeof price === 'number' ? price * Math.pow(10, -exponent) : price;
-    const emaBN = typeof ema === 'number' ? ema * Math.pow(10, -exponent) : (ema ?? rawPrice);
+    const rawPrice = typeof price === 'number' ? new anchor.BN(price) : price;
+    const emaBN = typeof ema === 'number' ? new anchor.BN(ema) : (ema ?? rawPrice);
 
     // Default confidence to 1% of price if not specified
     const rawConfidence = confidence ?? (typeof rawPrice === 'number' ? rawPrice / 100 : undefined);
@@ -170,7 +170,11 @@ export abstract class BaseClient {
     /// TODO: This is extremely risky. I will somehow end up causing a massive problem  due to this.
     /// This needs to be removed. The multiply. Caller should do the multiply
     // Convert to raw price with exponent if a number is provided
-    const rawPrice = typeof price === 'number' ? price * Math.pow(10, -exponent) : price;
+    const rawPrice = typeof price === 'number' ? new anchor.BN(price) : price;
+
+    const rawPriceBN = rawPrice.mul(
+      new anchor.BN(10 ** -(exponent || this.DEFAULT_PRICE_EXPONENT)),
+    );
 
     // Default confidence to 1% of price if not specified
     const rawConfidence = confidence ?? (typeof rawPrice === 'number' ? rawPrice / 100 : undefined);
@@ -178,7 +182,7 @@ export abstract class BaseClient {
     await this.oracleHelper.updateCustomOraclePrice(
       oracleName,
       oracleAddress,
-      rawPrice,
+      rawPriceBN,
       exponent,
       ema ?? rawPrice,
       rawConfidence,
@@ -471,8 +475,10 @@ export abstract class BaseClient {
     priceError: number = 100,
     priceAgeSec: number = 60,
   ) {
+    let priceBN = new anchor.BN(price || this.DEFAULT_PRICE);
+    priceBN = priceBN.mul(new anchor.BN(10 ** -(exponent || this.DEFAULT_PRICE_EXPONENT)));
     // Create a custom oracle
-    const oracle = await this.createCustomOracle(this.protocolPDA, ticker, price, exponent);
+    const oracle = await this.createCustomOracle(this.protocolPDA, ticker, priceBN, exponent);
 
     // Create oracle parameters
     const oracleParams = this.createOracleParams(oracle.address, 'custom', priceError, priceAgeSec);

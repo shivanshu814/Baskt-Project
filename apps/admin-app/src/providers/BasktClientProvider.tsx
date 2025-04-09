@@ -22,7 +22,7 @@ const ProtocolClientContext = createContext<ProtocolClientContextType>({
 export function BasktClientProvider({ children }: { children: React.ReactNode }) {
   const { wallets } = useSolanaWallets();
   const activeWallet = wallets[0];
-  const [client, setClient] = useState<any | null>(null);
+  const [client, setClient] = useState<any | null>(null); //eslint-disable-line
   const [connection, setConnection] = useState<Connection | null>(null);
   const [, setIsLoading] = useState(true);
 

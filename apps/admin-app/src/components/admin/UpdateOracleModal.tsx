@@ -17,11 +17,11 @@ interface UpdateOracleModalProps {
   onOracleUpdated: () => void;
   oracle?: {
     address: PublicKey;
-    price: any;
+    price: any; //eslint-disable-line
     expo: number;
-    conf: any;
-    ema: any;
-    publishTime: any;
+    conf: any; //eslint-disable-line
+    ema: any; //eslint-disable-line
+    publishTime: any; //eslint-disable-line
   };
 }
 
