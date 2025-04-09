@@ -15,25 +15,16 @@ import { Plus, Copy, Check } from 'lucide-react';
 import { AddOracleModal } from './AddOracleModal';
 import { UpdateOracleModal } from './UpdateOracleModal';
 import { useBasktClient } from '../../providers/BasktClientProvider';
-import { PublicKey } from '@solana/web3.js';
 import { getSolscanAddressUrl } from '../../utils/explorer';
 import { toast } from 'sonner';
+import { CustomOracle } from '@baskt/sdk';
 
-type Oracle = {
-  address: PublicKey;
-  price: any; // BN type from anchor //eslint-disable-line
-  expo: number;
-  conf: any; // BN type from anchor //eslint-disable-line
-  ema: any; // BN type from anchor //eslint-disable-line
-  publishTime: any; // BN type from anchor //eslint-disable-line
-  status: 'active' | 'stale' | 'error';
-};
 
 export function OraclesList() {
   const [showAddOracleModal, setShowAddOracleModal] = useState(false);
   const [showUpdateOracleModal, setShowUpdateOracleModal] = useState(false);
-  const [selectedOracle, setSelectedOracle] = useState<Oracle | undefined>(undefined);
-  const [oracles, setOracles] = useState<Oracle[]>([]);
+  const [selectedOracle, setSelectedOracle] = useState<CustomOracle | undefined>(undefined);
+  const [oracles, setOracles] = useState<CustomOracle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
@@ -41,7 +32,7 @@ export function OraclesList() {
   const { client } = useBasktClient();
 
   const refreshOracles = () => {
-    setRefreshTrigger((prev) => prev + 1);
+    setRefreshTrigger(prev => prev + 1);
   };
 
   useEffect(() => {
@@ -75,7 +66,7 @@ export function OraclesList() {
     };
 
     fetchOracles();
-  }, [client, refreshTrigger]); //eslint-disable-line
+  }, [client, refreshTrigger]);
 
   return (
     <>
@@ -166,8 +157,8 @@ export function OraclesList() {
                           const address = oracle.address.toString();
                           navigator.clipboard.writeText(address);
                           setCopiedAddress(address);
-                          toast.success('Oracle address copied to clipboard', {
-                            className: 'bg-[#010b1d] text-white border border-white/10',
+                          toast.success("Oracle address copied to clipboard", {
+                            className: "bg-[#010b1d] text-white border border-white/10",
                           });
                           setTimeout(() => setCopiedAddress(null), 2000);
                         }}

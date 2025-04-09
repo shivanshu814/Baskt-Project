@@ -17,20 +17,15 @@ interface UpdateOracleModalProps {
   onOracleUpdated: () => void;
   oracle?: {
     address: PublicKey;
-    price: any; //eslint-disable-line
+    price: any;
     expo: number;
-    conf: any; //eslint-disable-line
-    ema: any; //eslint-disable-line
-    publishTime: any; //eslint-disable-line
+    conf: any;
+    ema: any;
+    publishTime: any;
   };
 }
 
-export function UpdateOracleModal({
-  open,
-  onOpenChange,
-  onOracleUpdated,
-  oracle,
-}: UpdateOracleModalProps) {
+export function UpdateOracleModal({ open, onOpenChange, onOracleUpdated, oracle }: UpdateOracleModalProps) {
   const [price, setPrice] = useState('');
   const [confidence, setConfidence] = useState('');
   const [ema, setEma] = useState('');
@@ -50,12 +45,7 @@ export function UpdateOracleModal({
   });
 
   const schema = z.object({
-    price: z
-      .string()
-      .refine(
-        (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
-        'Price must be a positive number',
-      ),
+    price: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, "Price must be a positive number"),
     confidence: z.string().optional(),
     ema: z.string().optional(),
   });
@@ -73,7 +63,7 @@ export function UpdateOracleModal({
 
       if (!validationResult.success) {
         const formattedErrors: { [key: string]: string } = {};
-        validationResult.error.errors.forEach((error) => {
+        validationResult.error.errors.forEach(error => {
           formattedErrors[error.path[0].toString()] = error.message;
         });
         setErrors(formattedErrors);
@@ -98,7 +88,7 @@ export function UpdateOracleModal({
         new anchor.BN(priceValue),
         oracle.expo,
         emaValue,
-        confidenceValue,
+        confidenceValue
       );
 
       showTransactionToast({
@@ -112,9 +102,9 @@ export function UpdateOracleModal({
       onOpenChange(false);
       onOracleUpdated();
     } catch (error) {
-      console.error('Error updating oracle:', error); //eslint-disable-line
+      console.error('Error updating oracle:', error);
       setErrors({
-        submit: `Failed to update oracle: ${error instanceof Error ? error.message : String(error)}`,
+        submit: `Failed to update oracle: ${error instanceof Error ? error.message : String(error)}`
       });
     } finally {
       setIsSubmitting(false);
@@ -154,16 +144,15 @@ export function UpdateOracleModal({
                 {errors.price && <p className="text-sm text-red-500">{errors.price}</p>}
                 {price && !isNaN(parseFloat(price)) && (
                   <p className="text-sm text-[#666]">
-                    Actual price:{' '}
-                    {(parseFloat(price) * Math.pow(10, oracle?.expo || 0)).toLocaleString(
-                      undefined,
-                      {
+                    Actual price: {
+                      (parseFloat(price) * Math.pow(10, oracle?.expo || 0)).toLocaleString(undefined, {
                         maximumFractionDigits: Math.abs(oracle?.expo || 0),
-                      },
-                    )}
-                  </p>
-                )}
-              </div>
+                      })
+                    }
+                  </p >
+                )
+                }
+              </div >
               <div className="space-y-2">
                 <label className="text-base font-medium text-white">Confidence (optional)</label>
                 <Input
@@ -186,11 +175,13 @@ export function UpdateOracleModal({
                 />
                 {errors.ema && <p className="text-sm text-red-500">{errors.ema}</p>}
               </div>
-              {errors.submit && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                  <p className="text-sm text-red-500">{errors.submit}</p>
-                </div>
-              )}
+              {
+                errors.submit && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <p className="text-sm text-red-500">{errors.submit}</p>
+                  </div>
+                )
+              }
               <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
@@ -216,8 +207,8 @@ export function UpdateOracleModal({
               </div>
             </>
           )}
-        </div>
-      </DialogContent>
-    </Dialog>
+        </div >
+      </DialogContent >
+    </Dialog >
   );
 }

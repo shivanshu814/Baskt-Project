@@ -2,7 +2,7 @@
 
 import { usePrivy } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
-import { Wallet, LogOut, Plus } from 'lucide-react';
+import { Wallet, LogOut, Plus, Copy } from 'lucide-react';
 import Link from 'next/link';
 import {
   NavigationMenu,
@@ -11,6 +11,13 @@ import {
   navigationMenuTriggerStyle,
 } from '../components/src/navigation-menu';
 import { Button } from './src/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../components/src/dropdown-menu';
+import { toast } from 'sonner';
 
 interface NavbarProps {
   setSidebarOpen?: (open: boolean) => void;
@@ -18,12 +25,19 @@ interface NavbarProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function Navbar({ setSidebarOpen }: NavbarProps) {
-  const { user, logout, authenticated } = usePrivy();
+  const { user, logout, authenticated, login } = usePrivy();
   const router = useRouter();
 
   const handleLogout = async () => {
     await logout();
-    router.push('/login');
+    router.push('/homepage');
+  };
+
+  const copyAddress = () => {
+    if (user?.wallet?.address) {
+      navigator.clipboard.writeText(user.wallet.address);
+      toast.success('Address copied to clipboard');
+    }
   };
 
   const formatWalletAddress = (address: string) => {
@@ -75,25 +89,36 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
                 Create Baskt
               </Button>
             </Link>
-            <button className="bg-[#1a1f2e] text-white hover:bg-[#1a1f2e]/90 h-10 px-4 rounded-lg text-sm font-medium border border-white/10 flex items-center gap-2">
-              <Wallet className="h-4 w-4" />
-              {formatWalletAddress(user.wallet.address)}
-            </button>
-            <button
-              onClick={handleLogout}
-              className="bg-[#1a1f2e] text-red-400 hover:text-red-300 hover:bg-[#1a1f2e]/90 h-10 w-10 rounded-full border border-white/10 flex items-center justify-center"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="sr-only">Logout</span>
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="bg-[#1a1f2e] text-white hover:bg-[#1a1f2e]/90 h-10 px-4 rounded-lg text-sm font-medium border border-white/10 flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  {formatWalletAddress(user.wallet.address)}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={copyAddress}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Address
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="text-red-400">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Disconnect
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         ) : (
           <div className="flex items-center gap-3">
-            <Link href="/login">
-              <Button variant="outline" size="sm">
-                Connect Wallet
+            <Link href="/create-baskt">
+              <Button variant="outline" size="sm" className="hidden md:flex">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Baskt
               </Button>
             </Link>
+            <Button variant="outline" size="sm" onClick={() => login()}>
+              Connect Wallet
+            </Button>
           </div>
         )}
       </div>

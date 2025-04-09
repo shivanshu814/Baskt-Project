@@ -52,7 +52,7 @@ export function showTransactionToast({
     </div>,
     {
       duration: 5000,
-      className: 'bg-[#010b1d] text-white border border-white/10',
-    },
+      className: "bg-[#010b1d] text-white border border-white/10",
+    }
   );
 }

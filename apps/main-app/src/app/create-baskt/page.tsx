@@ -32,6 +32,8 @@ import {
   TableRow,
 } from '../../components/src/table';
 import { Asset } from '../../types/baskt';
+import { usePrivy } from '@privy-io/react-auth';
+import React from 'react';
 
 // Types
 interface BasktAsset extends Asset {
@@ -54,6 +56,7 @@ interface BasktFormData {
 
 const CreateBaskt = () => {
   const navigate = useRouter();
+  const { authenticated, ready, login } = usePrivy();
   const [formData, setFormData] = useState<BasktFormData>({
     name: '',
     description: '',
@@ -197,6 +200,13 @@ const CreateBaskt = () => {
   // Submit form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!ready) return;
+
+    if (!authenticated) {
+      login();
+      return;
+    }
 
     // Validate form
     if (!formData.name.trim()) {

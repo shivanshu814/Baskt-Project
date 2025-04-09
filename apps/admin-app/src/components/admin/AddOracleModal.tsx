@@ -30,19 +30,12 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
 
   // Define validation schema using Zod
   const oracleSchema = z.object({
-    oracleName: z
-      .string()
-      .min(1, 'Oracle name is required')
-      .regex(/^[a-zA-Z]+$/, 'Oracle name must contain only alphabets'),
-    price: z
-      .string()
-      .min(1, 'Price is required')
-      .refine((val) => !isNaN(parseFloat(val)), 'Price must be a valid number'),
-    exponent: z
-      .string()
-      .refine((val) => !isNaN(parseInt(val)), 'Exponent must be a valid number')
-      .refine((val) => parseInt(val) <= 0, 'Exponent must be less than or equal to 0')
-      .refine((val) => parseInt(val) >= -6, 'Exponent must be greater than -6'),
+    oracleName: z.string().min(1, "Oracle name is required").regex(/^[a-zA-Z]+$/, "Oracle name must contain only alphabets"),
+    price: z.string().min(1, "Price is required").refine(val => !isNaN(parseFloat(val)), "Price must be a valid number"),
+    exponent: z.string()
+      .refine(val => !isNaN(parseInt(val)), "Exponent must be a valid number")
+      .refine(val => parseInt(val) <= 0, "Exponent must be less than or equal to 0")
+      .refine(val => parseInt(val) >= -6, "Exponent must be greater than -6"),
   });
 
   const handleSubmit = async () => {
@@ -60,7 +53,7 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: { [key: string]: string } = {};
-        error.errors.forEach((err) => {
+        error.errors.forEach(err => {
           const field = err.path[0] as string;
           newErrors[field] = err.message;
         });
@@ -90,8 +83,9 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
         priceValue,
         exponentValue,
         emaValue,
-        confidenceValue,
+        confidenceValue
       );
+
 
       const oracleAddress = result.address.toString();
 
@@ -99,7 +93,7 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
         title: 'Oracle Created',
         description: `Oracle ${oracleName} has been created successfully!`,
         address: oracleAddress,
-        addressLabel: 'View Oracle',
+        addressLabel: 'View Oracle'
       });
       onOracleAdded();
       onOpenChange(false);
@@ -111,7 +105,7 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
       setConfidence('');
       setEma('');
     } catch (error) {
-      console.error('Error creating oracle:', error); //eslint-disable-line
+      console.error('Error creating oracle:', error);
       toast.error('Failed to create oracle. See console for details.');
     } finally {
       setIsSubmitting(false);
@@ -140,7 +134,7 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
                   setOracleName(e.target.value);
                   // Clear error when typing
                   if (errors.oracleName) {
-                    setErrors((prev) => {
+                    setErrors(prev => {
                       const newErrors = { ...prev };
                       delete newErrors.oracleName;
                       return newErrors;
@@ -151,9 +145,7 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
               {errors.oracleName ? (
                 <p className="text-sm text-red-500">{errors.oracleName}</p>
               ) : (
-                <p className="text-sm text-[#666]">
-                  A unique identifier for this oracle (alphabets only)
-                </p>
+                <p className="text-sm text-[#666]">A unique identifier for this oracle (alphabets only)</p>
               )}
             </div>
             <div className="space-y-2">
@@ -190,7 +182,7 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
                       setPrice(e.target.value);
                       // Clear error when typing
                       if (errors.price) {
-                        setErrors((prev) => {
+                        setErrors(prev => {
                           const newErrors = { ...prev };
                           delete newErrors.price;
                           return newErrors;
@@ -215,7 +207,7 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
                       setExponent(e.target.value);
                       // Clear error when typing
                       if (errors.exponent) {
-                        setErrors((prev) => {
+                        setErrors(prev => {
                           const newErrors = { ...prev };
                           delete newErrors.exponent;
                           return newErrors;

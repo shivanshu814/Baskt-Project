@@ -118,7 +118,7 @@ export function ListNewAssetButton() {
             oracleAccount: new PublicKey(assetData.oracleAddress),
             maxPriceAgeSec: assetData.maxPriceAgeSec,
             maxPriceError: new anchor.BN(assetData.maxPriceError),
-            priceFeedId: '',
+            priceFeedId: "",
           },
           permissions: assetData.permissions,
         });
@@ -138,7 +138,7 @@ export function ListNewAssetButton() {
       showTransactionToast({
         title: 'Asset Listed Successfully',
         description: `The asset ${values.ticker} has been listed and is now available for basket creation.`,
-        txSignature: result.txSignature,
+        txSignature: result.txSignature
       });
 
       setShowModal(false);

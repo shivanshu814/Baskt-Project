@@ -167,14 +167,8 @@ export abstract class BaseClient {
     ema?: number | BN,
     confidence?: number | BN,
   ) {
-    /// TODO: This is extremely risky. I will somehow end up causing a massive problem  due to this.
-    /// This needs to be removed. The multiply. Caller should do the multiply
     // Convert to raw price with exponent if a number is provided
     const rawPrice = typeof price === 'number' ? new anchor.BN(price) : price;
-
-    const rawPriceBN = rawPrice.mul(
-      new anchor.BN(10 ** -(exponent || this.DEFAULT_PRICE_EXPONENT)),
-    );
 
     // Default confidence to 1% of price if not specified
     const rawConfidence = confidence ?? (typeof rawPrice === 'number' ? rawPrice / 100 : undefined);
@@ -182,7 +176,7 @@ export abstract class BaseClient {
     await this.oracleHelper.updateCustomOraclePrice(
       oracleName,
       oracleAddress,
-      rawPriceBN,
+      rawPrice,
       exponent,
       ema ?? rawPrice,
       rawConfidence,
@@ -458,44 +452,6 @@ export abstract class BaseClient {
    */
   protected getProtocolAddress(): PublicKey {
     return this.protocolPDA;
-  }
-
-  /**
-   * Create and add a synthetic asset with a custom oracle in one step
-   * @param ticker Asset ticker symbol
-   * @param price Price value (optional, defaults to 50,000)
-   * @param exponent Price exponent (optional, defaults to -6)
-   * @returns Object containing asset and oracle information
-   */
-  public async createAndAddAssetWithCustomOracle(
-    ticker: string,
-    price?: number | BN,
-    exponent?: number,
-    permissions?: AssetPermissions,
-    priceError: number = 100,
-    priceAgeSec: number = 60,
-  ) {
-    let priceBN = new anchor.BN(price || this.DEFAULT_PRICE);
-    priceBN = priceBN.mul(new anchor.BN(10 ** -(exponent || this.DEFAULT_PRICE_EXPONENT)));
-    // Create a custom oracle
-    const oracle = await this.createCustomOracle(this.protocolPDA, ticker, priceBN, exponent);
-
-    // Create oracle parameters
-    const oracleParams = this.createOracleParams(oracle.address, 'custom', priceError, priceAgeSec);
-
-    // Add the asset
-    const { txSignature, assetAddress } = await this.addAsset({
-      ticker,
-      oracle: oracleParams,
-      permissions: permissions || { allowLongs: true, allowShorts: true },
-    });
-
-    return {
-      assetAddress,
-      oracle: oracle.address, // Just return the oracle address directly
-      ticker,
-      txSignature,
-    };
   }
 
   /**

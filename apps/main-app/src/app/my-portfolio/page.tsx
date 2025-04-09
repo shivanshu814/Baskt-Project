@@ -8,9 +8,8 @@ import { ArrowRightLeft, DollarSign, LineChart, TrendingDown, TrendingUp } from 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Baskt, UserBasktPosition } from '../../types/baskt';
-import { usePrivy } from '@privy-io/react-auth';
-import { useRouter } from 'next/navigation';
-import { LoadingScreen } from '../../components/LoadingScreen';
+import React from 'react';
+
 interface BasktPosition {
   baskt: Baskt;
   position: UserBasktPosition;
@@ -23,21 +22,13 @@ interface PortfolioPerformance {
 }
 
 export default function MyPortfolio() {
-  const { authenticated, ready } = usePrivy();
-  const router = useRouter();
   const [basktPositions, setBasktPositions] = useState<BasktPosition[]>([]);
-  const [isLoading, setIsLoading] = useState(true); //eslint-disable-line
+  const [isLoading, setIsLoading] = useState(true); // eslint-disable-line
   const [performance, setPerformance] = useState<PortfolioPerformance>({
     day: 0,
     week: 0,
     month: 0,
   });
-
-  useEffect(() => {
-    if (ready && !authenticated) {
-      router.push('/login');
-    }
-  }, [ready, authenticated, router]);
 
   useEffect(() => {
     const fetchPortfolioData = async () => {
@@ -71,10 +62,6 @@ export default function MyPortfolio() {
 
     fetchPortfolioData();
   }, []);
-
-  if (!ready || !authenticated) {
-    return <LoadingScreen />;
-  }
 
   // Calculate portfolio metrics
   const totalValue = basktPositions.reduce((sum, item) => sum + item.position.currentValue, 0);

@@ -16,7 +16,7 @@ export default function HomePage() {
       if (authenticated) {
         router.push('/my-portfolio');
       } else {
-        router.push('/login');
+        router.push('/homepage');
       }
     }
   }, [ready, authenticated, router]);
