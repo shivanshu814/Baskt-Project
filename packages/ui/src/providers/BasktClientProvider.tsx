@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ConnectedSolanaWallet, useSolanaWallets } from '@privy-io/react-auth';
 import { Connection } from '@solana/web3.js';
 import { PrivyClient } from './client';

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { useBasktClient } from '../../providers/BasktClientProvider';
+import { useBasktClient } from "@baskt/ui"
 import { PublicKey } from '@solana/web3.js';
 import { showTransactionToast } from '../ui/transaction-toast';
 import { Loader2 } from 'lucide-react';

@@ -9,6 +9,7 @@ export interface Asset {
   allocation?: number; // calculated based on user's position size
   volume24h: number; // 24-hour trading volume
   marketCap: number; // market capitalization
+  logo: string; // asset logo URL
 }
 
 export interface MarketTrend {

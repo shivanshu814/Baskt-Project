@@ -1,5 +1,5 @@
 {
-  "address": "GK52S4WZPVEAMAgjRf8XsBd7upmG862AjMF89HavDpkm",
+  "address": "G4MVhTKu6LGJZ7ZepYA8JonEVVCfH2wuvrJ42MwEthzu",
   "metadata": {
     "name": "baskt_v1",
     "version": "0.1.0",
@@ -758,7 +758,7 @@
           "name": "params",
           "type": {
             "defined": {
-              "name": "CustomOracleInstructionParams"
+              "name": "CustomOracleUpdateInstructionParams"
             }
           }
         }
@@ -1444,6 +1444,26 @@
           {
             "name": "oracle_name",
             "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CustomOracleUpdateInstructionParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "conf",
+            "type": "u64"
+          },
+          {
+            "name": "ema",
+            "type": "u64"
           }
         ]
       }

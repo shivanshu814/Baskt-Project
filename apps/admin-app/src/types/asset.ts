@@ -3,4 +3,5 @@ export interface CreateAssetInput {
   assetName: string;
   oracleType: string;
   oracleAddress: string;
+  logo: string;
 }

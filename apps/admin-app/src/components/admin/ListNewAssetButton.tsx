@@ -11,8 +11,8 @@ import * as anchor from '@coral-xyz/anchor';
 import { Plus, ChevronDown } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useBasktClient } from '@baskt/ui';
 import { showTransactionToast } from '../ui/transaction-toast';
-import { useBasktClient } from '../../providers/BasktClientProvider';
 import { CreateAssetInput } from '../../types/asset';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -182,6 +182,7 @@ export function ListNewAssetButton() {
           assetName: assetData.ticker,
           oracleType: assetData.oracleType.toLowerCase(),
           oracleAddress: assetData.oracleAddress,
+          logo: `https://s2.coinmarketcap.com/static/img/coins/64x64/${assetData.ticker.toLowerCase()}.png`,
         };
         await createAsset.mutateAsync(assetInput);
       } catch (dbError) {

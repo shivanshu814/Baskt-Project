@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Layout } from '../../components/Layout';
 import { Footer } from '../../components/Footer';
 import { Button } from '../../components/src/button';
@@ -74,31 +74,7 @@ const CreateBaskt = () => {
   const [isGuideDialogOpen, setIsGuideDialogOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [availableAssets, setAvailableAssets] = useState<Asset[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchAvailableAssets = async () => {
-      try {
-        // TODO: Replace with actual API call
-        // const response = await fetch('/api/assets');
-        // const data = await response.json();
-        // setAvailableAssets(data);
-        setAvailableAssets([]);
-      } catch (error) {
-        console.error('Error fetching available assets:', error); //eslint-disable-line
-        toast({
-          title: 'Error',
-          description: 'Failed to fetch available assets. Please try again later.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAvailableAssets();
-  }, []);
+  const [isLoading, setIsLoading] = useState(true); //eslint-disable-line
 
   // Handle basic form changes
   const handleChange = (field: string, value: string | boolean) => {
@@ -557,7 +533,6 @@ const CreateBaskt = () => {
         open={isAssetModalOpen}
         onOpenChange={setIsAssetModalOpen}
         onAssetSelect={handleAddAsset}
-        availableAssets={availableAssets}
       />
 
       <Footer />

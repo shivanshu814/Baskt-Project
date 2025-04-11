@@ -8,7 +8,7 @@ pub mod math;
 pub mod state;
 pub mod utils;
 
-declare_id!("GK52S4WZPVEAMAgjRf8XsBd7upmG862AjMF89HavDpkm");
+declare_id!("G4MVhTKu6LGJZ7ZepYA8JonEVVCfH2wuvrJ42MwEthzu");
 
 use crate::state::baskt::AssetParams;
 use instructions::*;
@@ -109,7 +109,7 @@ pub mod baskt_v1 {
 
     pub fn update_custom_oracle(
         ctx: Context<UpdateCustomOracle>,
-        params: CustomOracleInstructionParams,
+        params: CustomOracleUpdateInstructionParams,
     ) -> Result<()> {
         instructions::oracle::update_custom_oracle(ctx, params)
     }

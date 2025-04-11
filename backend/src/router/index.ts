@@ -80,6 +80,7 @@ export const appRouter = router({
           assetName: z.string().min(1),
           oracleType: z.string().default('custom'),
           oracleAddress: z.string().min(1),
+          logo: z.string().min(1),
         }),
       )
       .mutation(async ({ input }) => {
@@ -109,6 +110,24 @@ export const appRouter = router({
         throw new Error('Failed to fetch assets');
       }
     }),
+
+    // get asset by address
+    getAssetByAddress: publicProcedure
+      .input(z.object({ assetAddress: z.string() }))
+      .query(async ({ input }) => {
+        try {
+          console.log('Backend: Looking for asset with address:', input.assetAddress);
+          const asset = await Asset.findOne({ assetAddress: input.assetAddress });
+          console.log('Backend: Found asset:', asset);
+          return {
+            success: true,
+            data: asset,
+          };
+        } catch (error) {
+          console.error('Error fetching asset:', error);
+          throw new Error('Failed to fetch asset');
+        }
+      }),
   }),
 });
 

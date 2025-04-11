@@ -656,6 +656,14 @@ export abstract class BaseClient {
   }
 
   private async sendAndConfirm(instructions: TransactionInstruction[]) {
+    // Send the signed transaction to the network
+    const transaction = await this.getVersionTransaction(instructions);
+    return await this.provider.sendAndConfirmV0(transaction);
+  }
+
+  public async getVersionTransaction(
+    instructions: TransactionInstruction[],
+  ): Promise<VersionedTransaction> {
     // Get the latest blockhash
     const { blockhash } = await this.connection.getLatestBlockhash();
 
@@ -679,9 +687,7 @@ export abstract class BaseClient {
 
     // Create the versioned transaction from the message
     const transaction = new VersionedTransaction(message);
-
-    // Send the signed transaction to the network
-    return await this.provider.sendAndConfirmV0(transaction);
+    return transaction;
   }
 
   /**

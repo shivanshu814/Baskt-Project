@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useProtocol } from '../../hooks/useProtocol';
-import { useBasktClient } from '../../providers/BasktClientProvider';
+import { useBasktClient } from "@baskt/ui"
 
 interface ProtocolDetailsProps {
   className?: string;

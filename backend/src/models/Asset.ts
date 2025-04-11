@@ -11,6 +11,11 @@ const assetSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  assetAddress: {
+    type: String,
+    required: true,
+    trim: true,
+  },
   oracleType: {
     type: String,
     required: true,
@@ -18,6 +23,11 @@ const assetSchema = new mongoose.Schema({
     default: 'custom',
   },
   oracleAddress: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  logo: {
     type: String,
     required: true,
     trim: true,

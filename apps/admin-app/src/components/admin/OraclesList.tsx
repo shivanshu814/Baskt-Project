@@ -14,7 +14,7 @@ import { Badge } from '../../components/ui/badge';
 import { Plus, Copy, Check } from 'lucide-react';
 import { AddOracleModal } from './AddOracleModal';
 import { UpdateOracleModal } from './UpdateOracleModal';
-import { useBasktClient } from '../../providers/BasktClientProvider';
+import { useBasktClient } from "@baskt/ui"
 import { getSolscanAddressUrl } from '../../utils/explorer';
 import { toast } from 'sonner';
 import { CustomOracle } from '@baskt/sdk';

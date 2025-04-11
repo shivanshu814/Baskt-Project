@@ -2,7 +2,7 @@
 
 import { PrivyProvider as BasePrivyProvider, usePrivy } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Cookies from 'js-cookie';
 

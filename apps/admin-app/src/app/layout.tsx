@@ -4,8 +4,8 @@ import '../styles/globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from '../components/ui/toaster';
-import { PrivyProvider } from '../providers/PrivyProvider';
-import { BasktClientProvider } from '../providers/BasktClientProvider';
+import { PrivyProvider, BasktClientProvider } from '@baskt/ui';
+import { ReactNode } from 'react';
 import { TRPCProvider } from '../providers/TRPCProvider';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     'BASKT Admin Panel allows you to manage AI-driven indexes, trading strategies, user permissions, and platform settings with real-time AI-powered insights.',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="dark">
       <head>

@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/baskt_v1.json`.
  */
 export type BasktV1 = {
-  "address": "GK52S4WZPVEAMAgjRf8XsBd7upmG862AjMF89HavDpkm",
+  "address": "G4MVhTKu6LGJZ7ZepYA8JonEVVCfH2wuvrJ42MwEthzu",
   "metadata": {
     "name": "basktV1",
     "version": "0.1.0",
@@ -764,7 +764,7 @@ export type BasktV1 = {
           "name": "params",
           "type": {
             "defined": {
-              "name": "customOracleInstructionParams"
+              "name": "customOracleUpdateInstructionParams"
             }
           }
         }
@@ -1450,6 +1450,26 @@ export type BasktV1 = {
           {
             "name": "oracleName",
             "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "customOracleUpdateInstructionParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "conf",
+            "type": "u64"
+          },
+          {
+            "name": "ema",
+            "type": "u64"
           }
         ]
       }

@@ -15,6 +15,13 @@ pub struct CustomOracleInstructionParams {
     pub oracle_name: String,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct CustomOracleUpdateInstructionParams {
+    pub price: u64,
+    pub conf: u64,
+    pub ema: u64,
+}
+
 #[derive(Accounts)]
 #[instruction(instruction_params: CustomOracleInstructionParams)]
 pub struct InitializeCustomOracle<'info> {
@@ -32,6 +39,7 @@ pub struct InitializeCustomOracle<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(instruction_params: CustomOracleUpdateInstructionParams)]
 pub struct UpdateCustomOracle<'info> {
     //TODO: This constraint is on the wrong account.
     #[account(mut, constraint = protocol.has_permission(&authority.key(), Role::OracleManager) @ PerpetualsError::Unauthorized)]
@@ -61,15 +69,17 @@ pub fn initialize_custom_oracle(
 
 pub fn update_custom_oracle(
     ctx: Context<UpdateCustomOracle>,
-    instruction_params: CustomOracleInstructionParams,
+    instruction_params: CustomOracleUpdateInstructionParams,
 ) -> Result<()> {
     let oracle = &mut ctx.accounts.oracle;
+    let current_time = Clock::get().unwrap().unix_timestamp;
+    let expo = oracle.expo;
     oracle.set(
         instruction_params.price,
-        instruction_params.expo,
+        expo,
         instruction_params.conf,
         instruction_params.ema,
-        instruction_params.publish_time,
+        current_time,
     );
     Ok(())
 }
