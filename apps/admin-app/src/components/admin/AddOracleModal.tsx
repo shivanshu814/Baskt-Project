@@ -1,68 +1,76 @@
 'use client';
 
+import { z } from 'zod';
+import { toast } from 'sonner';
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useBasktClient } from '../../providers/BasktClientProvider';
-import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { z } from 'zod';
+import { trpc } from '../../utils/trpc';
 import { showTransactionToast } from '../ui/transaction-toast';
-
-interface AddOracleModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onOracleAdded: () => void;
-}
+import { useBasktClient } from '../../providers/BasktClientProvider';
+import { AddOracleModalProps, CreateOracleInput } from '../../types/oracle';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 
 export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleModalProps) {
+  const [ema, setEma] = useState('');
   const { client } = useBasktClient();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [oracleType, setOracleType] = useState<string>('custom');
-  const [oracleName, setOracleName] = useState('');
   const [price, setPrice] = useState('');
   const [exponent, setExponent] = useState('-6');
+  const [oracleName, setOracleName] = useState('');
   const [confidence, setConfidence] = useState('');
-  const [ema, setEma] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [oracleType, setOracleType] = useState<string>('custom');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Define validation schema using Zod
   const oracleSchema = z.object({
-    oracleName: z.string().min(1, "Oracle name is required").regex(/^[a-zA-Z]+$/, "Oracle name must contain only alphabets"),
-    price: z.string().min(1, "Price is required").refine(val => !isNaN(parseFloat(val)), "Price must be a valid number"),
-    exponent: z.string()
-      .refine(val => !isNaN(parseInt(val)), "Exponent must be a valid number")
-      .refine(val => parseInt(val) <= 0, "Exponent must be less than or equal to 0")
-      .refine(val => parseInt(val) >= -6, "Exponent must be greater than -6"),
+    oracleName: z
+      .string()
+      .min(1, 'Oracle name is required')
+      .regex(/^[a-zA-Z]+$/, 'Oracle name must contain only alphabets'),
+    price: z
+      .string()
+      .min(1, 'Price is required')
+      .refine((val) => !isNaN(parseFloat(val)), 'Price must be a valid number'),
+    exponent: z
+      .string()
+      .refine((val) => !isNaN(parseInt(val)), 'Exponent must be a valid number')
+      .refine((val) => parseInt(val) <= 0, 'Exponent must be less than or equal to 0')
+      .refine((val) => parseInt(val) >= -6, 'Exponent must be greater than -6'),
+  });
+
+  const createOracle = trpc.oracle.createOracle.useMutation({
+    onSuccess: () => {
+      toast.success('Oracle saved successfully');
+      onOracleAdded();
+      onOpenChange(false);
+
+      setOracleName('');
+      setPrice('');
+      setExponent('-6');
+      setConfidence('');
+      setEma('');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
   });
 
   const handleSubmit = async () => {
-    if (!client) {
-      toast.error('Client not initialized');
-      return;
-    }
-
-    // Reset errors
     setErrors({});
 
-    // Validate inputs using Zod
     try {
       oracleSchema.parse({ oracleName, price, exponent });
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: { [key: string]: string } = {};
-        error.errors.forEach(err => {
+        error.errors.forEach((err) => {
           const field = err.path[0] as string;
           newErrors[field] = err.message;
         });
         setErrors(newErrors);
-
-        // Show the first error as a toast
-        if (error.errors.length > 0) {
-          toast.error(error.errors[0].message);
-        }
+        toast.error(error.errors[0]?.message || 'Validation failed');
         return;
       }
     }
@@ -70,35 +78,55 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
     try {
       setIsSubmitting(true);
 
-      // Convert values to appropriate types
       const priceValue = parseFloat(price);
       const exponentValue = parseInt(exponent);
       const confidenceValue = confidence ? parseFloat(confidence) : undefined;
-      const emaValue = ema ? parseFloat(ema) : priceValue; // Default to price if not specified
+      const emaValue = ema ? parseFloat(ema) : undefined;
 
-      // Create the custom oracle
-      const result = await client.createCustomOracle(
-        client.protocolPDA,
-        oracleName,
-        priceValue,
-        exponentValue,
-        emaValue,
-        confidenceValue
-      );
+      if (isNaN(priceValue) || isNaN(exponentValue)) {
+        toast.error('Price and exponent must be valid numbers');
+        return;
+      }
 
+      let oracleAddress = '';
+      if (client) {
+        try {
+          const result = await client.createCustomOracle(
+            client.protocolPDA,
+            oracleName,
+            priceValue,
+            exponentValue,
+            emaValue,
+            confidenceValue,
+          );
+          oracleAddress = result.address.toString();
 
-      const oracleAddress = result.address.toString();
+          const input: CreateOracleInput = {
+            oracleName,
+            oracleType,
+            price: priceValue,
+            exponent: exponentValue,
+            confidence: confidenceValue,
+            ema: emaValue,
+          };
 
-      showTransactionToast({
-        title: 'Oracle Created',
-        description: `Oracle ${oracleName} has been created successfully!`,
-        address: oracleAddress,
-        addressLabel: 'View Oracle'
-      });
+          await createOracle.mutateAsync(input);
+
+          showTransactionToast({
+            title: 'Oracle Created',
+            description: `Oracle ${oracleName} has been created successfully!`,
+            address: oracleAddress,
+            addressLabel: 'View Oracle',
+          });
+        } catch (error) {
+          console.error('Error creating oracle on blockchain:', error);
+          toast.error('Failed to create oracle on blockchain');
+          return;
+        }
+      }
+
       onOracleAdded();
       onOpenChange(false);
-
-      // Reset form
       setOracleName('');
       setPrice('');
       setExponent('-6');
@@ -132,9 +160,8 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
                 value={oracleName}
                 onChange={(e) => {
                   setOracleName(e.target.value);
-                  // Clear error when typing
                   if (errors.oracleName) {
-                    setErrors(prev => {
+                    setErrors((prev) => {
                       const newErrors = { ...prev };
                       delete newErrors.oracleName;
                       return newErrors;
@@ -145,7 +172,9 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
               {errors.oracleName ? (
                 <p className="text-sm text-red-500">{errors.oracleName}</p>
               ) : (
-                <p className="text-sm text-[#666]">A unique identifier for this oracle (alphabets only)</p>
+                <p className="text-sm text-[#666]">
+                  A unique identifier for this oracle (alphabets only)
+                </p>
               )}
             </div>
             <div className="space-y-2">
@@ -180,9 +209,8 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
                     value={price}
                     onChange={(e) => {
                       setPrice(e.target.value);
-                      // Clear error when typing
                       if (errors.price) {
-                        setErrors(prev => {
+                        setErrors((prev) => {
                           const newErrors = { ...prev };
                           delete newErrors.price;
                           return newErrors;
@@ -205,9 +233,8 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
                     value={exponent}
                     onChange={(e) => {
                       setExponent(e.target.value);
-                      // Clear error when typing
                       if (errors.exponent) {
-                        setErrors(prev => {
+                        setErrors((prev) => {
                           const newErrors = { ...prev };
                           delete newErrors.exponent;
                           return newErrors;

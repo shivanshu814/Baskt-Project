@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useBasktClient } from '../../providers/BasktClientProvider';
-import { getSolscanAddressUrl } from '../../utils/explorer';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { toast } from 'sonner';
 import { Asset } from '@baskt/sdk';
+import { useState, useEffect } from 'react';
+import { getSolscanAddressUrl } from '../../utils/explorer';
+import { useBasktClient } from '../../providers/BasktClientProvider';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
 export function AdminAssetsList() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  // State to store oracle and asset prices
+  const [error, setError] = useState<string | null>(null);
   const [assetPrices, setAssetPrices] = useState<
     Record<string, { oracleValue: string; assetValue: string }>
   >({});
@@ -18,14 +19,17 @@ export function AdminAssetsList() {
 
   useEffect(() => {
     const fetchAssets = async () => {
-      if (!client) return;
+      if (!client) {
+        setError('Client not initialized');
+        return;
+      }
 
       try {
         setIsLoading(true);
+        setError(null);
         const assetsList = await client.getAllAssets();
         setAssets(assetsList);
 
-        // Initialize price loading states
         const initialPrices: Record<string, { oracleValue: string; assetValue: string }> = {};
         assetsList.forEach((asset) => {
           initialPrices[asset.address.toString()] = {
@@ -35,10 +39,10 @@ export function AdminAssetsList() {
         });
         setAssetPrices(initialPrices);
 
-        // Fetch prices for all assets
         assetsList.forEach((asset) => fetchPrice(asset));
       } catch (error) {
-        console.error('Error fetching assets:', error); //eslint-disable-line
+        setError('Failed to fetch assets. Check console for details.');
+        toast.error('Failed to fetch assets. Check console for details.');
       } finally {
         setIsLoading(false);
       }
@@ -47,16 +51,13 @@ export function AdminAssetsList() {
     fetchAssets();
   }, [client]);
 
-  // Function to fetch current price for an asset
   const fetchPrice = async (asset: Asset) => {
     if (!client) return;
 
     try {
-      // Fetch Oracle price
       const priceObject = await client.getOraclePrice(asset.oracle.oracleAccount);
       const oraclePrice = priceObject.price.toNumber() / Math.pow(10, -priceObject.exponent);
 
-      // Fetch Asset price
       let assetPrice = 'Stale';
       try {
         const assetPriceResult = await client.getAssetPrice(
@@ -70,7 +71,7 @@ export function AdminAssetsList() {
           ).toString();
         }
       } catch (error) {
-        // Keep assetPrice as 'Stale' if there's an error
+        toast.error('Failed to fetch asset price');
       }
 
       setAssetPrices((prev) => ({
@@ -93,6 +94,11 @@ export function AdminAssetsList() {
 
   return (
     <div className="rounded-md border border-white/10">
+      {error && (
+        <div className="p-4 bg-red-500/10 border-b border-red-500/20">
+          <p className="text-red-500 text-sm">{error}</p>
+        </div>
+      )}
       <Table>
         <TableHeader>
           <TableRow>

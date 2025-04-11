@@ -6,6 +6,7 @@ import { Inter } from 'next/font/google';
 import { Toaster } from '../components/ui/toaster';
 import { PrivyProvider } from '../providers/PrivyProvider';
 import { BasktClientProvider } from '../providers/BasktClientProvider';
+import { TRPCProvider } from '../providers/TRPCProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -24,8 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} bg-background`}>
         <PrivyProvider>
           <BasktClientProvider>
-            {children}
-            <Toaster />
+            <TRPCProvider>
+              {children}
+              <Toaster />
+            </TRPCProvider>
           </BasktClientProvider>
         </PrivyProvider>
       </body>

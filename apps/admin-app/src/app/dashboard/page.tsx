@@ -14,7 +14,6 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { authenticated, ready } = usePrivy();
 
-
   useEffect(() => {
     if (ready && !authenticated) {
       router.push('/login');
@@ -64,7 +63,6 @@ export default function AdminDashboard() {
             >
               Protocol
             </TabsTrigger>
-
           </TabsList>
 
           <TabsContent value="assets" className="space-y-4">
@@ -84,8 +82,6 @@ export default function AdminDashboard() {
               <OraclesList />
             </div>
           </TabsContent>
-
-
         </Tabs>
       </div>
     </Layout>

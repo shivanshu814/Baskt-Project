@@ -4,22 +4,38 @@ import { z } from 'zod';
 import { useState } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
+import { trpc } from '../../utils/trpc';
 import { useForm } from 'react-hook-form';
-import { useToast } from '../../hooks/use-toast';
+import { PublicKey } from '@solana/web3.js';
+import * as anchor from '@coral-xyz/anchor';
 import { Plus, ChevronDown } from 'lucide-react';
+import { useToast } from '../../hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useBasktClient } from '../../providers/BasktClientProvider';
 import { showTransactionToast } from '../ui/transaction-toast';
+import { useBasktClient } from '../../providers/BasktClientProvider';
+import { CreateAssetInput } from '../../types/asset';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
-import { PublicKey } from '@solana/web3.js';
-import * as anchor from '@coral-xyz/anchor';
+
+const isValidSolanaPublicKey = (address: string): boolean => {
+  try {
+    new PublicKey(address);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
 
 const formSchema = z.object({
   ticker: z.string().min(1, { message: 'Ticker is required' }),
   oracleType: z.enum(['Pyth', 'Switchboard', 'Custom']),
-  oracleAddress: z.string().min(32, { message: 'Valid oracle address required' }),
+  oracleAddress: z
+    .string()
+    .min(32, { message: 'Valid oracle address required' })
+    .refine((val) => isValidSolanaPublicKey(val), {
+      message: 'Invalid Solana public key format',
+    }),
 
   permissions: z.object({
     allowLong: z.boolean().default(true),
@@ -44,6 +60,24 @@ export function ListNewAssetButton() {
   const { toast } = useToast();
   const { client } = useBasktClient();
 
+  const createAsset = trpc.asset.createAsset.useMutation({
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Asset saved successfully',
+      });
+      setShowModal(false);
+      form.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -65,7 +99,6 @@ export function ListNewAssetButton() {
   });
 
   const onSubmit = async (values: FormValues) => {
-    // Basic validation
     if (
       !values.ticker ||
       !values.oracleAddress ||
@@ -80,19 +113,27 @@ export function ListNewAssetButton() {
       return;
     }
 
-    if (!client) {
-      toast({
-        title: 'Client Error',
-        description: 'Client not initialized',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     try {
       setIsSubmitting(true);
 
-      // Collate all the information
+      if (!isValidSolanaPublicKey(values.oracleAddress)) {
+        toast({
+          title: 'Validation Error',
+          description: 'Invalid oracle address format',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!client) {
+        toast({
+          title: 'Client Error',
+          description: 'Client not initialized',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const assetData = {
         ticker: values.ticker,
         oracleType: values.oracleType,
@@ -109,6 +150,7 @@ export function ListNewAssetButton() {
           fundingFee: parseFloat(values.fees.fundingFee),
         },
       };
+
       let result = null;
       if (assetData.oracleType === 'Custom') {
         result = await client.addAsset({
@@ -118,12 +160,11 @@ export function ListNewAssetButton() {
             oracleAccount: new PublicKey(assetData.oracleAddress),
             maxPriceAgeSec: assetData.maxPriceAgeSec,
             maxPriceError: new anchor.BN(assetData.maxPriceError),
-            priceFeedId: "",
+            priceFeedId: '',
           },
           permissions: assetData.permissions,
         });
       } else {
-        //TODO incomplete
         result = await client.addAssetWithPythOracle(
           assetData.ticker,
           new PublicKey(assetData.oracleAddress),
@@ -132,19 +173,35 @@ export function ListNewAssetButton() {
       }
 
       if (!result) {
-        throw new Error('Failed to add asset');
+        throw new Error('Failed to add asset on blockchain');
+      }
+
+      try {
+        const assetInput: CreateAssetInput = {
+          assetId: assetData.ticker,
+          assetName: assetData.ticker,
+          oracleType: assetData.oracleType.toLowerCase(),
+          oracleAddress: assetData.oracleAddress,
+        };
+        await createAsset.mutateAsync(assetInput);
+      } catch (dbError) {
+        toast({
+          title: 'Warning',
+          description:
+            'Asset was added to blockchain but failed to save in database. Please contact support.',
+          variant: 'destructive',
+        });
       }
 
       showTransactionToast({
         title: 'Asset Listed Successfully',
         description: `The asset ${values.ticker} has been listed and is now available for basket creation.`,
-        txSignature: result.txSignature
+        txSignature: result.txSignature,
       });
 
       setShowModal(false);
       form.reset();
     } catch (error) {
-      console.error('Error adding asset:', error); //eslint-disable-line
       toast({
         title: 'Error Adding Asset',
         description: error instanceof Error ? error.message : 'An unknown error occurred',
@@ -178,6 +235,9 @@ export function ListNewAssetButton() {
                 {...form.register('ticker')}
                 className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
               />
+              {form.formState.errors.ticker && (
+                <p className="text-red-500 text-sm">{form.formState.errors.ticker.message}</p>
+              )}
               <p className="text-sm text-[#666]">Enter the name of the asset</p>
             </div>
 
@@ -205,6 +265,9 @@ export function ListNewAssetButton() {
                   </SelectItem>
                 </SelectContent>
               </Select>
+              {form.formState.errors.oracleType && (
+                <p className="text-red-500 text-sm">{form.formState.errors.oracleType.message}</p>
+              )}
               <p className="text-xs text-[#E5E7EB]/60">Select the oracle feed type</p>
             </div>
 
@@ -215,6 +278,11 @@ export function ListNewAssetButton() {
                 {...form.register('oracleAddress')}
                 className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
               />
+              {form.formState.errors.oracleAddress && (
+                <p className="text-red-500 text-sm">
+                  {form.formState.errors.oracleAddress.message}
+                </p>
+              )}
               <p className="text-xs text-[#E5E7EB]/60">Specify the oracle account address</p>
             </div>
 
@@ -227,6 +295,11 @@ export function ListNewAssetButton() {
                   {...form.register('maxPriceError')}
                   className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
                 />
+                {form.formState.errors.maxPriceError && (
+                  <p className="text-red-500 text-sm">
+                    {form.formState.errors.maxPriceError.message}
+                  </p>
+                )}
                 <p className="text-xs text-[#E5E7EB]/60">Maximum allowed price error</p>
               </div>
               <div className="space-y-2">
@@ -237,6 +310,11 @@ export function ListNewAssetButton() {
                   {...form.register('maxPriceAgeSec')}
                   className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
                 />
+                {form.formState.errors.maxPriceAgeSec && (
+                  <p className="text-red-500 text-sm">
+                    {form.formState.errors.maxPriceAgeSec.message}
+                  </p>
+                )}
                 <p className="text-xs text-[#E5E7EB]/60">Maximum age of price in seconds</p>
               </div>
             </div>
