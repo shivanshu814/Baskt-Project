@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server/index.ts",
+    "dev": "tsc -w",
     "build": "tsc",
     "start": "node dist/server/index.js",
     "lint": "eslint src --ext .ts",
     "test": "mocha"
   },
   "dependencies": {
+    "@baskt/sdk": "workspace:*",
     "@trpc/client": "^10.45.1",
     "@trpc/react-query": "^10.45.1",
     "@trpc/server": "^10.45.1",

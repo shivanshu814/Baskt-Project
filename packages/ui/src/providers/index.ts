@@ -1,2 +1,3 @@
-export * from './PrivyProvider';
-export * from './BasktClientProvider';
+export { PrivyProvider } from './PrivyProvider';
+export { BasktClientProvider, useBasktClient } from './BasktClientProvider';
+export { PrivyClient } from './client';

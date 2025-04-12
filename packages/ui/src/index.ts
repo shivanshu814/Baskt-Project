@@ -1,1 +1,1 @@
-export * from './providers';
+export { PrivyProvider, BasktClientProvider, useBasktClient, PrivyClient } from './providers';

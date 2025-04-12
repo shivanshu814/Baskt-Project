@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@baskt/program": "workspace:*",
     "@baskt/sdk": "workspace:*",
     "@baskt/ui": "workspace:*",
     "@hookform/resolvers": "^3.9.0",
