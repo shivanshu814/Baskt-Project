@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/baskt_v1.json`.
  */
 export type BasktV1 = {
-  "address": "G4MVhTKu6LGJZ7ZepYA8JonEVVCfH2wuvrJ42MwEthzu",
+  "address": "GK52S4WZPVEAMAgjRf8XsBd7upmG862AjMF89HavDpkm",
   "metadata": {
     "name": "basktV1",
     "version": "0.1.0",

@@ -1,7 +1,7 @@
 export interface CreateAssetInput {
-  assetId: string;
-  assetName: string;
-  oracleType: string;
+  ticker: string;
+  name: string;
+  assetAddress: string;
   oracleAddress: string;
   logo: string;
 }

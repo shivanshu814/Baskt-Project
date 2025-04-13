@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Navbar } from './Navbar';
-import { cn } from '../lib/utils';
+import { cn } from '@baskt/ui/';
 
 interface LayoutProps {
   children: React.ReactNode;

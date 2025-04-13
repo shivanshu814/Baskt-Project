@@ -8,7 +8,7 @@ import {
   TableRow,
 } from '../../components/src/table';
 import { Baskt, UserBasktPosition } from '../../types/baskt';
-import { cn } from '../../lib/utils';
+import { cn } from '@baskt/ui';
 import { ArrowRightLeft, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/src/card';

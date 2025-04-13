@@ -1,7 +1,7 @@
 import * as anchor from '@coral-xyz/anchor';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import { BasktV1 } from '../program/types';
-import { LightweightProvider } from '../types';
+import { LightweightProvider } from '@baskt/types';
 
 // Oracle types enum to match the Rust program
 export enum OracleType {
@@ -167,49 +167,38 @@ export class OracleHelper {
    * @param publishTime New timestamp of price publication (optional, defaults to current time)
    */
   async updateCustomOraclePrice(
-    oracleName: string,
     oracleAddress: PublicKey,
     price: number | anchor.BN,
-    exponent: number,
     ema: number | anchor.BN,
     conf?: number | anchor.BN,
-    publishTime?: number | anchor.BN,
   ) {
-    // Convert inputs to BN if they are numbers
-    const priceBN = typeof price === 'number' ? new anchor.BN(price) : price;
-    const emaBN = typeof ema === 'number' ? new anchor.BN(ema) : ema;
-    const confBN = conf
-      ? typeof conf === 'number'
-        ? new anchor.BN(conf)
-        : conf
-      : priceBN.div(new anchor.BN(100)); // Default to 1% of price if not specified
-
-    // Update the oracle account with the new data
-    await this.provider.sendAndConfirmLegacy(
-      await this.program.methods
-        .updateCustomOracle({
-          price: priceBN,
-          conf: confBN,
-          ema: emaBN,
-        })
-        .accounts({
-          oracle: oracleAddress,
-          authority: this.publicKey,
-        })
-        .transaction(),
+    return await this.provider.sendAndConfirmLegacy(
+      await this.updateOraclePriceTxBuilder(oracleAddress, price, ema, conf).transaction(),
     );
   }
-
+  /**
+   * Updates the price of a custom oracle account
+   * @param oracleAddress Address of the oracle account to update
+   * @param price New price value (mantissa)
+   * @param exponent New price exponent (e.g., -9 for 1 GWEI = 10^-9)
+   * @param conf New confidence interval (optional, defaults to 1% of price)
+   * @param publishTime New timestamp of price publication (optional, defaults to current time)
+   */
   async updateCustomOraclePriceItx(
-    oracleName: string,
     oracleAddress: PublicKey,
     price: number | anchor.BN,
-    exponent: number,
     ema: number | anchor.BN,
     conf?: number | anchor.BN,
-    publishTime?: number | anchor.BN,
   ) {
-    // Convert inputs to BN if they are numbers
+    return this.updateOraclePriceTxBuilder(oracleAddress, price, ema, conf).instruction();
+  }
+
+  private updateOraclePriceTxBuilder(
+    oracleAddress: PublicKey,
+    price: number | anchor.BN,
+    ema: number | anchor.BN,
+    conf?: number | anchor.BN,
+  ) {
     const priceBN = typeof price === 'number' ? new anchor.BN(price) : price;
     const emaBN = typeof ema === 'number' ? new anchor.BN(ema) : ema;
     const confBN = conf
@@ -218,16 +207,7 @@ export class OracleHelper {
         : conf
       : priceBN.div(new anchor.BN(100)); // Default to 1% of price if not specified
 
-    const currentTime = Math.floor(Date.now() / 1000);
-    // Set publish time to current time - 1 to ensure it's always behind
-    const publishTimeBN = publishTime
-      ? typeof publishTime === 'number'
-        ? new anchor.BN(publishTime)
-        : publishTime
-      : new anchor.BN(currentTime - 1);
-
-    // Update the oracle account with the new data
-    return await this.program.methods
+    return this.program.methods
       .updateCustomOracle({
         price: priceBN,
         conf: confBN,
@@ -236,7 +216,6 @@ export class OracleHelper {
       .accounts({
         oracle: oracleAddress,
         authority: this.publicKey,
-      })
-      .instruction();
+      });
   }
 }

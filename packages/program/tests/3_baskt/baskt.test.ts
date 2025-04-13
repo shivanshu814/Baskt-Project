@@ -490,7 +490,7 @@ describe('baskt view functions', () => {
 
     // Update BTC price (50% of the baskt) and check how it affects NAV
     const newBtcPrice = 60000; // 20% increase, properly scaled
-    await client.updateOraclePrice('BTC_VIEW', btcAssetId.oracle, newBtcPrice);
+    await client.updateOraclePrice(btcAssetId.oracle, newBtcPrice);
 
     // Get updated NAV
     const updatedNav = await client.getBasktNav(basktId, assetOraclePairs);
@@ -530,7 +530,7 @@ describe('baskt view functions', () => {
 
     // Update ETH price (25% of the baskt) and check how it affects NAV
     const newEthPrice = 4000; // 20% increase, properly scaled
-    await client.updateOraclePrice('ETH_VIEW', ethAssetId.oracle, newEthPrice);
+    await client.updateOraclePrice(ethAssetId.oracle, newEthPrice);
 
     // Get updated NAV
     const updatedNav = await client.getBasktNav(basktId, assetOraclePairs as any);

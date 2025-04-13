@@ -7,7 +7,7 @@ import {
 } from '../ui/dropdown-menu';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
-import { cn } from '../../lib/utils';
+import { cn } from '@baskt/ui';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';

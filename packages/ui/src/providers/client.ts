@@ -28,6 +28,7 @@ export class PrivyClient extends BaseClient {
       tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
       tx.feePayer = new PublicKey(wallet.address);
       const sign = await wallet.signTransaction(tx);
+      // eslint-disable-next-line no-undef
       return sendAndConfirmRawTransaction(connection, Buffer.from(sign.serialize()), {
         commitment: 'confirmed',
       });

@@ -2,7 +2,7 @@
 
 import { ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
-import { getSolscanAddressUrl, getSolscanTxUrl } from '../../utils/explorer';
+import { getSolscanAddressUrl, getSolscanTxUrl } from '@baskt/ui';
 
 interface TransactionToastProps {
   title: string;

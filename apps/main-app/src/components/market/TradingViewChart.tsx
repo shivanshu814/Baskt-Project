@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/src/tabs';
-import { cn } from '../../lib/utils';
+import { cn } from '@baskt/ui';
 import {
   AreaChart,
   Area,

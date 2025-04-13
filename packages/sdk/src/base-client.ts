@@ -13,12 +13,16 @@ import BN from 'bn.js';
 // Import the types from our local files
 import type { BasktV1 } from './program/types';
 import { stringToRole, toRoleString } from './utils/acl-helper';
-import { AccessControlRole } from './types/role';
-import { Asset, AssetPermissions, OracleParams } from './types/asset';
 import { createLookupTableInstructions, extendLookupTable } from './utils/lookup-table-helper';
-import { ProtocolInterface } from './types/protocol';
-import { LightweightProvider } from './types';
 import { BasktV1Idl } from './program/idl';
+import {
+  LightweightProvider,
+  AssetPermissions,
+  ProtocolInterface,
+  AccessControlRole,
+  OracleParams,
+  Asset,
+} from '@baskt/types';
 
 /**
  * Abstract base client for Solana programs
@@ -156,30 +160,21 @@ export abstract class BaseClient {
    * Update the price of a custom oracle
    * @param oracleAddress Address of the oracle to update
    * @param price New price value
-   * @param exponent Price exponent
+   * @param ema EMA value
    * @param confidence Confidence interval (optional)
    */
   public async updateOraclePrice(
-    oracleName: string,
     oracleAddress: PublicKey,
     price: number | BN,
-    exponent: number = this.DEFAULT_PRICE_EXPONENT,
     ema?: number | BN,
     confidence?: number | BN,
   ) {
-    // Convert to raw price with exponent if a number is provided
     const rawPrice = typeof price === 'number' ? new anchor.BN(price) : price;
-
-    // Default confidence to 1% of price if not specified
-    const rawConfidence = confidence ?? (typeof rawPrice === 'number' ? rawPrice / 100 : undefined);
-
     await this.oracleHelper.updateCustomOraclePrice(
-      oracleName,
       oracleAddress,
       rawPrice,
-      exponent,
       ema ?? rawPrice,
-      rawConfidence,
+      confidence ?? rawPrice.div(new anchor.BN(100)),
     );
   }
 
@@ -680,7 +675,7 @@ export abstract class BaseClient {
     }
     // Create the transaction message
     const message = new TransactionMessage({
-      payerKey: this.getPublicKey(), // Account paying for the transaction
+      payerKey: this.getPublicKey(), // Account paying for the transaction,
       recentBlockhash: blockhash, // Latest blockhash
       instructions, // Instructions to be included in the transaction
     }).compileToV0Message(lookupTables);

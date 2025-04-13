@@ -73,9 +73,6 @@ export function UpdateOracleModal({ open, onOpenChange, onOracleUpdated, oracle 
       setIsSubmitting(true);
       setErrors({});
 
-      // Extract oracle name from address (assuming it's stored in the oracle object)
-      const oracleName = oracle.address.toString().split('/').pop() || '';
-
       // Parse values
       const priceValue = parseFloat(price);
       const confidenceValue = confidence ? parseFloat(confidence) : undefined;
@@ -83,10 +80,8 @@ export function UpdateOracleModal({ open, onOpenChange, onOracleUpdated, oracle 
 
       // Call the update method
       await client.updateOraclePrice(
-        oracleName,
         oracle.address,
         new anchor.BN(priceValue),
-        oracle.expo,
         emaValue,
         confidenceValue
       );

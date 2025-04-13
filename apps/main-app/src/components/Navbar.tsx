@@ -30,7 +30,7 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
 
   const handleLogout = async () => {
     await logout();
-    router.push('/homepage');
+    router.push('/');
   };
 
   const copyAddress = () => {
@@ -50,7 +50,7 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
       <div className="max-w-[1700px] h-full mx-auto flex items-center justify-between p-6">
         <div className="flex items-center gap-4">
           <Link
-            href="/homepage"
+            href="/"
             className="flex items-center gap-2 font-bold text-xl tracking-tight"
           >
             <span className="text-primary">Baskt</span>

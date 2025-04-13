@@ -15,9 +15,9 @@ import { Plus, Copy, Check } from 'lucide-react';
 import { AddOracleModal } from './AddOracleModal';
 import { UpdateOracleModal } from './UpdateOracleModal';
 import { useBasktClient } from "@baskt/ui"
-import { getSolscanAddressUrl } from '../../utils/explorer';
+import { getSolscanAddressUrl } from '@baskt/ui';
 import { toast } from 'sonner';
-import { CustomOracle } from '@baskt/sdk';
+import { CustomOracle } from '@baskt/types';
 
 
 export function OraclesList() {

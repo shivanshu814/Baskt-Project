@@ -1,7 +1,7 @@
 /** @format */
 
 import React from 'react';
-import { cn } from './lib/utils';
+import { cn } from './src/lib/utils';
 
 export interface ButtonProps {
   children: React.ReactNode;

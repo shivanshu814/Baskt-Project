@@ -7,7 +7,7 @@ import {
 } from '../../components/src/card';
 import { AssetAllocationChart } from './AssetAllocationChart';
 import { Baskt } from '../../types/baskt';
-import { cn } from '../../lib/utils';
+import { cn } from '@baskt/ui';
 import { ChevronDown, ChevronUp, ChevronsDown, ChevronsUp } from 'lucide-react';
 import {
   Collapsible,

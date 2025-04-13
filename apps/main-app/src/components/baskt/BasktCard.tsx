@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from '../../components/src/card';
 import { Baskt } from '../../types/baskt';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { cn } from '@baskt/ui';
 import Link from 'next/link';
 
 interface BasktCardProps {

@@ -8,7 +8,7 @@ pub mod math;
 pub mod state;
 pub mod utils;
 
-declare_id!("G4MVhTKu6LGJZ7ZepYA8JonEVVCfH2wuvrJ42MwEthzu");
+declare_id!("GK52S4WZPVEAMAgjRf8XsBd7upmG862AjMF89HavDpkm");
 
 use crate::state::baskt::AssetParams;
 use instructions::*;

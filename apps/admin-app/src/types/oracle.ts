@@ -1,10 +1,20 @@
+import { OracleType } from '@baskt/types';
+
 export interface CreateOracleInput {
   oracleName: string;
-  oracleType: string;
-  price: number;
-  exponent: number;
-  confidence?: number;
-  ema?: number;
+  oracleType: OracleType;
+  oracleAddress: string;
+  priceConfig: {
+    provider: {
+      id: string;
+      chain: string;
+      name: string;
+    };
+    twp: {
+      seconds: number;
+    };
+    updateFrequencySeconds: number;
+  };
 }
 
 export interface AddOracleModalProps {

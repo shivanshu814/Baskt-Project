@@ -35,8 +35,8 @@ export function BasktClientProvider({ children }: { children: React.ReactNode })
 
       try {
         setIsLoading(true);
+        // eslint-disable-next-line no-undef
         const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'http://localhost:8899';
-
         const basktClient = new PrivyClient(new Connection(rpcUrl), activeWallet);
 
         setConnection(new Connection(rpcUrl));

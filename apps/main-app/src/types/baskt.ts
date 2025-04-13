@@ -1,6 +1,7 @@
 export interface Asset {
   id: string;
   name: string;
+  ticker: string;
   symbol: string;
   price: number;
   change24h: number;

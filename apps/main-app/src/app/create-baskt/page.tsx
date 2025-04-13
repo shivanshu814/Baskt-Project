@@ -18,7 +18,7 @@ import {
 import { Badge } from '../../components/src/badge';
 import { X, Plus, Search, Tag, AlertCircle, Trash2, Clock } from 'lucide-react';
 import { Switch } from '../../components/src/switch';
-import { cn } from '../../lib/utils';
+import { cn } from '@baskt/ui';
 import { useRouter } from 'next/navigation';
 import { CreateBasktGuideDialog } from '../../components/baskt/CreateBasktGuideDialog';
 import { AssetSelectionModal } from '../../components/baskt/AssetSelectionModal';
@@ -74,7 +74,6 @@ const CreateBaskt = () => {
   const [isGuideDialogOpen, setIsGuideDialogOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); //eslint-disable-line
 
   // Handle basic form changes
   const handleChange = (field: string, value: string | boolean) => {
@@ -119,10 +118,10 @@ const CreateBaskt = () => {
 
   // Handle adding an asset
   const handleAddAsset = (asset: Asset) => {
-    if (formData.assets.some((a) => a.symbol === asset.symbol)) {
+    if (formData.assets.some((a) => a.ticker === asset.ticker)) {
       toast({
         title: 'Asset already added',
-        description: `${asset.symbol} is already in your Baskt.`,
+        description: `${asset.ticker} is already in your Baskt.`,
         variant: 'destructive',
       });
       return;
@@ -143,29 +142,31 @@ const CreateBaskt = () => {
   };
 
   // Handle removing an asset
-  const handleRemoveAsset = (assetSymbol: string) => {
+  const handleRemoveAsset = (assetticker: string) => {
     setFormData((prev) => ({
       ...prev,
-      assets: prev.assets.filter((asset) => asset.symbol !== assetSymbol),
+      assets: prev.assets.filter((asset) => asset.ticker !== assetticker),
     }));
   };
 
   // Handle changing asset position (long/short)
-  const handleAssetPositionChange = (assetSymbol: string, position: 'long' | 'short') => {
+  const handleAssetPositionChange = (assetticker: string, position: 'long' | 'short') => {
     setFormData((prev) => ({
       ...prev,
       assets: prev.assets.map((asset) =>
-        asset.symbol === assetSymbol ? { ...asset, position } : asset,
+        asset.ticker === assetticker ? { ...asset, position } : asset,
       ),
     }));
   };
 
   // Handle changing asset weightage
-  const handleAssetWeightChange = (assetSymbol: string, weightage: number) => {
+  const handleAssetWeightChange = (assetticker: string, input: string) => {
+    const weightage = parseFloat(input);
+    if (isNaN(weightage)) return;
     setFormData((prev) => ({
       ...prev,
       assets: prev.assets.map((asset) =>
-        asset.symbol === assetSymbol ? { ...asset, weightage } : asset,
+        asset.ticker === assetticker ? { ...asset, weightage } : asset,
       ),
     }));
   };
@@ -247,10 +248,6 @@ const CreateBaskt = () => {
       setIsSubmitting(false);
     }
   };
-
-  if (isLoading) {
-    return <Layout>Loading...</Layout>;
-  }
 
   return (
     <Layout>
@@ -450,16 +447,16 @@ const CreateBaskt = () => {
                       </TableHeader>
                       <TableBody>
                         {formData.assets.map((asset) => (
-                          <TableRow key={asset.symbol}>
+                          <TableRow key={asset.ticker}>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <div className="bg-primary/10 h-8 w-8 rounded-full flex items-center justify-center">
                                   <span className="font-medium text-primary text-xs">
-                                    {asset.symbol.substring(0, 2)}
+                                    {asset.ticker.substring(0, 2)}
                                   </span>
                                 </div>
                                 <div>
-                                  <div className="font-medium">{asset.symbol}</div>
+                                  <div className="font-medium">{asset.ticker}</div>
                                   <div className="text-xs text-muted-foreground">{asset.name}</div>
                                 </div>
                               </div>
@@ -470,11 +467,10 @@ const CreateBaskt = () => {
                                 type="number"
                                 min="0"
                                 max="100"
-                                value={asset.weightage}
                                 onChange={(e) =>
                                   handleAssetWeightChange(
-                                    asset.symbol,
-                                    parseFloat(e.target.value) || 0,
+                                    asset.ticker,
+                                    e.target.value,
                                   )
                                 }
                                 className="w-20"
@@ -484,7 +480,7 @@ const CreateBaskt = () => {
                               <Select
                                 value={asset.position}
                                 onValueChange={(value: 'long' | 'short') =>
-                                  handleAssetPositionChange(asset.symbol, value)
+                                  handleAssetPositionChange(asset.ticker, value)
                                 }
                               >
                                 <SelectTrigger className="w-[100px]">
@@ -500,7 +496,7 @@ const CreateBaskt = () => {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleRemoveAsset(asset.symbol)}
+                                onClick={() => handleRemoveAsset(asset.ticker)}
                                 className="text-destructive hover:text-destructive"
                               >
                                 <Trash2 className="h-4 w-4" />

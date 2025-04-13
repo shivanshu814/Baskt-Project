@@ -2,9 +2,9 @@ import * as anchor from '@coral-xyz/anchor';
 import { Program } from '@coral-xyz/anchor';
 import { Keypair, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import BN from 'bn.js';
-import { BaseClient, AccessControlRole } from '@baskt/sdk';
+import { BaseClient } from '@baskt/sdk';
 import { BasktV1 } from '../../target/types/baskt_v1';
-import { AssetPermissions, OracleParams } from 'packages/sdk/src/types';
+import { AssetPermissions, OracleParams, AccessControlRole } from '@baskt/types';
 
 /**
  * Helper function to request an airdrop for a given address
@@ -153,12 +153,12 @@ export class TestClient extends BaseClient {
       const existingAsset = await this.getAssetByTicker(ticker);
       if (existingAsset) {
         // If asset exists, return its information
-        await this.updateOraclePrice(ticker, existingAsset.oracle.oracleAccount, price, exponent);
+        await this.updateOraclePrice(existingAsset.oracle.oracleAccount, price);
         return {
           assetAddress: existingAsset.assetAddress,
           ticker: existingAsset.ticker,
-          oracle: existingAsset.oracle.oracleAccount, // Just return the oracle account address
-          txSignature: null, // No new transaction was created
+          oracle: existingAsset.oracle.oracleAccount,
+          txSignature: null,
         };
       }
     } catch (error) {
@@ -248,28 +248,17 @@ export class TestClient extends BaseClient {
    * @param confidence Confidence interval (optional)
    */
   public async updateOraclePrice(
-    oracleName: string,
     oracleAddress: PublicKey,
     price: number | BN,
-    exponent: number = this.DEFAULT_PRICE_EXPONENT,
     ema?: number | BN,
     confidence?: number | BN,
   ) {
     // Convert to raw price with exponent if a number is provided
     const rawPrice = typeof price === 'number' ? new anchor.BN(price) : price;
 
-    const rawPriceBN = rawPrice.mul(
-      new anchor.BN(10 ** -(exponent || this.DEFAULT_PRICE_EXPONENT)),
-    );
+    const rawPriceBN = rawPrice.mul(new anchor.BN(10 ** -this.DEFAULT_PRICE_EXPONENT));
 
-    return super.updateOraclePrice(
-      oracleName,
-      oracleAddress,
-      rawPriceBN,
-      exponent,
-      ema,
-      confidence,
-    );
+    return super.updateOraclePrice(oracleAddress, rawPriceBN, ema, confidence);
   }
 
   /**

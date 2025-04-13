@@ -2,14 +2,13 @@
 
 import { PrivyProvider as BasePrivyProvider, usePrivy } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Cookies from 'js-cookie';
 
 
 function AuthStateHandler({ children }: { children: React.ReactNode }) {
   const { authenticated, ready, user } = usePrivy();
-  const isNavigatingRef = useRef(false);
 
   useEffect(() => {
     if (ready) {
@@ -19,27 +18,14 @@ function AuthStateHandler({ children }: { children: React.ReactNode }) {
         Cookies.remove('wallet-connected', { path: '/' });
       }
     }
-  }, [authenticated, ready, user]); // eslint-disable-line
-
-  useEffect(() => {
-    if (!ready || isNavigatingRef.current) return;
-
-    const path = window.location.pathname;
-
-    if (authenticated && path === '/login') {
-      isNavigatingRef.current = true;
-      window.location.href = '/dashboard';
-    } else if (!authenticated && path !== '/login') {
-      isNavigatingRef.current = true;
-      window.location.href = '/login';
-    }
-  }, [authenticated, ready]);
+  }, [authenticated, ready, user]);
 
   return <>{children}</>;
 }
 
 function PrivyProviderComponent({ children }: { children: React.ReactNode }) {
   const connectors = toSolanaWalletConnectors();
+  // eslint-disable-next-line no-undef
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
   return (

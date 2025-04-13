@@ -3,7 +3,7 @@ import { describe, it, before } from 'mocha';
 import { PublicKey } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
 import { TestClient } from '../utils/test-client';
-import { AccessControlRole } from '@baskt/sdk';
+import { AccessControlRole } from '@baskt/types';
 
 type AssetId = {
   assetAddress: PublicKey;
@@ -319,9 +319,9 @@ describe('Baskt Rebalance with NAV Changes', () => {
 
   it('Updates NAV when asset prices change (without rebalance)', async () => {
     // Update asset prices to second set
-    await client.updateOraclePrice('BTCNAV', btcAssetId.oracle, secondPrices.BTC);
-    await client.updateOraclePrice('ETHNAV', ethAssetId.oracle, secondPrices.ETH);
-    await client.updateOraclePrice('SOLNAV', solAssetId.oracle, secondPrices.SOL);
+    await client.updateOraclePrice(btcAssetId.oracle, secondPrices.BTC);
+    await client.updateOraclePrice(ethAssetId.oracle, secondPrices.ETH);
+    await client.updateOraclePrice(solAssetId.oracle, secondPrices.SOL);
 
     // Get the updated NAV
     const updatedNav = await client.getBasktNav(basktId);
@@ -413,9 +413,9 @@ describe('Baskt Rebalance with NAV Changes', () => {
 
   it('Updates NAV correctly after another price change and rebalance', async () => {
     // Update asset prices to third set
-    await client.updateOraclePrice('BTCNAV', btcAssetId.oracle, thirdPrices.BTC);
-    await client.updateOraclePrice('ETHNAV', ethAssetId.oracle, thirdPrices.ETH);
-    await client.updateOraclePrice('SOLNAV', solAssetId.oracle, thirdPrices.SOL);
+    await client.updateOraclePrice(btcAssetId.oracle, thirdPrices.BTC);
+    await client.updateOraclePrice(ethAssetId.oracle, thirdPrices.ETH);
+    await client.updateOraclePrice(solAssetId.oracle, thirdPrices.SOL);
 
     // Get the NAV after price changes
     const navAfterPriceChange = await client.getBasktNav(basktId);
@@ -641,9 +641,9 @@ describe('Baskt Rebalance with Multiple Price Fluctuations', () => {
       };
 
       // 2. Update oracle prices
-      await client.updateOraclePrice('BTC_MULTI', btcAssetId.oracle, currentPrices.BTC);
-      await client.updateOraclePrice('ETH_MULTI', ethAssetId.oracle, currentPrices.ETH);
-      await client.updateOraclePrice('SOL_MULTI', solAssetId.oracle, currentPrices.SOL);
+      await client.updateOraclePrice(btcAssetId.oracle, currentPrices.BTC);
+      await client.updateOraclePrice(ethAssetId.oracle, currentPrices.ETH);
+      await client.updateOraclePrice(solAssetId.oracle, currentPrices.SOL);
 
       // 4. Generate new random weights (ensuring they sum to 100%)
       let btcWeight = 10 + Math.floor(Math.random() * 80); // 10% to 90%
@@ -724,7 +724,7 @@ describe('Baskt Rebalance Permission Checks', () => {
 
   before(async () => {
     // Create assets that will be used across tests
-    btcAssetId = await client.createAssetWithCustomOracle('BTC2', 50000);
+    btcAssetId = await client.createAssetWithCustomOracle('BUTT', 50000);
     ethAssetId = await client.createAssetWithCustomOracle('ETH2', 3000);
     await client.waitForBlocks();
     // Create a test baskt for rebalance tests
@@ -976,9 +976,9 @@ describe('Baskt Rebalance with NAV Changes', () => {
 
   it('Updates NAV when asset prices change (without rebalance)', async () => {
     // Update asset prices to second set
-    await client.updateOraclePrice('BTCNAV', btcAssetId.oracle, secondPrices.BTC);
-    await client.updateOraclePrice('ETHNAV', ethAssetId.oracle, secondPrices.ETH);
-    await client.updateOraclePrice('SOLNAV', solAssetId.oracle, secondPrices.SOL);
+    await client.updateOraclePrice(btcAssetId.oracle, secondPrices.BTC);
+    await client.updateOraclePrice(ethAssetId.oracle, secondPrices.ETH);
+    await client.updateOraclePrice(solAssetId.oracle, secondPrices.SOL);
 
     // Get the updated NAV
     const updatedNav = await client.getBasktNav(basktId);
@@ -1064,9 +1064,9 @@ describe('Baskt Rebalance with NAV Changes', () => {
 
   it('Updates NAV correctly after another price change and rebalance', async () => {
     // Update asset prices to third set
-    await client.updateOraclePrice('BTCNAV', btcAssetId.oracle, thirdPrices.BTC);
-    await client.updateOraclePrice('ETHNAV', ethAssetId.oracle, thirdPrices.ETH);
-    await client.updateOraclePrice('SOLNAV', solAssetId.oracle, thirdPrices.SOL);
+    await client.updateOraclePrice(btcAssetId.oracle, thirdPrices.BTC);
+    await client.updateOraclePrice(ethAssetId.oracle, thirdPrices.ETH);
+    await client.updateOraclePrice(solAssetId.oracle, thirdPrices.SOL);
 
     // Get the NAV after price changes
     const navAfterPriceChange = await client.getBasktNav(basktId);

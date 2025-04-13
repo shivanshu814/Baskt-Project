@@ -1,5 +1,5 @@
 import { ScrollArea } from '../components/src/scroll-area';
-import { cn } from '../lib/utils';
+import { cn } from '@baskt/ui';
 import { ArrowRightLeft, Home, LogOut, PieChart, Settings, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { Baskt } from '../types/baskt';

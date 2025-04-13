@@ -7,8 +7,58 @@ import path, { join } from 'path';
 import { homedir } from 'os';
 import { BasktV1 } from '../target/types/baskt_v1';
 import { TestClient } from '../tests/utils/test-client';
-import { BasktV1Idl } from 'packages/sdk/src/program/idl';
-import { AccessControlRole } from '@baskt/sdk';
+import BasktV1Idl from '../target/idl/baskt_v1.json';
+import { AccessControlRole } from '@baskt/types';
+import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
+import type { AppRouter } from '../../../services/backend/src/router';
+
+async function addAssetsToTrpc(
+  assets: {
+    ticker: string;
+    name: string;
+    address: string;
+    oracleType: string;
+    oracleAddress: string;
+    logo: string;
+  }[],
+) {
+  const trpc = createTRPCProxyClient<AppRouter>({
+    links: [
+      httpBatchLink({
+        url: 'http://localhost:4000/trpc',
+      }),
+    ],
+  });
+
+  for (const asset of assets) {
+    await trpc.oracle.createOracle.mutate({
+      oracleName: asset.name, // Using asset name as oracle name
+      oracleType: asset.oracleType === 'pyth' ? 'pyth' : 'custom',
+      oracleAddress: asset.oracleAddress,
+      priceConfig: {
+        provider: {
+          id: 'solana',
+          chain: 'solana',
+          name: 'dexscreener',
+        },
+        twp: {
+          seconds: 300,
+        },
+        updateFrequencySeconds: 15,
+      },
+    });
+  }
+
+  for (const asset of assets) {
+    await trpc.asset.createAsset.mutate({
+      name: asset.name,
+      ticker: asset.ticker,
+      assetAddress: asset.address,
+      oracleAddress: asset.oracleAddress,
+      logo: asset.logo,
+    });
+  }
+}
 
 // Configure the provider.connection to devnet
 export const getProvider = () => {
@@ -64,6 +114,55 @@ async function main() {
     await client.createAndAddAssetWithCustomOracle('SOL', 100, undefined, undefined, 100, 300);
   const { assetAddress: adaAssetAddress, oracle: adaOracle } =
     await client.createAndAddAssetWithCustomOracle('ADA', 1, undefined, undefined, 100, 300);
+
+  // Add all the assets and their configs to the Backend
+
+  try {
+    await addAssetsToTrpc([
+      {
+        ticker: 'BTC',
+        name: 'Bitcoin',
+        oracleType: 'pyth',
+        oracleAddress: btcOracle.toString(),
+        address: btcAssetAddress.toString(),
+        logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/btc.png',
+      },
+      {
+        name: 'Ethereum',
+        ticker: 'ETH',
+        oracleType: 'pyth',
+        oracleAddress: ethOracle.toString(),
+        address: ethAssetAddress.toString(),
+        logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/eth.png',
+      },
+      {
+        name: 'Dogecoin',
+        ticker: 'DOGE',
+        oracleType: 'pyth',
+        oracleAddress: dogeOracle.toString(),
+        address: dogeAssetAddress.toString(),
+        logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/doge.png',
+      },
+      {
+        name: 'Solana',
+        ticker: 'SOL',
+        oracleType: 'pyth',
+        oracleAddress: solOracle.toString(),
+        address: solAssetAddress.toString(),
+        logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/sol.png',
+      },
+      {
+        name: 'Cardano',
+        ticker: 'ADA',
+        oracleType: 'pyth',
+        oracleAddress: adaOracle.toString(),
+        address: adaAssetAddress.toString(),
+        logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/ada.png',
+      },
+    ]);
+  } catch (error) {
+    console.error('Error adding assets to backend:', error);
+  }
 
   // Save deployment info
   const deployInfo = {

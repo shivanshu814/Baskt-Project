@@ -1,4 +1,4 @@
-import { AccessControlRole } from '../types/role';
+import { AccessControlRole } from '@baskt/types';
 
 export function toRoleString(role: AccessControlRole): string {
   switch (role) {

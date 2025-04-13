@@ -2,14 +2,11 @@ import { expect } from 'chai';
 import { describe, it, before } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { TestClient } from '../utils/test-client';
-import { AccessControlRole, AssetPermissions } from '@baskt/sdk';
+import { AccessControlRole, AssetPermissions } from '@baskt/types';
 
 describe('asset', () => {
   // Get the test client instance
   const client = TestClient.getInstance();
-
-  // Initial price data
-  const priceExponent = -6; // 6 decimal places
 
   // Set up test roles before running tests
   before(async () => {
@@ -75,7 +72,7 @@ describe('asset', () => {
     const newPrice = 3500;
 
     // Update the oracle price
-    await client.updateOraclePrice('ETH', oracleAddress, newPrice, priceExponent);
+    await client.updateOraclePrice(oracleAddress, newPrice, newPrice, newPrice);
 
     // Fetch the oracle account to verify the price was updated
     const oracleAccount = await client.getOracleAccount(oracleAddress);
@@ -89,33 +86,6 @@ describe('asset', () => {
 
     // Verify the publish time was updated
     expect(oracleAccount.publishTime.toNumber()).to.be.greaterThan(0);
-  });
-
-  // Note: The following tests would require additional instruction handlers in the program
-  // to expose internal functionality for testing
-
-  it.skip('Tests funding rate calculation with different market skews', async () => {
-    // This test demonstrates how you would test funding rate calculations
-    // with different market skews using oracle price updates
-
-    // Create a custom oracle and asset in one step
-    // The client should have the AssetManager role by default since it's the protocol owner
-    const { assetAddress, oracle } = await client.createAssetWithCustomOracle('FUND');
-
-    // Fetch the asset account to verify it was initialized correctly
-    const assetAccount = await client.getAssetRaw(assetAddress);
-
-    // Verify basic asset properties
-    expect(assetAccount.assetId.toString()).to.equal(assetAddress.toString());
-    expect(assetAccount.oracle.oracleAccount.toString()).to.equal(oracle.toString());
-
-    // Verify initial funding rate is zero
-    expect(assetAccount.fundingRate.toNumber()).to.equal(0);
-
-    // In a real test, you would now:
-    // 1. Set up different market skews (e.g., more longs than shorts)
-    // 2. Call a test instruction to calculate funding rates
-    // 3. Verify the funding rates match expected values
   });
 
   it('Tests oracle price staleness handling', async () => {

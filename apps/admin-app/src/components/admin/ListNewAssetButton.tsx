@@ -29,7 +29,8 @@ const isValidSolanaPublicKey = (address: string): boolean => {
 
 const formSchema = z.object({
   ticker: z.string().min(1, { message: 'Ticker is required' }),
-  oracleType: z.enum(['Pyth', 'Switchboard', 'Custom']),
+  name: z.string().min(1, { message: 'Asset name is required' }),
+  oracleType: z.enum(['pyth', 'custom']),
   oracleAddress: z
     .string()
     .min(32, { message: 'Valid oracle address required' })
@@ -44,6 +45,8 @@ const formSchema = z.object({
 
   maxPriceError: z.string().min(1, { message: 'Max price error is required' }),
   maxPriceAgeSec: z.string().min(1, { message: 'Max price age is required' }),
+
+  logoUrl: z.string().url({ message: 'Please enter a valid URL' }).optional(),
 
   fees: z.object({
     openFee: z.string().default('0.1'),
@@ -82,7 +85,8 @@ export function ListNewAssetButton() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       ticker: '',
-      oracleType: 'Pyth',
+      name: '',
+      oracleType: 'pyth',
       oracleAddress: '',
       permissions: {
         allowLong: true,
@@ -90,6 +94,7 @@ export function ListNewAssetButton() {
       },
       maxPriceError: '100',
       maxPriceAgeSec: '60',
+      logoUrl: '',
       fees: {
         openFee: '0.1',
         closeFee: '0.1',
@@ -150,9 +155,10 @@ export function ListNewAssetButton() {
           fundingFee: parseFloat(values.fees.fundingFee),
         },
       };
+      console.log(assetData)
 
       let result = null;
-      if (assetData.oracleType === 'Custom') {
+      if (assetData.oracleType === 'custom') {
         result = await client.addAsset({
           ticker: assetData.ticker,
           oracle: {
@@ -177,12 +183,17 @@ export function ListNewAssetButton() {
       }
 
       try {
+        // Use custom logo URL if provided, otherwise use default CoinMarketCap URL
+        const logoUrl = values.logoUrl
+          ? values.logoUrl
+          : `https://s2.coinmarketcap.com/static/img/coins/64x64/${assetData.ticker.toLowerCase()}.png`;
+
         const assetInput: CreateAssetInput = {
-          assetId: assetData.ticker,
-          assetName: assetData.ticker,
-          oracleType: assetData.oracleType.toLowerCase(),
+          ticker: assetData.ticker,
+          name: values.name,
+          assetAddress: result.assetAddress.toString(), // Use the actual asset address from the blockchain result
           oracleAddress: assetData.oracleAddress,
-          logo: `https://s2.coinmarketcap.com/static/img/coins/64x64/${assetData.ticker.toLowerCase()}.png`,
+          logo: logoUrl,
         };
         await createAsset.mutateAsync(assetInput);
       } catch (dbError) {
@@ -230,22 +241,35 @@ export function ListNewAssetButton() {
 
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <label className="text-base font-medium text-white">Asset Name</label>
+              <label className="text-base font-medium text-white">Ticker Symbol</label>
               <Input
-                placeholder="Bitcoin"
+                placeholder="BTC"
                 {...form.register('ticker')}
                 className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
               />
               {form.formState.errors.ticker && (
                 <p className="text-red-500 text-sm">{form.formState.errors.ticker.message}</p>
               )}
-              <p className="text-sm text-[#666]">Enter the name of the asset</p>
+              <p className="text-sm text-[#666]">Enter the ticker symbol of the asset (e.g., BTC, ETH)</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-base font-medium text-white">Asset Name</label>
+              <Input
+                placeholder="Bitcoin"
+                {...form.register('name')}
+                className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
+              />
+              {form.formState.errors.name && (
+                <p className="text-red-500 text-sm">{form.formState.errors.name.message}</p>
+              )}
+              <p className="text-sm text-[#666]">Enter the full name of the asset</p>
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-white">Oracle Type</label>
               <Select
-                onValueChange={(value) => form.setValue('oracleType', value as 'Pyth' | 'Custom')}
+                onValueChange={(value) => form.setValue('oracleType', value as 'pyth' | 'custom')}
               >
                 <SelectTrigger className="h-12 bg-[#0d1117] border-0 ring-[0.5px] ring-white/5 text-white text-base rounded-2xl focus-visible:ring-[0.5px] focus-visible:ring-white/10 focus-visible:ring-offset-0 data-[value]:ring-[0.5px] data-[value]:ring-white/5">
                   <SelectValue placeholder="Select oracle type" />
@@ -285,6 +309,53 @@ export function ListNewAssetButton() {
                 </p>
               )}
               <p className="text-xs text-[#E5E7EB]/60">Specify the oracle account address</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white">Logo URL</label>
+                <Input
+                  placeholder="https://example.com/logo.png"
+                  {...form.register('logoUrl')}
+                  className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
+                />
+                {form.formState.errors.logoUrl && (
+                  <p className="text-red-500 text-sm">
+                    {form.formState.errors.logoUrl.message}
+                  </p>
+                )}
+                <p className="text-xs text-[#E5E7EB]/60">Custom logo URL (optional)</p>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-[#0d1117] rounded-md flex items-center justify-center overflow-hidden border border-white/10">
+                  {form.watch('logoUrl') ? (
+                    <img
+                      src={form.watch('logoUrl')}
+                      alt="Asset Logo Preview"
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        e.currentTarget.src = `https://s2.coinmarketcap.com/static/img/coins/64x64/${form.watch('ticker')?.toLowerCase() || 'placeholder'}.png`;
+                      }}
+                    />
+                  ) : form.watch('ticker') ? (
+                    <img
+                      src={`https://s2.coinmarketcap.com/static/img/coins/64x64/${form.watch('ticker').toLowerCase()}.png`}
+                      alt="Default Logo"
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://placehold.co/64x64/gray/white?text=?';
+                      }}
+                    />
+                  ) : (
+                    <span className="text-white/40 text-xl">?</span>
+                  )}
+                </div>
+                <div className="text-sm text-white/60">
+                  <p>Logo Preview</p>
+                  <p className="text-xs">Default logo will be used if no custom URL is provided</p>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

@@ -24,15 +24,12 @@ describe('Custom Oracle Test', () => {
     const oracleAddresses = await Promise.all(oracles);
     expect(oracleAddresses.length).to.equal(limit);
 
-    const updateInstructions = oracleAddresses.map(async (oracle, index) => {
+    const updateInstructions = oracleAddresses.map(async (oracle) => {
       return await client.oracleHelper.updateCustomOraclePriceItx(
-        'BTC' + index,
         oracle.address,
         1000000,
-        -6,
         1000000,
-        1000000,
-        0,
+        100000,
       );
     });
 

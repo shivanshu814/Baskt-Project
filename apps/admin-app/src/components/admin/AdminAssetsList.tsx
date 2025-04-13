@@ -1,10 +1,10 @@
 'use client';
 
 import { toast } from 'sonner';
-import { Asset } from '@baskt/sdk';
+import { Asset } from '@baskt/types';
 import { useState, useEffect } from 'react';
 import { useBasktClient } from '@baskt/ui';
-import { getSolscanAddressUrl } from '../../utils/explorer';
+import { getSolscanAddressUrl } from '@baskt/ui';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
 export function AdminAssetsList() {

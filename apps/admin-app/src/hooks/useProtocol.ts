@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useBasktClient } from '@baskt/ui';
-import { ProtocolInterface } from '@baskt/sdk';
+import { ProtocolInterface } from '@baskt/types';
 
 export function useProtocol() {
   const { client } = useBasktClient();

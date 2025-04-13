@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '../lib/utils';
+import { cn } from '@baskt/ui';
 import { AdminNavbar } from './auth/AdminNavbar';
 
 interface LayoutProps {

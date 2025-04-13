@@ -6,23 +6,31 @@ import { useState } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
-import { trpc } from '../../utils/trpc';
 import { useBasktClient } from '@baskt/ui';
 import { showTransactionToast } from '../ui/transaction-toast';
 import { AddOracleModalProps, CreateOracleInput } from '../../types/oracle';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
+import { OracleType } from "@baskt/types"
+import { trpc } from '../../utils/trpc';
 
 export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleModalProps) {
-  const [ema, setEma] = useState('');
   const { client } = useBasktClient();
+  const [oracleName, setOracleName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [oracleType, setOracleType] = useState<OracleType>(OracleType.CUSTOM);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [price, setPrice] = useState('');
   const [exponent, setExponent] = useState('-6');
-  const [oracleName, setOracleName] = useState('');
   const [confidence, setConfidence] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [oracleType, setOracleType] = useState<string>('custom');
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [ema, setEma] = useState('');
+
+  // Price config state
+  const [providerId, setProviderId] = useState('solana');
+  const [providerChain, setProviderChain] = useState('solana');
+  const [providerName, setProviderName] = useState('dexscreener');
+  const [twpSeconds, setTwpSeconds] = useState('300');
+  const [updateFrequency, setUpdateFrequency] = useState('15');
 
   const oracleSchema = z.object({
     oracleName: z
@@ -38,6 +46,16 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
       .refine((val) => !isNaN(parseInt(val)), 'Exponent must be a valid number')
       .refine((val) => parseInt(val) <= 0, 'Exponent must be less than or equal to 0')
       .refine((val) => parseInt(val) >= -6, 'Exponent must be greater than -6'),
+    twpSeconds: z
+      .string()
+      .min(1, 'TWP seconds is required')
+      .refine((val) => !isNaN(parseInt(val)), 'TWP seconds must be a valid number')
+      .refine((val) => parseInt(val) > 0, 'TWP seconds must be greater than 0'),
+    updateFrequency: z
+      .string()
+      .min(1, 'Update frequency is required')
+      .refine((val) => !isNaN(parseInt(val)), 'Update frequency must be a valid number')
+      .refine((val) => parseInt(val) > 0, 'Update frequency must be greater than 0'),
   });
 
   const createOracle = trpc.oracle.createOracle.useMutation({
@@ -61,7 +79,7 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
     setErrors({});
 
     try {
-      oracleSchema.parse({ oracleName, price, exponent });
+      oracleSchema.parse({ oracleName, price, exponent, twpSeconds, updateFrequency });
     } catch (error) {
       if (error instanceof z.ZodError) {
         const newErrors: { [key: string]: string } = {};
@@ -80,6 +98,10 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
 
       const priceValue = parseFloat(price);
       const exponentValue = parseInt(exponent);
+      const twpSecondsValue = parseInt(twpSeconds);
+      const updateFrequencyValue = parseInt(updateFrequency);
+
+      // Parse confidence and EMA values if provided
       const confidenceValue = confidence ? parseFloat(confidence) : undefined;
       const emaValue = ema ? parseFloat(ema) : undefined;
 
@@ -88,26 +110,47 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
         return;
       }
 
+      // Validate confidence and EMA if provided
+      if (confidence && isNaN(confidenceValue!)) {
+        toast.error('Confidence must be a valid number');
+        return;
+      }
+
+      if (ema && isNaN(emaValue!)) {
+        toast.error('EMA must be a valid number');
+        return;
+      }
+
       let oracleAddress = '';
       if (client) {
         try {
+          // Use the original blockchain interaction with all parameters
           const result = await client.createCustomOracle(
             client.protocolPDA,
             oracleName,
             priceValue,
             exponentValue,
-            emaValue,
-            confidenceValue,
+            emaValue,     // Pass the EMA value
+            confidenceValue, // Pass the confidence value
           );
           oracleAddress = result.address.toString();
 
+          // Create the new input object matching the updated OracleConfig model
           const input: CreateOracleInput = {
             oracleName,
             oracleType,
-            price: priceValue,
-            exponent: exponentValue,
-            confidence: confidenceValue,
-            ema: emaValue,
+            oracleAddress,
+            priceConfig: {
+              provider: {
+                id: providerId,
+                chain: providerChain,
+                name: providerName,
+              },
+              twp: {
+                seconds: twpSecondsValue,
+              },
+              updateFrequencySeconds: updateFrequencyValue,
+            },
           };
 
           await createOracle.mutateAsync(input);
@@ -130,8 +173,11 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
       setOracleName('');
       setPrice('');
       setExponent('-6');
-      setConfidence('');
-      setEma('');
+      setProviderId('solana');
+      setProviderChain('solana');
+      setProviderName('dexscreener');
+      setTwpSeconds('300');
+      setUpdateFrequency('15');
     } catch (error) {
       console.error('Error creating oracle:', error);
       toast.error('Failed to create oracle. See console for details.');
@@ -179,7 +225,7 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
             </div>
             <div className="space-y-2">
               <label className="text-base font-medium text-white">Oracle Type</label>
-              <Select value={oracleType} onValueChange={setOracleType}>
+              <Select value={oracleType} onValueChange={(value) => setOracleType(value as OracleType)}>
                 <SelectTrigger className="h-12 bg-[#0d1117] border-0 ring-[0.5px] ring-white/5 text-white text-base rounded-2xl focus-visible:ring-[0.5px] focus-visible:ring-white/10 focus-visible:ring-offset-0 data-[value]:ring-[0.5px] data-[value]:ring-white/5">
                   <SelectValue placeholder="Select oracle type" />
                 </SelectTrigger>
@@ -199,6 +245,8 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
           {oracleType === 'custom' && (
             <div className="space-y-4 mt-4">
               <h3 className="text-lg font-medium text-white">Custom Oracle Parameters</h3>
+
+              {/* Blockchain Parameters (still needed for on-chain interaction) */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-base font-medium text-white">Price</label>
@@ -269,6 +317,95 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
                     onChange={(e) => setEma(e.target.value)}
                   />
                   <p className="text-sm text-[#666]">Exponential Moving Average (optional)</p>
+                </div>
+              </div>
+
+              {/* Price Config Section */}
+              <h3 className="text-lg font-medium text-white mt-6">Price Configuration</h3>
+
+              {/* Provider Section */}
+              <div className="space-y-2">
+                <h4 className="text-base font-medium text-white">Provider</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">ID</label>
+                    <Input
+                      placeholder="solana"
+                      className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
+                      value={providerId}
+                      onChange={(e) => setProviderId(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Chain</label>
+                    <Input
+                      placeholder="solana"
+                      className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
+                      value={providerChain}
+                      onChange={(e) => setProviderChain(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-white">Name</label>
+                    <Input
+                      placeholder="dexscreener"
+                      className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
+                      value={providerName}
+                      onChange={(e) => setProviderName(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* TWP and Update Frequency */}
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="space-y-2">
+                  <label className="text-base font-medium text-white">TWP Seconds</label>
+                  <Input
+                    type="number"
+                    placeholder="300"
+                    className={`h-12 bg-[#0d1117] border-0 ring-1 ${errors.twpSeconds ? 'ring-red-500' : 'ring-white/5'} text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0`}
+                    value={twpSeconds}
+                    onChange={(e) => {
+                      setTwpSeconds(e.target.value);
+                      if (errors.twpSeconds) {
+                        setErrors((prev) => {
+                          const newErrors = { ...prev };
+                          delete newErrors.twpSeconds;
+                          return newErrors;
+                        });
+                      }
+                    }}
+                  />
+                  {errors.twpSeconds ? (
+                    <p className="text-sm text-red-500">{errors.twpSeconds}</p>
+                  ) : (
+                    <p className="text-sm text-[#666]">Time-weighted period in seconds</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-base font-medium text-white">Update Frequency</label>
+                  <Input
+                    type="number"
+                    placeholder="15"
+                    className={`h-12 bg-[#0d1117] border-0 ring-1 ${errors.updateFrequency ? 'ring-red-500' : 'ring-white/5'} text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0`}
+                    value={updateFrequency}
+                    onChange={(e) => {
+                      setUpdateFrequency(e.target.value);
+                      if (errors.updateFrequency) {
+                        setErrors((prev) => {
+                          const newErrors = { ...prev };
+                          delete newErrors.updateFrequency;
+                          return newErrors;
+                        });
+                      }
+                    }}
+                  />
+                  {errors.updateFrequency ? (
+                    <p className="text-sm text-red-500">{errors.updateFrequency}</p>
+                  ) : (
+                    <p className="text-sm text-[#666]">Update frequency in seconds</p>
+                  )}
                 </div>
               </div>
             </div>

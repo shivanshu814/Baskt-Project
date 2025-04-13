@@ -12,11 +12,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "preserve",
-    "incremental": true,
-    "baseUrl": ".",
-    "paths": {
-      "@baskt/*": ["packages/*/src"]
-    }
+    "incremental": true
   },
   "exclude": ["node_modules", "dist"]
 }

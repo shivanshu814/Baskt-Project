@@ -1,4 +1,4 @@
-import { cn } from '../lib/utils';
+import { cn } from '@baskt/ui';
 import Link from 'next/link';
 import { Globe, Mail, MessageCircle, Twitter } from 'lucide-react';
 
