@@ -23,7 +23,7 @@ interface AdminNavbarProps {
 
 export function AdminNavbar({ className }: AdminNavbarProps) {
   const router = useRouter();
-  const { logout, user } = usePrivy();
+  const { logout, user, login } = usePrivy();
   const activeWallet = user?.wallet;
   const [isLoggingOut, setIsLoggingOut] = useState(false); //eslint-disable-line
 
@@ -92,6 +92,7 @@ export function AdminNavbar({ className }: AdminNavbarProps) {
                 <Button
                   variant="outline"
                   className="bg-[#1a1f2e] !text-white hover:!bg-[#1a1f2e]/90 !h-10 !px-4 !rounded-lg !text-sm font-medium border border-white/10"
+                  onClick={() => !activeWallet && login()}
                 >
                   {activeWallet ? (
                     <>
@@ -99,7 +100,7 @@ export function AdminNavbar({ className }: AdminNavbarProps) {
                       {formatWalletAddress(activeWallet?.address || '')}
                     </>
                   ) : (
-                    'Connecting...'
+                    'Connect Wallet'
                   )}
                 </Button>
               </TooltipTrigger>

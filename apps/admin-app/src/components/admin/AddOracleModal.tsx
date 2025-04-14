@@ -6,16 +6,18 @@ import { useState } from 'react';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Loader2 } from 'lucide-react';
+import { trpc } from '../../utils/trpc';
+import { OracleType } from '@baskt/types';
 import { useBasktClient } from '@baskt/ui';
+import { usePrivy } from '@privy-io/react-auth';
 import { showTransactionToast } from '../ui/transaction-toast';
 import { AddOracleModalProps, CreateOracleInput } from '../../types/oracle';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
-import { OracleType } from "@baskt/types"
-import { trpc } from '../../utils/trpc';
 
 export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleModalProps) {
   const { client } = useBasktClient();
+  const { authenticated, login } = usePrivy();
   const [oracleName, setOracleName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [oracleType, setOracleType] = useState<OracleType>(OracleType.CUSTOM);
@@ -76,6 +78,12 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
   });
 
   const handleSubmit = async () => {
+    if (!authenticated) {
+      toast.error('Please connect your wallet to add a new oracle');
+      login();
+      return;
+    }
+
     setErrors({});
 
     try {
@@ -130,7 +138,7 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
             oracleName,
             priceValue,
             exponentValue,
-            emaValue,     // Pass the EMA value
+            emaValue, // Pass the EMA value
             confidenceValue, // Pass the confidence value
           );
           oracleAddress = result.address.toString();
@@ -188,7 +196,7 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#010b1d] border-white/10 text-white sm:max-w-[500px]">
+      <DialogContent className="bg-[#010b1d] border-white/10 text-white sm:max-w-[500px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-xl text-white">Add New Oracle</DialogTitle>
           <DialogDescription className="text-[#E5E7EB]">
@@ -196,7 +204,7 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="flex-1 overflow-y-auto space-y-6 py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-base font-medium text-white">Oracle Name</label>
@@ -225,7 +233,10 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
             </div>
             <div className="space-y-2">
               <label className="text-base font-medium text-white">Oracle Type</label>
-              <Select value={oracleType} onValueChange={(value) => setOracleType(value as OracleType)}>
+              <Select
+                value={oracleType}
+                onValueChange={(value) => setOracleType(value as OracleType)}
+              >
                 <SelectTrigger className="h-12 bg-[#0d1117] border-0 ring-[0.5px] ring-white/5 text-white text-base rounded-2xl focus-visible:ring-[0.5px] focus-visible:ring-white/10 focus-visible:ring-offset-0 data-[value]:ring-[0.5px] data-[value]:ring-white/5">
                   <SelectValue placeholder="Select oracle type" />
                 </SelectTrigger>
@@ -412,7 +423,7 @@ export function AddOracleModal({ open, onOpenChange, onOracleAdded }: AddOracleM
           )}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-4 border-t border-white/10">
           <Button
             type="submit"
             className="h-11 px-8 bg-blue-500 text-white hover:bg-blue-500/90 rounded-full"

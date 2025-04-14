@@ -6,14 +6,15 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { trpc } from '../../utils/trpc';
 import { useForm } from 'react-hook-form';
+import { useBasktClient } from '@baskt/ui';
 import { PublicKey } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
 import { Plus, ChevronDown } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useBasktClient } from '@baskt/ui';
-import { showTransactionToast } from '../ui/transaction-toast';
+import { usePrivy } from '@privy-io/react-auth';
 import { CreateAssetInput } from '../../types/asset';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { showTransactionToast } from '../ui/transaction-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -62,6 +63,7 @@ export function ListNewAssetButton() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { client } = useBasktClient();
+  const { authenticated, login } = usePrivy();
 
   const createAsset = trpc.asset.createAsset.useMutation({
     onSuccess: () => {
@@ -104,6 +106,16 @@ export function ListNewAssetButton() {
   });
 
   const onSubmit = async (values: FormValues) => {
+    if (!authenticated) {
+      toast({
+        title: 'Wallet Required',
+        description: 'Please connect your wallet to list new assets',
+        variant: 'destructive',
+      });
+      login();
+      return;
+    }
+
     if (
       !values.ticker ||
       !values.oracleAddress ||
@@ -155,7 +167,6 @@ export function ListNewAssetButton() {
           fundingFee: parseFloat(values.fees.fundingFee),
         },
       };
-      console.log(assetData)
 
       let result = null;
       if (assetData.oracleType === 'custom') {
@@ -231,7 +242,7 @@ export function ListNewAssetButton() {
       </Button>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="bg-[#010b1d] border-white/10 text-white sm:max-w-[500px]">
+        <DialogContent className="bg-[#010b1d] border-white/10 text-white sm:max-w-[500px] max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-xl text-white">List New Asset</DialogTitle>
             <DialogDescription className="text-[#E5E7EB]">
@@ -239,7 +250,7 @@ export function ListNewAssetButton() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
+          <div className="flex-1 overflow-y-auto space-y-6 py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <div className="space-y-2">
               <label className="text-base font-medium text-white">Ticker Symbol</label>
               <Input
@@ -250,7 +261,9 @@ export function ListNewAssetButton() {
               {form.formState.errors.ticker && (
                 <p className="text-red-500 text-sm">{form.formState.errors.ticker.message}</p>
               )}
-              <p className="text-sm text-[#666]">Enter the ticker symbol of the asset (e.g., BTC, ETH)</p>
+              <p className="text-sm text-[#666]">
+                Enter the ticker symbol of the asset (e.g., BTC, ETH)
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -320,9 +333,7 @@ export function ListNewAssetButton() {
                   className="h-12 bg-[#0d1117] border-0 ring-1 ring-white/5 text-white text-base placeholder:text-[#666] rounded-2xl focus-visible:ring-1 focus-visible:ring-white/10 focus-visible:ring-offset-0"
                 />
                 {form.formState.errors.logoUrl && (
-                  <p className="text-red-500 text-sm">
-                    {form.formState.errors.logoUrl.message}
-                  </p>
+                  <p className="text-red-500 text-sm">{form.formState.errors.logoUrl.message}</p>
                 )}
                 <p className="text-xs text-[#E5E7EB]/60">Custom logo URL (optional)</p>
               </div>
@@ -443,7 +454,7 @@ export function ListNewAssetButton() {
             </Collapsible>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end pt-4 border-t border-white/10">
             <Button
               type="submit"
               className="h-11 px-8 bg-blue-500 text-white hover:bg-blue-500/90 rounded-full"
