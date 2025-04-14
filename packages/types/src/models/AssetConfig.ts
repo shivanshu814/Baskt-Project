@@ -1,6 +1,17 @@
 import mongoose from 'mongoose';
+import { OracleConfig } from './OracleConfig';
 
-const assetSchema = new mongoose.Schema({
+export interface AssetConfig {
+  _id: string;
+  ticker: string;
+  name: string;
+  assetAddress: string;
+  oracleConfig: OracleConfig;
+  logo: string;
+  createdAt: Date;
+}
+
+export const AssetConfigSchema = new mongoose.Schema({
   ticker: {
     type: String,
     required: true,
@@ -31,5 +42,3 @@ const assetSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
-
-export const AssetConfig = mongoose.model('AssetConfig', assetSchema);

@@ -20,6 +20,11 @@ async function addAssetsToTrpc(
     oracleType: string;
     oracleAddress: string;
     logo: string;
+    provider: {
+      id: string;
+      chain: string;
+      name: string;
+    };
   }[],
 ) {
   const trpc = createTRPCProxyClient<AppRouter>({
@@ -36,11 +41,7 @@ async function addAssetsToTrpc(
       oracleType: asset.oracleType === 'pyth' ? 'pyth' : 'custom',
       oracleAddress: asset.oracleAddress,
       priceConfig: {
-        provider: {
-          id: 'solana',
-          chain: 'solana',
-          name: 'dexscreener',
-        },
+        provider: asset.provider,
         twp: {
           seconds: 300,
         },
@@ -126,6 +127,11 @@ async function main() {
         oracleAddress: btcOracle.toString(),
         address: btcAssetAddress.toString(),
         logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/btc.png',
+        provider: {
+          id: '4kdxjt8pKEW4qV4ji4HANixwswDJw3Egn8L4x2BEWQqT',
+          chain: 'solana',
+          name: 'dexscreener',
+        },
       },
       {
         name: 'Ethereum',
@@ -134,6 +140,11 @@ async function main() {
         oracleAddress: ethOracle.toString(),
         address: ethAssetAddress.toString(),
         logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/eth.png',
+        provider: {
+          id: '0x9FCCa0a1af56d34C88156E8857A5f430dB7A6382',
+          chain: 'soneium',
+          name: 'dexscreener',
+        },
       },
       {
         name: 'Dogecoin',
@@ -142,6 +153,11 @@ async function main() {
         oracleAddress: dogeOracle.toString(),
         address: dogeAssetAddress.toString(),
         logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/doge.png',
+        provider: {
+          id: '0xc3d7aA944105d3FaFE07fc1822102449C916a8d0',
+          chain: 'ethereum',
+          name: 'dexscreener',
+        },
       },
       {
         name: 'Solana',
@@ -150,6 +166,11 @@ async function main() {
         oracleAddress: solOracle.toString(),
         address: solAssetAddress.toString(),
         logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/sol.png',
+        provider: {
+          id: '0xbFFEc96e8f3b5058B1817c14E4380758Fada01EF',
+          chain: 'bsc',
+          name: 'dexscreener',
+        },
       },
       {
         name: 'Cardano',
@@ -158,6 +179,11 @@ async function main() {
         oracleAddress: adaOracle.toString(),
         address: adaAssetAddress.toString(),
         logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/ada.png',
+        provider: {
+          id: 'FyDF3vKQFbcvNTsBi7L7LremrFPmXKbQqgAgnPg1hXXd',
+          chain: 'solana',
+          name: 'dexscreener',
+        },
       },
     ]);
   } catch (error) {

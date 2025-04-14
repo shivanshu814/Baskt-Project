@@ -5,8 +5,8 @@
     "rootDir": "./src",
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "noEmit": false,
-    "composite": true
+    "composite": true,
+    "noEmit": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

@@ -1,0 +1,36 @@
+import BN from 'bn.js';
+import getOxFunData from './oxfun';
+import getDexScreenerData from './dexscreener';
+
+// Function to call oxfun API
+async function callOxfunAPI(id: string) {
+  const price = await getOxFunData(id);
+  const priceUSD = new BN(price * 1e9);
+  return {
+    priceUSD,
+  };
+}
+
+// Function to call dexscreener API
+async function callDexscreenerAPI(id: string, chain: string) {
+  const prices = await getDexScreenerData(id, chain);
+  if (!prices) {
+    return null;
+  }
+  return {
+    priceUSD: new BN(prices.priceUSD * 1e9),
+  };
+}
+
+// Function to route the price to the correct API
+export async function routePrice(
+  priceProvider: string,
+  chain: string,
+  id: string,
+): Promise<{ priceUSD: BN } | null> {
+  if (priceProvider === 'oxfun') {
+    return await callOxfunAPI(id);
+  } else {
+    return await callDexscreenerAPI(id, chain);
+  }
+}

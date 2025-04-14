@@ -1,6 +1,25 @@
 import mongoose from 'mongoose';
+
+export interface PriceConfig {
+  provider: {
+    id: string;
+    chain: string;
+    name: string;
+  };
+  twp: {
+    seconds: number;
+  };
+  updateFrequencySeconds: number;
+}
+
+export interface OracleConfig {
+  oracleName: string;
+  oracleType: 'custom' | 'pyth';
+  oracleAddress: string;
+  priceConfig: PriceConfig;
+}
 // create oracle schema
-const oracleConfigSchema = new mongoose.Schema({
+export const OracleConfigSchema = new mongoose.Schema({
   oracleName: {
     type: String,
     required: true,
@@ -43,5 +62,3 @@ const oracleConfigSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
-
-export const OracleConfig = mongoose.model('OracleConfig', oracleConfigSchema);

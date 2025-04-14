@@ -2,10 +2,9 @@
 
 import { router, publicProcedure } from '../trpc/trpc';
 import { z } from 'zod';
-import { OracleConfig } from '../models/OracleConfig';
-import { AssetConfig } from '../models/AssetConfig';
 import { sdkClient } from '../utils';
 import { Asset } from '@baskt/types';
+import { AssetConfigModel, OracleConfigModel } from '../utils/models';
 
 export const appRouter = router({
   // health check
@@ -53,7 +52,7 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         try {
-          const oracle = new OracleConfig(input);
+          const oracle = new OracleConfigModel(input);
           await oracle.save();
           return {
             success: true,
@@ -68,7 +67,7 @@ export const appRouter = router({
     // get all oracles
     getAllOracles: publicProcedure.query(async () => {
       try {
-        const oracles = await OracleConfig.find().sort({ createdAt: -1 });
+        const oracles = await OracleConfigModel.find().sort({ createdAt: -1 });
         return {
           success: true,
           data: oracles,
@@ -96,14 +95,14 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         try {
           // Find the corresponding OracleConfig by oracleAddress
-          const oracle = await OracleConfig.findOne({ oracleAddress: input.oracleAddress });
+          const oracle = await OracleConfigModel.findOne({ oracleAddress: input.oracleAddress });
 
           if (!oracle) {
             throw new Error(`Oracle with address ${input.oracleAddress} not found`);
           }
 
           // Create the asset with reference to the oracle
-          const asset = new AssetConfig({
+          const asset = new AssetConfigModel({
             ticker: input.ticker,
             name: input.name,
             assetAddress: input.assetAddress,
@@ -128,12 +127,12 @@ export const appRouter = router({
       data: { account: Asset; ticker: string; logo: string; assetAddress: string }[];
     }>(async () => {
       try {
-        const assetConfigs = await AssetConfig.find().sort({ createdAt: -1 });
+        const assetConfigs = await AssetConfigModel.find().sort({ createdAt: -1 });
 
         const assets = await sdkClient.getAllAssets();
 
         // Map Asset to the configs and combine then
-        const combinedAssets = assetConfigs.map((assetConfig) => {
+        const combinedAssets = assetConfigs.map((assetConfig: any) => {
           return {
             ticker: assetConfig.ticker,
             assetAddress: assetConfig.assetAddress,
