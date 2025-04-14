@@ -1,6 +1,7 @@
 import { routePrice } from './providers';
 import BN from 'bn.js';
 import { PriceConfig, AssetPrice } from '@baskt/types';
+import mongoose from 'mongoose';
 
 const cache = new Map<string, AssetPrice>();
 
@@ -12,7 +13,8 @@ export async function fetchTokenPrice(
   priceUSD: BN;
 } | null> {
   if (cache.has(id)) {
-    return cache.get(id);
+    const cached = cache.get(id);
+    return cached ? { priceUSD: new BN(cached.priceUSD) } : null;
   }
 
   const prices = await routePrice(name, chain, id);
@@ -38,7 +40,7 @@ export async function fetchAssetPrices(tokens: PriceConfig[]): Promise<AssetPric
     const timestamp = new Date().getTime();
     const data: AssetPrice = {
       priceUSD: priceUSD.toString(),
-      assetId: token._id,
+      assetId: token.provider.id as unknown as mongoose.Schema.Types.ObjectId,
       timestamp,
     };
     tokenPrices.push(data);

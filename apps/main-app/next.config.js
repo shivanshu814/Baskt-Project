@@ -4,8 +4,8 @@
  */
 
 const nextConfig = {
-	reactStrictMode: true,
-	transpilePackages: ['@monorepo/ui'],
+  reactStrictMode: true,
+  transpilePackages: ['@baskt/ui'],
 };
 
 module.exports = nextConfig;

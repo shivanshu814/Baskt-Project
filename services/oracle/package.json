@@ -15,11 +15,13 @@
     "@trpc/client": "^10.45.1",
     "axios": "^1.8.4",
     "dotenv": "^16.4.7",
-    "mongoose": "^8.13.2"
+    "mongoose": "^8.13.2",
+    "bn.js": "^5.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^8.57.0",
     "@types/node": "^20.11.24",
+    "@types/bn.js": "^5.1.6",
     "eslint": "^9.0.0",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3",
