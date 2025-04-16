@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { PlusCircle, X, Plus } from 'lucide-react';
-import { Button } from '../../components/src/button';
+import { Button } from '../ui/button';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '../../components/src/dialog';
+} from '../ui/dialog';
 import {
   Form,
   FormControl,
@@ -21,16 +21,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '../../components/src/form';
-import { Input } from '../../components/src/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../components/src/select';
-import { Textarea } from '../../components/src/textarea';
+} from '../ui/form';
+import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Textarea } from '../ui/textarea';
 import { toast } from '../../hooks/use-toast';
 
 // Form schema

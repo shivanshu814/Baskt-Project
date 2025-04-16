@@ -2,27 +2,27 @@
 import { useState } from 'react';
 import { Layout } from '../../components/Layout';
 import { Footer } from '../../components/Footer';
-import { Button } from '../../components/src/button';
-import { Input } from '../../components/src/input';
-import { Textarea } from '../../components/src/textarea';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Textarea } from '../../components/ui/textarea';
 import { toast } from '../../hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/src/card';
-import { Label } from '../../components/src/label';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Label } from '../../components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../components/src/select';
-import { Badge } from '../../components/src/badge';
+} from '../../components/ui/select';
+import { Badge } from '../../components/ui/badge';
 import { X, Plus, Search, Tag, AlertCircle, Trash2, Clock } from 'lucide-react';
-import { Switch } from '../../components/src/switch';
+import { Switch } from '../../components/ui/switch';
 import { cn } from '@baskt/ui';
 import { useRouter } from 'next/navigation';
 import { CreateBasktGuideDialog } from '../../components/baskt/CreateBasktGuideDialog';
 import { AssetSelectionModal } from '../../components/baskt/AssetSelectionModal';
-import { Tabs, TabsList, TabsTrigger } from '../../components/src/tabs';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -30,7 +30,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '../../components/src/table';
+} from '../../components/ui/table';
 import { Asset } from '../../types/baskt';
 import { usePrivy } from '@privy-io/react-auth';
 import React from 'react';
@@ -69,13 +69,11 @@ const CreateBaskt = () => {
     assets: [],
     isPublic: true,
   });
-
   const [tagInput, setTagInput] = useState('');
   const [isGuideDialogOpen, setIsGuideDialogOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Handle basic form changes
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({
       ...prev,
@@ -83,7 +81,6 @@ const CreateBaskt = () => {
     }));
   };
 
-  // Handle rebalancing period changes
   const handleRebalancePeriodChange = (
     type: 'value' | 'unit',
     newValue: number | 'day' | 'hour',
@@ -97,7 +94,6 @@ const CreateBaskt = () => {
     }));
   };
 
-  // Handle adding a tag
   const handleAddTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
       setFormData((prev) => ({
@@ -108,7 +104,6 @@ const CreateBaskt = () => {
     }
   };
 
-  // Handle removing a tag
   const handleRemoveTag = (tagToRemove: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -116,7 +111,6 @@ const CreateBaskt = () => {
     }));
   };
 
-  // Handle adding an asset
   const handleAddAsset = (asset: Asset) => {
     if (formData.assets.some((a) => a.ticker === asset.ticker)) {
       toast({
@@ -141,7 +135,6 @@ const CreateBaskt = () => {
     setIsAssetModalOpen(false);
   };
 
-  // Handle removing an asset
   const handleRemoveAsset = (assetticker: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -149,7 +142,6 @@ const CreateBaskt = () => {
     }));
   };
 
-  // Handle changing asset position (long/short)
   const handleAssetPositionChange = (assetticker: string, position: 'long' | 'short') => {
     setFormData((prev) => ({
       ...prev,
@@ -159,7 +151,6 @@ const CreateBaskt = () => {
     }));
   };
 
-  // Handle changing asset weightage
   const handleAssetWeightChange = (assetticker: string, input: string) => {
     const weightage = parseFloat(input);
     if (isNaN(weightage)) return;
@@ -171,10 +162,8 @@ const CreateBaskt = () => {
     }));
   };
 
-  // Calculate total weightage
   const totalWeightage = formData.assets.reduce((sum, asset) => sum + asset.weightage, 0);
 
-  // Submit form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -185,7 +174,6 @@ const CreateBaskt = () => {
       return;
     }
 
-    // Validate form
     if (!formData.name.trim()) {
       toast({
         title: 'Name required',
@@ -213,29 +201,14 @@ const CreateBaskt = () => {
       return;
     }
 
-    // Submit form
     setIsSubmitting(true);
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/baskts', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(formData),
-      // });
-
-      // if (!response.ok) {
-      //   throw new Error('Failed to create baskt');
-      // }
-
       toast({
         title: 'Baskt created',
         description: `${formData.name} has been created successfully.`,
       });
 
-      // Redirect to Baskts page
       navigate.push('/baskts');
     } catch (error) {
       console.error('Error creating baskt:', error); //eslint-disable-line
@@ -468,10 +441,7 @@ const CreateBaskt = () => {
                                 min="0"
                                 max="100"
                                 onChange={(e) =>
-                                  handleAssetWeightChange(
-                                    asset.ticker,
-                                    e.target.value,
-                                  )
+                                  handleAssetWeightChange(asset.ticker, e.target.value)
                                 }
                                 className="w-20"
                               />

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../src/dialog';
-import { Input } from '../src/input';
-import { Button } from '../src/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
 import { Search } from 'lucide-react';
 import { Asset } from '../../types/baskt';
 import { useBasktClient } from '@baskt/ui';
@@ -25,9 +25,6 @@ export function AssetSelectionModal({
   const { client } = useBasktClient();
   const [assets, setAssets] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-
-
   const { data: assetsData, isSuccess: assetDataFetchSuccess } = trpc.asset.getAllAssets.useQuery();
 
   useEffect(() => {
@@ -37,7 +34,7 @@ export function AssetSelectionModal({
         setIsLoading(true);
 
         const backendAssets = assetsData?.data ?? [];
-        console.log(backendAssets)
+        console.log(backendAssets);
         setAssets(backendAssets);
       } catch (error) {
         toast.error('Error fetching assets');

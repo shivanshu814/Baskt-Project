@@ -1,20 +1,10 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '../../components/src/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { AssetAllocationChart } from './AssetAllocationChart';
 import { Baskt } from '../../types/baskt';
 import { cn } from '@baskt/ui';
 import { ChevronDown, ChevronUp, ChevronsDown, ChevronsUp } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '../../components/src/collapsible';
-import { Button } from '../../components/src/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
+import { Button } from '../ui/button';
 import { useState } from 'react';
 
 interface BasktDetailCardProps {

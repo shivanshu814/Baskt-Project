@@ -1,7 +1,7 @@
 'use client';
 
-import { Toaster } from '../components/src/toaster';
-import { Toaster as Sonner } from '../components/src/sonner';
+import { Toaster } from './ui/toaster';
+import { Toaster as Sonner } from './ui/sonner';
 
 export function ToasterWrapper() {
   return (

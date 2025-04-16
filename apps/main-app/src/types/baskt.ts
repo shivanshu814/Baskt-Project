@@ -6,11 +6,11 @@ export interface Asset {
   price: number;
   change24h: number;
   position: 'long' | 'short';
-  weightage: number; // percentage in the Baskt
-  allocation?: number; // calculated based on user's position size
-  volume24h: number; // 24-hour trading volume
-  marketCap: number; // market capitalization
-  logo: string; // asset logo URL
+  weightage: number;
+  allocation?: number;
+  volume24h: number;
+  marketCap: number;
+  logo: string;
 }
 
 export interface MarketTrend {
@@ -31,7 +31,7 @@ export interface Baskt {
   name: string;
   description: string;
   totalAssets: number;
-  aum: number; // Assets Under Management
+  aum: number;
   price: number;
   change24h: number;
   creator: string;
@@ -56,15 +56,15 @@ export interface Baskt {
 
 export interface UserBasktPosition {
   basktId: string;
-  positionSize: number; // in USD
+  positionSize: number;
   entryPrice: number;
   currentValue: number;
-  pnl: number; // profit/loss
+  pnl: number;
   pnlPercentage: number;
   openDate: string;
-  type?: 'long' | 'short'; // Added property for position type
-  collateral?: number; // Added property for collateral amount
-  userBalance: number; // User's available balance in USD
+  type?: 'long' | 'short';
+  collateral?: number;
+  userBalance: number;
 }
 
 export interface TradingPair {
@@ -102,4 +102,6 @@ export interface TradingViewChartProps {
   weeklyData: ChartData[];
   monthlyData: ChartData[];
   yearlyData: ChartData[];
+  chartType?: 'line' | 'candle';
+  period?: string;
 }

@@ -3,39 +3,212 @@
 import { Layout } from '../../../components/Layout';
 import { BasktTradingForm } from '../../../components/baskt/BasktTradingForm';
 import { TradingViewChart } from '../../../components/market/TradingViewChart';
-import { Button } from '../../../components/src/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/src/card';
-import { ArrowLeft, PlusCircle } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { ArrowUp, ArrowDown, Share2, LineChart, CandlestickChart } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { IndexComposition } from '../../../components/baskt/IndexComposition';
-import { CreateBasktDialog } from '../../../components/baskt/CreateBasktDialog';
 import { useState, useEffect } from 'react';
 import { Baskt, UserBasktPosition } from '../../../types/baskt';
+import { SuggestedBaskts } from '../../../components/baskt/SuggestedBaskts';
+import { ShareBasktModal } from '../../../components/baskt/ShareBasktModal';
+import { CryptoNews } from '../../../components/baskt/CryptoNews';
+import { trpc } from '../../../utils/trpc';
 
 export default function BasktDetailPage() {
   const router = useRouter();
   const params = useParams();
   const basktId = params.id as string;
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [baskt, setBaskt] = useState<Baskt | null>(null);
   const [userPosition, setUserPosition] = useState<UserBasktPosition | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [chartPeriod, setChartPeriod] = useState('1D');
+  const [chartType, setChartType] = useState<'line' | 'candle'>('line');
+  const { data: cryptoNews = [] } = trpc.crypto.getCryptoNews.useQuery(undefined, {
+    staleTime: 120 * 60 * 1000, // 2 hours
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+
+  const suggestedBaskts = [
+    {
+      id: '1',
+      name: 'DeFi Blue Chips',
+      price: 125.5,
+      change24h: 3.2,
+    },
+    {
+      id: '2',
+      name: 'AI & Big Data',
+      price: 98.75,
+      change24h: -1.5,
+    },
+    {
+      id: '3',
+      name: 'Gaming & Metaverse',
+      price: 87.25,
+      change24h: 5.8,
+    },
+    {
+      id: '4',
+      name: 'Layer 1 Tokens',
+      price: 156.8,
+      change24h: 2.1,
+    },
+    {
+      id: '5',
+      name: 'NFT & Digital Art',
+      price: 75.3,
+      change24h: -2.3,
+    },
+  ];
 
   useEffect(() => {
     const fetchBasktData = async () => {
       try {
-        // TODO: Replace with actual API calls
-        // const basktResponse = await fetch(`/api/baskts/${basktId}`);
-        // const basktData = await basktResponse.json();
-        // const positionResponse = await fetch(`/api/portfolio/positions/${basktId}`);
-        // const positionData = await positionResponse.json();
+        // adding some mock data for lookup
+        const tempBaskt: Baskt = {
+          id: basktId,
+          name: 'Crypto Blue Chips',
+          description:
+            'A diversified basket of top cryptocurrencies including Bitcoin, Ethereum, and other major assets.',
+          totalAssets: 5,
+          aum: 1000000,
+          price: 150.25,
+          change24h: 2.5,
+          creator: '0x1234...5678',
+          creationDate: '2024-03-15',
+          category: 'Cryptocurrency',
+          performance: {
+            day: 2.5,
+            week: 5.2,
+            month: 12.8,
+            year: 45.6,
+          },
+          risk: 'medium',
+          assets: [
+            {
+              id: '1',
+              name: 'Bitcoin',
+              ticker: 'BTC',
+              symbol: 'BTC',
+              price: 50000,
+              change24h: 2.5,
+              position: 'long',
+              weightage: 40,
+              allocation: 40,
+              volume24h: 25000000000,
+              marketCap: 1000000000000,
+              logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
+            },
+            {
+              id: '2',
+              name: 'Ethereum',
+              ticker: 'ETH',
+              symbol: 'ETH',
+              price: 3000,
+              change24h: 1.8,
+              position: 'long',
+              weightage: 30,
+              allocation: 30,
+              volume24h: 15000000000,
+              marketCap: 360000000000,
+              logo: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
+            },
+            {
+              id: '3',
+              name: 'Solana',
+              ticker: 'SOL',
+              symbol: 'SOL',
+              price: 100,
+              change24h: 3.2,
+              position: 'long',
+              weightage: 15,
+              allocation: 15,
+              volume24h: 5000000000,
+              marketCap: 40000000000,
+              logo: 'https://cryptologos.cc/logos/solana-sol-logo.png',
+            },
+            {
+              id: '4',
+              name: 'Avalanche',
+              ticker: 'AVAX',
+              symbol: 'AVAX',
+              price: 40,
+              change24h: 2.1,
+              position: 'long',
+              weightage: 10,
+              allocation: 10,
+              volume24h: 2000000000,
+              marketCap: 12000000000,
+              logo: 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
+            },
+            {
+              id: '5',
+              name: 'Polygon',
+              ticker: 'MATIC',
+              symbol: 'MATIC',
+              price: 1.5,
+              change24h: 1.5,
+              position: 'long',
+              weightage: 5,
+              allocation: 5,
+              volume24h: 1000000000,
+              marketCap: 10000000000,
+              logo: 'https://cryptologos.cc/logos/polygon-matic-logo.png',
+            },
+          ],
+          sparkline: [140, 142, 145, 143, 147, 150, 148, 152, 150, 155, 153, 150.25],
+          priceHistory: {
+            daily: Array(24)
+              .fill(0)
+              .map((_, i) => ({
+                date: new Date(Date.now() - (24 - i) * 3600000).toISOString(),
+                price: 150 + Math.sin(i) * 5,
+                volume: 1000000 + Math.random() * 500000,
+              })),
+            weekly: Array(7)
+              .fill(0)
+              .map((_, i) => ({
+                date: new Date(Date.now() - (7 - i) * 86400000).toISOString(),
+                price: 150 + Math.sin(i) * 10,
+                volume: 2000000 + Math.random() * 1000000,
+              })),
+            monthly: Array(30)
+              .fill(0)
+              .map((_, i) => ({
+                date: new Date(Date.now() - (30 - i) * 86400000).toISOString(),
+                price: 150 + Math.sin(i) * 15,
+                volume: 3000000 + Math.random() * 1500000,
+              })),
+            yearly: Array(12)
+              .fill(0)
+              .map((_, i) => ({
+                date: new Date(Date.now() - (12 - i) * 2592000000).toISOString(),
+                price: 150 + Math.sin(i) * 20,
+                volume: 4000000 + Math.random() * 2000000,
+              })),
+          },
+        };
 
-        // setBaskt(basktData);
-        // setUserPosition(positionData);
-        setBaskt(null);
-        setUserPosition(null);
+        const tempPosition: UserBasktPosition = {
+          basktId: basktId,
+          type: 'long',
+          positionSize: 1000,
+          entryPrice: 145.5,
+          currentValue: 1502.5,
+          pnl: 52.5,
+          pnlPercentage: 3.61,
+          openDate: '2024-03-20',
+          collateral: 1500,
+          userBalance: 5000,
+        };
+
+        setBaskt(tempBaskt);
+        setUserPosition(tempPosition);
       } catch (error) {
-        console.error('Error fetching baskt data:', error); //eslint-disable-line
         setBaskt(null);
         setUserPosition(null);
       } finally {
@@ -67,49 +240,67 @@ export default function BasktDetailPage() {
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="mr-2"
-              onClick={() => router.push('/baskts')}
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="sr-only">Back</span>
-            </Button>
-          </div>
-
-          <Button onClick={() => setIsCreateDialogOpen(true)} className="flex items-center gap-1">
-            <PlusCircle className="h-4 w-4" />
-            <span>Create Baskt</span>
-          </Button>
-        </div>
-
         <div className="grid grid-cols-12 gap-6">
-          {/* Left column - Baskt info */}
-          <div className="col-span-3">
+          <div className="col-span-3 space-y-6">
             <Card>
               <CardContent className="pt-6">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
+                      <div className="font-semibold text-primary text-sm">
+                        {baskt.name.substring(0, 2)}
+                      </div>
+                    </div>
+
+                    <h1 className="text-[18px] font-bold">{baskt.name}</h1>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setIsShareModalOpen(true)}
+                  >
+                    <Share2 className="h-4 w-4" />
+                    <span className="sr-only">Share</span>
+                  </Button>
+                </div>
+                <div className="text-left">
+                  <div className="flex items-center gap-2">
+                    <div className="text-[32px] font-bold">${baskt.price.toLocaleString()}</div>
+                    <div
+                      className={`flex items-center gap-1 ${baskt.change24h >= 0 ? 'text-[#16c784]' : 'text-[#ea3943]'}`}
+                    >
+                      {baskt.change24h >= 0 ? (
+                        <ArrowUp className="h-3 w-3" />
+                      ) : (
+                        <ArrowDown className="h-3 w-3" />
+                      )}
+                      <span className="text-[12px]">
+                        {Math.abs(baskt.change24h).toFixed(2)}% (24h)
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <h3 className="text-sm text-muted-foreground">Creator</h3>
-                    <p className="font-bold text-md">{baskt.creator}</p>
+                    <h3 className="text-[11px] text-muted-foreground">Creator</h3>
+                    <p className="font-bold text-[14px]">{baskt.creator}</p>
                   </div>
 
                   <div className="space-y-1">
-                    <h3 className="text-sm text-muted-foreground">Risk Level</h3>
-                    <p className="font-bold text-md capitalize">{baskt.risk}</p>
+                    <h3 className="text-[11px] text-muted-foreground">Risk Level</h3>
+                    <p className="font-bold text-[14px] capitalize">{baskt.risk}</p>
                   </div>
 
                   <div className="space-y-1">
-                    <h3 className="text-sm text-muted-foreground">Category</h3>
-                    <p className="font-bold text-md">{baskt.category}</p>
+                    <h3 className="text-[11px] text-muted-foreground">Category</h3>
+                    <p className="font-bold text-[14px]">{baskt.category}</p>
                   </div>
 
                   <div className="space-y-1">
-                    <h3 className="text-sm text-muted-foreground">Total Assets</h3>
-                    <p className="font-bold text-md">{baskt.totalAssets}</p>
+                    <h3 className="text-[11px] text-muted-foreground">Total Assets</h3>
+                    <p className="font-bold text-[14px]">{baskt.totalAssets}</p>
                   </div>
                 </div>
 
@@ -119,52 +310,99 @@ export default function BasktDetailPage() {
                 </div>
               </CardContent>
             </Card>
+            <SuggestedBaskts suggestedBaskts={suggestedBaskts} />
           </div>
 
-          {/* Middle column - Baskt name/price, Chart, Composition, Position */}
           <div className="col-span-6 space-y-6">
-            {/* Baskt name and price header with logo on left, price on right */}
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
-                  <div className="font-semibold text-primary text-xl">
-                    {baskt.name.substring(0, 2)}
-                  </div>
-                </div>
-                <h1 className="text-2xl font-bold">{baskt.name}</h1>
-              </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold">${baskt.price.toLocaleString()}</div>
-                <p
-                  className={`text-sm ${baskt.change24h >= 0 ? 'text-success' : 'text-destructive'}`}
-                >
-                  {baskt.change24h >= 0 ? '+' : ''}
-                  {baskt.change24h.toFixed(2)}% (24h)
-                </p>
-              </div>
-            </div>
-
-            {/* Chart */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-medium">Price Chart</CardTitle>
+                <div className="flex items-center justify-between border-b">
+                  <div className="flex items-center space-x-8">
+                    <button className="px-1 py-2 text-[14px] text-primary border-b-2 border-primary">
+                      Chart
+                    </button>
+                    <button
+                      className="px-1 py-2 text-[14px] text-muted-foreground hover:text-primary"
+                      onClick={() => {
+                        document
+                          .getElementById('composition-section')
+                          ?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                    >
+                      Composition
+                    </button>
+                    <button
+                      className="px-1 py-2 text-[14px] text-muted-foreground hover:text-primary"
+                      onClick={() => {
+                        document
+                          .getElementById('position-section')
+                          ?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                    >
+                      Position
+                    </button>
+                    <button className="px-1 py-2 text-[14px] text-muted-foreground hover:text-primary">
+                      About
+                    </button>
+                  </div>
+                  <Button className="bg-[#0052FF] text-[14px] hover:bg-[#0052FF]/90 text-white -mt-4 rounded-lg">
+                    Buy {baskt.name}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`rounded-md px-3 py-1 text-xs ${chartType === 'line' ? 'bg-background text-primary' : 'text-muted-foreground hover:text-primary'}`}
+                      onClick={() => setChartType('line')}
+                    >
+                      <LineChart className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`rounded-md px-3 py-1 text-xs ${chartType === 'candle' ? 'bg-background text-primary' : 'text-muted-foreground hover:text-primary'}`}
+                      onClick={() => setChartType('candle')}
+                    >
+                      <CandlestickChart className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
+                    {['1D', '1W', '1M', '1Y', 'All'].map((period) => (
+                      <Button
+                        key={period}
+                        variant="ghost"
+                        size="sm"
+                        className={`rounded-md px-3 py-1 text-xs ${chartPeriod === period ? 'bg-background text-primary' : 'text-muted-foreground hover:text-primary'}`}
+                        onClick={() => setChartPeriod(period)}
+                      >
+                        {period}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
                 <TradingViewChart
-                  className="h-[300px]"
+                  className="h-[500px]"
                   dailyData={baskt.priceHistory?.daily || []}
                   weeklyData={baskt.priceHistory?.weekly || []}
                   monthlyData={baskt.priceHistory?.monthly || []}
                   yearlyData={baskt.priceHistory?.yearly || []}
+                  chartType={chartType}
+                  period={chartPeriod}
                 />
               </CardContent>
             </Card>
 
-            {/* Index composition */}
-            <IndexComposition />
+            <div id="composition-section">
+              <IndexComposition assets={baskt.assets} />
+            </div>
 
-            {/* User position card - always show this section */}
-            <Card>
+            <Card id="position-section">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-medium">Your Position</CardTitle>
               </CardHeader>
@@ -183,7 +421,7 @@ export default function BasktDetailPage() {
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Position Type</span>
                       <span
-                        className={`font-medium ${(userPosition.type || 'long') === 'long' ? 'text-success' : 'text-destructive'}`}
+                        className={`font-medium ${(userPosition.type || 'long') === 'long' ? 'text-[#16c784]' : 'text-[#ea3943]'}`}
                       >
                         {userPosition.type
                           ? userPosition.type.charAt(0).toUpperCase() + userPosition.type.slice(1)
@@ -201,7 +439,7 @@ export default function BasktDetailPage() {
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">P&L</span>
                       <span
-                        className={`font-medium ${userPosition.pnl >= 0 ? 'text-success' : 'text-destructive'}`}
+                        className={`font-medium ${userPosition.pnl >= 0 ? 'text-[#16c784]' : 'text-[#ea3943]'}`}
                       >
                         {userPosition.pnl >= 0 ? '+' : ''}
                         {userPosition.pnl.toFixed(2)} USD ({userPosition.pnl >= 0 ? '+' : ''}
@@ -233,10 +471,10 @@ export default function BasktDetailPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       <Button variant="outline" size="sm" className="w-full">
-                        <span className="text-success">Long</span>
+                        <span className="text-[#16c784]">Long</span>
                       </Button>
                       <Button variant="outline" size="sm" className="w-full">
-                        <span className="text-destructive">Short</span>
+                        <span className="text-[#ea3943]">Short</span>
                       </Button>
                     </div>
                   </div>
@@ -245,18 +483,23 @@ export default function BasktDetailPage() {
             </Card>
           </div>
 
-          {/* Right column - Trading form */}
-          <div className="col-span-3">
+          <div className="col-span-3 space-y-6">
             <Card>
               <CardContent className="pt-6">
                 <BasktTradingForm baskt={baskt} userPosition={userPosition} />
               </CardContent>
             </Card>
+            <CryptoNews news={cryptoNews} />
           </div>
         </div>
       </div>
 
-      <CreateBasktDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
+      <ShareBasktModal
+        isOpen={isShareModalOpen}
+        onOpenChange={setIsShareModalOpen}
+        basktName={baskt.name}
+        basktPrice={baskt.price}
+      />
     </Layout>
   );
 }

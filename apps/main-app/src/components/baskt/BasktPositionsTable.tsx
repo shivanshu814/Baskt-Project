@@ -1,22 +1,11 @@
-import { Button } from '../../components/src/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../components/src/table';
+import { Button } from '../ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Baskt, UserBasktPosition } from '../../types/baskt';
 import { cn } from '@baskt/ui';
 import { ArrowRightLeft, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/src/card';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '../../components/src/collapsible';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { useState } from 'react';
 
 interface BasktPositionsTableProps {

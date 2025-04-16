@@ -9,14 +9,14 @@ import {
   NavigationMenuItem,
   NavigationMenuList,
   navigationMenuTriggerStyle,
-} from '../components/src/navigation-menu';
-import { Button } from './src/button';
+} from './ui/navigation-menu';
+import { Button } from './ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../components/src/dropdown-menu';
+} from './ui/dropdown-menu';
 import { toast } from 'sonner';
 
 interface NavbarProps {
@@ -49,10 +49,7 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
     <header className="fixed top-0 left-0 right-0 z-40 bg-[#010b1d]/80 backdrop-blur-xl border-b border-white/5 h-16">
       <div className="max-w-[1700px] h-full mx-auto flex items-center justify-between p-6">
         <div className="flex items-center gap-4">
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-bold text-xl tracking-tight"
-          >
+          <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
             <span className="text-primary">Baskt</span>
           </Link>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { Layout } from '../components/Layout';
-import { Button } from '../components/src/button';
+import { Button } from '../components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, BarChart3, LineChart, ShieldCheck } from 'lucide-react';
 import { Footer } from '../components/Footer';

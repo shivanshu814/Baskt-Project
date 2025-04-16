@@ -15,7 +15,6 @@ interface ChartData {
 }
 
 export function AssetAllocationChart({ assets, className }: AssetAllocationChartProps) {
-  // Colors for the pie chart
   const LONG_COLORS = ['#0088FE', '#00C49F', '#00BFB0', '#1977F3', '#4299E1'];
   const SHORT_COLORS = ['#FF8042', '#FF4560', '#FF0000', '#FF6B6B', '#FF7979'];
 

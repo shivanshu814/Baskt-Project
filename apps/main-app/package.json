@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@baskt/sdk": "workspace:*",
-    "@baskt/ui": "workspace:*",
     "@baskt/types": "workspace:*",
+    "@baskt/ui": "workspace:*",
     "@hookform/resolvers": "^3.9.0",
     "@privy-io/react-auth": "^2.8.2",
     "@privy-io/server-auth": "^1.19.3",
@@ -55,6 +55,7 @@
     "embla-carousel-react": "^8.3.0",
     "input-otp": "^1.2.4",
     "js-cookie": "^3.0.5",
+    "lightweight-charts": "^5.0.5",
     "lucide-react": "^0.462.0",
     "next": "^15.2.4",
     "next-themes": "^0.3.0",

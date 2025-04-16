@@ -1,12 +1,7 @@
-import {
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../../components/src/dialog';
-import { Dialog } from '../../components/src/dialog';
-import { Button } from '../../components/src/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/src/card';
+import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { PlusCircle, Layers, BarChart, Share2, Shield } from 'lucide-react';
 
 interface CreateBasktGuideDialogProps {

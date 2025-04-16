@@ -1,7 +1,7 @@
-import { Button } from '../../components/src/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/src/tabs';
-import { Input } from '../../components/src/input';
-import { Slider } from '../../components/src/slider';
+import { Button } from '../ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Input } from '../ui/input';
+import { Slider } from '../ui/slider';
 import { Baskt, UserBasktPosition } from '../../types/baskt';
 import { useState } from 'react';
 import { toast } from '../../hooks/use-toast';
@@ -98,10 +98,10 @@ export function BasktTradingForm({ baskt, userPosition = null, className }: Bask
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Liquidation Price:</span>
               <TabsContent value="long" className="m-0 p-0">
-                <span className="text-destructive">${getLiquidationPrice('long').toFixed(2)}</span>
+                <span className="text-[#EA3943]">${getLiquidationPrice('long').toFixed(2)}</span>
               </TabsContent>
               <TabsContent value="short" className="m-0 p-0">
-                <span className="text-destructive">${getLiquidationPrice('short').toFixed(2)}</span>
+                <span className="text-[#EA3943]">${getLiquidationPrice('short').toFixed(2)}</span>
               </TabsContent>
             </div>
           </div>
@@ -112,7 +112,7 @@ export function BasktTradingForm({ baskt, userPosition = null, className }: Bask
             You'll profit if {baskt.name} increases in value
           </p>
           <Button
-            className="w-full bg-success hover:bg-success/90"
+            className="w-full bg-[#16C784] hover:bg-[#16C784]/90"
             onClick={() => handleTrade('long')}
           >
             Open Long Position
@@ -124,7 +124,7 @@ export function BasktTradingForm({ baskt, userPosition = null, className }: Bask
             You'll profit if {baskt.name} decreases in value
           </p>
           <Button
-            className="w-full bg-destructive hover:bg-destructive/90"
+            className="w-full bg-[#EA3943] hover:bg-[#EA3943]/90"
             onClick={() => handleTrade('short')}
           >
             Open Short Position

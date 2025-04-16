@@ -27,4 +27,11 @@ export class SDKClient extends BaseClient {
   }
 }
 
-export const sdkClient = new SDKClient();
+let sdkClientInstance: SDKClient | null = null;
+
+export const sdkClient = () => {
+  if (!sdkClientInstance) {
+    sdkClientInstance = new SDKClient();
+  }
+  return sdkClientInstance;
+};

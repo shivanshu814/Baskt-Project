@@ -2,9 +2,9 @@
 
 import { router, publicProcedure } from '../trpc/trpc';
 import { z } from 'zod';
-import { sdkClient } from '../utils';
 import { Asset } from '@baskt/types';
 import { AssetConfigModel, OracleConfigModel } from '../utils/models';
+import { sdkClient } from '../utils';
 
 export const appRouter = router({
   // health check
@@ -128,8 +128,8 @@ export const appRouter = router({
     }>(async () => {
       try {
         const assetConfigs = await AssetConfigModel.find().sort({ createdAt: -1 });
-
-        const assets = await sdkClient.getAllAssets();
+        const sdkClientInstance = sdkClient();
+        const assets = await sdkClientInstance.getAllAssets();
 
         // Map Asset to the configs and combine then
         const combinedAssets = assetConfigs.map((assetConfig: any) => {
@@ -151,6 +151,128 @@ export const appRouter = router({
       } catch (error) {
         console.error('Error fetching assets:', error);
         throw new Error('Failed to fetch assets');
+      }
+    }),
+  }),
+
+  baskt: router({
+    // get trading data
+    getTradingData: publicProcedure
+      .input(
+        z.object({
+          period: z.enum(['1D', '1W', '1M', '1Y', 'All']).default('1D'),
+          chartType: z.enum(['candle', 'baseline', 'line']).default('candle'),
+          basePrice: z.number().default(150),
+          lastUpdateTime: z.number().optional(), // Add this for incremental updates
+        }),
+      )
+      .query(({ input }) => {
+        const { period, chartType, basePrice, lastUpdateTime } = input;
+
+        const PERIOD_CONFIGS = {
+          '1D': { dataPoints: 24 * 60, timeInterval: 60, volatility: 0.5 },
+          '1W': { dataPoints: 7 * 24, timeInterval: 3600, volatility: 1 },
+          '1M': { dataPoints: 30, timeInterval: 86400, volatility: 2 },
+          '1Y': { dataPoints: 365, timeInterval: 86400, volatility: 5 },
+          All: { dataPoints: 365 * 2, timeInterval: 86400, volatility: 5 },
+        };
+
+        const config = PERIOD_CONFIGS[period] || PERIOD_CONFIGS['1D'];
+        const { dataPoints, timeInterval, volatility } = config;
+
+        const generateRandomPrice = (lastPrice: number) => {
+          const change = (Math.random() - 0.5) * 2;
+          return lastPrice + change;
+        };
+
+        const now = new Date();
+        const data = [];
+        let currentPrice = basePrice;
+        let lastPrice = basePrice;
+
+        // If lastUpdateTime is provided, only generate new data points
+        const startIndex = lastUpdateTime
+          ? Math.floor((now.getTime() - lastUpdateTime * 1000) / (timeInterval * 1000))
+          : 0;
+
+        if (chartType === 'candle') {
+          for (let i = startIndex; i < dataPoints; i++) {
+            const time = new Date(now.getTime() - (dataPoints - i) * timeInterval * 1000);
+            lastPrice = currentPrice;
+            currentPrice = generateRandomPrice(currentPrice);
+            const high = Math.max(lastPrice, currentPrice) + Math.random() * volatility;
+            const low = Math.min(lastPrice, currentPrice) - Math.random() * volatility;
+
+            data.push({
+              time: time.getTime() / 1000,
+              open: lastPrice,
+              high,
+              low,
+              close: currentPrice,
+            });
+          }
+        } else {
+          const baselineVolatility = volatility * 4;
+          for (let i = startIndex; i < dataPoints; i++) {
+            const time = new Date(now.getTime() - (dataPoints - i) * timeInterval * 1000);
+            const value =
+              basePrice +
+              Math.sin(i * 0.1) * baselineVolatility +
+              (Math.random() - 0.5) * baselineVolatility;
+
+            data.push({
+              time: time.getTime() / 1000,
+              value,
+            });
+          }
+        }
+
+        return {
+          success: true,
+          data,
+          lastUpdateTime: now.getTime() / 1000,
+        };
+      }),
+  }),
+
+  crypto: router({
+    getCryptoNews: publicProcedure.query(async () => {
+      try {
+        const baseURL = 'https://pro-api.coinmarketcap.com/v1/content/latest';
+        const apiKey = process.env.CMC_APIKEY;
+
+        if (!apiKey) {
+          throw new Error('CMC API key not found');
+        }
+
+        const response = await fetch(
+          `${baseURL}?limit=5&news_type=all&content_type=all&language=en`,
+          {
+            headers: {
+              'X-CMC_PRO_API_KEY': apiKey,
+              Accept: 'application/json',
+            },
+          },
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            `Failed to fetch crypto news: ${errorData.status?.error_message || 'Unknown error'}`,
+          );
+        }
+
+        const data = await response.json();
+        return data.data.map((item: any) => ({
+          id: item.id?.toString() || Math.random().toString(),
+          title: item.title,
+          time: new Date(item.released_at || item.created_at).toLocaleString(),
+          url: item.source_url,
+          cover: item.cover,
+        }));
+      } catch (error) {
+        console.error('Error fetching crypto data:', error);
+        return [];
       }
     }),
   }),

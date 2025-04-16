@@ -1,6 +1,6 @@
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '../providers/ThemeProvider';
-import { Button } from '../components/src/button';
+import { Button } from './ui/button';
 import { cn } from '@baskt/ui';
 
 interface ThemeSwitchProps {

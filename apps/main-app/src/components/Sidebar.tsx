@@ -1,4 +1,4 @@
-import { ScrollArea } from '../components/src/scroll-area';
+import { ScrollArea } from './ui/scroll-area';
 import { cn } from '@baskt/ui';
 import { ArrowRightLeft, Home, LogOut, PieChart, Settings, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
