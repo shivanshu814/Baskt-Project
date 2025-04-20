@@ -1,5 +1,5 @@
 import axios from "axios";
-const API_KEY = "CG-cZEgFTjtp8uWV4QwbwYPVzHz";
+const API_KEY = process.env.COINGECKO_API;
 
 export default async function getCoinGeckoData(coinId: string) {
   const url = `https://api.coingecko.com/api/v3/coins/${coinId}`;

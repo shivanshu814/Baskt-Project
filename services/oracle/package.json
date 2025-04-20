@@ -2,11 +2,13 @@
   "name": "@baskt/oracle",
   "version": "0.0.1",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev:manager": "tsx watch src/manager.ts",
+    "dev:worker": "tsx watch src/worker.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start:manager": "node dist/manager.js",
+    "start:worker": "node dist/worker.js",
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
@@ -14,14 +16,20 @@
     "@baskt/types": "workspace:*",
     "@trpc/client": "^10.45.1",
     "axios": "^1.8.4",
+    "bn.js": "^5.2.1",
+    "bullmq": "^5.49.1",
     "dotenv": "^16.4.7",
+    "ioredis": "^5.6.1",
     "mongoose": "^8.13.2",
-    "bn.js": "^5.2.1"
+    "pg": "^8.14.1",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.7",
+    "sequelize-cli": "^6.6.2"
   },
   "devDependencies": {
     "@eslint/js": "^8.57.0",
-    "@types/node": "^20.11.24",
     "@types/bn.js": "^5.1.6",
+    "@types/node": "^20.11.24",
     "eslint": "^9.0.0",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3",

@@ -32,6 +32,7 @@ export default function BasktDetailPage() {
     refetchOnReconnect: false,
   });
 
+
   const suggestedBaskts = [
     {
       id: '1',
