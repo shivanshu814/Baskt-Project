@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { describe, it, before } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { TestClient } from '../utils/test-client';
-import { AccessControlRole, AssetPermissions } from '@baskt/types';
+import { AccessControlRole, OnchainAssetPermissions } from '@baskt/types';
 
 describe('asset', () => {
   // Get the test client instance
@@ -29,118 +29,18 @@ describe('asset', () => {
   it('Successfully adds a new synthetic asset with custom oracle', async () => {
     // Create a custom oracle and asset in one step
     // The client should have the AssetManager role by default since it's the protocol owner
-    const { assetAddress, ticker, oracle } = await client.createAssetWithCustomOracle('BTC');
+    const { assetAddress } = await client.addAsset('BTC');
 
     // Fetch the asset account to verify it was initialized correctly
     const assetAccount = await client.getAssetRaw(assetAddress);
 
     // Verify the asset was initialized with correct values
     expect(assetAccount.assetId.toString()).to.equal(assetAddress.toString());
-    expect(assetAccount.ticker).to.equal(ticker);
-    expect(assetAccount.oracle.oracleAccount.toString()).to.equal(oracle.toString());
-    expect(assetAccount.oracle.oracleType).to.deep.include({ custom: {} });
-    expect(assetAccount.oracle.maxPriceError.toNumber()).to.equal(100);
-    expect(assetAccount.oracle.maxPriceAgeSec).to.equal(60);
-    expect(assetAccount.openInterestLong.toNumber()).to.equal(0);
-    expect(assetAccount.openInterestShort.toNumber()).to.equal(0);
-    expect(assetAccount.fundingRate.toNumber()).to.equal(0);
-
-    // Verify the new stats structs are initialized correctly
-    expect(assetAccount.volumeStats.openPositionUsd.toNumber()).to.equal(0);
-    expect(assetAccount.volumeStats.closePositionUsd.toNumber()).to.equal(0);
-    expect(assetAccount.volumeStats.liquidationUsd.toNumber()).to.equal(0);
-
-    expect(assetAccount.feesStats.openPositionUsd.toNumber()).to.equal(0);
-    expect(assetAccount.feesStats.closePositionUsd.toNumber()).to.equal(0);
-    expect(assetAccount.feesStats.liquidationUsd.toNumber()).to.equal(0);
+    expect(assetAccount.ticker).to.equal('BTC');
 
     // Verify permissions are set to default (both true)
     expect(assetAccount.permissions.allowLongs).to.be.true;
     expect(assetAccount.permissions.allowShorts).to.be.true;
-  });
-
-  it('Successfully updates oracle price and verifies the change', async () => {
-    // Create a custom oracle and asset for this test
-    // The client should have the OracleManager role by default since it's the protocol owner
-    const { assetAddress } = await client.createAssetWithCustomOracle('ETH', 3000); // Initial price $3,000
-
-    // Get the asset to access the oracle account
-    const assetAccount = await client.getAssetRaw(assetAddress);
-    const oracleAddress = assetAccount.oracle.oracleAccount;
-
-    // New price to set ($3,500)
-    const newPrice = 3500;
-
-    // Update the oracle price
-    await client.updateOraclePrice(oracleAddress, newPrice, newPrice, newPrice);
-
-    // Fetch the oracle account to verify the price was updated
-    const oracleAccount = await client.getOracleAccount(oracleAddress);
-
-    // Calculate the on-chain price in dollars
-    const onChainPrice = oracleAccount.price.toNumber();
-
-    // Verify the price was updated correctly
-    // Allow for some small rounding errors in the conversion
-    expect(onChainPrice).to.be.equal(newPrice * 1e6);
-
-    // Verify the publish time was updated
-    expect(oracleAccount.publishTime.toNumber()).to.be.greaterThan(0);
-  });
-
-  it('Tests oracle price staleness handling', async () => {
-    // Create a stale oracle (2 hours ago)
-    // The client should have the OracleManager role by default since it's the protocol owner
-    const staleOracle = await client.createStaleOracle('STALE', 7200); // 2 hours in seconds
-
-    // Verify the oracle was created with the stale timestamp
-    const oracleAccount = await client.getOracleAccount(staleOracle.address);
-
-    // Get current time in seconds
-    const currentTime = Math.floor(Date.now() / 1000);
-    // The timestamp should be approximately 2 hours ago (with some tolerance)
-    expect(currentTime - oracleAccount.publishTime.toNumber()).to.be.closeTo(7200, 10);
-
-    const staleTicker = 'STALE';
-
-    // Create oracle parameters with a short max age
-    const staleOracleParams = client.createOracleParams(
-      staleOracle.address,
-      'custom',
-      100, // 1% max price error
-      10, // Only 10 seconds allowed
-    );
-
-    // Add the asset with the stale oracle
-    const { assetAddress } = await client.addAsset({
-      ticker: staleTicker,
-      oracle: staleOracleParams,
-    });
-
-    // Verify the asset was created with the correct oracle parameters
-    const assetAccount = await client.getAssetRaw(assetAddress);
-
-    expect(assetAccount.oracle.oracleAccount.toString()).to.equal(staleOracle.address.toString());
-    expect(assetAccount.oracle.maxPriceAgeSec).to.equal(10);
-  });
-
-  it('Tests permission checks for asset management', async () => {
-    // Create a new keypair without any roles
-    const unauthorizedUser = Keypair.generate();
-
-    // Verify the unauthorized user doesn't have the AssetManager role
-    const hasRole = await client.hasRole(
-      unauthorizedUser.publicKey,
-      AccessControlRole.AssetManager,
-    );
-    expect(hasRole).to.be.false;
-
-    // Verify the asset manager has the correct role
-    const hasAssetManagerRole = await client.hasRole(
-      client.assetManager.publicKey,
-      AccessControlRole.AssetManager,
-    );
-    expect(hasAssetManagerRole).to.be.true;
   });
 
   it('Ensures unauthorized users cannot add assets', async () => {
@@ -150,7 +50,7 @@ describe('asset', () => {
     // This should fail with an UnauthorizedSigner error
     try {
       // Create a custom oracle for this test
-      await unauthorizedUser.createAssetWithCustomOracle('UNAUTH');
+      await unauthorizedUser.addAsset('UNAUTH');
 
       // If we reach here, the test failed
       expect.fail('Expected transaction to fail with UnauthorizedSigner error');
@@ -177,7 +77,7 @@ describe('asset', () => {
     expect(hasRole).to.be.true;
     const ticker = 'NEWMGR';
 
-    await assetManagerUser.createAssetWithCustomOracle(ticker);
+    await assetManagerUser.addAsset(ticker);
 
     await client.removeRole(assetManagerUser.getPublicKey(), AccessControlRole.AssetManager);
 
@@ -191,7 +91,7 @@ describe('asset', () => {
     // Try to add another asset after role revocation
     try {
       const newTicker = 'REVOKED';
-      await assetManagerUser.createAssetWithCustomOracle(newTicker);
+      await assetManagerUser.addAsset(newTicker);
 
       // If we reach here, the test failed
       expect.fail('Expected transaction to fail after role revocation');
@@ -219,15 +119,13 @@ describe('asset', () => {
 
   it('Successfully adds an asset with short-only permissions', async () => {
     // Create a custom oracle and asset with longs disabled and shorts enabled
-    const permissions: AssetPermissions = {
+    const permissions: OnchainAssetPermissions = {
       allowLongs: false,
       allowShorts: true,
     };
 
-    const { assetAddress } = await client.createAssetWithCustomOracle(
+    const { assetAddress } = await client.addAsset(
       'SHORT_ONLY', // ticker
-      5000, // price
-      -6, // exponent
       permissions, // custom permissions
     );
 

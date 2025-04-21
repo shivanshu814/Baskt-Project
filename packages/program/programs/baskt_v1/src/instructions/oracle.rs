@@ -11,15 +11,7 @@ pub struct CustomOracleInstructionParams {
     pub expo: i32,
     pub conf: u64,
     pub ema: u64,
-    pub publish_time: i64,
     pub oracle_name: String,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
-pub struct CustomOracleUpdateInstructionParams {
-    pub price: u64,
-    pub conf: u64,
-    pub ema: u64,
 }
 
 #[derive(Accounts)]
@@ -28,28 +20,13 @@ pub struct InitializeCustomOracle<'info> {
     #[account(init, payer = authority, space = 8 + CustomOracle::INIT_SPACE, seeds = [b"oracle", instruction_params.oracle_name.as_bytes()], bump)]
     pub oracle: Account<'info, CustomOracle>,
 
-    //TODO: NO constraint here
-    #[account(mut)]
+    #[account(mut, constraint = protocol.has_permission(&authority.key(), Role::OracleManager) @ PerpetualsError::Unauthorized)]
     pub authority: Signer<'info>,
 
     #[account(seeds = [b"protocol"], bump)]
     pub protocol: Account<'info, Protocol>,
 
     pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-#[instruction(instruction_params: CustomOracleUpdateInstructionParams)]
-pub struct UpdateCustomOracle<'info> {
-    //TODO: This constraint is on the wrong account.
-    #[account(mut, constraint = protocol.has_permission(&authority.key(), Role::OracleManager) @ PerpetualsError::Unauthorized)]
-    pub oracle: Account<'info, CustomOracle>,
-
-    #[account(mut)]
-    pub authority: Signer<'info>,
-
-    #[account(seeds = [b"protocol"], bump)]
-    pub protocol: Account<'info, Protocol>,
 }
 
 pub fn initialize_custom_oracle(
@@ -62,9 +39,29 @@ pub fn initialize_custom_oracle(
         instruction_params.expo,
         instruction_params.conf,
         instruction_params.ema,
-        instruction_params.publish_time,
+        Clock::get().unwrap().unix_timestamp,
     );
     Ok(())
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct CustomOracleUpdateInstructionParams {
+    pub price: u64,
+    pub conf: u64,
+    pub ema: u64,
+}
+
+#[derive(Accounts)]
+#[instruction(instruction_params: CustomOracleUpdateInstructionParams)]
+pub struct UpdateCustomOracle<'info> {
+    #[account(mut)]
+    pub oracle: Account<'info, CustomOracle>,
+
+    #[account(mut, constraint = protocol.has_permission(&authority.key(), Role::OracleManager) @ PerpetualsError::Unauthorized)]
+    pub authority: Signer<'info>,
+
+    #[account(seeds = [b"protocol"], bump)]
+    pub protocol: Account<'info, Protocol>,
 }
 
 pub fn update_custom_oracle(

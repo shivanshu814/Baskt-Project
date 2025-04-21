@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "copy-program-files": "node scripts/copy-program-files.js",
-    "build": "npm run copy-program-files && tsc",
+    "build": "pnpm  --filter @baskt/types build && npm run copy-program-files && tsc",
     "clean": "rimraf dist && rm tsconfig.tsbuildinfo",
     "dev": "npm run build -- --watch",
     "lint": "eslint src --ext .ts",

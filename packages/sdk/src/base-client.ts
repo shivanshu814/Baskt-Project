@@ -16,13 +16,15 @@ import { stringToRole, toRoleString } from './utils/acl-helper';
 import { createLookupTableInstructions, extendLookupTable } from './utils/lookup-table-helper';
 import { BasktV1Idl } from './program/idl';
 import {
-  LightweightProvider,
-  AssetPermissions,
-  ProtocolInterface,
+  OnchainLightweightProvider,
+  OnchainAssetPermissions,
+  OnchainProtocolInterface,
   AccessControlRole,
-  OracleParams,
-  Asset,
+  OnchainOracleParams,
+  OnchainAsset,
+  OnchainAssetConfig,
 } from '@baskt/types';
+import { toU64LeBytes } from './utils';
 
 /**
  * Abstract base client for Solana programs
@@ -31,7 +33,7 @@ import {
 export abstract class BaseClient {
   // Program and provider
   public program: anchor.Program<BasktV1>;
-  public provider: LightweightProvider;
+  public provider: OnchainLightweightProvider;
   public connection: Connection;
   // Protocol PDA
   public protocolPDA: PublicKey;
@@ -40,20 +42,21 @@ export abstract class BaseClient {
   public oracleHelper: OracleHelper;
 
   // Default values
-  protected readonly DEFAULT_PRICE = 50000; // $50,000
+  protected readonly DEFAULT_PRICE = new BN(50000); // $50,000
   protected readonly DEFAULT_PRICE_EXPONENT = -6; // 6 decimal places
-  protected readonly DEFAULT_PRICE_ERROR = 100; // 1% (100 BPS)
+  protected readonly DEFAULT_PRICE_ERROR = new BN(100); // 1% (100 BPS)
   protected readonly DEFAULT_PRICE_AGE_SEC = 60; // 1 minute
 
   // Lookup table
   public lookupTable: PublicKey | undefined;
 
-  /**
-   * Create a new client instance
-   * @param program Program instance
-   */
-  constructor(connection: Connection, provider: LightweightProvider, userPublicKey?: PublicKey) {
-    this.program = new anchor.Program<BasktV1>(BasktV1Idl);
+  constructor(
+    connection: Connection,
+    provider: OnchainLightweightProvider,
+    userPublicKey?: PublicKey,
+    anchorProvider?: anchor.AnchorProvider,
+  ) {
+    this.program = new anchor.Program<BasktV1>(BasktV1Idl, anchorProvider);
     this.connection = connection;
     this.provider = provider;
 
@@ -81,26 +84,20 @@ export abstract class BaseClient {
    * @param timestamp Optional timestamp (for testing)
    * @returns Oracle information including keypair and address
    */
-  public async createCustomOracle(
-    protocol: PublicKey,
+  public async createOracle(
     oracleName: string,
-    price: number | BN = this.DEFAULT_PRICE,
-    exponent: number = this.DEFAULT_PRICE_EXPONENT,
-    confidence?: number | BN,
-    ema?: number | BN,
-    timestamp?: number,
+    price: anchor.BN,
+    exponent: number,
+    confidence?: anchor.BN,
+    ema?: anchor.BN,
   ) {
-    // Convert to raw price with exponent if a number is provided
-    const rawPrice = typeof price === 'number' ? new anchor.BN(price) : price;
-    const emaBN = typeof ema === 'number' ? new anchor.BN(ema) : (ema ?? rawPrice);
+    const emaBN = ema ?? price;
+    const rawConfidence = confidence ? new anchor.BN(confidence) : price.div(new anchor.BN(100));
 
-    // Default confidence to 1% of price if not specified
-    const rawConfidence = confidence ?? (typeof rawPrice === 'number' ? rawPrice / 100 : undefined);
-
-    const oracle = PublicKey.findProgramAddressSync(
+    const [oracle] = PublicKey.findProgramAddressSync(
       [Buffer.from('oracle'), Buffer.from(oracleName)],
       this.program.programId,
-    )[0];
+    );
 
     const postInstructions = [];
     if (this.lookupTable) {
@@ -115,14 +112,12 @@ export abstract class BaseClient {
       );
     }
 
-    const result = await this.oracleHelper.createCustomOracle(
-      protocol,
+    const result = await this.oracleHelper.createOracle(
       oracleName,
-      rawPrice,
+      price,
       exponent,
       emaBN,
       rawConfidence,
-      timestamp,
       postInstructions,
     );
 
@@ -132,27 +127,19 @@ export abstract class BaseClient {
   /**
    * Create oracle parameters for asset initialization
    * @param oracleAddress Oracle account address
-   * @param oracleType Type of oracle (custom or pyth)
    * @param maxPriceError Maximum allowed price error in BPS
    * @param maxPriceAgeSec Maximum allowed age of price data in seconds
    * @returns Oracle parameters object formatted for the program
    */
   public createOracleParams(
     oracleAddress: PublicKey,
-    oracleType: 'custom' | 'pyth',
     maxPriceError: number | BN = this.DEFAULT_PRICE_ERROR,
     maxPriceAgeSec: number = this.DEFAULT_PRICE_AGE_SEC,
-    priceFeedId: string = '',
-  ): OracleParams {
-    // Convert the oracle type to the format expected by the program
-    const formattedOracleType = oracleType === 'custom' ? { custom: {} } : { pyth: {} };
-
+  ): OnchainOracleParams {
     return {
       oracleAccount: oracleAddress,
-      oracleType: formattedOracleType,
       maxPriceError: typeof maxPriceError === 'number' ? new BN(maxPriceError) : maxPriceError,
       maxPriceAgeSec: maxPriceAgeSec,
-      priceFeedId,
     };
   }
 
@@ -165,16 +152,15 @@ export abstract class BaseClient {
    */
   public async updateOraclePrice(
     oracleAddress: PublicKey,
-    price: number | BN,
-    ema?: number | BN,
-    confidence?: number | BN,
+    price: anchor.BN,
+    ema?: anchor.BN,
+    confidence?: anchor.BN,
   ) {
-    const rawPrice = typeof price === 'number' ? new anchor.BN(price) : price;
     await this.oracleHelper.updateCustomOraclePrice(
       oracleAddress,
-      rawPrice,
-      ema ?? rawPrice,
-      confidence ?? rawPrice.div(new anchor.BN(100)),
+      price,
+      ema ?? price,
+      confidence ?? price.div(new anchor.BN(100)),
     );
   }
 
@@ -182,14 +168,6 @@ export abstract class BaseClient {
    * Add a synthetic asset
    * @param assetId Asset ID (can be any unique PublicKey)
    * @param ticker Asset ticker symbol
-   * @param oracleParams Oracle parameters for the asset
-   * @param targetPrice Target price for the asset
-   * @param maxSupply Maximum supply of the asset
-   * @param collateralRatio Collateral ratio for the asset (in BPS)
-   * @param liquidationThreshold Liquidation threshold (in BPS)
-   * @param liquidationPenalty Liquidation penalty (in BPS)
-   * @param interestRate Interest rate (in BPS)
-   * @param interestAccrualRate How often interest accrues (in seconds)
    * @returns Transaction signature
    */
   /**
@@ -198,30 +176,12 @@ export abstract class BaseClient {
   public createAssetParams(
     ticker: string,
     oracleParams: Record<string, unknown>,
-    targetPrice: number | BN,
-    maxSupply: number | BN,
-    collateralRatio: number = 15000, // 150% by default
-    liquidationThreshold: number = 12500, // 125% by default
-    liquidationPenalty: number = 1000, // 10% by default
-    interestRate: number = 500, // 5% by default
-    interestAccrualRate: number = 86400, // 1 day by default
-    permissions: AssetPermissions = { allowLongs: true, allowShorts: true },
+    permissions: OnchainAssetPermissions = { allowLongs: true, allowShorts: true },
   ) {
-    // Convert numeric values to BN if they aren't already
-    const targetPriceBN = typeof targetPrice === 'number' ? new BN(targetPrice) : targetPrice;
-    const maxSupplyBN = typeof maxSupply === 'number' ? new BN(maxSupply) : maxSupply;
-
     // Create the asset parameters object
     return {
       ticker: ticker,
       oracle: oracleParams,
-      targetPrice: targetPriceBN,
-      maxSupply: maxSupplyBN,
-      collateralRatio: collateralRatio,
-      liquidationThreshold: liquidationThreshold,
-      liquidationPenalty: liquidationPenalty,
-      interestRate: interestRate,
-      interestAccrualRate: interestAccrualRate,
       permissions: permissions,
     };
   }
@@ -277,7 +237,7 @@ export abstract class BaseClient {
    * Fetch the protocol account
    * @returns Protocol account data in a standardized format
    */
-  public async getProtocolAccount(): Promise<ProtocolInterface> {
+  public async getProtocolAccount(): Promise<OnchainProtocolInterface> {
     // Fetch the raw protocol account data
     const rawProtocol = await this.program.account.protocol.fetch(this.protocolPDA);
 
@@ -395,18 +355,19 @@ export abstract class BaseClient {
   /**
    * Add a synthetic asset
    * @param ticker Asset ticker symbol
-   * @param oracleParams Oracle parameters
    * @param permissions Permissions for the asset
    * @returns Transaction signature and asset PDA
    */
-  public async addAsset(params: {
-    ticker: string;
-    oracle: OracleParams;
-    permissions?: AssetPermissions;
-  }): Promise<{ txSignature: string; assetAddress: PublicKey }> {
+  public async addAsset(
+    ticker: string,
+    permissions: OnchainAssetPermissions = {
+      allowLongs: true,
+      allowShorts: true,
+    },
+  ): Promise<{ txSignature: string; assetAddress: PublicKey }> {
     // Find the asset PDA
     const [assetAddress] = await PublicKey.findProgramAddress(
-      [Buffer.from('asset'), Buffer.from(params.ticker)],
+      [Buffer.from('asset'), Buffer.from(ticker)],
       this.program.programId,
     );
     const postInstructions: TransactionInstruction[] = [];
@@ -428,9 +389,8 @@ export abstract class BaseClient {
     // We need to use a type assertion because the IDL doesn't include all required accounts
     const tx = await this.program.methods
       .addAsset({
-        ticker: params.ticker,
-        oracle: params.oracle as any,
-        permissions: params.permissions as any,
+        ticker,
+        permissions: permissions as any,
       })
       .accounts({
         admin: this.getPublicKey(),
@@ -447,38 +407,6 @@ export abstract class BaseClient {
    */
   protected getProtocolAddress(): PublicKey {
     return this.protocolPDA;
-  }
-
-  /**
-   * Create and add a synthetic asset with a custom oracle in one step
-   * @param ticker Asset ticker symbol
-   * @param price Price value (optional, defaults to 50,000)
-   * @param exponent Price exponent (optional, defaults to -6)
-   * @returns Object containing asset and oracle information
-   */
-  public async addAssetWithPythOracle(
-    ticker: string,
-    pythAddress: PublicKey,
-    permissions: AssetPermissions = { allowLongs: true, allowShorts: true },
-    priceError: number = 100,
-    priceAgeSec: number = 60,
-  ) {
-    // Create oracle parameters
-    const oracleParams = this.createOracleParams(pythAddress, 'pyth', priceError, priceAgeSec);
-
-    // Add the asset
-    const { txSignature, assetAddress } = await this.addAsset({
-      ticker,
-      oracle: oracleParams,
-      permissions: permissions,
-    });
-
-    return {
-      assetAddress,
-      oracle: pythAddress, // Just return the oracle address directly
-      ticker,
-      txSignature,
-    };
   }
 
   public async getOraclePrice(oracle: PublicKey): Promise<{
@@ -521,18 +449,13 @@ export abstract class BaseClient {
     return {
       address: account.publicKey,
       ticker: account.account.ticker,
-      oracle: {
-        oracleAccount: account.account.oracle.oracleAccount,
-        oracleType: Object.keys(account.account.oracle.oracleType)[0] || 'unknown',
-        maxPriceError: account.account.oracle.maxPriceError,
-        maxPriceAgeSec: account.account.oracle.maxPriceAgeSec,
-      } as OracleParams,
       permissions: {
         allowLongs: account.account.permissions.allowLongs,
         allowShorts: account.account.permissions.allowShorts,
-      } as AssetPermissions,
-      isActive: true, // Default to active since paused property might not exist
-    } as Asset;
+      } as OnchainAssetPermissions,
+      isActive: account.account.isActive,
+      listingTime: new Date(account.account.listingTime.toNumber() * 1000),
+    } as OnchainAsset;
   }
 
   /**
@@ -575,18 +498,14 @@ export abstract class BaseClient {
    * @param basktName The name of the baskt
    * @param assetConfigs Array of asset configurations with weights
    * @param isPublic Whether the baskt is public or private
-   * @param assetOraclePairs Optional array of asset/oracle pairs to use for getting current prices
+   * @param oracleParams Oracle parameters for the baskt
    * @returns Object containing the baskt keypair and transaction signature
    */
   public async createBaskt(
     basktName: string,
-    assetConfigs: Array<{
-      assetId: PublicKey;
-      direction: boolean;
-      weight: number;
-    }>,
+    assetConfigs: Array<OnchainAssetConfig>,
     isPublic: boolean,
-    assetOraclePairs?: Array<{ asset: PublicKey; oracle: PublicKey }>,
+    oracleParams: OnchainOracleParams,
   ) {
     // Derive the baskt PDA
     const [basktId] = PublicKey.findProgramAddressSync(
@@ -594,19 +513,16 @@ export abstract class BaseClient {
       this.program.programId,
     );
 
-    // Convert asset configs to the format expected by the program
-    const programAssetConfigs = assetConfigs.map((config) => ({
-      assetId: config.assetId,
-      direction: config.direction,
-      weight: new BN(config.weight),
-    }));
-
     // Prepare the transaction builder
     const txBuilder = this.program.methods
       .createBaskt({
         basktName,
-        assetParams: programAssetConfigs,
+        assetParams: assetConfigs.map((config) => ({
+          weight: config.weight,
+          direction: config.direction,
+        })),
         isPublic,
+        oracleParams,
       })
       .accounts({
         creator: this.getPublicKey(),
@@ -614,40 +530,55 @@ export abstract class BaseClient {
         systemProgram: anchor.web3.SystemProgram.programId,
       } as any);
 
-    // Add remaining accounts if provided
-    if (assetOraclePairs && assetOraclePairs.length > 0) {
-      const remainingAccounts = assetOraclePairs.flatMap((pair) => [
-        {
-          pubkey: pair.asset,
-          isWritable: false,
-          isSigner: false,
-        },
-        {
-          pubkey: pair.oracle,
-          isWritable: false,
-          isSigner: false,
-        },
-      ]);
+    const assetAccounts = assetConfigs.map((config) => {
+      return {
+        pubkey: config.assetId,
+        isSigner: false,
+        isWritable: false,
+      };
+    });
 
-      txBuilder.remainingAccounts(remainingAccounts);
-    }
-
-    // Add lookup table account if provided
-    if (this.lookupTable) {
-      txBuilder.accounts({
-        lookupTable: this.lookupTable,
-      } as any);
-    }
+    txBuilder.remainingAccounts([
+      ...assetAccounts,
+      {
+        pubkey: oracleParams.oracleAccount,
+        isSigner: false,
+        isWritable: false,
+      },
+    ]);
 
     const instruction = await txBuilder.instruction();
-
     // Execute the transaction
-
     const txSignature = await this.sendAndConfirm([instruction]);
     return {
       basktId,
       txSignature,
     };
+  }
+
+  /**
+   * Activate a baskt with the provided prices
+   * @param basktId The public key of the baskt to activate
+   * @param prices Array of prices for each asset in the baskt
+   * @param authority Optional authority to use for activation (defaults to oracleManager)
+   * @returns Transaction signature
+   */
+  public async activateBaskt(basktId: PublicKey, prices: anchor.BN[]): Promise<string> {
+    const baskt = await this.getBaskt(basktId);
+    const txBuilder = this.program.methods.activateBaskt(prices).accounts({
+      baskt: basktId,
+      authority: this.getPublicKey(),
+    });
+    txBuilder.remainingAccounts([
+      {
+        pubkey: baskt.oracle.oracleAccount,
+        isWritable: false,
+        isSigner: false,
+      },
+    ]);
+
+    const instruction = await txBuilder.instruction();
+    return await this.sendAndConfirm([instruction]);
   }
 
   private async sendAndConfirm(instructions: TransactionInstruction[]) {
@@ -720,32 +651,10 @@ export abstract class BaseClient {
       return {
         assetAddress: assetInfo.publicKey,
         ticker: assetInfo.account.ticker,
-        oracle: assetInfo.account.oracle,
       };
     } catch (error) {
       console.error(`Error getting asset by ticker ${ticker}:`, error);
       return null;
-    }
-  }
-
-  /**
-   * Get asset price using the view instruction
-   * @param assetAddress The asset account address
-   * @param oracleAddress The oracle account address
-   * @returns The current price as a BN
-   */
-  public async getAssetPrice(assetAddress: PublicKey, oracleAddress: PublicKey) {
-    try {
-      return await this.program.methods
-        .getAssetPrice()
-        .accounts({
-          asset: assetAddress,
-          oracle: oracleAddress,
-        })
-        .view();
-    } catch (error) {
-      console.error(error);
-      throw error;
     }
   }
 
@@ -794,40 +703,6 @@ export abstract class BaseClient {
   }
 
   /**
-   * Get baskt NAV using the view instruction
-   * @param basktAddress The baskt account address
-   * @param assetOraclePairs Array of asset/oracle account pairs
-   * @returns The current NAV as a BN
-   */
-  public async getBasktNav(
-    basktAddress: PublicKey,
-    assetOraclePairs: Array<{ asset: PublicKey; oracle: PublicKey }> = [],
-  ) {
-    // Prepare remaining accounts (asset/oracle pairs)
-    const remainingAccounts = assetOraclePairs.flatMap((pair) => [
-      {
-        pubkey: pair.asset,
-        isWritable: false,
-        isSigner: false,
-      },
-      {
-        pubkey: pair.oracle,
-        isWritable: false,
-        isSigner: false,
-      },
-    ]);
-
-    // For view instructions with remainingAccounts
-    return await this.program.methods
-      .getBasktNav()
-      .accounts({
-        baskt: basktAddress,
-      })
-      .remainingAccounts(remainingAccounts)
-      .view();
-  }
-
-  /**
    * Rebalance a baskt with new asset weights
    * @param basktId The public key of the baskt to rebalance
    * @param assetConfigs Array of asset configurations with new weights
@@ -836,58 +711,22 @@ export abstract class BaseClient {
    */
   public async rebalanceBaskt(
     basktId: PublicKey,
-    assetConfigs: Array<{
-      assetId: PublicKey;
-      weight: number;
-      direction?: boolean; // Optional, will be preserved from existing config if not provided
-    }>,
-    assetOraclePairs?: Array<{ asset: PublicKey; oracle: PublicKey }>,
+    assetConfigs: Array<OnchainAssetConfig>,
+    oracleAccount: PublicKey,
   ): Promise<string> {
-    // Get the current baskt to determine existing asset directions
-    const baskt = await this.getBaskt(basktId);
-
-    // Prepare asset parameters with directions
-    const assetParams = assetConfigs.map((config) => {
-      // Find existing config to preserve direction if not provided
-      const existingConfig = baskt.currentAssetConfigs.find(
-        (ac) => ac.assetId.toString() === config.assetId.toString(),
-      );
-
-      if (!existingConfig) {
-        throw new Error(`Asset ${config.assetId.toString()} not found in baskt`);
-      }
-
-      return {
-        assetId: config.assetId,
-        // Use provided direction or preserve from existing config
-        direction: config.direction !== undefined ? config.direction : existingConfig.direction,
-        weight: new BN(config.weight),
-      };
-    });
-
     // Prepare the transaction builder
-    const txBuilder = this.program.methods.rebalance(assetParams).accounts({
+    const txBuilder = this.program.methods.rebalance(assetConfigs).accounts({
       baskt: basktId,
       payer: this.getPublicKey(),
     });
 
-    // Add remaining accounts if provided
-    if (assetOraclePairs && assetOraclePairs.length > 0) {
-      const remainingAccounts = assetOraclePairs.flatMap((pair) => [
-        {
-          pubkey: pair.asset,
-          isWritable: false,
-          isSigner: false,
-        },
-        {
-          pubkey: pair.oracle,
-          isWritable: false,
-          isSigner: false,
-        },
-      ]);
-
-      txBuilder.remainingAccounts(remainingAccounts);
-    }
+    txBuilder.remainingAccounts([
+      {
+        pubkey: oracleAccount,
+        isSigner: false,
+        isWritable: false,
+      },
+    ]);
 
     const itx = await txBuilder.instruction();
 
@@ -896,7 +735,12 @@ export abstract class BaseClient {
     return txSignature;
   }
 
-  public async waitForBlocks() {
-    return new Promise((resolve) => setTimeout(resolve, 1000));
+  public async getRebalanceHistory(basktId: PublicKey, index: number): Promise<any> {
+    return await this.program.account.rebalanceHistory.fetch(
+      PublicKey.findProgramAddressSync(
+        [Buffer.from('rebalance_history'), basktId.toBuffer(), toU64LeBytes(index)],
+        this.program.programId,
+      )[0],
+    );
   }
 }

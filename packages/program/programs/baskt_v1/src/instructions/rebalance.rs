@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::baskt::{Baskt, RebalanceHistory, AssetParams};
+use crate::state::baskt::{Baskt, RebalanceHistory, AssetConfig};
 use crate::state::protocol::{Protocol, Role};
 use crate::error::PerpetualsError;
 
@@ -27,7 +27,6 @@ pub struct Rebalance<'info> {
             baskt.creator == payer.key() ||
             protocol.has_role(&payer.key(), Role::Rebalancer) @ PerpetualsError::Unauthorized
     )]
-
     pub payer: Signer<'info>,
     
     #[account(seeds = [b"protocol"], bump)]
@@ -38,7 +37,7 @@ pub struct Rebalance<'info> {
 
 pub fn rebalance(
     ctx: Context<Rebalance>,
-    asset_params: Vec<AssetParams>,
+    asset_params: Vec<AssetConfig>,
 ) -> Result<()> {
     // Verify baskt is active
     require!(
@@ -52,20 +51,33 @@ pub fn rebalance(
         PerpetualsError::InvalidAssetConfig
     );
 
+    let baskt = &ctx.accounts.baskt;
+
+    // Verify that length of new asset configs is same as current
+    require!(
+        asset_params.len() == baskt.current_asset_configs.len(),
+        PerpetualsError::InvalidAssetConfig
+    );
+
+
+    // Verify that assets are correct with the same index 
+    for (index, config) in asset_params.iter().enumerate() {
+        require!(
+            config.asset_id == baskt.current_asset_configs[index].asset_id,
+            PerpetualsError::InvalidAssetConfig
+        );
+    }
+
     // Verify total weight is 10000
     let total_weight: u64 = asset_params.iter().map(|config| config.weight).sum();
     require!(
         total_weight == 10000,
         PerpetualsError::InvalidAssetConfig
     );
-    
+
+
+    let current_nav = baskt.get_nav(&ctx.remaining_accounts[0])?;
     let current_timestamp = Clock::get()?.unix_timestamp;
-    let baskt = &ctx.accounts.baskt;
-
-
-    // Process oracle accounts to get current prices
-    let asset_prices = Baskt::process_asset_oracle_pairs(
-        ctx.remaining_accounts, current_timestamp, Some(baskt))?;
 
 
     ctx.accounts.rebalance_history.initialize(
@@ -79,8 +91,8 @@ pub fn rebalance(
     // Perform rebalance
     ctx.accounts.baskt.rebalance(
         asset_params,
-        &asset_prices,
         current_timestamp,
+        current_nav,
     )?;
 
     Ok(())

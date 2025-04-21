@@ -14,6 +14,58 @@ export type BasktV1 = {
   },
   "instructions": [
     {
+      "name": "activateBaskt",
+      "discriminator": [
+        192,
+        71,
+        227,
+        111,
+        125,
+        60,
+        4,
+        56
+      ],
+      "accounts": [
+        {
+          "name": "baskt",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "prices",
+          "type": {
+            "vec": "u64"
+          }
+        }
+      ]
+    },
+    {
       "name": "addAsset",
       "discriminator": [
         81,
@@ -129,46 +181,6 @@ export type BasktV1 = {
       ]
     },
     {
-      "name": "closePosition",
-      "discriminator": [
-        123,
-        134,
-        81,
-        0,
-        49,
-        68,
-        98,
-        98
-      ],
-      "accounts": [
-        {
-          "name": "trader",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "position",
-          "writable": true
-        },
-        {
-          "name": "baskt",
-          "writable": true
-        },
-        {
-          "name": "liquidityPool",
-          "writable": true
-        },
-        {
-          "name": "asset",
-          "writable": true
-        },
-        {
-          "name": "oracle"
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "createBaskt",
       "discriminator": [
         179,
@@ -246,114 +258,6 @@ export type BasktV1 = {
           }
         }
       ]
-    },
-    {
-      "name": "depositLiquidity",
-      "discriminator": [
-        245,
-        99,
-        59,
-        25,
-        151,
-        71,
-        233,
-        249
-      ],
-      "accounts": [
-        {
-          "name": "lp",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "liquidityPool",
-          "writable": true
-        },
-        {
-          "name": "lpDeposit",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  112,
-                  95,
-                  100,
-                  101,
-                  112,
-                  111,
-                  115,
-                  105,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "lp"
-              }
-            ]
-          }
-        },
-        {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "amount",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "getAssetPrice",
-      "discriminator": [
-        140,
-        176,
-        162,
-        223,
-        172,
-        213,
-        120,
-        181
-      ],
-      "accounts": [
-        {
-          "name": "asset"
-        },
-        {
-          "name": "oracle"
-        }
-      ],
-      "args": [],
-      "returns": {
-        "defined": {
-          "name": "oraclePrice"
-        }
-      }
-    },
-    {
-      "name": "getBasktNav",
-      "discriminator": [
-        163,
-        138,
-        228,
-        250,
-        83,
-        35,
-        149,
-        140
-      ],
-      "accounts": [
-        {
-          "name": "baskt"
-        }
-      ],
-      "args": [],
-      "returns": "u64"
     },
     {
       "name": "initializeCustomOracle",
@@ -479,108 +383,6 @@ export type BasktV1 = {
       "args": []
     },
     {
-      "name": "liquidatePosition",
-      "discriminator": [
-        187,
-        74,
-        229,
-        149,
-        102,
-        81,
-        221,
-        68
-      ],
-      "accounts": [
-        {
-          "name": "liquidator",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "position",
-          "writable": true
-        },
-        {
-          "name": "baskt",
-          "writable": true
-        },
-        {
-          "name": "liquidityPool",
-          "writable": true
-        },
-        {
-          "name": "asset",
-          "writable": true
-        },
-        {
-          "name": "oracle"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "openPosition",
-      "discriminator": [
-        135,
-        128,
-        47,
-        77,
-        15,
-        152,
-        240,
-        49
-      ],
-      "accounts": [
-        {
-          "name": "trader",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "position",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "baskt",
-          "writable": true
-        },
-        {
-          "name": "liquidityPool",
-          "writable": true
-        },
-        {
-          "name": "asset",
-          "writable": true
-        },
-        {
-          "name": "oracle"
-        },
-        {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "basktId",
-          "type": "pubkey"
-        },
-        {
-          "name": "size",
-          "type": "u64"
-        },
-        {
-          "name": "collateral",
-          "type": "u64"
-        },
-        {
-          "name": "isLong",
-          "type": "bool"
-        }
-      ]
-    },
-    {
       "name": "rebalance",
       "discriminator": [
         108,
@@ -669,11 +471,11 @@ export type BasktV1 = {
       ],
       "args": [
         {
-          "name": "assetParams",
+          "name": "assetConfigs",
           "type": {
             "vec": {
               "defined": {
-                "name": "assetParams"
+                "name": "assetConfig"
               }
             }
           }
@@ -835,63 +637,6 @@ export type BasktV1 = {
           "type": "bool"
         }
       ]
-    },
-    {
-      "name": "withdrawLiquidity",
-      "discriminator": [
-        149,
-        158,
-        33,
-        185,
-        47,
-        243,
-        253,
-        31
-      ],
-      "accounts": [
-        {
-          "name": "lp",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "liquidityPool",
-          "writable": true
-        },
-        {
-          "name": "lpDeposit",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  112,
-                  95,
-                  100,
-                  101,
-                  112,
-                  111,
-                  115,
-                  105,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "lp"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "lpTokens",
-          "type": "u64"
-        }
-      ]
     }
   ],
   "accounts": [
@@ -919,45 +664,6 @@ export type BasktV1 = {
         16,
         35,
         223
-      ]
-    },
-    {
-      "name": "lpDepositAccount",
-      "discriminator": [
-        204,
-        34,
-        235,
-        131,
-        66,
-        197,
-        223,
-        65
-      ]
-    },
-    {
-      "name": "liquidityPool",
-      "discriminator": [
-        66,
-        38,
-        17,
-        64,
-        188,
-        80,
-        68,
-        129
-      ]
-    },
-    {
-      "name": "position",
-      "discriminator": [
-        170,
-        188,
-        143,
-        228,
-        122,
-        64,
-        247,
-        208
       ]
     },
     {
@@ -1155,6 +861,16 @@ export type BasktV1 = {
       "code": 6030,
       "name": "priceNotFound",
       "msg": "Price not found"
+    },
+    {
+      "code": 6031,
+      "name": "inactiveAsset",
+      "msg": "Asset Not Active"
+    },
+    {
+      "code": 6032,
+      "name": "basktAlreadyActive",
+      "msg": "Baskt Already Active"
     }
   ],
   "types": [
@@ -1221,14 +937,6 @@ export type BasktV1 = {
             "type": "string"
           },
           {
-            "name": "oracle",
-            "type": {
-              "defined": {
-                "name": "oracleParams"
-              }
-            }
-          },
-          {
             "name": "permissions",
             "type": {
               "defined": {
@@ -1258,26 +966,6 @@ export type BasktV1 = {
           },
           {
             "name": "baselinePrice",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "assetParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "assetId",
-            "type": "pubkey"
-          },
-          {
-            "name": "direction",
-            "type": "bool"
-          },
-          {
-            "name": "weight",
             "type": "u64"
           }
         ]
@@ -1326,10 +1014,6 @@ export type BasktV1 = {
             }
           },
           {
-            "name": "totalPositions",
-            "type": "u64"
-          },
-          {
             "name": "isPublic",
             "type": "bool"
           },
@@ -1342,18 +1026,6 @@ export type BasktV1 = {
             "type": "i64"
           },
           {
-            "name": "totalVolume",
-            "type": "u64"
-          },
-          {
-            "name": "totalFees",
-            "type": "u64"
-          },
-          {
-            "name": "baselineNav",
-            "type": "u64"
-          },
-          {
             "name": "lastRebalanceIndex",
             "type": "u64"
           },
@@ -1364,6 +1036,34 @@ export type BasktV1 = {
           {
             "name": "lastRebalanceTime",
             "type": "i64"
+          },
+          {
+            "name": "oracle",
+            "type": {
+              "defined": {
+                "name": "oracleParams"
+              }
+            }
+          },
+          {
+            "name": "baselineNav",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "createBasktAssetParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "weight",
+            "type": "u64"
+          },
+          {
+            "name": "direction",
+            "type": "bool"
           }
         ]
       }
@@ -1382,7 +1082,7 @@ export type BasktV1 = {
             "type": {
               "vec": {
                 "defined": {
-                  "name": "assetParams"
+                  "name": "createBasktAssetParams"
                 }
               }
             }
@@ -1390,6 +1090,14 @@ export type BasktV1 = {
           {
             "name": "isPublic",
             "type": "bool"
+          },
+          {
+            "name": "oracleParams",
+            "type": {
+              "defined": {
+                "name": "oracleParams"
+              }
+            }
           }
         ]
       }
@@ -1444,10 +1152,6 @@ export type BasktV1 = {
             "type": "u64"
           },
           {
-            "name": "publishTime",
-            "type": "i64"
-          },
-          {
             "name": "oracleName",
             "type": "string"
           }
@@ -1470,34 +1174,6 @@ export type BasktV1 = {
           {
             "name": "ema",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "depositEntry",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "depositedUsdc",
-            "type": "u64"
-          },
-          {
-            "name": "lpTokens",
-            "type": "u64"
-          },
-          {
-            "name": "totalUsdcInPool",
-            "type": "u64"
-          },
-          {
-            "name": "lpTokenSupply",
-            "type": "u64"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
           }
         ]
       }
@@ -1584,91 +1260,6 @@ export type BasktV1 = {
       }
     },
     {
-      "name": "feesStats",
-      "docs": [
-        "Statistics related to fees"
-      ],
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "openPositionUsd",
-            "type": "u64"
-          },
-          {
-            "name": "closePositionUsd",
-            "type": "u64"
-          },
-          {
-            "name": "liquidationUsd",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "lpDepositAccount",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "deposits",
-            "type": {
-              "vec": {
-                "defined": {
-                  "name": "depositEntry"
-                }
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "liquidityPool",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "totalUsdc",
-            "type": "u64"
-          },
-          {
-            "name": "openInterest",
-            "type": "u64"
-          },
-          {
-            "name": "lpTokenSupply",
-            "type": "u64"
-          },
-          {
-            "name": "liquidationFees",
-            "type": "u64"
-          },
-          {
-            "name": "fundingFees",
-            "type": "u64"
-          },
-          {
-            "name": "openingFees",
-            "type": "u64"
-          },
-          {
-            "name": "closingFees",
-            "type": "u64"
-          },
-          {
-            "name": "lastUpdateTime",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "oracleParams",
       "type": {
         "kind": "struct",
@@ -1678,152 +1269,12 @@ export type BasktV1 = {
             "type": "pubkey"
           },
           {
-            "name": "priceFeedId",
-            "type": "string"
-          },
-          {
-            "name": "oracleType",
-            "type": {
-              "defined": {
-                "name": "oracleType"
-              }
-            }
-          },
-          {
             "name": "maxPriceError",
             "type": "u64"
           },
           {
             "name": "maxPriceAgeSec",
             "type": "u32"
-          }
-        ]
-      }
-    },
-    {
-      "name": "oraclePrice",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "price",
-            "type": "u64"
-          },
-          {
-            "name": "exponent",
-            "type": "i32"
-          }
-        ]
-      }
-    },
-    {
-      "name": "oracleType",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "none"
-          },
-          {
-            "name": "custom"
-          },
-          {
-            "name": "pyth"
-          }
-        ]
-      }
-    },
-    {
-      "name": "position",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "basktId",
-            "type": "pubkey"
-          },
-          {
-            "name": "size",
-            "type": "u64"
-          },
-          {
-            "name": "collateral",
-            "type": "u64"
-          },
-          {
-            "name": "isLong",
-            "type": "bool"
-          },
-          {
-            "name": "entryPrice",
-            "type": "u64"
-          },
-          {
-            "name": "closePrice",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "fundingAccumulated",
-            "type": "i64"
-          },
-          {
-            "name": "status",
-            "type": {
-              "defined": {
-                "name": "positionStatus"
-              }
-            }
-          },
-          {
-            "name": "openingFee",
-            "type": "u64"
-          },
-          {
-            "name": "closingFee",
-            "type": "u64"
-          },
-          {
-            "name": "borrowingFee",
-            "type": "u64"
-          },
-          {
-            "name": "pnl",
-            "type": "i64"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          },
-          {
-            "name": "fundingFee",
-            "type": "i64"
-          },
-          {
-            "name": "liquidationFee",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "positionStatus",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "open"
-          },
-          {
-            "name": "closed"
-          },
-          {
-            "name": "liquidated"
           }
         ]
       }
@@ -1934,83 +1385,20 @@ export type BasktV1 = {
             "type": "string"
           },
           {
-            "name": "oracle",
-            "type": {
-              "defined": {
-                "name": "oracleParams"
-              }
-            }
-          },
-          {
-            "name": "openInterestLong",
-            "type": "u64"
-          },
-          {
-            "name": "openInterestShort",
-            "type": "u64"
-          },
-          {
-            "name": "lastFundingUpdate",
-            "type": "i64"
-          },
-          {
-            "name": "fundingRate",
-            "type": "i64"
-          },
-          {
-            "name": "totalFundingLong",
-            "type": "i64"
-          },
-          {
-            "name": "totalFundingShort",
-            "type": "i64"
-          },
-          {
-            "name": "volumeStats",
-            "type": {
-              "defined": {
-                "name": "volumeStats"
-              }
-            }
-          },
-          {
-            "name": "feesStats",
-            "type": {
-              "defined": {
-                "name": "feesStats"
-              }
-            }
-          },
-          {
             "name": "permissions",
             "type": {
               "defined": {
                 "name": "assetPermissions"
               }
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "volumeStats",
-      "docs": [
-        "Statistics related to volume"
-      ],
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "openPositionUsd",
-            "type": "u64"
           },
           {
-            "name": "closePositionUsd",
-            "type": "u64"
+            "name": "isActive",
+            "type": "bool"
           },
           {
-            "name": "liquidationUsd",
-            "type": "u64"
+            "name": "listingTime",
+            "type": "i64"
           }
         ]
       }

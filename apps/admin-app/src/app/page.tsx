@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { Layout } from '../components/Layout';
-import { OraclesList } from '../components/admin/OraclesList';
+
 import { AdminAssetsList } from '../components/admin/AdminAssetsList';
 import { ListNewAssetButton } from '../components/admin/ListNewAssetButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -36,12 +36,7 @@ export default function AdminDashboard() {
             >
               Assets
             </TabsTrigger>
-            <TabsTrigger
-              value="oracles"
-              className="rounded-md px-4 py-2 text-sm font-medium text-white/60 data-[state=active]:bg-[#0d1117] data-[state=active]:text-white hover:text-white transition-colors"
-            >
-              Oracles
-            </TabsTrigger>
+
 
             <TabsTrigger
               value="protocol"
@@ -63,11 +58,7 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
-          <TabsContent value="oracles" className="space-y-4">
-            <div className="glass-modal rounded-3xl">
-              <OraclesList />
-            </div>
-          </TabsContent>
+
         </Tabs>
       </div>
     </Layout>

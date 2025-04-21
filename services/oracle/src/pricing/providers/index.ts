@@ -1,6 +1,7 @@
 import BN from 'bn.js';
 import getOxFunData from './oxfun';
 import getDexScreenerData from './dexscreener';
+import getBinanceData from './binance';
 
 // Function to call oxfun API
 async function callOxfunAPI(id: string) {
@@ -22,6 +23,17 @@ async function callDexscreenerAPI(id: string, chain: string) {
   };
 }
 
+async function callBinanceAPI(id: string) {
+  const price = await getBinanceData(id);
+  if (!price) {
+    return null;
+  }
+  const priceUSD = new BN(price.price * 1e9);
+  return {
+    priceUSD,
+  };
+}
+
 // Function to route the price to the correct API
 export async function routePrice(
   priceProvider: string,
@@ -30,6 +42,8 @@ export async function routePrice(
 ): Promise<{ priceUSD: BN } | null> {
   if (priceProvider === 'oxfun') {
     return await callOxfunAPI(id);
+  } else if (priceProvider === 'binance') {
+    return await callBinanceAPI(id);
   } else {
     return await callDexscreenerAPI(id, chain);
   }

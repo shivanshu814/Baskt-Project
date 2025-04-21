@@ -1,6 +1,6 @@
 import { routePrice } from './providers';
 import BN from 'bn.js';
-import { PriceConfig, AssetPrice } from '@baskt/types';
+import { AssetPriceProviderConfig, AssetPrice } from '@baskt/types';
 import mongoose from 'mongoose';
 
 const cache = new Map<string, AssetPrice>();
@@ -25,7 +25,7 @@ export async function fetchTokenPrice(
   return prices;
 }
 
-export async function fetchAssetPrices(tokens: PriceConfig[]): Promise<AssetPrice[]> {
+export async function fetchAssetPrices(tokens: AssetPriceProviderConfig[]): Promise<AssetPrice[]> {
   const tokenPrices: AssetPrice[] = [];
   cache.clear();
   for (const token of tokens) {
@@ -40,7 +40,7 @@ export async function fetchAssetPrices(tokens: PriceConfig[]): Promise<AssetPric
     const timestamp = new Date().getTime();
     const data: AssetPrice = {
       priceUSD: priceUSD.toString(),
-      assetId: token.provider.id as unknown as mongoose.Schema.Types.ObjectId,
+      assetId: token.provider.id,
       timestamp,
     };
     tokenPrices.push(data);

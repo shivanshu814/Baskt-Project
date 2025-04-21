@@ -1,7 +1,7 @@
 import { PublicKey } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
 
-export interface CustomOracle {
+export interface OnchainCustomOracle {
   address: PublicKey;
   price: anchor.BN;
   expo: number;
@@ -11,7 +11,14 @@ export interface CustomOracle {
   status?: 'active' | 'stale' | 'error';
 }
 
-export enum OracleType {
-  CUSTOM = 'custom',
-  PYTH = 'pyth',
+/**
+ * Oracle parameters for an asset
+ */
+export interface OnchainOracleParams {
+  /** The oracle account address */
+  oracleAccount: PublicKey;
+  /** Maximum allowed price error */
+  maxPriceError: anchor.BN;
+  /** Maximum allowed price age in seconds */
+  maxPriceAgeSec: number;
 }

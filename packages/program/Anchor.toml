@@ -23,15 +23,9 @@ startup_wait = 5000
 shutdown_wait = 2000
 upgradeable = false
 
-[[test.genesis]]
-address = "rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ"
-program = "pyth.so"
-
 [test.validator]
 bind_address = "127.0.0.1"
 url = "https://mainnet.helius-rpc.com/?api-key=afb3963a-b2da-4d38-9f61-9b0588617e74"
 ledger = ".anchor/test-ledger"
 rpc_port = 8899
 
-[[test.validator.clone]]
-address = "4cSM2e6rvbGQUFiJbqytoVMi5GgghSMr8LwVrT9VPSPo"

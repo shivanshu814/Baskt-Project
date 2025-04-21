@@ -1,29 +1,9 @@
 //! Oracle price service handling
 
 use {
-    crate::{constants::Constants, error::PerpetualsError, math, utils::Utils},
+    crate::{constants::Constants, error::PerpetualsError, utils::Utils},
     anchor_lang::prelude::*,
-    core::cmp::Ordering,
 };
-
-const ORACLE_EXPONENT_SCALE: i32 = -9;
-const ORACLE_PRICE_SCALE: u64 = 1_000_000_000;
-const ORACLE_MAX_PRICE: u64 = (1 << 28) - 1;
-
-#[derive(Copy, Clone, PartialEq, AnchorSerialize, AnchorDeserialize, InitSpace, Debug)]
-pub enum OracleType {
-    None,
-    Custom,
-    Pyth,
-    //REVIEW
-    // Need to add streamflow or what not here
-}
-
-impl Default for OracleType {
-    fn default() -> Self {
-        Self::None
-    }
-}
 
 #[derive(
     Copy, Clone, Eq, PartialEq, InitSpace, AnchorSerialize, AnchorDeserialize, Default, Debug,
@@ -36,10 +16,6 @@ pub struct OraclePrice {
 #[derive(Clone, PartialEq, InitSpace, AnchorSerialize, AnchorDeserialize, Default, Debug)]
 pub struct OracleParams {
     pub oracle_account: Pubkey,
-    // Used only for Pyth
-    #[max_len(100)]
-    pub price_feed_id: String,
-    pub oracle_type: OracleType,
     pub max_price_error: u64,
     pub max_price_age_sec: u32,
 }
@@ -55,9 +31,6 @@ pub struct CustomOracle {
 }
 
 impl CustomOracle {
-    pub const INIT_SPACE: usize = std::mem::size_of::<CustomOracle>();
-    pub const LEN: usize = 8 + Self::INIT_SPACE;
-
     pub fn set(&mut self, price: u64, expo: i32, conf: u64, ema: u64, publish_time: i64) {
         self.price = price;
         self.expo = expo;
@@ -67,189 +40,21 @@ impl CustomOracle {
     }
 }
 
-impl PartialOrd for OraclePrice {
-    fn partial_cmp(&self, other: &OraclePrice) -> Option<Ordering> {
-        let (lhs, rhs) = if self.exponent == other.exponent {
-            (self.price, other.price)
-        } else if self.exponent < other.exponent {
-            if let Ok(scaled_price) = other.scale_to_exponent(self.exponent) {
-                (self.price, scaled_price.price)
-            } else {
-                return None;
-            }
-        } else if let Ok(scaled_price) = self.scale_to_exponent(other.exponent) {
-            (scaled_price.price, other.price)
-        } else {
-            return None;
-        };
-        lhs.partial_cmp(&rhs)
-    }
-}
-
-#[allow(dead_code)]
 impl OraclePrice {
-    pub fn new(price: u64, exponent: i32) -> Self {
-        Self { price, exponent }
-    }
-
-    pub fn new_from_token(amount_and_decimals: (u64, u8)) -> Self {
-        Self {
-            price: amount_and_decimals.0,
-            exponent: -(amount_and_decimals.1 as i32),
-        }
-    }
-
     pub fn new_from_oracle(
         oracle_account: &AccountInfo,
         oracle_params: &OracleParams,
         current_time: i64,
         use_ema: bool,
     ) -> Result<Self> {
-        match oracle_params.oracle_type {
-            OracleType::Custom => Self::get_custom_price(
-                oracle_account,
-                oracle_params.max_price_error,
-                oracle_params.max_price_age_sec,
-                current_time,
-                use_ema,
-            ),
-            OracleType::Pyth => Self::get_pyth_price(
-                oracle_account,
-                oracle_params.price_feed_id.clone(),
-                oracle_params.max_price_error,
-                oracle_params.max_price_age_sec,
-                use_ema,
-            ),
-            //Extend for streamflow
-            _ => err!(PerpetualsError::UnsupportedOracle),
-        }
-    }
-
-    // Converts token amount to USD with implied USD_DECIMALS decimals using oracle price
-    pub fn get_asset_amount_usd(&self, token_amount: u64, token_decimals: u8) -> Result<u64> {
-        if token_amount == 0 || self.price == 0 {
-            return Ok(0);
-        }
-        math::checked_decimal_mul(
-            token_amount,
-            -(token_decimals as i32),
-            self.price,
-            self.exponent,
-            -(Constants::USD_DECIMALS as i32),
+        Self::get_custom_price(
+            oracle_account,
+            oracle_params.max_price_error,
+            oracle_params.max_price_age_sec,
+            current_time,
+            use_ema,
         )
     }
-
-    // Converts USD amount with implied USD_DECIMALS decimals to token amount
-    pub fn get_token_amount(&self, asset_amount_usd: u64, token_decimals: u8) -> Result<u64> {
-        if asset_amount_usd == 0 || self.price == 0 {
-            return Ok(0);
-        }
-        math::checked_decimal_div(
-            asset_amount_usd,
-            -(Constants::USD_DECIMALS as i32),
-            self.price,
-            self.exponent,
-            -(token_decimals as i32),
-        )
-    }
-
-    /// Returns price with mantissa normalized to be less than ORACLE_MAX_PRICE
-    pub fn normalize(&self) -> Result<OraclePrice> {
-        let mut p = self.price;
-        let mut e = self.exponent;
-
-        while p > ORACLE_MAX_PRICE {
-            p = math::checked_div(p, 10)?;
-            e = e + 1; // Safe addition for i32
-        }
-
-        Ok(OraclePrice {
-            price: p,
-            exponent: e,
-        })
-    }
-
-    pub fn checked_div(&self, other: &OraclePrice) -> Result<OraclePrice> {
-        let base = self.normalize()?;
-        let other = other.normalize()?;
-
-        Ok(OraclePrice {
-            price: math::checked_div(
-                math::checked_mul(base.price, ORACLE_PRICE_SCALE)?,
-                other.price,
-            )?,
-            exponent: (base.exponent + ORACLE_EXPONENT_SCALE) - other.exponent, // Safe i32 operations
-        })
-    }
-
-    pub fn checked_mul(&self, other: &OraclePrice) -> Result<OraclePrice> {
-        Ok(OraclePrice {
-            price: math::checked_mul(self.price, other.price)?,
-            exponent: self.exponent + other.exponent, // Safe i32 addition
-        })
-    }
-
-    pub fn scale_to_exponent(&self, target_exponent: i32) -> Result<OraclePrice> {
-        if target_exponent == self.exponent {
-            return Ok(*self);
-        }
-        let delta = target_exponent - self.exponent; // Safe i32 subtraction
-        if delta > 0 {
-            // Convert positive delta to u32 for pow function
-            let delta_u32 = delta as u32;
-            Ok(OraclePrice {
-                price: math::checked_div(self.price, math::checked_pow(10, delta_u32)?)?,
-                exponent: target_exponent,
-            })
-        } else {
-            // Convert negative delta to positive u32 for pow function
-            let abs_delta = delta.abs() as u32;
-            Ok(OraclePrice {
-                price: math::checked_mul(self.price, math::checked_pow(10, abs_delta)?)?,
-                exponent: target_exponent,
-            })
-        }
-    }
-
-    pub fn checked_as_f64(&self) -> Result<f64> {
-        math::checked_float_mul(
-            math::checked_as_f64(self.price)?,
-            math::checked_powi(10.0, self.exponent)?,
-        )
-    }
-
-    pub fn get_min_price(&self, other: &OraclePrice, is_stable: bool) -> Result<OraclePrice> {
-        let min_price = if self < other { self } else { other };
-        if is_stable {
-            if min_price.exponent > 0 {
-                if min_price.price == 0 {
-                    return Ok(*min_price);
-                } else {
-                    return Ok(OraclePrice {
-                        price: 1000000u64,
-                        exponent: -6,
-                    });
-                }
-            }
-            // Calculate one USD in the min_price's exponent
-            let exp_abs = (-min_price.exponent) as u32; // Safe conversion for small negative exponent
-            let one_usd = 10u64
-                .checked_pow(exp_abs)
-                .ok_or(PerpetualsError::MathOverflow)?;
-
-            if min_price.price > one_usd {
-                Ok(OraclePrice {
-                    price: one_usd,
-                    exponent: min_price.exponent,
-                })
-            } else {
-                Ok(*min_price)
-            }
-        } else {
-            Ok(*min_price)
-        }
-    }
-
     // private helpers
     fn get_custom_price(
         custom_price_info: &AccountInfo,
@@ -303,87 +108,5 @@ impl OraclePrice {
             price,
             exponent: oracle_acc.expo,
         })
-    }
-
-    fn get_pyth_price(
-        pyth_price_info: &AccountInfo,
-        feed_id_hex: String,
-        max_price_error: u64,
-        max_price_age_sec: u32,
-        //TODO: Use EMA for Pyth Pricing
-        use_ema: bool,
-    ) -> Result<OraclePrice> {
-        require!(
-            !Utils::is_empty_account(pyth_price_info)?,
-            PerpetualsError::InvalidOracleAccount
-        );
-        let pyth_price_data = &mut &**pyth_price_info.try_borrow_data()?;
-        msg!("Price data");
-        let price_update_account =
-            pyth_solana_receiver_sdk::price_update::PriceUpdateV2::try_deserialize(pyth_price_data)
-                .map_err(|_| PerpetualsError::InvalidOracleAccount)?;
-
-        msg!("Price update account");
-        let feed_id: [u8; 32] =
-            pyth_solana_receiver_sdk::price_update::get_feed_id_from_hex(&feed_id_hex)?;
-
-        let price_update = price_update_account.get_price_no_older_than(
-            &Clock::get()?,
-            max_price_age_sec.into(),
-            &feed_id,
-        )?;
-
-        if price_update.price <= 0 {
-            msg!("Error: Pyth oracle price is negative or zero");
-            return err!(PerpetualsError::InvalidOraclePrice);
-        }
-
-        // Calculate confidence ratio as percentage of price
-        let conf_ratio = (price_update.conf as u128)
-            .checked_mul(Constants::BPS_POWER as u128)
-            .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(price_update.price.abs() as u128)
-            .ok_or(PerpetualsError::MathOverflow)?;
-
-        if conf_ratio > max_price_error as u128 {
-            msg!("Error: Pyth oracle price is out of bounds");
-            return err!(PerpetualsError::InvalidOraclePrice);
-        }
-
-        Ok(OraclePrice {
-            // price is i64 and > 0 per check above
-            price: price_update.price.abs() as u64,
-            exponent: price_update.exponent,
-        })
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_checked_as_f64() {
-        let price = OraclePrice::new(12300, -3);
-        assert_eq!(12.3, price.checked_as_f64().unwrap());
-
-        let price = OraclePrice::new(12300, 3);
-        assert_eq!(12300000.0, price.checked_as_f64().unwrap());
-    }
-
-    #[test]
-    fn test_scale_to_exponent() {
-        let price = OraclePrice::new(12300, -3);
-        let scaled = price.scale_to_exponent(-6).unwrap();
-        assert_eq!(12300000, scaled.price);
-        assert_eq!(-6, scaled.exponent);
-
-        let scaled = price.scale_to_exponent(-1).unwrap();
-        assert_eq!(123, scaled.price);
-        assert_eq!(-1, scaled.exponent);
-
-        let scaled = price.scale_to_exponent(1).unwrap();
-        assert_eq!(1, scaled.price);
-        assert_eq!(1, scaled.exponent);
     }
 }

@@ -2,6 +2,8 @@ import { expect } from 'chai';
 import { describe, it, before } from 'mocha';
 import { PublicKey } from '@solana/web3.js';
 import { TestClient } from '../utils/test-client';
+import { BN } from 'bn.js';
+import { OnchainAssetConfig } from '@baskt/types';
 
 // Define AssetPermissions type locally since it's not exported from SDK
 type AssetPermissions = {
@@ -11,8 +13,6 @@ type AssetPermissions = {
 
 type AssetId = {
   assetAddress: PublicKey;
-  ticker: string;
-  oracle: PublicKey;
   txSignature: string | null;
 };
 
@@ -27,59 +27,59 @@ describe('baskt', () => {
   let longOnlyAssetId: AssetId;
   let shortOnlyAssetId: AssetId;
 
+  let commonOracle: PublicKey;
+
   // Set up test roles and assets before running tests
   before(async () => {
     // Create assets that will be used across tests
-    btcAssetId = await client.createAssetWithCustomOracle('BTC', 50000);
-    ethAssetId = await client.createAssetWithCustomOracle('ETH', 3000);
-    dogeAssetId = await client.createAssetWithCustomOracle('DOGE', 100);
+    btcAssetId = await client.addAsset('BTC');
+    ethAssetId = await client.addAsset('ETH');
+    dogeAssetId = await client.addAsset('DOGE');
 
     // Create assets with specific permissions
     const longOnlyPermissions: AssetPermissions = {
       allowLongs: true,
       allowShorts: false,
     };
-    longOnlyAssetId = await client.createAssetWithCustomOracle(
-      'LONG_ONLY',
-      200,
-      -6,
-      longOnlyPermissions,
-    );
+    longOnlyAssetId = await client.addAsset('LONG_ONLY', longOnlyPermissions);
 
     const shortOnlyPermissions: AssetPermissions = {
       allowLongs: false,
       allowShorts: true,
     };
-    shortOnlyAssetId = await client.createAssetWithCustomOracle(
-      'SHORT_ONLY',
-      300,
-      -6,
-      shortOnlyPermissions,
-    );
+    shortOnlyAssetId = await client.addAsset('SHORT_ONLY', shortOnlyPermissions);
+
+    commonOracle = (await client.createOracle('common', new BN(50000), -6, new BN(100), new BN(60)))
+      .address;
   });
 
   it('Successfully creates a new baskt with valid asset configs', async () => {
     // Create asset configs for the baskt
     const assets = [
       {
-        asset: btcAssetId.assetAddress,
-        oracle: btcAssetId.oracle,
+        assetId: btcAssetId.assetAddress,
         direction: true,
-        weight: 6000, // 60% BTC
+        weight: new BN(6000), // 60% BTC
+        baselinePrice: new BN(0),
       },
       {
-        asset: ethAssetId.assetAddress,
-        oracle: ethAssetId.oracle,
+        assetId: ethAssetId.assetAddress,
         direction: true,
-        weight: 4000, // 40% ETH
+        weight: new BN(4000), // 40% ETH
+        baselinePrice: new BN(0),
       },
-    ];
+    ] as OnchainAssetConfig[];
+
+    const basktName = 'TestBaskt';
+
+    await client.waitForBlocks();
 
     // Create the baskt
-    const { basktId } = await client.createMockBaskt(
-      'TestBaskt',
+    const { basktId } = await client.createBaskt(
+      basktName,
       assets,
       true, // is_public
+      client.createOracleParams(commonOracle),
     );
 
     // Fetch the baskt account to verify it was initialized correctly
@@ -97,15 +97,15 @@ describe('baskt', () => {
     );
     expect(btcConfig?.weight.toNumber()).to.equal(6000);
     expect(btcConfig?.direction).to.be.true;
-    expect(btcConfig?.baselinePrice.toNumber()).to.equal(50000 * 1e6);
     expect(btcConfig?.assetId.toString()).to.equal(btcAssetId.assetAddress.toString());
+    expect(btcConfig?.baselinePrice.toNumber()).to.equal(0);
 
     const ethConfig = basktAccount.currentAssetConfigs.find(
       (config) => config.assetId.toString() === ethAssetId.assetAddress.toString(),
     );
     expect(ethConfig?.weight.toNumber()).to.equal(4000);
     expect(ethConfig?.direction).to.be.true;
-    expect(ethConfig?.baselinePrice.toNumber()).to.equal(3000 * 1e6);
+    expect(ethConfig?.baselinePrice.toNumber()).to.equal(0);
     expect(ethConfig?.assetId.toString()).to.equal(ethAssetId.assetAddress.toString());
   });
 
@@ -113,22 +113,22 @@ describe('baskt', () => {
     // Create asset configs with invalid total weight (not 100%)
     const assets = [
       {
-        asset: btcAssetId.assetAddress,
-        oracle: btcAssetId.oracle,
+        assetId: btcAssetId.assetAddress,
         direction: true,
-        weight: 6000, // 60% BTC
+        weight: new BN(6000), // 60% BTC
+        baselinePrice: new BN(0),
       },
       {
-        asset: ethAssetId.assetAddress,
-        oracle: ethAssetId.oracle,
+        assetId: ethAssetId.assetAddress,
         direction: true,
-        weight: 5000, // 50% ETH (total 110%)
+        weight: new BN(5000), // 50% ETH (total 110%)
+        baselinePrice: new BN(0),
       },
-    ];
+    ] as OnchainAssetConfig[];
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createMockBaskt('BadBaskt', assets, true);
+      await client.createBaskt('BadBaskt', assets, true, client.createOracleParams(commonOracle));
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('InvalidBasktConfig');
@@ -139,18 +139,19 @@ describe('baskt', () => {
     // Create asset config for the baskt
     const assets = [
       {
-        asset: dogeAssetId.assetAddress,
-        oracle: dogeAssetId.oracle,
+        assetId: dogeAssetId.assetAddress,
         direction: true,
-        weight: 10000, // 100% DOGE
+        weight: new BN(10000), // 100% DOGE
+        baselinePrice: new BN(0),
       },
     ];
 
     // Create the private baskt
-    const { basktId } = await client.createMockBaskt(
+    const { basktId } = await client.createBaskt(
       'PrivBaskt',
       assets,
       false, // is_public
+      client.createOracleParams(commonOracle),
     );
 
     // Fetch the baskt account to verify it was initialized correctly
@@ -186,16 +187,21 @@ describe('baskt', () => {
     // Create asset configs for the baskt
     const assets = [
       {
-        asset: btcAssetId.assetAddress,
-        oracle: btcAssetId.oracle,
+        assetId: btcAssetId.assetAddress,
         direction: true,
-        weight: 10000, // 100% BTC
+        weight: new BN(10000), // 100% BTC
+        baselinePrice: new BN(0),
       },
     ];
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createMockBaskt('DisabledBaskt', assets, true);
+      await client.createBaskt(
+        'DisabledBaskt',
+        assets,
+        true,
+        client.createOracleParams(commonOracle),
+      );
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('FeatureDisabled');
@@ -220,30 +226,31 @@ describe('baskt', () => {
     // Create asset configs for the baskt
     const assets = [
       {
-        asset: btcAssetId.assetAddress,
-        oracle: btcAssetId.oracle,
+        assetId: btcAssetId.assetAddress,
         direction: true,
-        weight: 5000, // 50% BTC
+        weight: new BN(5000), // 50% BTC
+        baselinePrice: new BN(0),
       },
       {
-        asset: ethAssetId.assetAddress,
-        oracle: ethAssetId.oracle,
+        assetId: ethAssetId.assetAddress,
         direction: true,
-        weight: 3000, // 30% ETH
+        weight: new BN(3000), // 30% ETH
+        baselinePrice: new BN(0),
       },
       {
-        asset: dogeAssetId.assetAddress,
-        oracle: dogeAssetId.oracle,
+        assetId: dogeAssetId.assetAddress,
         direction: true,
-        weight: 2000, // 20% DOGE
+        weight: new BN(2000), // 20% DOGE
+        baselinePrice: new BN(0),
       },
     ];
 
     // Create the baskt
-    const { basktId } = await client.createMockBaskt(
+    const { basktId } = await client.createBaskt(
       'MultiBaskt',
       assets,
       true, // is_public
+      client.createOracleParams(commonOracle),
     );
 
     // Fetch the baskt account to verify it was initialized correctly
@@ -276,18 +283,19 @@ describe('baskt', () => {
     // Create asset configs for the baskt with long-only asset in long direction
     const assets = [
       {
-        asset: longOnlyAssetId.assetAddress,
-        oracle: longOnlyAssetId.oracle,
+        assetId: longOnlyAssetId.assetAddress,
         direction: true, // Long direction (allowed)
-        weight: 10000, // 100%
+        weight: new BN(10000), // 100%
+        baselinePrice: new BN(0),
       },
     ];
 
     // Create the baskt - should succeed
-    const { basktId } = await client.createMockBaskt(
+    const { basktId } = await client.createBaskt(
       'LongBaskt',
       assets,
       true, // is_public
+      client.createOracleParams(commonOracle),
     );
 
     // Fetch the baskt account to verify it was initialized correctly
@@ -298,27 +306,28 @@ describe('baskt', () => {
     expect(basktAccount.currentAssetConfigs).to.have.length(1);
 
     // Verify asset config
-    const assetConfig = basktAccount.currentAssetConfigs[0];
-    expect(assetConfig.assetId.toString()).to.equal(longOnlyAssetId.assetAddress.toString());
-    expect(assetConfig.direction).to.be.true; // Long direction
+    const OnchainAssetConfig = basktAccount.currentAssetConfigs[0];
+    expect(OnchainAssetConfig.assetId.toString()).to.equal(longOnlyAssetId.assetAddress.toString());
+    expect(OnchainAssetConfig.direction).to.be.true; // Long direction
   });
 
   it('Successfully creates a baskt with short-only assets with short direction', async () => {
     // Create asset configs for the baskt with short-only asset in short direction
     const assets = [
       {
-        asset: shortOnlyAssetId.assetAddress,
-        oracle: shortOnlyAssetId.oracle,
+        assetId: shortOnlyAssetId.assetAddress,
         direction: false, // Short direction (allowed)
-        weight: 10000, // 100%
+        weight: new BN(10000), // 100%
+        baselinePrice: new BN(0),
       },
     ];
 
     // Create the baskt - should succeed
-    const { basktId } = await client.createMockBaskt(
+    const { basktId } = await client.createBaskt(
       'ShortBaskt',
       assets,
       true, // is_public
+      client.createOracleParams(commonOracle),
     );
 
     // Fetch the baskt account to verify it was initialized correctly
@@ -329,25 +338,32 @@ describe('baskt', () => {
     expect(basktAccount.currentAssetConfigs).to.have.length(1);
 
     // Verify asset config
-    const assetConfig = basktAccount.currentAssetConfigs[0];
-    expect(assetConfig.assetId.toString()).to.equal(shortOnlyAssetId.assetAddress.toString());
-    expect(assetConfig.direction).to.be.false; // Short direction
+    const OnchainAssetConfig = basktAccount.currentAssetConfigs[0];
+    expect(OnchainAssetConfig.assetId.toString()).to.equal(
+      shortOnlyAssetId.assetAddress.toString(),
+    );
+    expect(OnchainAssetConfig.direction).to.be.false; // Short direction
   });
 
   it('Fails to create a baskt with long-only assets in short direction', async () => {
     // Create asset configs for the baskt with long-only asset in short direction
     const assets = [
       {
-        asset: longOnlyAssetId.assetAddress,
-        oracle: longOnlyAssetId.oracle,
+        assetId: longOnlyAssetId.assetAddress,
         direction: false, // Short direction (not allowed)
-        weight: 10000, // 100%
+        weight: new BN(10000), // 100%
+        baselinePrice: new BN(0),
       },
     ];
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createMockBaskt('InvalidBaskt1', assets, true);
+      await client.createBaskt(
+        'InvalidBaskt1',
+        assets,
+        true,
+        client.createOracleParams(commonOracle),
+      );
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('ShortPositionsDisabled');
@@ -358,16 +374,21 @@ describe('baskt', () => {
     // Create asset configs for the baskt with short-only asset in long direction
     const assets = [
       {
-        asset: shortOnlyAssetId.assetAddress,
-        oracle: shortOnlyAssetId.oracle,
+        assetId: shortOnlyAssetId.assetAddress,
         direction: true, // Long direction (not allowed)
-        weight: 10000, // 100%
+        weight: new BN(10000), // 100%
+        baselinePrice: new BN(0),
       },
     ];
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createMockBaskt('InvalidBaskt2', assets, true);
+      await client.createBaskt(
+        'InvalidBaskt2',
+        assets,
+        true,
+        client.createOracleParams(commonOracle),
+      );
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('LongPositionsDisabled');
@@ -378,164 +399,80 @@ describe('baskt', () => {
     // Create asset configs for the baskt with mixed permissions and directions
     const assets = [
       {
-        asset: longOnlyAssetId.assetAddress,
-        oracle: longOnlyAssetId.oracle,
+        assetId: longOnlyAssetId.assetAddress,
         direction: true, // Long direction (allowed)
-        weight: 5000, // 50%
+        weight: new BN(5000), // 50%
+        baselinePrice: new BN(0),
       },
       {
-        asset: shortOnlyAssetId.assetAddress,
-        oracle: shortOnlyAssetId.oracle,
+        assetId: shortOnlyAssetId.assetAddress,
         direction: true, // Long direction (not allowed)
-        weight: 5000, // 50%
+        weight: new BN(5000), // 50%
+        baselinePrice: new BN(0),
       },
     ];
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createMockBaskt('InvalidBaskt3', assets, true);
+      await client.createBaskt(
+        'InvalidBaskt3',
+        assets,
+        true,
+        client.createOracleParams(commonOracle),
+      );
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('LongPositionsDisabled');
     }
   });
 
-  it('Adding 20 Assets to a baskt', async () => {
-    const assetsAndOracles = [];
-    for (let i = 0; i < 20; i++) {
-      const { assetAddress, oracle } = await client.createAndAddAssetWithCustomOracle(
-        `Asset${i}`,
-        10000,
-      );
-      assetsAndOracles.push({ asset: assetAddress, oracle, direction: true, weight: 500 });
+  it('Adding multiple assets to a baskt', async () => {
+    const assetConfigs = [];
+    const numAssets = 20;
+    for (let i = 0; i < numAssets; i++) {
+      const { assetAddress } = await client.addAsset(`Asset${i}`);
+      assetConfigs.push({
+        assetId: assetAddress,
+        direction: true,
+        weight: new BN(10_000 / numAssets),
+        baselinePrice: new BN(0),
+      });
     }
 
     // Wait for a block
     await client.waitForBlocks();
-    const { basktId } = await client.createMockBaskt('20Baskt', assetsAndOracles, true);
+
+    const { basktId } = await client.createBaskt(
+      '20Baskt',
+      assetConfigs,
+      true,
+      client.createOracleParams(commonOracle),
+    );
 
     // Verify the baskt has 20 assets
     const basktAccount = await client.getBaskt(basktId);
-    expect(basktAccount.currentAssetConfigs.length).to.equal(20);
-
-    const nav = await client.getBasktNav(basktId);
-    expect(nav.toNumber() / 1e6).to.equal(1);
+    expect(basktAccount.currentAssetConfigs.length).to.equal(numAssets);
   });
-});
 
-// Test the view functions separately
-describe('baskt view functions', () => {
-  // Get the test client instance
-  const client = TestClient.getInstance();
-
-  // Asset IDs and accounts that will be used across tests
-  let btcAssetId: AssetId;
-  let ethAssetId: AssetId;
-  let dogeAssetId: AssetId;
-  let basktId: PublicKey;
-
-  // Set up test assets and baskt before running tests
-  before(async () => {
-    // Create assets that will be used across tests
-    btcAssetId = await client.createAssetWithCustomOracle('BTC_VIEW', 50_000);
-    ethAssetId = await client.createAssetWithCustomOracle('ETH_VIEW', 3_000);
-    dogeAssetId = await client.createAssetWithCustomOracle('DOGE_VIEW', 100);
-    await client.waitForBlocks();
-    // Create assets with weights and directions
+  it('Baseline prices cannot be altered during creation', async () => {
     const assets = [
       {
-        asset: btcAssetId.assetAddress,
-        oracle: btcAssetId.oracle,
+        assetId: btcAssetId.assetAddress,
         direction: true,
-        weight: 5000, // 50% BTC
-      },
-      {
-        asset: ethAssetId.assetAddress,
-        oracle: ethAssetId.oracle,
-        direction: true,
-        weight: 3000, // 30% ETH
-      },
-      {
-        asset: dogeAssetId.assetAddress,
-        oracle: dogeAssetId.oracle,
-        direction: true,
-        weight: 2000, // 20% DOGE
+        weight: new BN(10000),
+        baselinePrice: new BN(10),
       },
     ];
 
-    // Create the baskt
-    const result = await client.createMockBaskt(
-      'ViewBaskt',
+    const { basktId } = await client.createBaskt(
+      'Invali6',
       assets,
-      true, // is_public
+      true,
+      client.createOracleParams(commonOracle),
     );
 
-    basktId = result.basktId;
-  });
-
-  it('Successfully gets baskt NAV', async () => {
-    // Prepare asset/oracle pairs
-    const assetOraclePairs = [
-      { asset: btcAssetId.assetAddress, oracle: btcAssetId.oracle },
-      { asset: ethAssetId.assetAddress, oracle: ethAssetId.oracle },
-      { asset: dogeAssetId.assetAddress, oracle: dogeAssetId.oracle },
-    ];
-
-    // Get the baskt NAV
-    const nav = await client.getBasktNav(basktId, assetOraclePairs);
-
-    // The NAV should be around 1.0 (or 1_000_000 in the system's precision)
-    // with some potential variation due to price changes since creation
-    expect(nav.toString()).to.be.eql('1000000');
-
-    // Update BTC price (50% of the baskt) and check how it affects NAV
-    const newBtcPrice = 60000; // 20% increase, properly scaled
-    await client.updateOraclePrice(btcAssetId.oracle, newBtcPrice);
-
-    // Get updated NAV
-    const updatedNav = await client.getBasktNav(basktId, assetOraclePairs);
-
-    // NAV should increase by approximately 10% (50% weight * 20% price increase)
-    expect(updatedNav.toNumber()).to.be.approximately(1100000, 100000);
-  });
-
-  it('Successfully gets baskt NAV with Pyth Oracle', async () => {
-    const pythBtcAssetId = await client.storedAssets.get('BTC-P');
-
-    // Prepare asset/oracle pairs
-    const assetOraclePairs = [
-      { asset: ethAssetId.assetAddress, oracle: ethAssetId.oracle, direction: true, weight: 5000 }, // Custom oracle
-      {
-        asset: pythBtcAssetId?.asset,
-        oracle: pythBtcAssetId?.oracle,
-        direction: true,
-        weight: 2500,
-      }, // BTC Pyth Oracle
-      {
-        asset: dogeAssetId.assetAddress,
-        oracle: dogeAssetId.oracle,
-        direction: true,
-        weight: 2500,
-      }, // Doge Custom oracle
-    ].filter((pair) => pair.asset && pair.oracle);
-
-    const { basktId } = await client.createMockBaskt('MxOrcBaskt', assetOraclePairs as any, true);
-
-    // Get the baskt NAV
-    const nav = await client.getBasktNav(basktId, assetOraclePairs as any);
-
-    // The NAV should be around 1.0 (or 1_000_000 in the system's precision)
-    // with some potential variation due to price changes since creation
-    expect(nav.toString()).to.be.eql('1000000');
-
-    // Update ETH price (25% of the baskt) and check how it affects NAV
-    const newEthPrice = 4000; // 20% increase, properly scaled
-    await client.updateOraclePrice(ethAssetId.oracle, newEthPrice);
-
-    // Get updated NAV
-    const updatedNav = await client.getBasktNav(basktId, assetOraclePairs as any);
-
-    // NAV should increase by approximately 10% (50% weight * 20% price increase)
-    expect(updatedNav.toNumber()).to.be.approximately(1100000, 100000);
+    // Fetch the baskt account to verify it was initialized correctly
+    const baskt = await client.getBaskt(basktId);
+    expect(baskt.currentAssetConfigs[0].baselinePrice.toNumber()).to.equal(0);
   });
 });

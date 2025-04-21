@@ -1,7 +1,7 @@
 import * as anchor from '@coral-xyz/anchor';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import { BasktV1 } from '../program/types';
-import { LightweightProvider } from '@baskt/types';
+import { OnchainLightweightProvider } from '@baskt/types';
 
 // Oracle types enum to match the Rust program
 export enum OracleType {
@@ -24,12 +24,12 @@ export interface OraclePrice {
 export class OracleHelper {
   program: anchor.Program<BasktV1>;
   public publicKey: PublicKey;
-  provider: LightweightProvider;
+  provider: OnchainLightweightProvider;
 
   constructor(
     program: anchor.Program<BasktV1>,
     publicKey: PublicKey,
-    provider: LightweightProvider,
+    provider: OnchainLightweightProvider,
   ) {
     this.program = program;
     this.publicKey = publicKey;
@@ -37,53 +37,35 @@ export class OracleHelper {
   }
 
   /**
-   * Creates a custom oracle account with the specified price data
+   * Creates an oracle account of the specified type
+   * @param oracleType Type of oracle to create (Custom or Pyth)
    * @param price Price value (mantissa)
    * @param exponent Price exponent (e.g., -9 for 1 GWEI = 10^-9)
    * @param conf Confidence interval (optional, defaults to 1% of price)
    * @param publishTime Timestamp of price publication (optional, defaults to current time)
    * @returns The keypair and address of the created oracle account
    */
-  async createCustomOracle(
-    protocol: PublicKey,
+  async createOracle(
     oracleName: string,
-    price: number | anchor.BN,
+    price: anchor.BN,
     exponent: number,
-    ema: number | anchor.BN,
-    conf?: number | anchor.BN,
-    publishTime?: number | anchor.BN,
+    ema: anchor.BN,
+    conf: anchor.BN,
     postInstructions: TransactionInstruction[] = [],
   ): Promise<{ address: PublicKey; txSignature: string }> {
-    // Convert inputs to BN if they are numbers
-    const priceBN = typeof price === 'number' ? new anchor.BN(price) : price;
-    const confBN = conf
-      ? typeof conf === 'number'
-        ? new anchor.BN(conf)
-        : conf
-      : priceBN.div(new anchor.BN(100)); // Default to 1% of price if not specified
-    const emaBN = typeof ema === 'number' ? new anchor.BN(ema) : ema;
-
-    const currentTime = Math.floor(Date.now() / 1000);
-    const publishTimeBN = publishTime
-      ? typeof publishTime === 'number'
-        ? new anchor.BN(publishTime)
-        : publishTime
-      : new anchor.BN(currentTime);
-
-    const oracle = PublicKey.findProgramAddressSync(
+    const [oracle] = PublicKey.findProgramAddressSync(
       [Buffer.from('oracle'), Buffer.from(oracleName)],
       this.program.programId,
-    )[0];
+    );
 
     // Initialize the oracle account with the provided data
     const txSignature = await this.provider.sendAndConfirmLegacy(
       await this.program.methods
         .initializeCustomOracle({
-          price: priceBN,
+          price: price,
           expo: exponent,
-          conf: confBN,
-          ema: emaBN,
-          publishTime: publishTimeBN,
+          conf: conf,
+          ema: ema,
           oracleName: oracleName,
         })
         .accountsPartial({
@@ -100,65 +82,6 @@ export class OracleHelper {
   }
 
   /**
-   * Creates an oracle account of the specified type
-   * @param oracleType Type of oracle to create (Custom or Pyth)
-   * @param price Price value (mantissa)
-   * @param exponent Price exponent (e.g., -9 for 1 GWEI = 10^-9)
-   * @param conf Confidence interval (optional, defaults to 1% of price)
-   * @param publishTime Timestamp of price publication (optional, defaults to current time)
-   * @returns The keypair and address of the created oracle account
-   */
-  async createOracle(
-    protocol: PublicKey,
-    oracleName: string,
-    oracleType: OracleType,
-    price: number | anchor.BN,
-    exponent: number,
-    ema: number | anchor.BN,
-    conf?: number | anchor.BN,
-    publishTime?: number | anchor.BN,
-  ): Promise<{ address: PublicKey }> {
-    switch (oracleType) {
-      case OracleType.Custom:
-        return this.createCustomOracle(
-          protocol,
-          oracleName,
-          price,
-          exponent,
-          ema,
-          conf,
-          publishTime,
-        );
-      default:
-        throw new Error(`Unsupported oracle type: ${oracleType}`);
-    }
-  }
-
-  /**
-   * Creates oracle parameters object for use in asset initialization
-   * @param oracleAddress Address of the oracle account
-   * @param oracleType Type of oracle (Custom or Pyth)
-   * @param maxPriceError Maximum allowed price error in BPS (basis points)
-   * @param maxPriceAgeSec Maximum allowed age of price data in seconds
-   * @returns Oracle parameters object
-   */
-  createOracleParams(
-    oracleAddress: PublicKey,
-    oracleType: OracleType,
-    maxPriceError: number | anchor.BN = 1000, // Default to 10% (1000 BPS)
-    maxPriceAgeSec: number = 60, // Default to 60 seconds
-  ) {
-    return {
-      oracleAccount: oracleAddress,
-      oracleType: oracleType,
-      oracleAuthority: this.publicKey,
-      maxPriceError:
-        typeof maxPriceError === 'number' ? new anchor.BN(maxPriceError) : maxPriceError,
-      maxPriceAgeSec: maxPriceAgeSec,
-    };
-  }
-
-  /**
    * Updates the price of a custom oracle account
    * @param oracleAddress Address of the oracle account to update
    * @param price New price value (mantissa)
@@ -168,9 +91,9 @@ export class OracleHelper {
    */
   async updateCustomOraclePrice(
     oracleAddress: PublicKey,
-    price: number | anchor.BN,
-    ema: number | anchor.BN,
-    conf?: number | anchor.BN,
+    price: anchor.BN,
+    ema: anchor.BN,
+    conf: anchor.BN,
   ) {
     return await this.provider.sendAndConfirmLegacy(
       await this.updateOraclePriceTxBuilder(oracleAddress, price, ema, conf).transaction(),
@@ -186,32 +109,24 @@ export class OracleHelper {
    */
   async updateCustomOraclePriceItx(
     oracleAddress: PublicKey,
-    price: number | anchor.BN,
-    ema: number | anchor.BN,
-    conf?: number | anchor.BN,
+    price: anchor.BN,
+    ema: anchor.BN,
+    conf: anchor.BN,
   ) {
     return this.updateOraclePriceTxBuilder(oracleAddress, price, ema, conf).instruction();
   }
 
   private updateOraclePriceTxBuilder(
     oracleAddress: PublicKey,
-    price: number | anchor.BN,
-    ema: number | anchor.BN,
-    conf?: number | anchor.BN,
+    price: anchor.BN,
+    ema: anchor.BN,
+    conf: anchor.BN,
   ) {
-    const priceBN = typeof price === 'number' ? new anchor.BN(price) : price;
-    const emaBN = typeof ema === 'number' ? new anchor.BN(ema) : ema;
-    const confBN = conf
-      ? typeof conf === 'number'
-        ? new anchor.BN(conf)
-        : conf
-      : priceBN.div(new anchor.BN(100)); // Default to 1% of price if not specified
-
     return this.program.methods
       .updateCustomOracle({
-        price: priceBN,
-        conf: confBN,
-        ema: emaBN,
+        price,
+        conf,
+        ema,
       })
       .accounts({
         oracle: oracleAddress,

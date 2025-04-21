@@ -1,7 +1,7 @@
 'use client';
 
 import { ExternalLink } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '../../hooks/use-toast';
 import { getSolscanAddressUrl, getSolscanTxUrl } from '@baskt/ui';
 
 interface TransactionToastProps {
@@ -24,9 +24,11 @@ export function showTransactionToast({
   const txUrl = txSignature ? getSolscanTxUrl(txSignature) : undefined;
   const addressUrl = address ? getSolscanAddressUrl(address) : undefined;
 
-  toast.success(
-    <div className="space-y-2">
-      <p>{description}</p>
+  console.log(txUrl, addressUrl)
+
+  toast({
+    title: description,
+    description: (
       <div className="flex flex-col space-y-1">
         {addressUrl && (
           <a
@@ -49,10 +51,8 @@ export function showTransactionToast({
           </a>
         )}
       </div>
-    </div>,
-    {
-      duration: 5000,
-      className: "bg-[#010b1d] text-white border border-white/10",
-    }
-  );
+    ),
+    duration: 5000,
+    className: "bg-[#010b1d] text-white border border-white/10",
+  });
 }

@@ -1,10 +1,9 @@
 import * as anchor from '@coral-xyz/anchor';
 import { Program } from '@coral-xyz/anchor';
 import { Keypair, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import BN from 'bn.js';
 import { BaseClient } from '@baskt/sdk';
 import { BasktV1 } from '../../target/types/baskt_v1';
-import { AssetPermissions, OracleParams, AccessControlRole } from '@baskt/types';
+import { AssetPermissions, AccessControlRole } from '@baskt/types';
 
 /**
  * Helper function to request an airdrop for a given address
@@ -59,9 +58,8 @@ export class TestClient extends BaseClient {
   public storedAssets = new Map<
     string,
     {
-      asset: PublicKey;
-      oracle: PublicKey;
-      ticker: string;
+      assetAddress: PublicKey;
+      txSignature: string;
     }
   >();
   /**
@@ -142,160 +140,22 @@ export class TestClient extends BaseClient {
     await this.addRole(this.oracleManager.publicKey, AccessControlRole.OracleManager);
   }
 
-  public async createAssetWithCustomOracle(
+  public async addAsset(
     ticker: string,
-    price: number | BN = this.DEFAULT_PRICE,
-    exponent: number = this.DEFAULT_PRICE_EXPONENT,
     permissions?: AssetPermissions,
-  ) {
-    try {
-      // Try to get the asset by ticker
-      const existingAsset = await this.getAssetByTicker(ticker);
-      if (existingAsset) {
-        // If asset exists, return its information
-        await this.updateOraclePrice(existingAsset.oracle.oracleAccount, price);
-        return {
-          assetAddress: existingAsset.assetAddress,
-          ticker: existingAsset.ticker,
-          oracle: existingAsset.oracle.oracleAccount,
-          txSignature: null,
-        };
-      }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(error);
+  ): Promise<{ txSignature: string; assetAddress: PublicKey }> {
+    if (this.storedAssets.has(ticker)) {
+      return this.storedAssets.get(ticker) as { txSignature: string; assetAddress: PublicKey };
     }
-
-    // Create new asset if it doesn't exist
-    return await this.createAndAddAssetWithCustomOracle(ticker, price, exponent, permissions);
-  }
-
-  /**
-   * Create a stale oracle for testing
-   * @param staleTimeSeconds How many seconds in the past
-   * @param price Oracle price
-   * @param exponent Price exponent
-   * @returns Oracle information
-   */
-  public async createStaleOracle(
-    ticker: string,
-    staleTimeSeconds: number = 7200, // 2 hours by default
-    price: number | BN = this.DEFAULT_PRICE,
-    exponent: number = this.DEFAULT_PRICE_EXPONENT,
-  ) {
-    const currentTime = Math.floor(Date.now() / 1000);
-    const staleTime = currentTime - staleTimeSeconds;
-
-    // Convert to raw price with exponent if a number is provided
-    const rawPrice = typeof price === 'number' ? price * Math.pow(10, -exponent) : price;
-
-    return await this.oracleHelper.createCustomOracle(
-      this.protocolPDA,
-      ticker,
-      rawPrice,
-      exponent,
-      rawPrice,
-      undefined, // Default confidence
-      staleTime, // Use stale timestamp
-    );
-  }
-
-  public async createMockBaskt(
-    basktName: string,
-    assets: Array<{
-      asset: PublicKey;
-      oracle: PublicKey;
-      direction: boolean;
-      weight: number;
-    }>,
-    isPublic: boolean,
-  ) {
-    // Extract asset configs and asset/oracle pairs
-    const assetConfigs = assets.map((item) => ({
-      assetId: item.asset,
-      direction: item.direction,
-      weight: item.weight,
-    }));
-
-    const assetOraclePairs = assets.map((item) => ({
-      asset: item.asset,
-      oracle: item.oracle,
-    }));
-
-    // Create the baskt with current prices
-    return await super.createBaskt(basktName, assetConfigs, isPublic, assetOraclePairs);
-  }
-
-  public async addAsset(params: {
-    ticker: string;
-    oracle: OracleParams;
-    permissions?: AssetPermissions;
-  }): Promise<{ txSignature: string; assetAddress: PublicKey }> {
-    const { txSignature, assetAddress } = await super.addAsset(params);
-    this.storedAssets.set(params.ticker, {
-      asset: assetAddress,
-      oracle: params.oracle.oracleAccount,
-      ticker: params.ticker,
+    const assetInfo = await super.addAsset(ticker, permissions);
+    this.storedAssets.set(ticker, {
+      txSignature: assetInfo.txSignature,
+      assetAddress: assetInfo.assetAddress,
     });
-    return { txSignature, assetAddress };
+    return assetInfo;
   }
 
-  /**
-   * Update the price of a custom oracle
-   * @param oracleAddress Address of the oracle to update
-   * @param price New price value
-   * @param exponent Price exponent
-   * @param confidence Confidence interval (optional)
-   */
-  public async updateOraclePrice(
-    oracleAddress: PublicKey,
-    price: number | BN,
-    ema?: number | BN,
-    confidence?: number | BN,
-  ) {
-    // Convert to raw price with exponent if a number is provided
-    const rawPrice = typeof price === 'number' ? new anchor.BN(price) : price;
-
-    const rawPriceBN = rawPrice.mul(new anchor.BN(10 ** -this.DEFAULT_PRICE_EXPONENT));
-
-    return super.updateOraclePrice(oracleAddress, rawPriceBN, ema, confidence);
-  }
-
-  /**
-   * Create and add a synthetic asset with a custom oracle in one step
-   * @param ticker Asset ticker symbol
-   * @param price Price value (optional, defaults to 50,000)
-   * @param exponent Price exponent (optional, defaults to -6)
-   * @returns Object containing asset and oracle information
-   */
-  public async createAndAddAssetWithCustomOracle(
-    ticker: string,
-    price?: number | BN,
-    exponent?: number,
-    permissions?: AssetPermissions,
-    priceError: number = 100,
-    priceAgeSec: number = 60,
-  ) {
-    let priceBN = new anchor.BN(price || this.DEFAULT_PRICE);
-    priceBN = priceBN.mul(new anchor.BN(10 ** -(exponent || this.DEFAULT_PRICE_EXPONENT)));
-    // Create a custom oracle
-    const oracle = await this.createCustomOracle(this.protocolPDA, ticker, priceBN, exponent);
-
-    // Create oracle parameters
-    const oracleParams = this.createOracleParams(oracle.address, 'custom', priceError, priceAgeSec);
-
-    // Add the asset
-    const { txSignature, assetAddress } = await this.addAsset({
-      ticker,
-      oracle: oracleParams,
-      permissions: permissions || { allowLongs: true, allowShorts: true },
-    });
-
-    return {
-      assetAddress,
-      oracle: oracle.address, // Just return the oracle address directly
-      ticker,
-      txSignature,
-    };
+  public async waitForBlocks() {
+    return new Promise((resolve) => setTimeout(resolve, 1000));
   }
 }

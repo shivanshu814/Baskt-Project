@@ -3,7 +3,7 @@ import { PublicKey } from '@solana/web3.js';
 /**
  * Feature flags to enable or disable specific protocol features
  */
-export interface FeatureFlags {
+export interface OnchainFeatureFlags {
   /** Allow adding liquidity to the protocol */
   allowAddLiquidity: boolean;
   /** Allow removing liquidity from the protocol */
@@ -29,7 +29,7 @@ export interface FeatureFlags {
 /**
  * Access control entry for a specific account
  */
-export interface AccessControlEntry {
+export interface OnchainAccessControlEntry {
   /** The account that has this role */
   account: string;
   /** The role assigned to this account */
@@ -39,29 +39,29 @@ export interface AccessControlEntry {
 /**
  * Access control system for the protocol
  */
-export interface AccessControl {
+export interface OnchainAccessControl {
   /** List of accounts with their roles */
-  entries: AccessControlEntry[];
+  entries: OnchainAccessControlEntry[];
 }
 
 /**
  * Protocol account data with standardized types
  */
-export interface ProtocolInterface {
+export interface OnchainProtocolInterface {
   /** Whether the protocol has been initialized */
   isInitialized: boolean;
   /** The owner of the protocol */
   owner: string;
   /** Access control system */
-  accessControl: AccessControl;
+  accessControl: OnchainAccessControl;
   /** Feature flags */
-  featureFlags: FeatureFlags;
+  featureFlags: OnchainFeatureFlags;
 }
 
 /**
  * Raw protocol account data as returned by the program
  */
-export interface RawProtocolAccount {
+export interface OnchainRawProtocolAccount {
   isInitialized: boolean;
   owner: PublicKey;
   accessControl: {
@@ -70,5 +70,5 @@ export interface RawProtocolAccount {
       role: Record<string, unknown>; // Using unknown instead of {} for better type safety
     }>;
   };
-  featureFlags: FeatureFlags;
+  featureFlags: OnchainFeatureFlags;
 }

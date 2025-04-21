@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-export interface PriceConfig {
+export interface AssetPriceProviderConfig {
   provider: {
     id: string;
     chain: string;
@@ -11,27 +11,28 @@ export interface PriceConfig {
   };
   updateFrequencySeconds: number;
 }
-
-export interface OracleConfig {
-  oracleName: string;
-  oracleType: 'custom' | 'pyth';
-  oracleAddress: string;
-  priceConfig: PriceConfig;
+export interface AssetMetadataModel {
+  ticker: string;
+  name: string;
+  assetAddress: string;
+  priceConfig: AssetPriceProviderConfig;
+  logo: string;
+  _id?: string;
+  createdAt?: Date;
 }
-// create oracle schema
-export const OracleConfigSchema = new mongoose.Schema({
-  oracleName: {
+
+export const AssetMetadataSchema = new mongoose.Schema({
+  ticker: {
     type: String,
     required: true,
     trim: true,
   },
-  oracleType: {
+  name: {
     type: String,
     required: true,
-    enum: ['custom', 'pyth'],
-    default: 'custom',
+    trim: true,
   },
-  oracleAddress: {
+  assetAddress: {
     type: String,
     required: true,
     trim: true,
@@ -56,7 +57,11 @@ export const OracleConfigSchema = new mongoose.Schema({
     },
     required: true,
   },
-
+  logo: {
+    type: String,
+    required: true,
+    trim: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

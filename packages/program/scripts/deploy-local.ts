@@ -17,8 +17,6 @@ async function addAssetsToTrpc(
     ticker: string;
     name: string;
     address: string;
-    oracleType: string;
-    oracleAddress: string;
     logo: string;
     provider: {
       id: string;
@@ -36,10 +34,11 @@ async function addAssetsToTrpc(
   });
 
   for (const asset of assets) {
-    await trpc.oracle.createOracle.mutate({
-      oracleName: asset.name, // Using asset name as oracle name
-      oracleType: asset.oracleType === 'pyth' ? 'pyth' : 'custom',
-      oracleAddress: asset.oracleAddress,
+    await trpc.asset.createAsset.mutate({
+      name: asset.name,
+      ticker: asset.ticker,
+      assetAddress: asset.address,
+      logo: asset.logo,
       priceConfig: {
         provider: asset.provider,
         twp: {
@@ -47,16 +46,6 @@ async function addAssetsToTrpc(
         },
         updateFrequencySeconds: 15,
       },
-    });
-  }
-
-  for (const asset of assets) {
-    await trpc.asset.createAsset.mutate({
-      name: asset.name,
-      ticker: asset.ticker,
-      assetAddress: asset.address,
-      oracleAddress: asset.oracleAddress,
-      logo: asset.logo,
     });
   }
 }
@@ -105,16 +94,11 @@ async function main() {
   await client.initializeProtocol();
 
   // Add 5 Assets to be used for us
-  const { assetAddress: btcAssetAddress, oracle: btcOracle } =
-    await client.createAndAddAssetWithCustomOracle('BTC', 50_000, undefined, undefined, 100, 300);
-  const { assetAddress: ethAssetAddress, oracle: ethOracle } =
-    await client.createAndAddAssetWithCustomOracle('ETH', 3_000, undefined, undefined, 100, 300);
-  const { assetAddress: dogeAssetAddress, oracle: dogeOracle } =
-    await client.createAndAddAssetWithCustomOracle('DOGE', 10, undefined, undefined, 100, 300);
-  const { assetAddress: solAssetAddress, oracle: solOracle } =
-    await client.createAndAddAssetWithCustomOracle('SOL', 100, undefined, undefined, 100, 300);
-  const { assetAddress: adaAssetAddress, oracle: adaOracle } =
-    await client.createAndAddAssetWithCustomOracle('ADA', 1, undefined, undefined, 100, 300);
+  const { assetAddress: btcAssetAddress } = await client.addAsset('BTC');
+  const { assetAddress: ethAssetAddress } = await client.addAsset('ETH');
+  const { assetAddress: dogeAssetAddress } = await client.addAsset('DOGE');
+  const { assetAddress: solAssetAddress } = await client.addAsset('SOL');
+  const { assetAddress: adaAssetAddress } = await client.addAsset('ADA');
 
   // Add all the assets and their configs to the Backend
 
@@ -123,8 +107,6 @@ async function main() {
       {
         ticker: 'BTC',
         name: 'Bitcoin',
-        oracleType: 'pyth',
-        oracleAddress: btcOracle.toString(),
         address: btcAssetAddress.toString(),
         logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/btc.png',
         provider: {
@@ -136,8 +118,6 @@ async function main() {
       {
         name: 'Ethereum',
         ticker: 'ETH',
-        oracleType: 'pyth',
-        oracleAddress: ethOracle.toString(),
         address: ethAssetAddress.toString(),
         logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/eth.png',
         provider: {
@@ -149,8 +129,6 @@ async function main() {
       {
         name: 'Dogecoin',
         ticker: 'DOGE',
-        oracleType: 'pyth',
-        oracleAddress: dogeOracle.toString(),
         address: dogeAssetAddress.toString(),
         logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/doge.png',
         provider: {
@@ -162,8 +140,6 @@ async function main() {
       {
         name: 'Solana',
         ticker: 'SOL',
-        oracleType: 'pyth',
-        oracleAddress: solOracle.toString(),
         address: solAssetAddress.toString(),
         logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/sol.png',
         provider: {
@@ -175,8 +151,6 @@ async function main() {
       {
         name: 'Cardano',
         ticker: 'ADA',
-        oracleType: 'pyth',
-        oracleAddress: adaOracle.toString(),
         address: adaAssetAddress.toString(),
         logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/ada.png',
         provider: {
@@ -196,11 +170,11 @@ async function main() {
     protocolPDA: client.protocolPDA.toString(),
     lookupTable: client.lookupTable?.toString(),
     assets: [
-      { assetAddress: btcAssetAddress.toString(), oracle: btcOracle.toString() },
-      { assetAddress: ethAssetAddress.toString(), oracle: ethOracle.toString() },
-      { assetAddress: dogeAssetAddress.toString(), oracle: dogeOracle.toString() },
-      { assetAddress: solAssetAddress.toString(), oracle: solOracle.toString() },
-      { assetAddress: adaAssetAddress.toString(), oracle: adaOracle.toString() },
+      { assetAddress: btcAssetAddress.toString() },
+      { assetAddress: ethAssetAddress.toString() },
+      { assetAddress: dogeAssetAddress.toString() },
+      { assetAddress: solAssetAddress.toString() },
+      { assetAddress: adaAssetAddress.toString() },
     ],
   };
 

@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { TestClient } from '../utils/test-client';
+import * as anchor from '@coral-xyz/anchor';
 
 describe('Custom Oracle Test', () => {
   // Get the test client instance
@@ -9,27 +10,24 @@ describe('Custom Oracle Test', () => {
   it('How many oracles can be updated in on tx ', async () => {
     const limit = 25;
     const oracles = Array.from({ length: limit }, async (_, i) => {
-      return await client.createCustomOracle(
-        client.protocolPDA,
-        'BTC' + i,
-        1000000,
+      return await client.createOracle(
+        'TBT' + i,
+        new anchor.BN(1000000),
         -6,
-        //TODO no need to put the times anymore. Plus eponent can be all deperecated
-        1000000,
-        1000000,
-        0,
+        new anchor.BN(1000000),
+        new anchor.BN(1000000),
       );
     });
 
     const oracleAddresses = await Promise.all(oracles);
     expect(oracleAddresses.length).to.equal(limit);
 
-    const updateInstructions = oracleAddresses.map(async (oracle) => {
+    const updateInstructions = oracleAddresses.map(async (oracle: any) => {
       return await client.oracleHelper.updateCustomOraclePriceItx(
         oracle.address,
-        1000000,
-        1000000,
-        100000,
+        new anchor.BN(1000000),
+        new anchor.BN(1000000),
+        new anchor.BN(100000),
       );
     });
 

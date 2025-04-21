@@ -1,7 +1,8 @@
 use crate::error::PerpetualsError;
 use crate::state::asset::SyntheticAsset;
-use crate::state::baskt::{AssetConfig, AssetParams, Baskt};
-use crate::state::protocol::Protocol;
+use crate::state::baskt::{AssetConfig, Baskt};
+use crate::state::oracle::OracleParams;
+use crate::state::protocol::{Protocol, Role};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -29,8 +30,15 @@ pub struct CreateBaskt<'info> {
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct CreateBasktParams {
     pub baskt_name: String,
-    pub asset_params: Vec<AssetParams>,
+    pub asset_params: Vec<CreateBasktAssetParams>,
     pub is_public: bool,
+    pub oracle_params: OracleParams,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct CreateBasktAssetParams {
+    pub weight: u64,
+    pub direction: bool,
 }
 
 pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Result<()> {
@@ -53,12 +61,10 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
 
     let baskt_key = baskt.key();
 
-    let asset_prices = Baskt::process_asset_oracle_pairs(remaining, clock.unix_timestamp, None)?;
-
     // Check if assets allow for the specified directions (long/short)
     for (i, asset_param) in params.asset_params.iter().enumerate() {
         // Get the corresponding asset account info
-        let asset_info = &remaining[i * 2];
+        let asset_info = &remaining[i];
 
         // Deserialize asset account
         let asset_data = &mut &**asset_info.try_borrow_data()?;
@@ -67,7 +73,9 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
                 Ok(asset) => asset,
                 Err(_) => return Err(PerpetualsError::InvalidAssetAccount.into()),
             };
-
+        if !asset.is_active {
+            return Err(PerpetualsError::InactiveAsset.into());
+        }
         // Check if the asset allows the specified direction
         if asset_param.direction && !asset.permissions.allow_longs {
             return Err(PerpetualsError::LongPositionsDisabled.into());
@@ -81,24 +89,14 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
     let asset_configs: Vec<AssetConfig> = params
         .asset_params
         .iter()
-        .map(|config| {
-            // Find current price for this asset
-            let baseline_price = asset_prices
-                .iter()
-                .find(|(id, _)| *id == config.asset_id)
-                .map(|(_, price)| *price)
-                //TODO: This should throw an error if the price is not found
-                .unwrap_or(1000000); // Default to 1.0 if price not found
-
-            AssetConfig {
-                asset_id: config.asset_id,
-                direction: config.direction,
-                weight: config.weight,
-                baseline_price,
-            }
+        .enumerate()
+        .map(|(i, config)| AssetConfig {
+            asset_id: remaining[i].key(),
+            direction: config.direction,
+            weight: config.weight,
+            baseline_price: 0,
         })
         .collect();
-    // Does asset allow longs and shorts
 
     baskt.initialize(
         baskt_key,
@@ -107,7 +105,40 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
         params.is_public,
         creator.key(),
         clock.unix_timestamp,
+        params.oracle_params,
     )?;
+
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct ActivateBaskt<'info> {
+    #[account(mut)]
+    pub baskt: Account<'info, Baskt>,
+
+    #[account(mut, constraint = protocol.has_permission(&authority.key(), Role::OracleManager) @ PerpetualsError::Unauthorized)]
+    pub authority: Signer<'info>,
+
+    #[account(seeds = [b"protocol"], bump)]
+    pub protocol: Account<'info, Protocol>,
+}
+
+pub fn activate_baskt(ctx: Context<ActivateBaskt>, prices: Vec<u64>) -> Result<()> {
+    require!(
+        ctx.accounts.baskt.is_active == false,
+        PerpetualsError::BasktAlreadyActive
+    );
+    let baskt = &mut ctx.accounts.baskt;
+
+    let current_nav = baskt.get_nav(&ctx.remaining_accounts[0])?;
+
+    // Check if the number of prices matches the number of assets in the baskt
+    if prices.len() != baskt.current_asset_configs.len() {
+        return Err(PerpetualsError::InvalidBasktConfig.into());
+    }
+
+    // Activate the baskt with the provided prices
+    baskt.activate(prices, current_nav)?;
 
     Ok(())
 }

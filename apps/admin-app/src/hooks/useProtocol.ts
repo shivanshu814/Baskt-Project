@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useBasktClient } from '@baskt/ui';
-import { ProtocolInterface } from '@baskt/types';
+import { OnchainProtocolInterface } from '@baskt/types';
 
 export function useProtocol() {
   const { client } = useBasktClient();
-  const [protocol, setProtocol] = useState<ProtocolInterface | null>(null);
+  const [protocol, setProtocol] = useState<OnchainProtocolInterface | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchProtocol = useCallback(async () => {

@@ -64,4 +64,8 @@ pub enum PerpetualsError {
     FeatureDisabled,
     #[msg("Price not found")]
     PriceNotFound,
+    #[msg("Asset Not Active")]
+    InactiveAsset,
+    #[msg("Baskt Already Active")]
+    BasktAlreadyActive,
 }

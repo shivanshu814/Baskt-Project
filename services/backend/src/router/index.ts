@@ -2,8 +2,8 @@
 
 import { router, publicProcedure } from '../trpc/trpc';
 import { z } from 'zod';
-import { Asset } from '@baskt/types';
-import { AssetConfigModel, OracleConfigModel } from '../utils/models';
+import { AssetPriceProviderConfig, OnchainAsset } from '@baskt/types';
+import { AssetMetadataModel } from '../utils/models';
 import { sdkClient } from '../utils';
 
 export const appRouter = router({
@@ -28,19 +28,20 @@ export const appRouter = router({
       };
     }),
 
-  // oracle router
-  oracle: router({
-    // create oracle
-    createOracle: publicProcedure
+  // asset router
+  asset: router({
+    // create asset
+    createAsset: publicProcedure
       .input(
         z.object({
-          oracleName: z.string().min(1, { message: 'Oracle name is required' }),
-          oracleType: z.enum(['custom', 'pyth']).default('custom'),
-          oracleAddress: z.string().min(1, { message: 'Oracle address is required' }),
+          ticker: z.string().min(1, { message: 'Ticker is required' }),
+          name: z.string().min(1, { message: 'Name is required' }),
+          assetAddress: z.string().min(1, { message: 'Asset address is required' }),
+          logo: z.string().min(1, { message: 'Logo URL is required' }),
           priceConfig: z.object({
             provider: z.object({
               id: z.string().min(1),
-              chain: z.string().min(1),
+              chain: z.string().min(0),
               name: z.string().min(1),
             }),
             twp: z.object({
@@ -52,61 +53,12 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         try {
-          const oracle = new OracleConfigModel(input);
-          await oracle.save();
-          return {
-            success: true,
-            data: oracle,
-          };
-        } catch (error) {
-          console.error('Error creating oracle:', error);
-          throw new Error('Failed to create oracle');
-        }
-      }),
-
-    // get all oracles
-    getAllOracles: publicProcedure.query(async () => {
-      try {
-        const oracles = await OracleConfigModel.find().sort({ createdAt: -1 });
-        return {
-          success: true,
-          data: oracles,
-        };
-      } catch (error) {
-        console.error('Error fetching oracles:', error);
-        throw new Error('Failed to fetch oracles');
-      }
-    }),
-  }),
-
-  // asset router
-  asset: router({
-    // create asset
-    createAsset: publicProcedure
-      .input(
-        z.object({
-          ticker: z.string().min(1, { message: 'Ticker is required' }),
-          name: z.string().min(1, { message: 'Name is required' }),
-          assetAddress: z.string().min(1, { message: 'Asset address is required' }),
-          oracleAddress: z.string().min(1, { message: 'Oracle address is required' }), // For finding the oracle
-          logo: z.string().min(1, { message: 'Logo URL is required' }),
-        }),
-      )
-      .mutation(async ({ input }) => {
-        try {
-          // Find the corresponding OracleConfig by oracleAddress
-          const oracle = await OracleConfigModel.findOne({ oracleAddress: input.oracleAddress });
-
-          if (!oracle) {
-            throw new Error(`Oracle with address ${input.oracleAddress} not found`);
-          }
-
           // Create the asset with reference to the oracle
-          const asset = new AssetConfigModel({
+          const asset = new AssetMetadataModel({
             ticker: input.ticker,
             name: input.name,
             assetAddress: input.assetAddress,
-            oracleConfig: oracle._id,
+            priceConfig: input.priceConfig,
             logo: input.logo,
           });
 
@@ -121,15 +73,57 @@ export const appRouter = router({
         }
       }),
 
+    // get all assets with configs
+    getAllAssetsWithConfig: publicProcedure.query<{
+      success: boolean;
+      data: { account: OnchainAsset; ticker: string; logo: string; assetAddress: string }[];
+    }>(async () => {
+      try {
+        const assetConfigs = await AssetMetadataModel.find().sort({ createdAt: -1 });
+        const sdkClientInstance = sdkClient();
+        const assets = await sdkClientInstance.getAllAssets();
+
+        // TODO do this.
+        const price = 10;
+        const change24h = 10;
+
+        // Map Asset to the configs and combine then
+        const combinedAssets = assetConfigs.map((assetConfig) => {
+          return {
+            ticker: assetConfig.ticker,
+            assetAddress: assetConfig.assetAddress,
+            logo: assetConfig.logo,
+            name: assetConfig.name,
+            price,
+            change24h,
+            account: assets.find((asset) => asset.address.toString() === assetConfig.assetAddress)!,
+            config: assetConfig.priceConfig as AssetPriceProviderConfig,
+          };
+        });
+
+        return {
+          success: true,
+          data: combinedAssets,
+        };
+      } catch (error) {
+        console.error('Error fetching assets:', error);
+        throw new Error('Failed to fetch assets');
+      }
+    }),
+
     // get all assets
     getAllAssets: publicProcedure.query<{
       success: boolean;
-      data: { account: Asset; ticker: string; logo: string; assetAddress: string }[];
+      data: { account: OnchainAsset; ticker: string; logo: string; assetAddress: string }[];
     }>(async () => {
       try {
-        const assetConfigs = await AssetConfigModel.find().sort({ createdAt: -1 });
+        const assetConfigs = await AssetMetadataModel.find().sort({ createdAt: -1 });
         const sdkClientInstance = sdkClient();
         const assets = await sdkClientInstance.getAllAssets();
+
+        // TODO do this.
+        const price = 10;
+        const change24h = 10;
 
         // Map Asset to the configs and combine then
         const combinedAssets = assetConfigs.map((assetConfig: any) => {
@@ -138,9 +132,9 @@ export const appRouter = router({
             assetAddress: assetConfig.assetAddress,
             logo: assetConfig.logo,
             name: assetConfig.name,
+            price,
+            change24h,
             account: assets.find((asset) => asset.address.toString() === assetConfig.assetAddress)!,
-            price: 10,
-            change24h: 10,
           };
         });
 
