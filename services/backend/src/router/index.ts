@@ -2,9 +2,14 @@
 
 import { router, publicProcedure } from '../trpc/trpc';
 import { z } from 'zod';
-import { AssetPriceProviderConfig, OnchainAsset } from '@baskt/types';
-import { AssetMetadataModel } from '../utils/models';
+import { AssetPriceProviderConfig, OnchainAsset, Role, ROLE_TYPES } from '@baskt/types';
+import { AssetMetadataModel, RoleModel } from '../utils/models';
 import { sdkClient } from '../utils';
+
+type ApiRole = Omit<Role, 'createdAt' | 'updatedAt'> & {
+  createdAt: string;
+  updatedAt: string;
+};
 
 export const appRouter = router({
   // health check
@@ -269,6 +274,119 @@ export const appRouter = router({
         return [];
       }
     }),
+  }),
+
+  roles: router({
+    getAllRoles: publicProcedure.query<ApiRole[]>(async () => {
+      try {
+        const roles = await RoleModel.find().sort({ createdAt: -1 });
+        return roles.map((role) => ({
+          ...role.toObject(),
+          role: role.role as (typeof ROLE_TYPES)[keyof typeof ROLE_TYPES],
+          createdAt: role.createdAt.toISOString(),
+          updatedAt: role.updatedAt.toISOString(),
+        }));
+      } catch (error) {
+        console.error('Error fetching roles:', error);
+        throw new Error('Failed to fetch roles');
+      }
+    }),
+
+    addRole: publicProcedure
+      .input(
+        z.object({
+          address: z.string().min(1, { message: 'Address is required' }),
+          name: z.string().min(1, { message: 'Name is required' }),
+          role: z.enum([ROLE_TYPES.ORACLE_MANAGER, ROLE_TYPES.REBALANCER, ROLE_TYPES.OWNER], {
+            required_error: 'Please select a role',
+          }),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        try {
+          const existingRole = await RoleModel.findOne({ address: input.address });
+          if (existingRole) {
+            throw new Error('Role with this address already exists');
+          }
+
+          const role = new RoleModel({
+            address: input.address,
+            name: input.name,
+            role: input.role,
+          });
+          await role.save();
+          return {
+            success: true,
+            data: {
+              ...role.toObject(),
+              role: role.role as (typeof ROLE_TYPES)[keyof typeof ROLE_TYPES],
+              createdAt: role.createdAt.toISOString(),
+              updatedAt: role.updatedAt.toISOString(),
+            } as ApiRole,
+          };
+        } catch (error) {
+          console.error('Error adding role:', error);
+          throw error instanceof Error ? error : new Error('Failed to add role');
+        }
+      }),
+
+    updateRole: publicProcedure
+      .input(
+        z.object({
+          address: z.string().min(1, { message: 'Address is required' }),
+          name: z.string().min(1, { message: 'Name is required' }),
+          role: z.enum([ROLE_TYPES.ORACLE_MANAGER, ROLE_TYPES.REBALANCER, ROLE_TYPES.OWNER], {
+            required_error: 'Please select a role',
+          }),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        try {
+          const role = await RoleModel.findOneAndUpdate(
+            { address: input.address },
+            {
+              name: input.name,
+              role: input.role,
+              updatedAt: new Date(),
+            },
+            { new: true },
+          );
+          if (!role) {
+            throw new Error('Role not found');
+          }
+          return {
+            success: true,
+            data: {
+              ...role.toObject(),
+              role: role.role as (typeof ROLE_TYPES)[keyof typeof ROLE_TYPES],
+              createdAt: role.createdAt.toISOString(),
+              updatedAt: role.updatedAt.toISOString(),
+            } as ApiRole,
+          };
+        } catch (error) {
+          console.error('Error updating role:', error);
+          throw error instanceof Error ? error : new Error('Failed to update role');
+        }
+      }),
+
+    deleteRole: publicProcedure
+      .input(
+        z.object({
+          address: z.string().min(1, { message: 'Address is required' }),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        try {
+          const role = await RoleModel.findOneAndDelete({ address: input.address });
+          if (!role) {
+            throw new Error('Role not found');
+          }
+          return { success: true };
+        } catch (error) {
+          console.error('Error deleting role:', error);
+          throw error instanceof Error ? error : new Error('Failed to delete role');
+        }
+      }),
   }),
 });
 

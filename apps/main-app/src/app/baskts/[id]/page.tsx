@@ -26,12 +26,11 @@ export default function BasktDetailPage() {
   const [chartPeriod, setChartPeriod] = useState('1D');
   const [chartType, setChartType] = useState<'line' | 'candle'>('line');
   const { data: cryptoNews = [] } = trpc.crypto.getCryptoNews.useQuery(undefined, {
-    staleTime: 120 * 60 * 1000, // 2 hours
+    staleTime: 120 * 60 * 1000,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
-
 
   const suggestedBaskts = [
     {
