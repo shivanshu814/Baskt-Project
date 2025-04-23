@@ -3,10 +3,18 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { trpc } from '../../utils/trpc';
 import { getSolscanAddressUrl } from '@baskt/ui';
+import { useEffect } from 'react';
 
 
 export function AdminAssetsList() {
   const { data: assets, isLoading, error } = trpc.asset.getAllAssetsWithConfig.useQuery();
+
+  useEffect(() => {
+    if (!assets) {
+      return;
+    }
+    console.log(assets);
+  }, [assets]);
 
   return (
     <div className="rounded-md border border-white/10">

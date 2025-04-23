@@ -42,7 +42,7 @@ export const AssetMetadataSchema = new mongoose.Schema({
       provider: {
         type: {
           id: { type: String, required: true },
-          chain: { type: String, required: true },
+          chain: { type: String, required: false },
           name: { type: String, required: true },
         },
         required: true,

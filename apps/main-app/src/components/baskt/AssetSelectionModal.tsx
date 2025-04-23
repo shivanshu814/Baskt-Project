@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Search } from 'lucide-react';
-import { Asset } from '../../types/baskt';
+import { AssetInfo } from '../../types/baskt';
 import { useBasktClient } from '@baskt/ui';
 import { toast } from 'sonner';
 import { trpc } from '../../utils/trpc';
@@ -13,7 +13,7 @@ import { trpc } from '../../utils/trpc';
 interface AssetSelectionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAssetSelect: (asset: Asset) => void;
+  onAssetSelect: (asset: AssetInfo) => void;
 }
 
 export function AssetSelectionModal({

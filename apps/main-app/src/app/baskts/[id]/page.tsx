@@ -1,6 +1,5 @@
 'use client';
 
-import { Layout } from '../../../components/Layout';
 import { BasktTradingForm } from '../../../components/baskt/BasktTradingForm';
 import { TradingViewChart } from '../../../components/market/TradingViewChart';
 import { Button } from '../../../components/ui/button';
@@ -99,7 +98,6 @@ export default function BasktDetailPage() {
               change24h: 2.5,
               position: 'long',
               weightage: 40,
-              allocation: 40,
               volume24h: 25000000000,
               marketCap: 1000000000000,
               logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
@@ -113,7 +111,6 @@ export default function BasktDetailPage() {
               change24h: 1.8,
               position: 'long',
               weightage: 30,
-              allocation: 30,
               volume24h: 15000000000,
               marketCap: 360000000000,
               logo: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
@@ -127,7 +124,6 @@ export default function BasktDetailPage() {
               change24h: 3.2,
               position: 'long',
               weightage: 15,
-              allocation: 15,
               volume24h: 5000000000,
               marketCap: 40000000000,
               logo: 'https://cryptologos.cc/logos/solana-sol-logo.png',
@@ -141,7 +137,6 @@ export default function BasktDetailPage() {
               change24h: 2.1,
               position: 'long',
               weightage: 10,
-              allocation: 10,
               volume24h: 2000000000,
               marketCap: 12000000000,
               logo: 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
@@ -155,7 +150,6 @@ export default function BasktDetailPage() {
               change24h: 1.5,
               position: 'long',
               weightage: 5,
-              allocation: 5,
               volume24h: 1000000000,
               marketCap: 10000000000,
               logo: 'https://cryptologos.cc/logos/polygon-matic-logo.png',
@@ -221,12 +215,12 @@ export default function BasktDetailPage() {
   }, [basktId]);
 
   if (isLoading) {
-    return <Layout>Loading...</Layout>;
+    return <div>Loading...</div>;
   }
 
   if (!baskt) {
     return (
-      <Layout>
+      <div>
         <div className="flex flex-col items-center justify-center h-[50vh]">
           <h2 className="text-2xl font-bold mb-2">Baskt not found</h2>
           <p className="text-muted-foreground mb-4">
@@ -234,12 +228,12 @@ export default function BasktDetailPage() {
           </p>
           <Button onClick={() => router.push('/baskts')}>Back to Baskts</Button>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout>
+    <div>
       <div className="space-y-6 animate-fade-in">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-3 space-y-6">
@@ -501,6 +495,6 @@ export default function BasktDetailPage() {
         basktName={baskt.name}
         basktPrice={baskt.price}
       />
-    </Layout>
+    </div >
   );
 }

@@ -1,9 +1,9 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Asset } from '../../types/baskt';
+import { BasktAsset } from '../../types/baskt';
 
 interface IndexCompositionProps {
-  assets: Asset[];
+  assets: BasktAsset[];
 }
 
 export function IndexComposition({ assets }: IndexCompositionProps) {

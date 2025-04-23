@@ -1,6 +1,5 @@
 'use client';
 
-import { Layout } from '../components/Layout';
 import { Button } from '../components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, BarChart3, LineChart, ShieldCheck } from 'lucide-react';
@@ -30,7 +29,7 @@ export default function Homepage() {
   }, []);
 
   return (
-    <Layout className="p-0 md:p-0">
+    <div>
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-primary/10 to-background pt-16 pb-20">
         <div className="container mx-auto px-4 text-center">
@@ -130,6 +129,6 @@ export default function Homepage() {
       </section>
 
       <Footer />
-    </Layout>
+    </div>
   );
 }

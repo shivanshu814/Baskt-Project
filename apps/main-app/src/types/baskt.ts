@@ -1,13 +1,10 @@
-export interface Asset {
+export interface AssetInfo {
   id: string;
   name: string;
   ticker: string;
   symbol: string;
   price: number;
   change24h: number;
-  position: 'long' | 'short';
-  weightage: number;
-  allocation?: number;
   volume24h: number;
   marketCap: number;
   logo: string;
@@ -22,7 +19,12 @@ export interface MarketTrend {
   searches: string;
 }
 
-export interface CryptoAsset extends Asset {
+export interface BasktAsset extends AssetInfo {
+  weightage: number;
+  position: 'long' | 'short';
+}
+
+export interface CryptoAsset extends AssetInfo {
   sparkline: number[];
 }
 
@@ -44,7 +46,7 @@ export interface Baskt {
     year: number;
   };
   risk: 'low' | 'medium' | 'high';
-  assets: Asset[];
+  assets: BasktAsset[];
   sparkline: number[];
   priceHistory: {
     daily: ChartData[];

@@ -1,13 +1,24 @@
 'use client';
 import { useState } from 'react';
-import { Layout } from '../../components/Layout';
+import { useRouter } from 'next/navigation';
+import { usePrivy } from '@privy-io/react-auth';
+import { cn } from '@baskt/ui';
+import { X, Plus, Search, Tag, AlertCircle, Trash2, Clock } from 'lucide-react';
+
+// Components
 import { Footer } from '../../components/Footer';
+import { CreateBasktGuideDialog } from '../../components/baskt/CreateBasktGuideDialog';
+import { AssetSelectionModal } from '../../components/baskt/AssetSelectionModal';
+
+// UI Components
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
-import { toast } from '../../hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
+import { Badge } from '../../components/ui/badge';
+import { Switch } from '../../components/ui/switch';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -15,14 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
-import { Badge } from '../../components/ui/badge';
-import { X, Plus, Search, Tag, AlertCircle, Trash2, Clock } from 'lucide-react';
-import { Switch } from '../../components/ui/switch';
-import { cn } from '@baskt/ui';
-import { useRouter } from 'next/navigation';
-import { CreateBasktGuideDialog } from '../../components/baskt/CreateBasktGuideDialog';
-import { AssetSelectionModal } from '../../components/baskt/AssetSelectionModal';
-import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -31,16 +34,12 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
-import { Asset } from '../../types/baskt';
-import { usePrivy } from '@privy-io/react-auth';
-import React from 'react';
+
+// Hooks & Types
+import { toast } from '../../hooks/use-toast';
+import { AssetInfo, BasktAsset } from '../../types/baskt';
 
 // Types
-interface BasktAsset extends Asset {
-  weightage: number;
-  position: 'long' | 'short';
-}
-
 interface BasktFormData {
   name: string;
   description: string;
@@ -54,9 +53,11 @@ interface BasktFormData {
   isPublic: boolean;
 }
 
-const CreateBaskt = () => {
-  const navigate = useRouter();
+const CreateBasktPage = () => {
+  const router = useRouter();
   const { authenticated, ready, login } = usePrivy();
+
+  // Form state
   const [formData, setFormData] = useState<BasktFormData>({
     name: '',
     description: '',
@@ -69,6 +70,8 @@ const CreateBaskt = () => {
     assets: [],
     isPublic: true,
   });
+
+  // UI state
   const [tagInput, setTagInput] = useState('');
   const [isGuideDialogOpen, setIsGuideDialogOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
@@ -111,7 +114,7 @@ const CreateBaskt = () => {
     }));
   };
 
-  const handleAddAsset = (asset: Asset) => {
+  const handleAddAsset = (asset: AssetInfo) => {
     if (formData.assets.some((a) => a.ticker === asset.ticker)) {
       toast({
         title: 'Asset already added',
@@ -209,7 +212,7 @@ const CreateBaskt = () => {
         description: `${formData.name} has been created successfully.`,
       });
 
-      navigate.push('/baskts');
+      router.push('/baskts');
     } catch (error) {
       console.error('Error creating baskt:', error); //eslint-disable-line
       toast({
@@ -223,9 +226,9 @@ const CreateBaskt = () => {
   };
 
   return (
-    <Layout>
+    <div>
       <div className="container mx-auto py-8">
-        <div className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <div className="flex justify-between items-center">
             <h1 className="text-3xl font-bold">Create a New Baskt</h1>
             <Button variant="outline" onClick={() => setIsGuideDialogOpen(true)}>
@@ -234,12 +237,12 @@ const CreateBaskt = () => {
             </Button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-8">
             <Card>
               <CardHeader>
                 <CardTitle>Basic Information</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="grid grid-cols-1 gap-4">
                 <div>
                   <Label htmlFor="name">Baskt Name</Label>
                   <Input
@@ -261,8 +264,8 @@ const CreateBaskt = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-2">
                     <Label htmlFor="risk">Risk Level</Label>
                     <Select
                       value={formData.risk}
@@ -279,12 +282,12 @@ const CreateBaskt = () => {
                     </Select>
                   </div>
 
-                  <div>
+                  <div className="grid grid-cols-1 gap-2">
                     <Label className="flex items-center" htmlFor="rebalancing">
                       Rebalancing Period
                       <Clock className="ml-1 h-4 w-4 text-muted-foreground" />
                     </Label>
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-[auto_auto] gap-2 items-center">
                       <Input
                         id="rebalance-value"
                         type="number"
@@ -321,9 +324,9 @@ const CreateBaskt = () => {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="grid grid-cols-1 gap-2 md:col-span-2">
                     <Label htmlFor="tags">Tags</Label>
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-[1fr_auto] gap-2">
                       <Input
                         id="tags"
                         placeholder="Add a tag..."
@@ -342,24 +345,26 @@ const CreateBaskt = () => {
                     </div>
 
                     {formData.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {formData.tags.map((tag) => (
-                          <Badge key={tag} variant="secondary" className="gap-1">
-                            {tag}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveTag(tag)}
-                              className="ml-1 hover:text-destructive"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ))}
+                      <div className="grid grid-cols-1 gap-2 mt-2">
+                        <div className="flex flex-wrap gap-2">
+                          {formData.tags.map((tag) => (
+                            <Badge key={tag} variant="secondary" className="gap-1">
+                              {tag}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveTag(tag)}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="grid grid-cols-[auto_1fr] items-center gap-2">
                     <Switch
                       id="public"
                       checked={formData.isPublic}
@@ -387,8 +392,8 @@ const CreateBaskt = () => {
                   </div>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
+              <CardContent className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-[1fr_auto] items-center">
                   <p className="text-muted-foreground">
                     Add assets to your Baskt and set their allocation weights.
                   </p>
@@ -400,14 +405,14 @@ const CreateBaskt = () => {
                 </div>
 
                 {formData.assets.length === 0 ? (
-                  <div className="text-center py-8 border border-dashed rounded-lg">
+                  <div className="grid place-items-center py-8 border border-dashed rounded-lg">
                     <Search className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                     <p className="text-muted-foreground">
                       No assets added yet. Click "Add Asset" to start building your Baskt.
                     </p>
                   </div>
                 ) : (
-                  <div className="border rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-1 border rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -423,10 +428,14 @@ const CreateBaskt = () => {
                           <TableRow key={asset.ticker}>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <div className="bg-primary/10 h-8 w-8 rounded-full flex items-center justify-center">
-                                  <span className="font-medium text-primary text-xs">
-                                    {asset.ticker.substring(0, 2)}
-                                  </span>
+                                <div className="bg-primary/10 h-8 w-8 rounded-full flex items-center justify-center overflow-hidden">
+                                  {asset.logo ? (
+                                    <img src={asset.logo} alt={asset.ticker} className="w-6 h-6 object-contain" />
+                                  ) : (
+                                    <span className="font-medium text-primary text-xs">
+                                      {asset.ticker.substring(0, 2)}
+                                    </span>
+                                  )}
                                 </div>
                                 <div>
                                   <div className="font-medium">{asset.ticker}</div>
@@ -481,8 +490,8 @@ const CreateBaskt = () => {
               </CardContent>
             </Card>
 
-            <div className="flex justify-end gap-4">
-              <Button type="button" variant="outline" onClick={() => navigate.push('/baskts')}>
+            <div className="grid grid-cols-[auto_auto] gap-4 justify-end">
+              <Button type="button" variant="outline" onClick={() => router.push('/baskts')}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
@@ -502,8 +511,8 @@ const CreateBaskt = () => {
       />
 
       <Footer />
-    </Layout>
+    </div>
   );
 };
 
-export default CreateBaskt;
+export default CreateBasktPage;

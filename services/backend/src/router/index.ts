@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { AssetPriceProviderConfig, OnchainAsset } from '@baskt/types';
 import { AssetMetadataModel } from '../utils/models';
 import { sdkClient } from '../utils';
+import * as assetRouter from './assetRouter';
 
 export const appRouter = router({
   // health check
@@ -41,7 +42,7 @@ export const appRouter = router({
           priceConfig: z.object({
             provider: z.object({
               id: z.string().min(1),
-              chain: z.string().min(0),
+              chain: z.string().min(0).optional().default(''),
               name: z.string().min(1),
             }),
             twp: z.object({
@@ -78,74 +79,20 @@ export const appRouter = router({
       success: boolean;
       data: { account: OnchainAsset; ticker: string; logo: string; assetAddress: string }[];
     }>(async () => {
-      try {
-        const assetConfigs = await AssetMetadataModel.find().sort({ createdAt: -1 });
-        const sdkClientInstance = sdkClient();
-        const assets = await sdkClientInstance.getAllAssets();
-
-        // TODO do this.
-        const price = 10;
-        const change24h = 10;
-
-        // Map Asset to the configs and combine then
-        const combinedAssets = assetConfigs.map((assetConfig) => {
-          return {
-            ticker: assetConfig.ticker,
-            assetAddress: assetConfig.assetAddress,
-            logo: assetConfig.logo,
-            name: assetConfig.name,
-            price,
-            change24h,
-            account: assets.find((asset) => asset.address.toString() === assetConfig.assetAddress)!,
-            config: assetConfig.priceConfig as AssetPriceProviderConfig,
-          };
-        });
-
-        return {
-          success: true,
-          data: combinedAssets,
-        };
-      } catch (error) {
-        console.error('Error fetching assets:', error);
-        throw new Error('Failed to fetch assets');
-      }
+      return await assetRouter.getAllAssetsWithConfig();
     }),
 
     // get all assets
     getAllAssets: publicProcedure.query<{
       success: boolean;
-      data: { account: OnchainAsset; ticker: string; logo: string; assetAddress: string }[];
+      data: {
+        account: OnchainAsset | undefined;
+        ticker: string;
+        logo: string;
+        assetAddress: string;
+      }[];
     }>(async () => {
-      try {
-        const assetConfigs = await AssetMetadataModel.find().sort({ createdAt: -1 });
-        const sdkClientInstance = sdkClient();
-        const assets = await sdkClientInstance.getAllAssets();
-
-        // TODO do this.
-        const price = 10;
-        const change24h = 10;
-
-        // Map Asset to the configs and combine then
-        const combinedAssets = assetConfigs.map((assetConfig: any) => {
-          return {
-            ticker: assetConfig.ticker,
-            assetAddress: assetConfig.assetAddress,
-            logo: assetConfig.logo,
-            name: assetConfig.name,
-            price,
-            change24h,
-            account: assets.find((asset) => asset.address.toString() === assetConfig.assetAddress)!,
-          };
-        });
-
-        return {
-          success: true,
-          data: combinedAssets,
-        };
-      } catch (error) {
-        console.error('Error fetching assets:', error);
-        throw new Error('Failed to fetch assets');
-      }
+      return await assetRouter.getAllAssets();
     }),
   }),
 
