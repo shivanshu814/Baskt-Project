@@ -1,13 +1,13 @@
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader } from '../ui/card';
-import { Baskt } from '../../types/baskt';
+import { BasktInfo } from '@baskt/types';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@baskt/ui';
 import Link from 'next/link';
 
 interface BasktCardProps {
-  baskt: Baskt;
+  baskt: BasktInfo;
   className?: string;
 }
 
@@ -15,8 +15,8 @@ export function BasktCard({ baskt, className }: BasktCardProps) {
   const isPositive = baskt.change24h >= 0;
   const changeColor = isPositive ? 'text-success' : 'text-destructive';
   const changeSign = isPositive ? '+' : '';
-  const sparklineData = baskt.sparkline.map((value, index) => ({
-    value,
+  const sparklineData = Array.from({ length: 24 }, (_, index) => ({
+    value: Math.random() * 100 + 50,
     index,
   }));
 
@@ -80,10 +80,7 @@ export function BasktCard({ baskt, className }: BasktCardProps) {
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="text-muted-foreground">Assets: {baskt.totalAssets}</div>
-          <div className="text-muted-foreground text-right">
-            AUM: ${(baskt.aum / 1000000).toFixed(1)}M
-          </div>
+          <div className="text-muted-foreground">Assets: {baskt.assets.length}</div>
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-sm">

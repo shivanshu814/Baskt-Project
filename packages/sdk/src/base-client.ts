@@ -19,10 +19,9 @@ import {
   OnchainLightweightProvider,
   OnchainAssetPermissions,
   OnchainProtocolInterface,
-  AccessControlRole,
-  OnchainOracleParams,
   OnchainAsset,
   OnchainAssetConfig,
+  AccessControlRole,
 } from '@baskt/types';
 import { toU64LeBytes } from './utils';
 
@@ -77,91 +76,14 @@ export abstract class BaseClient {
   abstract getPublicKey(): PublicKey;
 
   /**
-   * Create a custom oracle with specified parameters
-   * @param price Price value
-   * @param exponent Price exponent
-   * @param confidence Confidence interval (optional)
-   * @param timestamp Optional timestamp (for testing)
-   * @returns Oracle information including keypair and address
-   */
-  public async createOracle(
-    oracleName: string,
-    price: anchor.BN,
-    exponent: number,
-    confidence?: anchor.BN,
-    ema?: anchor.BN,
-  ) {
-    const emaBN = ema ?? price;
-    const rawConfidence = confidence ? new anchor.BN(confidence) : price.div(new anchor.BN(100));
-
-    const [oracle] = PublicKey.findProgramAddressSync(
-      [Buffer.from('oracle'), Buffer.from(oracleName)],
-      this.program.programId,
-    );
-
-    const postInstructions = [];
-    if (this.lookupTable) {
-      postInstructions.push(
-        await extendLookupTable(
-          this.connection,
-          this.lookupTable,
-          this.getPublicKey(),
-          this.getPublicKey(),
-          [oracle],
-        ),
-      );
-    }
-
-    const result = await this.oracleHelper.createOracle(
-      oracleName,
-      price,
-      exponent,
-      emaBN,
-      rawConfidence,
-      postInstructions,
-    );
-
-    return result;
-  }
-
-  /**
-   * Create oracle parameters for asset initialization
-   * @param oracleAddress Oracle account address
-   * @param maxPriceError Maximum allowed price error in BPS
-   * @param maxPriceAgeSec Maximum allowed age of price data in seconds
-   * @returns Oracle parameters object formatted for the program
-   */
-  public createOracleParams(
-    oracleAddress: PublicKey,
-    maxPriceError: number | BN = this.DEFAULT_PRICE_ERROR,
-    maxPriceAgeSec: number = this.DEFAULT_PRICE_AGE_SEC,
-  ): OnchainOracleParams {
-    return {
-      oracleAccount: oracleAddress,
-      maxPriceError: typeof maxPriceError === 'number' ? new BN(maxPriceError) : maxPriceError,
-      maxPriceAgeSec: maxPriceAgeSec,
-    };
-  }
-
-  /**
    * Update the price of a custom oracle
    * @param oracleAddress Address of the oracle to update
    * @param price New price value
    * @param ema EMA value
    * @param confidence Confidence interval (optional)
    */
-  public async updateOraclePrice(
-    oracleAddress: PublicKey,
-    price: anchor.BN,
-    ema?: anchor.BN,
-    confidence?: anchor.BN,
-  ) {
-    await this.oracleHelper.updateCustomOraclePrice(
-      oracleAddress,
-      price,
-      ema ?? price,
-      confidence ?? price.div(new anchor.BN(100)),
-    );
+  public async updateOraclePrice(oracleAddress: PublicKey, price: anchor.BN) {
+    await this.oracleHelper.updateCustomOraclePrice(oracleAddress, price);
   }
 
   /**
@@ -273,7 +195,7 @@ export abstract class BaseClient {
    * @param role AccessControlRole to assign
    * @returns Transaction signature
    */
-  public async addRole(account: PublicKey, role: AccessControlRole | string): Promise<string> {
+  public async addRole(account: PublicKey, role: AccessControlRole): Promise<string> {
     const roleEnum = typeof role === 'string' ? stringToRole(role) : role;
     // Submit the transaction to add the role
     const tx = await this.program.methods
@@ -294,7 +216,7 @@ export abstract class BaseClient {
    * @param role AccessControlRole to remove
    * @returns Transaction signature
    */
-  public async removeRole(account: PublicKey, role: AccessControlRole | string): Promise<string> {
+  public async removeRole(account: PublicKey, role: AccessControlRole): Promise<string> {
     const roleEnum = typeof role === 'string' ? stringToRole(role) : role;
     // Submit the transaction to remove the role
     const tx = await this.program.methods
@@ -409,14 +331,6 @@ export abstract class BaseClient {
     return this.protocolPDA;
   }
 
-  public async getOraclePrice(oracle: PublicKey): Promise<{
-    price: BN;
-    exponent: number;
-  }> {
-    const account = await this.program.account.customOracle.fetch(oracle);
-    return { price: account.price, exponent: account.expo };
-  }
-
   /**
    * Get an asset account by its public key
    * @param assetPublicKey Public key of the asset account
@@ -446,15 +360,16 @@ export abstract class BaseClient {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private convertAsset(account: any) {
+    const newAccount = account.permissions ? account : account.account;
     return {
-      address: account.publicKey,
-      ticker: account.account.ticker,
+      address: newAccount.publicKey || account.publicKey,
+      ticker: newAccount.ticker,
       permissions: {
-        allowLongs: account.account.permissions.allowLongs,
-        allowShorts: account.account.permissions.allowShorts,
+        allowLongs: newAccount.permissions.allowLongs,
+        allowShorts: newAccount.permissions.allowShorts,
       } as OnchainAssetPermissions,
-      isActive: account.account.isActive,
-      listingTime: new Date(account.account.listingTime.toNumber() * 1000),
+      isActive: newAccount.isActive,
+      listingTime: new Date(newAccount.listingTime.toNumber() * 1000),
     } as OnchainAsset;
   }
 
@@ -468,44 +383,16 @@ export abstract class BaseClient {
   }
 
   /**
-   * Fetch a custom oracle account
-   * @param oracleAddress Address of the oracle account
-   * @returns Oracle account data
-   */
-  public async getOracleAccount(oracleAddress: PublicKey) {
-    return await this.program.account.customOracle.fetch(oracleAddress);
-  }
-
-  /**
-   * Get all custom oracles in the protocol
-   * @returns Array of custom oracle accounts with their public keys
-   */
-  public async getAllOracles() {
-    try {
-      const oracleAccounts = await this.program.account.customOracle.all();
-      return oracleAccounts.map((account) => ({
-        address: account.publicKey,
-        ...account.account,
-      }));
-    } catch (error) {
-      console.error('Error fetching all oracles:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Create a new baskt
    * @param basktName The name of the baskt
    * @param assetConfigs Array of asset configurations with weights
    * @param isPublic Whether the baskt is public or private
-   * @param oracleParams Oracle parameters for the baskt
    * @returns Object containing the baskt keypair and transaction signature
    */
   public async createBaskt(
     basktName: string,
     assetConfigs: Array<OnchainAssetConfig>,
     isPublic: boolean,
-    oracleParams: OnchainOracleParams,
   ) {
     // Derive the baskt PDA
     const [basktId] = PublicKey.findProgramAddressSync(
@@ -522,7 +409,6 @@ export abstract class BaseClient {
           direction: config.direction,
         })),
         isPublic,
-        oracleParams,
       })
       .accounts({
         creator: this.getPublicKey(),
@@ -538,14 +424,7 @@ export abstract class BaseClient {
       };
     });
 
-    txBuilder.remainingAccounts([
-      ...assetAccounts,
-      {
-        pubkey: oracleParams.oracleAccount,
-        isSigner: false,
-        isWritable: false,
-      },
-    ]);
+    txBuilder.remainingAccounts([...assetAccounts]);
 
     const instruction = await txBuilder.instruction();
     // Execute the transaction
@@ -563,19 +442,15 @@ export abstract class BaseClient {
    * @param authority Optional authority to use for activation (defaults to oracleManager)
    * @returns Transaction signature
    */
-  public async activateBaskt(basktId: PublicKey, prices: anchor.BN[]): Promise<string> {
-    const baskt = await this.getBaskt(basktId);
-    const txBuilder = this.program.methods.activateBaskt(prices).accounts({
+  public async activateBaskt(
+    basktId: PublicKey,
+    prices: anchor.BN[],
+    maxPriceAgeSec: number = 60,
+  ): Promise<string> {
+    const txBuilder = this.program.methods.activateBaskt(prices, maxPriceAgeSec).accounts({
       baskt: basktId,
       authority: this.getPublicKey(),
     });
-    txBuilder.remainingAccounts([
-      {
-        pubkey: baskt.oracle.oracleAccount,
-        isWritable: false,
-        isSigner: false,
-      },
-    ]);
 
     const instruction = await txBuilder.instruction();
     return await this.sendAndConfirm([instruction]);
@@ -706,27 +581,17 @@ export abstract class BaseClient {
    * Rebalance a baskt with new asset weights
    * @param basktId The public key of the baskt to rebalance
    * @param assetConfigs Array of asset configurations with new weights
-   * @param assetOraclePairs Optional array of asset/oracle pairs to use for getting current prices
    * @returns Transaction signature
    */
   public async rebalanceBaskt(
     basktId: PublicKey,
     assetConfigs: Array<OnchainAssetConfig>,
-    oracleAccount: PublicKey,
   ): Promise<string> {
     // Prepare the transaction builder
     const txBuilder = this.program.methods.rebalance(assetConfigs).accounts({
       baskt: basktId,
       payer: this.getPublicKey(),
     });
-
-    txBuilder.remainingAccounts([
-      {
-        pubkey: oracleAccount,
-        isSigner: false,
-        isWritable: false,
-      },
-    ]);
 
     const itx = await txBuilder.instruction();
 

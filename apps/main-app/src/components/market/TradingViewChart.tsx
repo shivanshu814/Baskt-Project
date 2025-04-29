@@ -1,5 +1,5 @@
 import { cn } from '@baskt/ui';
-import { TradingViewChartProps } from '../../types/baskt';
+import { TradingViewChartProps } from '../../types/market';
 import { useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   createChart,

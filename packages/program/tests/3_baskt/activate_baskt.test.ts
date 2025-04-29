@@ -20,20 +20,13 @@ describe('activate baskt', () => {
   let dogeAssetId: AssetId;
   const multiAssetIds: AssetId[] = [];
 
-  let commonOracle: PublicKey;
-
   // Test users
   let rebalancer: Keypair;
   let regularUser: Keypair;
 
   // Helper function to create a baskt for testing
   async function createTestBaskt(name: string, assets: OnchainAssetConfig[], isPublic = true) {
-    const { basktId } = await client.createBaskt(
-      name,
-      assets,
-      isPublic,
-      client.createOracleParams(commonOracle),
-    );
+    const { basktId } = await client.createBaskt(name, assets, isPublic);
     return basktId;
   }
 
@@ -43,10 +36,6 @@ describe('activate baskt', () => {
     btcAssetId = await client.addAsset('BTC');
     ethAssetId = await client.addAsset('ETH');
     dogeAssetId = await client.addAsset('DOGE');
-
-    commonOracle = (
-      await client.createOracle('common1', new BN(50000), -6, new BN(100), new BN(60))
-    ).address;
 
     // Create test users
     rebalancer = Keypair.generate();
@@ -60,9 +49,6 @@ describe('activate baskt', () => {
       const assetId = await client.addAsset(`ASSET${i}`);
       multiAssetIds.push(assetId);
     }
-
-    // Set oracle prices for all assets
-    await client.updateOraclePrice(commonOracle, new BN(50000));
   });
 
   it('Successfully activates a baskt from the owner and fails when trying to activate again', async () => {
@@ -112,7 +98,7 @@ describe('activate baskt', () => {
     );
 
     // Verify baseline NAV was set
-    expect(basktAfter.baselineNav.toString()).to.equal('50000');
+    expect(basktAfter.baselineNav.toString()).to.equal('1000000');
 
     // Try to activate again - should fail with BasktAlreadyActive
     try {
@@ -159,7 +145,7 @@ describe('activate baskt', () => {
     );
 
     // Verify baseline NAV was set
-    expect(basktAfter.baselineNav.toString()).to.equal('50000');
+    expect(basktAfter.baselineNav.toString()).to.equal('1000000');
   });
 
   it('Fails to activate a baskt from a regular user', async () => {
@@ -272,7 +258,7 @@ describe('activate baskt', () => {
     }
 
     // Verify baseline NAV was set
-    expect(basktAfter.baselineNav.toString()).to.equal('50000');
+    expect(basktAfter.baselineNav.toString()).to.equal('1000000');
   });
 
   it('Fails to activate a baskt with mismatched price count', async () => {

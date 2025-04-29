@@ -17,7 +17,7 @@ export class PrivyClient extends BaseClient {
       tx.feePayer = new PublicKey(wallet.address);
       const sign = await wallet.signTransaction(tx);
       // eslint-disable-next-line no-undef
-      return sendAndConfirmRawTransaction(connection, Buffer.from(sign.serialize()), {
+      return await sendAndConfirmRawTransaction(connection, Buffer.from(sign.serialize()), {
         commitment: 'confirmed',
       });
     };
@@ -29,7 +29,11 @@ export class PrivyClient extends BaseClient {
           return sendAndConfirm(tx);
         },
         sendAndConfirmV0: async (tx) => {
-          return wallet.sendTransaction(tx, connection);
+          const sign = await wallet.signTransaction(tx);
+          // eslint-disable-next-line no-undef
+          return await sendAndConfirmRawTransaction(connection, Buffer.from(sign.serialize()), {
+            commitment: 'confirmed',
+          });
         },
       },
       new PublicKey(wallet.address),

@@ -3,7 +3,7 @@ import { describe, it, before } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
 import { TestClient } from '../utils/test-client';
-import { AccessControlRole, OnchainAssetConfig, OnchainOracleParams } from '@baskt/types';
+import { AccessControlRole, OnchainAssetConfig } from '@baskt/types';
 
 type AssetId = {
   assetAddress: PublicKey;
@@ -18,8 +18,6 @@ describe('Baskt Rebalance', () => {
   let btcAssetId: AssetId;
   let ethAssetId: AssetId;
   let basktId: PublicKey;
-
-  let commonOracleParams: OnchainOracleParams;
 
   let assetPrices: anchor.BN[];
 
@@ -48,9 +46,6 @@ describe('Baskt Rebalance', () => {
       },
     ] as OnchainAssetConfig[];
 
-    commonOracleParams = client.createOracleParams(
-      (await client.createOracle('c', new anchor.BN(1000000), -6, new anchor.BN(1000000))).address,
-    );
     await client.waitForBlocks();
     await client.waitForBlocks();
 
@@ -59,7 +54,6 @@ describe('Baskt Rebalance', () => {
       'RebBaskt', // Name must be 10 characters or less
       assets,
       true, // is_public
-      commonOracleParams,
     ));
     assetPrices = [new anchor.BN(4000), new anchor.BN(3000)];
     await client.activateBaskt(basktId, assetPrices);
@@ -95,10 +89,10 @@ describe('Baskt Rebalance', () => {
     const basktBefore = await client.getBaskt(basktId);
     const rebalanceIndexBefore = basktBefore.lastRebalanceIndex.toNumber();
 
-    await client.updateOraclePrice(commonOracleParams.oracleAccount, new anchor.BN(140));
+    await client.updateOraclePrice(basktId, new anchor.BN(140));
 
     // Perform the rebalance
-    await client.rebalanceBaskt(basktId, newAssetConfigs, commonOracleParams.oracleAccount);
+    await client.rebalanceBaskt(basktId, newAssetConfigs);
 
     // Get the baskt after rebalance
     const basktAfter = await client.getBaskt(basktId);
@@ -162,7 +156,7 @@ describe('Baskt Rebalance', () => {
 
     // Use the same oracle params as the successful test
     try {
-      await client.rebalanceBaskt(basktId, invalidAssetConfigs, commonOracleParams.oracleAccount);
+      await client.rebalanceBaskt(basktId, invalidAssetConfigs);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('InvalidAssetConfig');
@@ -188,7 +182,7 @@ describe('Baskt Rebalance', () => {
 
     // Only provide price data for BTC and ETH, omitting the new asset
     try {
-      await client.rebalanceBaskt(basktId, assetConfigs, commonOracleParams.oracleAccount);
+      await client.rebalanceBaskt(basktId, assetConfigs);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('InvalidAssetConfig');
@@ -208,7 +202,7 @@ describe('Baskt Rebalance', () => {
 
     // Only provide price data for BTC and ETH, omitting the new asset
     try {
-      await client.rebalanceBaskt(basktId, assetConfigs, commonOracleParams.oracleAccount);
+      await client.rebalanceBaskt(basktId, assetConfigs);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('InvalidAssetConfig');
@@ -234,11 +228,7 @@ describe('Baskt Rebalance', () => {
 
     // Attempt to rebalance with non-owner client
     try {
-      await nonOwnerClient.rebalanceBaskt(
-        basktId,
-        newAssetConfigs,
-        commonOracleParams.oracleAccount,
-      );
+      await nonOwnerClient.rebalanceBaskt(basktId, newAssetConfigs);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('Unauthorized');
@@ -267,11 +257,7 @@ describe('Baskt Rebalance', () => {
     const rebalanceIndexBefore = basktBefore.lastRebalanceIndex.toNumber();
 
     // Perform the rebalance with rebalancer client
-    await rebalancerClient.rebalanceBaskt(
-      basktId,
-      newAssetConfigs,
-      commonOracleParams.oracleAccount,
-    );
+    await rebalancerClient.rebalanceBaskt(basktId, newAssetConfigs);
 
     // Get the baskt after rebalance
     const basktAfter = await rebalancerClient.getBaskt(basktId);
@@ -303,7 +289,7 @@ describe('Baskt Rebalance', () => {
     const rebalanceIndexBefore = basktBefore.lastRebalanceIndex.toNumber();
 
     // Perform the rebalance with owner client
-    await client.rebalanceBaskt(basktId, newAssetConfigs, commonOracleParams.oracleAccount);
+    await client.rebalanceBaskt(basktId, newAssetConfigs);
 
     // Get the baskt after rebalance
     const basktAfter = await client.getBaskt(basktId);

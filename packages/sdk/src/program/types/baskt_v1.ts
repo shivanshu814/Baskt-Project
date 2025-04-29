@@ -62,6 +62,10 @@ export type BasktV1 = {
           "type": {
             "vec": "u64"
           }
+        },
+        {
+          "name": "maxPriceAgeSec",
+          "type": "u32"
         }
       ]
     },
@@ -254,83 +258,6 @@ export type BasktV1 = {
           "type": {
             "defined": {
               "name": "createBasktParams"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "initializeCustomOracle",
-      "discriminator": [
-        104,
-        55,
-        48,
-        197,
-        116,
-        245,
-        87,
-        103
-      ],
-      "accounts": [
-        {
-          "name": "oracle",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  111,
-                  114,
-                  97,
-                  99,
-                  108,
-                  101
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "instruction_params.oracle_name"
-              }
-            ]
-          }
-        },
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "protocol",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "params",
-          "type": {
-            "defined": {
-              "name": "customOracleInstructionParams"
             }
           }
         }
@@ -532,7 +459,7 @@ export type BasktV1 = {
       ],
       "accounts": [
         {
-          "name": "oracle",
+          "name": "baskt",
           "writable": true
         },
         {
@@ -563,12 +490,8 @@ export type BasktV1 = {
       ],
       "args": [
         {
-          "name": "params",
-          "type": {
-            "defined": {
-              "name": "customOracleUpdateInstructionParams"
-            }
-          }
+          "name": "price",
+          "type": "u64"
         }
       ]
     },
@@ -651,19 +574,6 @@ export type BasktV1 = {
         63,
         190,
         248
-      ]
-    },
-    {
-      "name": "customOracle",
-      "discriminator": [
-        227,
-        170,
-        164,
-        218,
-        127,
-        16,
-        35,
-        223
       ]
     },
     {
@@ -1000,10 +910,6 @@ export type BasktV1 = {
             "type": "pubkey"
           },
           {
-            "name": "basktName",
-            "type": "string"
-          },
-          {
             "name": "currentAssetConfigs",
             "type": {
               "vec": {
@@ -1090,90 +996,6 @@ export type BasktV1 = {
           {
             "name": "isPublic",
             "type": "bool"
-          },
-          {
-            "name": "oracleParams",
-            "type": {
-              "defined": {
-                "name": "oracleParams"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "customOracle",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "price",
-            "type": "u64"
-          },
-          {
-            "name": "expo",
-            "type": "i32"
-          },
-          {
-            "name": "conf",
-            "type": "u64"
-          },
-          {
-            "name": "ema",
-            "type": "u64"
-          },
-          {
-            "name": "publishTime",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "customOracleInstructionParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "price",
-            "type": "u64"
-          },
-          {
-            "name": "expo",
-            "type": "i32"
-          },
-          {
-            "name": "conf",
-            "type": "u64"
-          },
-          {
-            "name": "ema",
-            "type": "u64"
-          },
-          {
-            "name": "oracleName",
-            "type": "string"
-          }
-        ]
-      }
-    },
-    {
-      "name": "customOracleUpdateInstructionParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "price",
-            "type": "u64"
-          },
-          {
-            "name": "conf",
-            "type": "u64"
-          },
-          {
-            "name": "ema",
-            "type": "u64"
           }
         ]
       }
@@ -1265,16 +1087,16 @@ export type BasktV1 = {
         "kind": "struct",
         "fields": [
           {
-            "name": "oracleAccount",
-            "type": "pubkey"
-          },
-          {
-            "name": "maxPriceError",
+            "name": "price",
             "type": "u64"
           },
           {
             "name": "maxPriceAgeSec",
             "type": "u32"
+          },
+          {
+            "name": "publishTime",
+            "type": "i64"
           }
         ]
       }

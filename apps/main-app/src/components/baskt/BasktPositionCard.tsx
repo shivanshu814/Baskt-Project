@@ -1,13 +1,13 @@
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader } from '../ui/card';
-import { Baskt, UserBasktPosition } from '../../types/baskt';
+import { BasktInfo, UserBasktPositionInfo } from '@baskt/types';
 import { cn } from '@baskt/ui';
 import { ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 
 interface BasktPositionCardProps {
-  baskt: Baskt;
-  position: UserBasktPosition;
+  baskt: BasktInfo;
+  position: UserBasktPositionInfo;
   className?: string;
 }
 

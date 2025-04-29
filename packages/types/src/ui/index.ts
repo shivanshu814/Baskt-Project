@@ -2,11 +2,11 @@ export interface AssetInfo {
   id: string;
   name: string;
   ticker: string;
-  symbol: string;
   price: number;
   change24h: number;
   volume24h: number;
   marketCap: number;
+  assetAddress: string;
   logo: string;
 }
 
@@ -19,25 +19,20 @@ export interface MarketTrend {
   searches: string;
 }
 
-export interface BasktAsset extends AssetInfo {
-  weightage: number;
-  position: 'long' | 'short';
+export interface BasktAssetInfo extends AssetInfo {
+  weight: number;
+  direction: boolean;
 }
 
-export interface CryptoAsset extends AssetInfo {
-  sparkline: number[];
-}
-
-export interface Baskt {
+export interface BasktInfo {
   id: string;
   name: string;
   description: string;
-  totalAssets: number;
-  aum: number;
   price: number;
   change24h: number;
   creator: string;
   creationDate: string;
+  //TODO: Change to Tags
   category: string;
   performance: {
     day: number;
@@ -45,9 +40,8 @@ export interface Baskt {
     month: number;
     year: number;
   };
-  risk: 'low' | 'medium' | 'high';
-  assets: BasktAsset[];
-  sparkline: number[];
+  risk: string;
+  assets: BasktAssetInfo[];
   priceHistory: {
     daily: ChartData[];
     weekly: ChartData[];
@@ -56,7 +50,7 @@ export interface Baskt {
   };
 }
 
-export interface UserBasktPosition {
+export interface UserBasktPositionInfo {
   basktId: string;
   positionSize: number;
   entryPrice: number;
@@ -69,41 +63,8 @@ export interface UserBasktPosition {
   userBalance: number;
 }
 
-export interface TradingPair {
-  base: string;
-  quote: string;
-  price: number;
-  change24h: number;
-  volume24h: number;
-  high24h: number;
-  low24h: number;
-}
-
-export interface OrderBookEntry {
-  price: number;
-  amount: number;
-  total: number;
-}
-
-export interface Trade {
-  price: number;
-  amount: number;
-  time: string;
-  type: 'buy' | 'sell';
-}
-
 export interface ChartData {
   date: string;
   price: number;
   volume: number;
-}
-
-export interface TradingViewChartProps {
-  className?: string;
-  dailyData: ChartData[];
-  weeklyData: ChartData[];
-  monthlyData: ChartData[];
-  yearlyData: ChartData[];
-  chartType?: 'line' | 'candle';
-  period?: string;
 }

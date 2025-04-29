@@ -1,5 +1,6 @@
 'use client';
 
+import { PublicKeyText } from '../../../components/PublicKeyText';
 import { BasktTradingForm } from '../../../components/baskt/BasktTradingForm';
 import { TradingViewChart } from '../../../components/market/TradingViewChart';
 import { Button } from '../../../components/ui/button';
@@ -8,7 +9,7 @@ import { ArrowUp, ArrowDown, Share2, LineChart, CandlestickChart } from 'lucide-
 import { useRouter, useParams } from 'next/navigation';
 import { IndexComposition } from '../../../components/baskt/IndexComposition';
 import { useState, useEffect } from 'react';
-import { Baskt, UserBasktPosition } from '../../../types/baskt';
+import { BasktInfo, UserBasktPositionInfo } from '@baskt/types';
 import { SuggestedBaskts } from '../../../components/baskt/SuggestedBaskts';
 import { ShareBasktModal } from '../../../components/baskt/ShareBasktModal';
 import { CryptoNews } from '../../../components/baskt/CryptoNews';
@@ -18,8 +19,8 @@ export default function BasktDetailPage() {
   const router = useRouter();
   const params = useParams();
   const basktId = params.id as string;
-  const [baskt, setBaskt] = useState<Baskt | null>(null);
-  const [userPosition, setUserPosition] = useState<UserBasktPosition | null>(null);
+  const [baskt, setBaskt] = useState<BasktInfo | null>(null);
+  const [userPosition, setUserPosition] = useState<UserBasktPositionInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [chartPeriod, setChartPeriod] = useState('1D');
@@ -31,6 +32,7 @@ export default function BasktDetailPage() {
     refetchOnReconnect: false,
   });
 
+  const { data: basktInfo, isSuccess: isBasktDataLoaded } = trpc.baskt.getBasktMetadataById.useQuery({ basktId });
 
   const suggestedBaskts = [
     {
@@ -67,128 +69,15 @@ export default function BasktDetailPage() {
 
   useEffect(() => {
     const fetchBasktData = async () => {
+      if (!isBasktDataLoaded) return;
       try {
-        // adding some mock data for lookup
-        const tempBaskt: Baskt = {
-          id: basktId,
-          name: 'Crypto Blue Chips',
-          description:
-            'A diversified basket of top cryptocurrencies including Bitcoin, Ethereum, and other major assets.',
-          totalAssets: 5,
-          aum: 1000000,
-          price: 150.25,
-          change24h: 2.5,
-          creator: '0x1234...5678',
-          creationDate: '2024-03-15',
-          category: 'Cryptocurrency',
-          performance: {
-            day: 2.5,
-            week: 5.2,
-            month: 12.8,
-            year: 45.6,
-          },
-          risk: 'medium',
-          assets: [
-            {
-              id: '1',
-              name: 'Bitcoin',
-              ticker: 'BTC',
-              symbol: 'BTC',
-              price: 50000,
-              change24h: 2.5,
-              position: 'long',
-              weightage: 40,
-              volume24h: 25000000000,
-              marketCap: 1000000000000,
-              logo: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
-            },
-            {
-              id: '2',
-              name: 'Ethereum',
-              ticker: 'ETH',
-              symbol: 'ETH',
-              price: 3000,
-              change24h: 1.8,
-              position: 'long',
-              weightage: 30,
-              volume24h: 15000000000,
-              marketCap: 360000000000,
-              logo: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
-            },
-            {
-              id: '3',
-              name: 'Solana',
-              ticker: 'SOL',
-              symbol: 'SOL',
-              price: 100,
-              change24h: 3.2,
-              position: 'long',
-              weightage: 15,
-              volume24h: 5000000000,
-              marketCap: 40000000000,
-              logo: 'https://cryptologos.cc/logos/solana-sol-logo.png',
-            },
-            {
-              id: '4',
-              name: 'Avalanche',
-              ticker: 'AVAX',
-              symbol: 'AVAX',
-              price: 40,
-              change24h: 2.1,
-              position: 'long',
-              weightage: 10,
-              volume24h: 2000000000,
-              marketCap: 12000000000,
-              logo: 'https://cryptologos.cc/logos/avalanche-avax-logo.png',
-            },
-            {
-              id: '5',
-              name: 'Polygon',
-              ticker: 'MATIC',
-              symbol: 'MATIC',
-              price: 1.5,
-              change24h: 1.5,
-              position: 'long',
-              weightage: 5,
-              volume24h: 1000000000,
-              marketCap: 10000000000,
-              logo: 'https://cryptologos.cc/logos/polygon-matic-logo.png',
-            },
-          ],
-          sparkline: [140, 142, 145, 143, 147, 150, 148, 152, 150, 155, 153, 150.25],
-          priceHistory: {
-            daily: Array(24)
-              .fill(0)
-              .map((_, i) => ({
-                date: new Date(Date.now() - (24 - i) * 3600000).toISOString(),
-                price: 150 + Math.sin(i) * 5,
-                volume: 1000000 + Math.random() * 500000,
-              })),
-            weekly: Array(7)
-              .fill(0)
-              .map((_, i) => ({
-                date: new Date(Date.now() - (7 - i) * 86400000).toISOString(),
-                price: 150 + Math.sin(i) * 10,
-                volume: 2000000 + Math.random() * 1000000,
-              })),
-            monthly: Array(30)
-              .fill(0)
-              .map((_, i) => ({
-                date: new Date(Date.now() - (30 - i) * 86400000).toISOString(),
-                price: 150 + Math.sin(i) * 15,
-                volume: 3000000 + Math.random() * 1500000,
-              })),
-            yearly: Array(12)
-              .fill(0)
-              .map((_, i) => ({
-                date: new Date(Date.now() - (12 - i) * 2592000000).toISOString(),
-                price: 150 + Math.sin(i) * 20,
-                volume: 4000000 + Math.random() * 2000000,
-              })),
-          },
-        };
 
-        const tempPosition: UserBasktPosition = {
+        if (!basktInfo) {
+          throw new Error('Baskt not found');
+        }
+
+
+        const tempPosition: UserBasktPositionInfo = {
           basktId: basktId,
           type: 'long',
           positionSize: 1000,
@@ -201,9 +90,10 @@ export default function BasktDetailPage() {
           userBalance: 5000,
         };
 
-        setBaskt(tempBaskt);
         setUserPosition(tempPosition);
+        setBaskt((basktInfo as any).data as BasktInfo);
       } catch (error) {
+        console.error('Error fetching baskt data:', error);
         setBaskt(null);
         setUserPosition(null);
       } finally {
@@ -212,7 +102,7 @@ export default function BasktDetailPage() {
     };
 
     fetchBasktData();
-  }, [basktId]);
+  }, [basktId, isBasktDataLoaded]);
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -280,7 +170,7 @@ export default function BasktDetailPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <h3 className="text-[11px] text-muted-foreground">Creator</h3>
-                    <p className="font-bold text-[14px]">{baskt.creator}</p>
+                    <PublicKeyText publicKey={baskt.creator} className="font-bold text-[14px]" />
                   </div>
 
                   <div className="space-y-1">
@@ -295,7 +185,7 @@ export default function BasktDetailPage() {
 
                   <div className="space-y-1">
                     <h3 className="text-[11px] text-muted-foreground">Total Assets</h3>
-                    <p className="font-bold text-[14px]">{baskt.totalAssets}</p>
+                    <p className="font-bold text-[14px]">{baskt.assets.length}</p>
                   </div>
                 </div>
 
@@ -340,9 +230,6 @@ export default function BasktDetailPage() {
                       About
                     </button>
                   </div>
-                  <Button className="bg-[#0052FF] text-[14px] hover:bg-[#0052FF]/90 text-white -mt-4 rounded-lg">
-                    Buy {baskt.name}
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -495,6 +382,6 @@ export default function BasktDetailPage() {
         basktName={baskt.name}
         basktPrice={baskt.price}
       />
-    </div >
+    </div>
   );
 }

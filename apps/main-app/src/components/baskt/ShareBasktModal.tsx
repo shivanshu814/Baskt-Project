@@ -1,6 +1,7 @@
 import { Dialog, DialogContent } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Copy, Check } from 'lucide-react';
+import { TruncatedText } from '../../components/TruncatedText';
 import { useState } from 'react';
 
 interface ShareBasktModalProps {
@@ -41,7 +42,14 @@ export function ShareBasktModal({
 
           <div className="relative w-full">
             <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
-              <div className="truncate flex-1 px-2 text-sm">{window.location.href}</div>
+              <div className="flex-1 px-2 text-sm">
+                <TruncatedText
+                  text={window.location.href}
+                  startChars={15}
+                  endChars={10}
+                  copyOnClick={true}
+                />
+              </div>
               <Button variant="secondary" size="sm" onClick={handleCopyLink} className="shrink-0">
                 {isCopied ? (
                   <>

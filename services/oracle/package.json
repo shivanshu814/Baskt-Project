@@ -2,7 +2,7 @@
   "name": "@baskt/oracle",
   "version": "0.0.1",
   "private": true,
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
     "dev:manager": "tsx watch src/manager.ts",
     "dev:worker": "tsx watch src/worker.ts",

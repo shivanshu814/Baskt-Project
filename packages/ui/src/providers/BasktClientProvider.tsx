@@ -24,27 +24,21 @@ export function BasktClientProvider({ children }: { children: React.ReactNode })
   const activeWallet = wallets[0];
   const [client, setClient] = useState<any | null>(null); //eslint-disable-line
   const [connection, setConnection] = useState<Connection | null>(null);
-  const [, setIsLoading] = useState(true);
 
   useEffect(() => {
     const initializeClient = async () => {
       if (!activeWallet) {
-        setIsLoading(false);
         return;
       }
 
       try {
-        setIsLoading(true);
         // eslint-disable-next-line no-undef
         const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'http://localhost:8899';
         const basktClient = new PrivyClient(new Connection(rpcUrl), activeWallet);
-
         setConnection(new Connection(rpcUrl));
         setClient(basktClient);
       } catch (err) {
         console.error('Error initializing protocol client:', err); //eslint-disable-line
-      } finally {
-        setIsLoading(false);
       }
     };
 

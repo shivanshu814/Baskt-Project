@@ -62,8 +62,12 @@ pub mod baskt_v1 {
         instructions::baskt::create_baskt(ctx, params)
     }
 
-    pub fn activate_baskt(ctx: Context<ActivateBaskt>, prices: Vec<u64>) -> Result<()> {
-        instructions::baskt::activate_baskt(ctx, prices)
+    pub fn activate_baskt(
+        ctx: Context<ActivateBaskt>,
+        prices: Vec<u64>,
+        max_price_age_sec: u32,
+    ) -> Result<()> {
+        instructions::baskt::activate_baskt(ctx, prices, max_price_age_sec)
     }
 
     pub fn add_asset(ctx: Context<AddAsset>, params: AddAssetParams) -> Result<()> {
@@ -74,18 +78,7 @@ pub mod baskt_v1 {
         instructions::rebalance::rebalance(ctx, asset_configs)
     }
 
-    // Oracle Management
-    pub fn initialize_custom_oracle(
-        ctx: Context<InitializeCustomOracle>,
-        params: CustomOracleInstructionParams,
-    ) -> Result<()> {
-        instructions::oracle::initialize_custom_oracle(ctx, params)
-    }
-
-    pub fn update_custom_oracle(
-        ctx: Context<UpdateCustomOracle>,
-        params: CustomOracleUpdateInstructionParams,
-    ) -> Result<()> {
-        instructions::oracle::update_custom_oracle(ctx, params)
+    pub fn update_custom_oracle(ctx: Context<UpdateCustomOracle>, price: u64) -> Result<()> {
+        instructions::oracle::update_custom_oracle(ctx, price)
     }
 }

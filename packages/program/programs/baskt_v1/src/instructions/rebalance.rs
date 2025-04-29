@@ -76,7 +76,7 @@ pub fn rebalance(
     );
 
 
-    let current_nav = baskt.get_nav(&ctx.remaining_accounts[0])?;
+    let current_nav = baskt.get_nav()?;
     let current_timestamp = Clock::get()?.unix_timestamp;
 
 

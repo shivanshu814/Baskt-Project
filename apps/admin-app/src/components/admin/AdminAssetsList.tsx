@@ -3,18 +3,9 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { trpc } from '../../utils/trpc';
 import { getSolscanAddressUrl } from '@baskt/ui';
-import { useEffect } from 'react';
-
 
 export function AdminAssetsList() {
   const { data: assets, isLoading, error } = trpc.asset.getAllAssetsWithConfig.useQuery();
-
-  useEffect(() => {
-    if (!assets) {
-      return;
-    }
-    console.log(assets);
-  }, [assets]);
 
   return (
     <div className="rounded-md border border-white/10">
@@ -67,7 +58,17 @@ export function AdminAssetsList() {
                     {asset.account.address.toString().slice(-8)}
                   </a>
                 </TableCell>
-                <TableCell>{asset.account.listingTime.toLocaleString()}</TableCell>
+                <TableCell>
+                  {new Date(asset.account.listingTime).toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true,
+                  })}
+                </TableCell>
                 <TableCell>10</TableCell>
                 <TableCell>{asset.account.permissions.allowLongs ? 'Yes' : 'No'}</TableCell>
                 <TableCell>{asset.account.permissions.allowShorts ? 'Yes' : 'No'}</TableCell>

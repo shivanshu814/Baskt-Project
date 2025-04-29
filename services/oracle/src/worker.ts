@@ -1,9 +1,13 @@
 import { Worker } from 'bullmq';
 import { pricingQueue, connection } from './config/queue';
-import { AssetMetadataModel } from '@baskt/types';
+import { AssetMetadataModel as AssetMetadataModelType, AssetMetadataSchema } from '@baskt/types';
 import { fetchAssetPrices } from './pricing';
 
 import { AssetPrice } from './config/sequelize';
+import { Op } from 'sequelize';
+import mongoose from 'mongoose';
+
+const AssetMetadataModel = mongoose.model('AssetMetadata', AssetMetadataSchema);
 
 // Worker instance with concurrency control
 const pricingWorker = new Worker(
@@ -11,7 +15,7 @@ const pricingWorker = new Worker(
   async (job) => {
     console.log(`Processing job: ${job.name} ${job.data._id}`);
 
-    const oracleConfig = job.data as AssetMetadataModel;
+    const oracleConfig = job.data as AssetMetadataModelType;
 
     try {
       const prices = await fetchAssetPrices([oracleConfig.priceConfig]);
@@ -21,8 +25,35 @@ const pricingWorker = new Worker(
         price: prices[0].priceUSD,
         time: new Date(),
       });
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const oldestPrice = await AssetPrice.findOne({
+        where: {
+          asset_id: (oracleConfig as any)._id,
+          time: {
+            [Op.gte]: twentyFourHoursAgo,
+          },
+        },
+        order: [['time', 'ASC']],
+      });
 
-      console.log(`Storing ${oracleConfig.name} prices:`, prices[0].priceUSD);
+      const priceChange24h =
+        BigInt(prices[0].priceUSD) -
+        BigInt((oldestPrice?.get('price') as number) || prices[0].priceUSD);
+
+      await AssetMetadataModel.updateOne(
+        { _id: (oracleConfig as any)._id },
+        {
+          $set: {
+            priceMetrics: {
+              price: prices[0].priceUSD,
+              change24h: priceChange24h,
+              timestamp: new Date().getTime(),
+            },
+          },
+        },
+      );
+
+      console.log(`Storing ${oracleConfig.name} prices:`, prices[0].priceUSD, priceChange24h);
     } catch (error) {
       console.error(`Error fetching prices for ${oracleConfig.name}:`, error);
     }

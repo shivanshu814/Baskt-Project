@@ -2,12 +2,10 @@
 
 import React from 'react';
 import { useProtocol } from '../../hooks/useProtocol';
-import { useBasktClient } from "@baskt/ui";
+import { useBasktClient } from '@baskt/ui';
 import { Button } from '../ui/button';
-import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from '../ui/dropdown-menu';
-import { ChevronDown, MoreVertical, Copy, ExternalLink } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 interface ProtocolDetailsProps {
   className?: string;
@@ -30,9 +28,7 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
       <div className={`${className} p-6 border border-border rounded-lg`}>
         <p className="text-muted-foreground">No protocol information available.</p>
         <div className="mt-4 flex space-x-2">
-          <Button onClick={() => handleInitializeProtocol()}>
-            Initialize Protocol
-          </Button>
+          <Button onClick={() => handleInitializeProtocol()}>Initialize Protocol</Button>
         </div>
       </div>
     );
@@ -76,66 +72,6 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
                 </React.Fragment>
               ))}
           </div>
-        </CollapsibleContent>
-      </Collapsible>
-
-      <Collapsible className="mb-6 border border-border rounded-md overflow-hidden">
-        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 hover:bg-accent/50">
-          <h3 className="text-lg font-medium text-foreground">Access Control</h3>
-          <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform ui-open:rotate-180" />
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          {protocol.accessControl.entries.length > 0 ? (
-            <div className="overflow-x-auto p-3 pt-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs font-medium uppercase tracking-wider">
-                      Account
-                    </TableHead>
-                    <TableHead className="text-xs font-medium uppercase tracking-wider">
-                      Role
-                    </TableHead>
-                    <TableHead className="w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {protocol.accessControl.entries.map((entry, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground break-all font-mono">
-                        {entry.account}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                        {entry.role}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(entry.account)}>
-                              <Copy className="mr-2 h-4 w-4" />
-                              Copy Address
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <ExternalLink className="mr-2 h-4 w-4" />
-                              View on Explorer
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <p className="p-3 pt-0 text-muted-foreground">No access control entries found.</p>
-          )}
         </CollapsibleContent>
       </Collapsible>
     </div>

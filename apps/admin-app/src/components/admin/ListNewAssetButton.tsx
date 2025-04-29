@@ -1,7 +1,7 @@
 'use client';
 
 import { z } from 'zod';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '../ui/input';
@@ -12,43 +12,31 @@ import { useToast } from '../../hooks/use-toast';
 import { usePrivy } from '@privy-io/react-auth';
 import { trpc } from '../../utils/trpc';
 import { useBasktClient } from '@baskt/ui';
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from '../ui/form';
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from '../ui/select';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '../ui/form';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '../ui/select';
 import { AssetMetadataModel } from '@baskt/types';
 import { showTransactionToast } from '../ui/transaction-toast';
 
-const providerOptions = [
-  'Binance',
-  'Dexscreener',
-  'Coingecko',
-];
+const providerOptions = ['Binance', 'Dexscreener', 'Coingecko'];
 
 const formSchema = z.object({
   ticker: z.string().min(1, { message: 'Ticker is required' }),
   name: z.string().min(1, { message: 'Asset name is required' }),
   priceConfig: z.object({
     provider: z.object({
-      name: z.enum(providerOptions as [string, ...string[]], { required_error: 'Provider name is required' }),
+      name: z.enum(providerOptions as [string, ...string[]], {
+        required_error: 'Provider name is required',
+      }),
       id: z.string().min(1, { message: 'Provider ID is required' }),
       chain: z.string().optional(),
     }),
     twp: z.object({
       seconds: z.coerce.number().int().min(1, { message: 'TWP seconds required' }),
     }),
-    updateFrequencySeconds: z.coerce.number().int().min(1, { message: 'Update frequency required' }),
+    updateFrequencySeconds: z.coerce
+      .number()
+      .int()
+      .min(1, { message: 'Update frequency required' }),
   }),
   logo: z.string().url({ message: 'Please enter a valid logo URL' }),
   permissions: z.object({
@@ -62,9 +50,39 @@ type FormValues = z.infer<typeof formSchema>; // ticker, name, priceConfig, logo
 export function ListNewAssetButton() {
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasPermission, setHasPermission] = useState(false);
   const { toast } = useToast();
   const { client } = useBasktClient();
   const { authenticated, login } = usePrivy();
+
+  useEffect(() => {
+    const checkPermission = async () => {
+      if (!client || !authenticated) {
+        setHasPermission(false);
+        return;
+      }
+
+      try {
+        const protocol = await client.getProtocolAccount();
+        const userAddress = client.getPublicKey().toString();
+
+        const hasPermission =
+          protocol.owner === userAddress ||
+          protocol.accessControl.entries.some(
+            (entry) =>
+              entry.account === userAddress &&
+              (entry.role === 'AssetManager' || entry.role.toLowerCase() === 'owner'),
+          );
+
+        setHasPermission(hasPermission);
+      } catch (error) {
+        console.error('Error checking permissions:', error);
+        setHasPermission(false);
+      }
+    };
+
+    checkPermission();
+  }, [client, authenticated]);
 
   const createAsset = trpc.asset.createAsset.useMutation({
     onError: (error) => {
@@ -124,13 +142,10 @@ export function ListNewAssetButton() {
         return;
       }
 
-      const {
-        assetAddress,
-        txSignature
-      } = await client.addAsset(values.ticker, {
+      const { assetAddress, txSignature } = await client.addAsset(values.ticker, {
         allowLongs: values.permissions.allowLong,
         allowShorts: values.permissions.allowShort,
-      })
+      });
 
       const assetInput: AssetMetadataModel = {
         assetAddress: assetAddress.toString(),
@@ -170,6 +185,10 @@ export function ListNewAssetButton() {
     }
   };
 
+  if (!hasPermission) {
+    return null;
+  }
+
   return (
     <>
       <Button onClick={() => setShowModal(true)}>
@@ -186,7 +205,10 @@ export function ListNewAssetButton() {
           </DialogHeader>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto space-y-6 py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="flex-1 overflow-y-auto space-y-6 py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            >
               <FormField
                 control={form.control}
                 name="ticker"
@@ -197,7 +219,9 @@ export function ListNewAssetButton() {
                       <Input placeholder="BTC" {...field} />
                     </FormControl>
                     <FormMessage />
-                    <p className="text-sm text-[#666]">Enter the ticker for the asset (e.g., BTC, ETH)</p>
+                    <p className="text-sm text-[#666]">
+                      Enter the ticker for the asset (e.g., BTC, ETH)
+                    </p>
                   </FormItem>
                 )}
               />
@@ -228,7 +252,11 @@ export function ListNewAssetButton() {
                         <FormItem>
                           <FormLabel>Provider Name</FormLabel>
                           <FormControl>
-                            <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              defaultValue={field.value}
+                            >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select Provider" />
                               </SelectTrigger>
@@ -242,7 +270,9 @@ export function ListNewAssetButton() {
                             </Select>
                           </FormControl>
                           <FormMessage />
-                          <p className="text-xs text-muted-foreground">Choose the price provider source</p>
+                          <p className="text-xs text-muted-foreground">
+                            Choose the price provider source
+                          </p>
                         </FormItem>
                       )}
                     />
@@ -258,7 +288,9 @@ export function ListNewAssetButton() {
                             <Input className="text-xs" placeholder="e.g. BTCUSDT" {...field} />
                           </FormControl>
                           <FormMessage />
-                          <p className="text-xs text-muted-foreground">The asset ID for the provider</p>
+                          <p className="text-xs text-muted-foreground">
+                            The asset ID for the provider
+                          </p>
                         </FormItem>
                       )}
                     />
@@ -290,7 +322,9 @@ export function ListNewAssetButton() {
                             <Input className="text-xs" type="number" placeholder="60" {...field} />
                           </FormControl>
                           <FormMessage />
-                          <p className="text-xs text-muted-foreground">Time-weighted period in seconds</p>
+                          <p className="text-xs text-muted-foreground">
+                            Time-weighted period in seconds
+                          </p>
                         </FormItem>
                       )}
                     />
@@ -306,7 +340,9 @@ export function ListNewAssetButton() {
                             <Input className="text-xs" type="number" placeholder="60" {...field} />
                           </FormControl>
                           <FormMessage />
-                          <p className="text-xs text-muted-foreground">How often price updates (seconds)</p>
+                          <p className="text-xs text-muted-foreground">
+                            How often price updates (seconds)
+                          </p>
                         </FormItem>
                       )}
                     />
@@ -380,8 +416,6 @@ export function ListNewAssetButton() {
               </div>
             </form>
           </Form>
-
-
         </DialogContent>
       </Dialog>
     </>

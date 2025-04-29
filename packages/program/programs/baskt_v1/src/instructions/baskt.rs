@@ -1,7 +1,7 @@
+use crate::constants::Constants;
 use crate::error::PerpetualsError;
 use crate::state::asset::SyntheticAsset;
 use crate::state::baskt::{AssetConfig, Baskt};
-use crate::state::oracle::OracleParams;
 use crate::state::protocol::{Protocol, Role};
 use anchor_lang::prelude::*;
 
@@ -32,7 +32,6 @@ pub struct CreateBasktParams {
     pub baskt_name: String,
     pub asset_params: Vec<CreateBasktAssetParams>,
     pub is_public: bool,
-    pub oracle_params: OracleParams,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -100,12 +99,10 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
 
     baskt.initialize(
         baskt_key,
-        params.baskt_name,
         asset_configs,
         params.is_public,
         creator.key(),
         clock.unix_timestamp,
-        params.oracle_params,
     )?;
 
     Ok(())
@@ -123,14 +120,18 @@ pub struct ActivateBaskt<'info> {
     pub protocol: Account<'info, Protocol>,
 }
 
-pub fn activate_baskt(ctx: Context<ActivateBaskt>, prices: Vec<u64>) -> Result<()> {
+pub fn activate_baskt(
+    ctx: Context<ActivateBaskt>,
+    prices: Vec<u64>,
+    max_price_age_sec: u32,
+) -> Result<()> {
     require!(
         ctx.accounts.baskt.is_active == false,
         PerpetualsError::BasktAlreadyActive
     );
     let baskt = &mut ctx.accounts.baskt;
 
-    let current_nav = baskt.get_nav(&ctx.remaining_accounts[0])?;
+    let current_nav = Constants::PRICE_PRECISION;
 
     // Check if the number of prices matches the number of assets in the baskt
     if prices.len() != baskt.current_asset_configs.len() {
@@ -139,6 +140,11 @@ pub fn activate_baskt(ctx: Context<ActivateBaskt>, prices: Vec<u64>) -> Result<(
 
     // Activate the baskt with the provided prices
     baskt.activate(prices, current_nav)?;
+    baskt.oracle.set(
+        current_nav,
+        Clock::get().unwrap().unix_timestamp,
+        max_price_age_sec,
+    );
 
     Ok(())
 }

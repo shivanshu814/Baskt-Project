@@ -1,6 +1,6 @@
 use crate::error::PerpetualsError;
 use crate::state::asset::SyntheticAsset;
-use crate::state::oracle::{OracleParams, OraclePrice};
+use crate::state::oracle::OracleParams;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::account_info::AccountInfo;
 
@@ -45,8 +45,6 @@ impl RebalanceHistory {
 #[derive(Default, InitSpace)]
 pub struct Baskt {
     pub baskt_id: Pubkey, // Unique identifier
-    #[max_len(10)]
-    pub baskt_name: String, // Name of the baskt (max 10 chars)
     #[max_len(20)]
     pub current_asset_configs: Vec<AssetConfig>, // Current baskt configurations
     pub is_public: bool,  // is baskt public or private
@@ -64,17 +62,12 @@ impl Baskt {
     pub fn initialize(
         &mut self,
         baskt_id: Pubkey,
-        baskt_name: String,
         asset_configs: Vec<AssetConfig>,
         is_public: bool,
         creator: Pubkey,
         creation_time: i64,
-        oracle: OracleParams,
     ) -> Result<()> {
-        require!(baskt_name.len() <= 10, PerpetualsError::InvalidBasktName);
-
         self.baskt_id = baskt_id;
-        self.baskt_name = baskt_name;
         self.current_asset_configs = asset_configs;
         self.is_public = is_public;
         self.creator = creator;
@@ -82,8 +75,8 @@ impl Baskt {
         self.last_rebalance_index = 0;
         self.is_active = false;
         self.last_rebalance_time = creation_time;
-        self.oracle = oracle;
         self.baseline_nav = 0;
+        self.oracle = OracleParams::default();
 
         Ok(())
     }
@@ -116,14 +109,8 @@ impl Baskt {
             .any(|id| id.asset_id == *asset_id)
     }
 
-    pub fn get_nav(&self, oracle_info: &AccountInfo) -> Result<u64> {
-        let price = OraclePrice::new_from_oracle(
-            oracle_info,
-            &self.oracle,
-            Clock::get()?.unix_timestamp,
-            false,
-        )?;
-        Ok(price.price)
+    pub fn get_nav(&self) -> Result<u64> {
+        self.oracle.get_price(Clock::get().unwrap().unix_timestamp)
     }
 
     pub fn validate_assets(

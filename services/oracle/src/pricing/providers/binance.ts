@@ -6,7 +6,7 @@ import axios from 'axios';
  * @returns Price data or null on error
  */
 export default async function getBinanceData(symbol: string) {
-  const url = `https://api.binance.com/api/v3/ticker/price`;
+  const url = `https://api.binance.us/api/v3/ticker/price`;
   const options = {
     method: 'GET',
     params: { symbol },

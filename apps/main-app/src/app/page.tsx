@@ -6,10 +6,10 @@ import { ArrowRight, BarChart3, LineChart, ShieldCheck } from 'lucide-react';
 import { Footer } from '../components/Footer';
 import { BasktCard } from '../components/baskt/BasktCard';
 import { useState, useEffect } from 'react';
-import { Baskt } from '../types/baskt';
+import { BasktInfo } from '@baskt/types';
 
 export default function Homepage() {
-  const [featuredBaskts, setFeaturedBaskts] = useState<Baskt[]>([]);
+  const [featuredBaskts, setFeaturedBaskts] = useState<BasktInfo[]>([]);
 
   useEffect(() => {
     // TODO: Replace with actual API call to fetch featured baskts

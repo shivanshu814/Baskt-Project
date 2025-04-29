@@ -1,6 +1,5 @@
 #[allow(non_snake_case)]
 pub struct Constants {
-
     // Fee constants
     pub OPENING_FEE_BPS: u64,
     pub CLOSING_FEE_BPS: u64,
@@ -27,6 +26,7 @@ pub struct Constants {
     pub USD_DECIMALS: u32,
 
     // Price precision
+    pub PRICE_EXPONENT: u32,
     pub PRICE_PRECISION: u64,
 }
 
@@ -59,6 +59,7 @@ impl Default for Constants {
             USD_DECIMALS: 6, // For oracle price calculations
 
             // Price precision
+            PRICE_EXPONENT: 6,
             PRICE_PRECISION: 10u64.pow(6), // 6 decimal places
         }
     }
@@ -93,5 +94,6 @@ impl Constants {
     pub const USD_DECIMALS: u32 = 6; // For oracle price calculations
 
     // Price precision
+    pub const PRICE_EXPONENT: u32 = 6;
     pub const PRICE_PRECISION: u64 = 10u64.pow(6); // 6 decimal places
 }

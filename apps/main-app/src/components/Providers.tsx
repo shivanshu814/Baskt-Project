@@ -1,15 +1,14 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import { ThemeProvider } from 'next-themes';
 import { BasktClientProvider, PrivyProvider } from '@baskt/ui';
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import { trpc } from '../utils/trpc';
+import { Toaster } from '../components/ui/toaster';
 
-const Toaster = dynamic(() => import('./ui/toaster').then((mod) => mod.Toaster), { ssr: false });
-const Sonner = dynamic(() => import('./ui/sonner').then((mod) => mod.Toaster), { ssr: false });
+
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -28,9 +27,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <PrivyProvider>
             <BasktClientProvider>
-              <Toaster />
-              <Sonner />
               {children}
+              <Toaster />
             </BasktClientProvider>
           </PrivyProvider>
         </ThemeProvider>

@@ -2,13 +2,13 @@ import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Input } from '../ui/input';
 import { Slider } from '../ui/slider';
-import { Baskt, UserBasktPosition } from '../../types/baskt';
+import { BasktInfo, UserBasktPositionInfo } from '@baskt/types';
 import { useState } from 'react';
 import { toast } from '../../hooks/use-toast';
 
 interface BasktTradingFormProps {
-  baskt: Baskt;
-  userPosition?: UserBasktPosition | null;
+  baskt: BasktInfo;
+  userPosition?: UserBasktPositionInfo | null;
   className?: string;
 }
 

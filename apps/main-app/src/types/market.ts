@@ -10,4 +10,9 @@ export interface TradingViewChartProps {
   weeklyData: ChartData[];
   monthlyData: ChartData[];
   yearlyData: ChartData[];
+  chartType: ChartType;
+  period: ChartPeriod;
 }
+
+export type ChartType = 'line' | 'candle';
+export type ChartPeriod = string;

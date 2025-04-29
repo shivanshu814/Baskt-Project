@@ -6,6 +6,7 @@ import { AssetPriceProviderConfig, OnchainAsset } from '@baskt/types';
 import { AssetMetadataModel } from '../utils/models';
 import { sdkClient } from '../utils';
 import * as assetRouter from './assetRouter';
+import * as basktRouter from './basktRouter';
 
 export const appRouter = router({
   // health check
@@ -54,6 +55,15 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         try {
+          // Find the asset if the ticker already exists
+          const existingAsset = await AssetMetadataModel.findOne({ ticker: input.ticker });
+          if (existingAsset) {
+            return {
+              success: false,
+              message: 'Ticker already exists',
+            };
+          }
+
           // Create the asset with reference to the oracle
           const asset = new AssetMetadataModel({
             ticker: input.ticker,
@@ -97,6 +107,41 @@ export const appRouter = router({
   }),
 
   baskt: router({
+    // create baskt metadata
+    createBasktMetadata: publicProcedure
+      .input(
+        z.object({
+          basktId: z.string(),
+          name: z.string().min(1).max(30),
+          description: z.string().min(1),
+          creator: z.string(),
+          tags: z.array(z.string()).min(1),
+          risk: z.enum(['low', 'medium', 'high']),
+          assets: z.array(z.string()),
+          image: z.string().optional(),
+          rebalancePeriod: z.object({
+            value: z.number().min(1),
+            unit: z.enum(['day', 'hour']),
+          }),
+          txSignature: z.string(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        return await basktRouter.createBasktMetadata(input);
+      }),
+
+    // get baskt metadata by ID
+    getBasktMetadataById: publicProcedure
+      .input(z.object({ basktId: z.string() }))
+      .query(async ({ input }) => {
+        return await basktRouter.getBasktMetadataById(input.basktId);
+      }),
+
+    // get all baskts
+    getAllBaskts: publicProcedure.query(async () => {
+      return await basktRouter.getAllBaskts();
+    }),
+
     // get trading data
     getTradingData: publicProcedure
       .input(

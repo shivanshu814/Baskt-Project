@@ -1,9 +1,13 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
-import { cn } from '@baskt/ui';
-import { X, Plus, Search, Tag, AlertCircle, Trash2, Clock } from 'lucide-react';
+import { cn, useBasktClient } from '@baskt/ui';
+import { trpc } from '../../utils/trpc';
+import { X, Plus, Search, AlertCircle, Trash2, Clock, Image } from 'lucide-react';
+import { z } from 'zod';
+import * as anchor from '@coral-xyz/anchor';
+import { PublicKey } from '@solana/web3.js';
 
 // Components
 import { Footer } from '../../components/Footer';
@@ -17,8 +21,7 @@ import { Textarea } from '../../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Switch } from '../../components/ui/switch';
-import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
+
 import {
   Select,
   SelectContent,
@@ -36,26 +39,57 @@ import {
 } from '../../components/ui/table';
 
 // Hooks & Types
-import { toast } from '../../hooks/use-toast';
-import { AssetInfo, BasktAsset } from '../../types/baskt';
+import { useToast } from '../../hooks/use-toast';
+import { OnchainAssetConfig, AssetInfo, BasktAssetInfo } from '@baskt/types';
 
-// Types
-interface BasktFormData {
-  name: string;
-  description: string;
-  tags: string[];
-  rebalancePeriod: {
-    value: number;
-    unit: 'day' | 'hour';
-  };
-  risk: string;
-  assets: BasktAsset[];
-  isPublic: boolean;
-}
+// Zod schema for form validation
+const BasktFormSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(30, 'Name must be 30 characters or less'),
+  description: z.string().min(1, 'Description is required'),
+  tags: z.array(z.string()).min(1, 'At least one tag is required'),
+  rebalancePeriod: z.object({
+    value: z.number().min(1),
+    unit: z.enum(['day', 'hour']),
+  }),
+  risk: z.enum(['low', 'medium', 'high']),
+  assets: z
+    .array(
+      z.object({
+        ticker: z.string(),
+        name: z.string(),
+        price: z.number(),
+        weight: z.number(),
+        direction: z.boolean(),
+        logo: z.string().optional(),
+        assetAddress: z.string(),
+      }),
+    )
+    .refine(
+      (assets) => {
+        // Check for duplicate assets by address
+        const addresses = assets.map((a) => a.assetAddress);
+
+        const weights = assets.every((a) => a.weight >= 5);
+
+        return new Set(addresses).size === addresses.length && weights;
+      },
+      {
+        message: 'Duplicate assets are not allowed',
+      },
+    ),
+  isPublic: z.boolean(),
+  image: z.string().optional(),
+});
+
+type BasktFormData = z.infer<typeof BasktFormSchema>;
 
 const CreateBasktPage = () => {
   const router = useRouter();
   const { authenticated, ready, login } = usePrivy();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const { client: basktClient, wallet } = useBasktClient();
+  const createBasktMutation = trpc.baskt.createBasktMetadata.useMutation();
 
   // Form state
   const [formData, setFormData] = useState<BasktFormData>({
@@ -69,13 +103,18 @@ const CreateBasktPage = () => {
     risk: 'medium',
     assets: [],
     isPublic: true,
+    image: '',
   });
+
+  // Validation errors
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // UI state
   const [tagInput, setTagInput] = useState('');
   const [isGuideDialogOpen, setIsGuideDialogOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({
@@ -84,15 +123,12 @@ const CreateBasktPage = () => {
     }));
   };
 
-  const handleRebalancePeriodChange = (
-    type: 'value' | 'unit',
-    newValue: number | 'day' | 'hour',
-  ) => {
+  const handleRebalancePeriodChange = (value: number, unit: 'day' | 'hour') => {
     setFormData((prev) => ({
       ...prev,
       rebalancePeriod: {
-        ...prev.rebalancePeriod,
-        [type]: newValue,
+        value,
+        unit,
       },
     }));
   };
@@ -115,19 +151,21 @@ const CreateBasktPage = () => {
   };
 
   const handleAddAsset = (asset: AssetInfo) => {
-    if (formData.assets.some((a) => a.ticker === asset.ticker)) {
+    // Check if asset already exists by address
+    if (formData.assets.some((a) => a.assetAddress === asset.assetAddress)) {
       toast({
-        title: 'Asset already added',
-        description: `${asset.ticker} is already in your Baskt.`,
+        title: 'Asset already in Baskt',
+        description: `${asset.ticker} has already been added to your Baskt.`,
         variant: 'destructive',
       });
       return;
     }
 
-    const newAsset: BasktAsset = {
+    // Ensure the asset has the required properties
+    const newAsset: BasktAssetInfo = {
       ...asset,
-      weightage: 0,
-      position: 'long',
+      weight: 0, // Default to minimum allowed weight as string
+      direction: true,
     };
 
     setFormData((prev) => ({
@@ -149,43 +187,166 @@ const CreateBasktPage = () => {
     setFormData((prev) => ({
       ...prev,
       assets: prev.assets.map((asset) =>
-        asset.ticker === assetticker ? { ...asset, position } : asset,
+        asset.ticker === assetticker ? { ...asset, direction: position === 'long' } : asset,
       ),
     }));
   };
 
   const handleAssetWeightChange = (assetticker: string, input: string) => {
-    const weightage = parseFloat(input);
-    if (isNaN(weightage)) return;
+    const weight = parseFloat(input) || 0;
     setFormData((prev) => ({
       ...prev,
       assets: prev.assets.map((asset) =>
-        asset.ticker === assetticker ? { ...asset, weightage } : asset,
+        asset.ticker === assetticker ? { ...asset, weight } : asset,
       ),
     }));
   };
 
-  const totalWeightage = formData.assets.reduce((sum, asset) => sum + asset.weightage, 0);
+  const totalWeightage = formData.assets.reduce((sum, asset) => sum + asset.weight, 0);
+
+  // Handle image upload
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Image must be less than 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imageDataUrl = event.target?.result as string;
+      setPreviewImage(imageDataUrl);
+      setFormData((prev) => ({ ...prev, image: imageDataUrl }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Create baskt function
+  const createBaskt = async (basktData: BasktFormData) => {
+    if (!wallet) return;
+    try {
+      const result = await basktClient?.createBaskt(
+        basktData.name,
+        basktData.assets.map(
+          (asset) =>
+            ({
+              assetId: new PublicKey(asset.assetAddress),
+              baselinePrice: new anchor.BN(0),
+              direction: asset.direction,
+              weight: new anchor.BN((asset.weight / 100) * 10_000),
+            }) as OnchainAssetConfig,
+        ),
+        basktData.isPublic,
+      );
+
+      if (!result) {
+        throw new Error('Failed to create baskt');
+      }
+
+      const { basktId, txSignature } = result;
+
+      if (!basktId || !txSignature) {
+        throw new Error('Failed to create baskt');
+      }
+
+      // Store baskt metadata using tRPC after transaction is confirmed
+      try {
+        const createBasktMetadataResult = await createBasktMutation.mutateAsync({
+          basktId: basktId.toString(),
+          name: basktData.name,
+          description: basktData.description,
+          creator: wallet?.address.toString() || '',
+          tags: basktData.tags,
+          risk: basktData.risk,
+          assets: basktData.assets.map((asset) => asset.assetAddress.toString()),
+          image: 'https://placehold.co/640x480/',
+          rebalancePeriod: basktData.rebalancePeriod,
+          txSignature,
+        });
+
+        if (!createBasktMetadataResult.success) {
+          console.error('Failed to store baskt metadata:', createBasktMetadataResult);
+          toast({
+            title: 'Warning',
+            description:
+              'Baskt created on-chain, but metadata storage failed. Some features may be limited.',
+            variant: 'destructive',
+          });
+        } else {
+          console.log('Baskt metadata stored successfully');
+        }
+
+        // Navigate to the baskt detail page
+        router.push(`/baskts/${basktId}`);
+      } catch (error) {
+        console.error('Error storing baskt metadata:', error);
+        toast({
+          title: 'Warning',
+          description:
+            'Baskt created on-chain, but metadata storage failed. Some features may be limited.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error creating baskt:', error);
+      throw error; // Re-throw to be handled by the caller
+    }
+  };
+
+  // Validate form data
+  const validateForm = (): boolean => {
+    try {
+      BasktFormSchema.parse(formData);
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          const path = err.path.join('.');
+          newErrors[path] = err.message;
+        });
+        setErrors(newErrors);
+
+        console.log('Validation errors:', newErrors);
+
+        // Show toast for the first error
+        const firstError = error.errors[0];
+        toast({
+          title: 'Validation Error',
+          description: firstError.message,
+          variant: 'destructive',
+        });
+      }
+      return false;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!ready) return;
+    if (!ready) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to create a Baskt.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     if (!authenticated) {
       login();
       return;
     }
 
-    if (!formData.name.trim()) {
-      toast({
-        title: 'Name required',
-        description: 'Please provide a name for your Baskt.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+    // Additional validation checks
     if (formData.assets.length < 2) {
       toast({
         title: 'Assets required',
@@ -197,22 +358,23 @@ const CreateBasktPage = () => {
 
     if (totalWeightage !== 100) {
       toast({
-        title: 'Invalid weightage',
-        description: `Total weightage must be 100%. Current total: ${totalWeightage}%`,
+        title: 'Invalid weight',
+        description: `Total weight must be 100%. Current total: ${totalWeightage}%`,
         variant: 'destructive',
       });
+      return;
+    }
+
+    // Validate with Zod
+    if (!validateForm()) {
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      toast({
-        title: 'Baskt created',
-        description: `${formData.name} has been created successfully.`,
-      });
-
-      router.push('/baskts');
+      // Call the create baskt function
+      await createBaskt(formData);
     } catch (error) {
       console.error('Error creating baskt:', error); //eslint-disable-line
       toast({
@@ -237,140 +399,191 @@ const CreateBasktPage = () => {
             </Button>
           </div>
 
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-8">
+          <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 gap-8">
             <Card>
               <CardHeader>
                 <CardTitle>Basic Information</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 gap-4">
                 <div>
-                  <Label htmlFor="name">Baskt Name</Label>
+                  <Label htmlFor="name">
+                    Baskt Name{' '}
+                    <span className="text-xs text-muted-foreground">(max 10 characters)</span>
+                  </Label>
                   <Input
                     id="name"
-                    placeholder="e.g. DeFi Leaders Index"
+                    placeholder="e.g. DeFi Index"
                     value={formData.name}
                     onChange={(e) => handleChange('name', e.target.value)}
+                    maxLength={10}
                   />
+                  {errors['name'] && (
+                    <p className="text-xs text-destructive mt-1">{errors['name']}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formData.name.length}/10 characters
+                  </p>
                 </div>
 
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe what this Baskt represents and its investment thesis..."
-                    value={formData.description}
-                    onChange={(e) => handleChange('description', e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="grid grid-cols-1 gap-2">
-                    <Label htmlFor="risk">Risk Level</Label>
-                    <Select
-                      value={formData.risk}
-                      onValueChange={(value) => handleChange('risk', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select risk level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2">
-                    <Label className="flex items-center" htmlFor="rebalancing">
-                      Rebalancing Period
-                      <Clock className="ml-1 h-4 w-4 text-muted-foreground" />
+                <div className="grid grid-cols-[auto_1fr] gap-4 items-start">
+                  <div>
+                    <Label htmlFor="image" className="sr-only">
+                      Baskt Image
                     </Label>
-                    <div className="grid grid-cols-[auto_auto] gap-2 items-center">
-                      <Input
-                        id="rebalance-value"
-                        type="number"
-                        min={1}
-                        max={formData.rebalancePeriod.unit === 'day' ? 30 : 24}
-                        value={formData.rebalancePeriod.value}
-                        onChange={(e) =>
-                          handleRebalancePeriodChange(
-                            'value',
-                            Math.min(
-                              parseInt(e.target.value) || 1,
-                              formData.rebalancePeriod.unit === 'day' ? 30 : 24,
-                            ),
-                          )
-                        }
-                        className="w-20"
+                    <div
+                      className="w-24 h-24 rounded-full border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {previewImage ? (
+                        <img
+                          src={previewImage}
+                          alt="Baskt preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Image className="h-8 w-8 text-muted-foreground" />
+                      )}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        id="image"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
                       />
-                      <Tabs
-                        value={formData.rebalancePeriod.unit}
-                        onValueChange={(v) =>
-                          handleRebalancePeriodChange('unit', v as 'day' | 'hour')
-                        }
-                        className="h-9"
-                      >
-                        <TabsList className="grid w-16 grid-cols-2">
-                          <TabsTrigger value="day" className="text-xs px-1">
-                            D
-                          </TabsTrigger>
-                          <TabsTrigger value="hour" className="text-xs px-1">
-                            Hr
-                          </TabsTrigger>
-                        </TabsList>
-                      </Tabs>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-2 md:col-span-2">
-                    <Label htmlFor="tags">Tags</Label>
-                    <div className="grid grid-cols-[1fr_auto] gap-2">
-                      <Input
-                        id="tags"
-                        placeholder="Add a tag..."
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddTag();
-                          }
-                        }}
-                      />
-                      <Button type="button" variant="outline" onClick={handleAddTag}>
-                        <Tag className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {formData.tags.length > 0 && (
-                      <div className="grid grid-cols-1 gap-2 mt-2">
-                        <div className="flex flex-wrap gap-2">
-                          {formData.tags.map((tag) => (
-                            <Badge key={tag} variant="secondary" className="gap-1">
-                              {tag}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveTag(tag)}
-                                className="ml-1 hover:text-destructive"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
+                  <div className="flex-1">
+                    <Textarea
+                      id="description"
+                      placeholder="Describe what this Baskt represents and its investment thesis..."
+                      value={formData.description}
+                      onChange={(e) => handleChange('description', e.target.value)}
+                      rows={3}
+                    />
+                    {errors['description'] && (
+                      <p className="text-xs text-destructive mt-1">{errors['description']}</p>
                     )}
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-[auto_1fr] items-center gap-2">
-                    <Switch
-                      id="public"
-                      checked={formData.isPublic}
-                      onCheckedChange={(checked) => handleChange('isPublic', checked)}
-                    />
-                    <Label htmlFor="public">Make this Baskt public</Label>
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                    <div className="grid grid-cols-1 gap-2">
+                      <Label htmlFor="risk">Risk Level</Label>
+                      <Select
+                        value={formData.risk}
+                        onValueChange={(value) => handleChange('risk', value)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select risk level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {errors['risk'] && (
+                        <p className="text-xs text-destructive">{errors['risk']}</p>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2">
+                      <Label className="flex items-center" htmlFor="rebalancing">
+                        Rebalancing Period
+                        <Clock className="ml-1 h-4 w-4 text-muted-foreground" />
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="rebalance-value"
+                          type="number"
+                          min={1}
+                          max={formData.rebalancePeriod.unit === 'day' ? 30 : 24}
+                          value={formData.rebalancePeriod.value}
+                          onChange={(e) => {
+                            const value = Math.min(
+                              parseInt(e.target.value) || 1,
+                              formData.rebalancePeriod.unit === 'day' ? 30 : 24,
+                            );
+                            handleRebalancePeriodChange(value, formData.rebalancePeriod.unit);
+                          }}
+                          className="w-16"
+                        />
+                        <Select
+                          value={formData.rebalancePeriod.unit}
+                          onValueChange={(value: 'day' | 'hour') => {
+                            handleRebalancePeriodChange(formData.rebalancePeriod.value, value);
+                          }}
+                        >
+                          <SelectTrigger className="w-20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="day">Days</SelectItem>
+                            <SelectItem value="hour">Hours</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2">
+                      <Label htmlFor="tags">Tags</Label>
+                      <div className="flex flex-wrap items-center gap-1 p-2 border rounded-md focus-within:ring-1 focus-within:ring-ring focus-within:border-input">
+                        {formData.tags.map((tag) => (
+                          <Badge key={tag} variant="secondary" className="gap-1 mb-1 mr-1">
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTag(tag)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                        <input
+                          id="tags"
+                          placeholder={
+                            formData.tags.length > 0
+                              ? 'Add more tags...'
+                              : 'Add tags and press Enter'
+                          }
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddTag();
+                            }
+                          }}
+                          className="flex-1 min-w-[120px] bg-transparent border-none outline-none focus:outline-none focus:ring-0 p-0 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2">
+                      <Label htmlFor="public" className="mb-2">
+                        Visibility
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center bg-muted rounded-full p-0.5">
+                          <div
+                            className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${formData.isPublic ? 'bg-background text-foreground font-medium' : 'text-muted-foreground'}`}
+                            onClick={() => handleChange('isPublic', true)}
+                          >
+                            Public
+                          </div>
+                          <div
+                            className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${!formData.isPublic ? 'bg-background text-foreground font-medium' : 'text-muted-foreground'}`}
+                            onClick={() => handleChange('isPublic', false)}
+                          >
+                            Private
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -430,7 +643,11 @@ const CreateBasktPage = () => {
                               <div className="flex items-center gap-2">
                                 <div className="bg-primary/10 h-8 w-8 rounded-full flex items-center justify-center overflow-hidden">
                                   {asset.logo ? (
-                                    <img src={asset.logo} alt={asset.ticker} className="w-6 h-6 object-contain" />
+                                    <img
+                                      src={asset.logo}
+                                      alt={asset.ticker}
+                                      className="w-6 h-6 object-contain"
+                                    />
                                   ) : (
                                     <span className="font-medium text-primary text-xs">
                                       {asset.ticker.substring(0, 2)}
@@ -448,16 +665,19 @@ const CreateBasktPage = () => {
                               <Input
                                 type="number"
                                 min="0"
-                                max="100"
+                                value={asset.weight.toString()}
                                 onChange={(e) =>
                                   handleAssetWeightChange(asset.ticker, e.target.value)
                                 }
                                 className="w-20"
                               />
+                              {asset.weight < 5 && (
+                                <p className="text-xs text-destructive">Min 5%</p>
+                              )}
                             </TableCell>
                             <TableCell>
                               <Select
-                                value={asset.position}
+                                value={asset.direction ? 'long' : 'short'}
                                 onValueChange={(value: 'long' | 'short') =>
                                   handleAssetPositionChange(asset.ticker, value)
                                 }
@@ -491,10 +711,7 @@ const CreateBasktPage = () => {
             </Card>
 
             <div className="grid grid-cols-[auto_auto] gap-4 justify-end">
-              <Button type="button" variant="outline" onClick={() => router.push('/baskts')}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting} onClick={handleSubmit}>
                 {isSubmitting ? 'Creating...' : 'Create Baskt'}
               </Button>
             </div>

@@ -56,6 +56,10 @@
           "type": {
             "vec": "u64"
           }
+        },
+        {
+          "name": "max_price_age_sec",
+          "type": "u32"
         }
       ]
     },
@@ -248,83 +252,6 @@
           "type": {
             "defined": {
               "name": "CreateBasktParams"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "initialize_custom_oracle",
-      "discriminator": [
-        104,
-        55,
-        48,
-        197,
-        116,
-        245,
-        87,
-        103
-      ],
-      "accounts": [
-        {
-          "name": "oracle",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  111,
-                  114,
-                  97,
-                  99,
-                  108,
-                  101
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "instruction_params.oracle_name"
-              }
-            ]
-          }
-        },
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "protocol",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "params",
-          "type": {
-            "defined": {
-              "name": "CustomOracleInstructionParams"
             }
           }
         }
@@ -526,7 +453,7 @@
       ],
       "accounts": [
         {
-          "name": "oracle",
+          "name": "baskt",
           "writable": true
         },
         {
@@ -557,12 +484,8 @@
       ],
       "args": [
         {
-          "name": "params",
-          "type": {
-            "defined": {
-              "name": "CustomOracleUpdateInstructionParams"
-            }
-          }
+          "name": "price",
+          "type": "u64"
         }
       ]
     },
@@ -645,19 +568,6 @@
         63,
         190,
         248
-      ]
-    },
-    {
-      "name": "CustomOracle",
-      "discriminator": [
-        227,
-        170,
-        164,
-        218,
-        127,
-        16,
-        35,
-        223
       ]
     },
     {
@@ -994,10 +904,6 @@
             "type": "pubkey"
           },
           {
-            "name": "baskt_name",
-            "type": "string"
-          },
-          {
             "name": "current_asset_configs",
             "type": {
               "vec": {
@@ -1084,90 +990,6 @@
           {
             "name": "is_public",
             "type": "bool"
-          },
-          {
-            "name": "oracle_params",
-            "type": {
-              "defined": {
-                "name": "OracleParams"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "CustomOracle",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "price",
-            "type": "u64"
-          },
-          {
-            "name": "expo",
-            "type": "i32"
-          },
-          {
-            "name": "conf",
-            "type": "u64"
-          },
-          {
-            "name": "ema",
-            "type": "u64"
-          },
-          {
-            "name": "publish_time",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "CustomOracleInstructionParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "price",
-            "type": "u64"
-          },
-          {
-            "name": "expo",
-            "type": "i32"
-          },
-          {
-            "name": "conf",
-            "type": "u64"
-          },
-          {
-            "name": "ema",
-            "type": "u64"
-          },
-          {
-            "name": "oracle_name",
-            "type": "string"
-          }
-        ]
-      }
-    },
-    {
-      "name": "CustomOracleUpdateInstructionParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "price",
-            "type": "u64"
-          },
-          {
-            "name": "conf",
-            "type": "u64"
-          },
-          {
-            "name": "ema",
-            "type": "u64"
           }
         ]
       }
@@ -1259,16 +1081,16 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "oracle_account",
-            "type": "pubkey"
-          },
-          {
-            "name": "max_price_error",
+            "name": "price",
             "type": "u64"
           },
           {
             "name": "max_price_age_sec",
             "type": "u32"
+          },
+          {
+            "name": "publish_time",
+            "type": "i64"
           }
         ]
       }

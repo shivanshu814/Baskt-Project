@@ -200,6 +200,12 @@ async function main() {
 
   if (program.provider.sendAndConfirm) await program.provider.sendAndConfirm(transaction);
 
+  console.log(
+    'Funding Account:',
+    fundingAccount.toString(),
+    await program.provider.connection.getBalance(fundingAccount),
+  );
+
   fs.writeFileSync(
     path.join(deployDir, 'deployment-localnet.json'),
     JSON.stringify(deployInfo, null, 2),

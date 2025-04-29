@@ -27,8 +27,6 @@ describe('baskt', () => {
   let longOnlyAssetId: AssetId;
   let shortOnlyAssetId: AssetId;
 
-  let commonOracle: PublicKey;
-
   // Set up test roles and assets before running tests
   before(async () => {
     // Create assets that will be used across tests
@@ -48,9 +46,6 @@ describe('baskt', () => {
       allowShorts: true,
     };
     shortOnlyAssetId = await client.addAsset('SHORT_ONLY', shortOnlyPermissions);
-
-    commonOracle = (await client.createOracle('common', new BN(50000), -6, new BN(100), new BN(60)))
-      .address;
   });
 
   it('Successfully creates a new baskt with valid asset configs', async () => {
@@ -79,7 +74,6 @@ describe('baskt', () => {
       basktName,
       assets,
       true, // is_public
-      client.createOracleParams(commonOracle),
     );
 
     // Fetch the baskt account to verify it was initialized correctly
@@ -128,7 +122,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt('BadBaskt', assets, true, client.createOracleParams(commonOracle));
+      await client.createBaskt('BadBaskt', assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('InvalidBasktConfig');
@@ -151,7 +145,6 @@ describe('baskt', () => {
       'PrivBaskt',
       assets,
       false, // is_public
-      client.createOracleParams(commonOracle),
     );
 
     // Fetch the baskt account to verify it was initialized correctly
@@ -196,12 +189,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt(
-        'DisabledBaskt',
-        assets,
-        true,
-        client.createOracleParams(commonOracle),
-      );
+      await client.createBaskt('DisabledBaskt', assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('FeatureDisabled');
@@ -246,12 +234,7 @@ describe('baskt', () => {
     ];
 
     // Create the baskt
-    const { basktId } = await client.createBaskt(
-      'MultiBaskt',
-      assets,
-      true, // is_public
-      client.createOracleParams(commonOracle),
-    );
+    const { basktId } = await client.createBaskt('MultiBaskt', assets, true);
 
     // Fetch the baskt account to verify it was initialized correctly
     const basktAccount = await client.getBaskt(basktId);
@@ -291,12 +274,7 @@ describe('baskt', () => {
     ];
 
     // Create the baskt - should succeed
-    const { basktId } = await client.createBaskt(
-      'LongBaskt',
-      assets,
-      true, // is_public
-      client.createOracleParams(commonOracle),
-    );
+    const { basktId } = await client.createBaskt('LongBaskt', assets, true);
 
     // Fetch the baskt account to verify it was initialized correctly
     const basktAccount = await client.getBaskt(basktId);
@@ -323,12 +301,7 @@ describe('baskt', () => {
     ];
 
     // Create the baskt - should succeed
-    const { basktId } = await client.createBaskt(
-      'ShortBaskt',
-      assets,
-      true, // is_public
-      client.createOracleParams(commonOracle),
-    );
+    const { basktId } = await client.createBaskt('ShortBaskt', assets, true);
 
     // Fetch the baskt account to verify it was initialized correctly
     const basktAccount = await client.getBaskt(basktId);
@@ -358,12 +331,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt(
-        'InvalidBaskt1',
-        assets,
-        true,
-        client.createOracleParams(commonOracle),
-      );
+      await client.createBaskt('InvalidBaskt1', assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('ShortPositionsDisabled');
@@ -383,12 +351,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt(
-        'InvalidBaskt2',
-        assets,
-        true,
-        client.createOracleParams(commonOracle),
-      );
+      await client.createBaskt('InvalidBaskt2', assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('LongPositionsDisabled');
@@ -414,12 +377,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt(
-        'InvalidBaskt3',
-        assets,
-        true,
-        client.createOracleParams(commonOracle),
-      );
+      await client.createBaskt('InvalidBaskt3', assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('LongPositionsDisabled');
@@ -442,12 +400,7 @@ describe('baskt', () => {
     // Wait for a block
     await client.waitForBlocks();
 
-    const { basktId } = await client.createBaskt(
-      '20Baskt',
-      assetConfigs,
-      true,
-      client.createOracleParams(commonOracle),
-    );
+    const { basktId } = await client.createBaskt('20Baskt', assetConfigs, true);
 
     // Verify the baskt has 20 assets
     const basktAccount = await client.getBaskt(basktId);
@@ -464,12 +417,7 @@ describe('baskt', () => {
       },
     ];
 
-    const { basktId } = await client.createBaskt(
-      'Invali6',
-      assets,
-      true,
-      client.createOracleParams(commonOracle),
-    );
+    const { basktId } = await client.createBaskt('InvalidBaskt', assets, true);
 
     // Fetch the baskt account to verify it was initialized correctly
     const baskt = await client.getBaskt(basktId);

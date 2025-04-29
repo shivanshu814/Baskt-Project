@@ -24,8 +24,6 @@ export function showTransactionToast({
   const txUrl = txSignature ? getSolscanTxUrl(txSignature) : undefined;
   const addressUrl = address ? getSolscanAddressUrl(address) : undefined;
 
-  console.log(txUrl, addressUrl)
-
   toast({
     title: description,
     description: (
@@ -53,6 +51,6 @@ export function showTransactionToast({
       </div>
     ),
     duration: 5000,
-    className: "bg-[#010b1d] text-white border border-white/10",
+    className: 'bg-[#010b1d] text-white border border-white/10',
   });
 }

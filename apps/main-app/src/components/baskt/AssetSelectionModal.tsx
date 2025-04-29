@@ -5,8 +5,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Search } from 'lucide-react';
-import { AssetInfo } from '../../types/baskt';
+import { AssetInfo } from '@baskt/types';
 import { useBasktClient } from '@baskt/ui';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { toast } from 'sonner';
 import { trpc } from '../../utils/trpc';
 
@@ -32,9 +33,7 @@ export function AssetSelectionModal({
       if (!client && !assetDataFetchSuccess) return;
       try {
         setIsLoading(true);
-
         const backendAssets = assetsData?.data ?? [];
-        console.log(backendAssets);
         setAssets(backendAssets);
       } catch (error) {
         toast.error('Error fetching assets');
@@ -78,30 +77,28 @@ export function AssetSelectionModal({
             ) : (
               filteredAssets.map((asset) => (
                 <Button
-                  key={asset.ticker}
+                  key={`select-${asset.assetAddress}`}
                   variant="outline"
-                  className="w-full justify-between"
+                  className="w-full flex items-center justify-between"
                   onClick={() => onAssetSelect(asset)}
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="bg-primary/10 h-8 w-8 rounded-full flex items-center justify-center overflow-hidden">
-                      <img src={asset.logo} alt={asset.ticker} className="w-6 h-6 object-contain" />
-                    </div>
-                    <div>
-                      <div className="font-medium">{asset.ticker}</div>
-                      <div className="text-xs text-muted-foreground">{asset.name}</div>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={asset.logo} alt={asset.ticker} />
+                      <AvatarFallback>{asset.ticker?.slice(0, 2)?.toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col items-start">
+                      <span>{asset.ticker}</span>
+                      <span className="text-xs text-muted-foreground">{asset.name}</span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-medium">10</div>
-                    <div
-                      className={`text-xs ${asset.change24h >= 0 ? 'text-success' : 'text-destructive'}`}
-                    >
-                      20%
-                    </div>
+                  <div className="flex flex-col items-end">
+                    <span>{asset.price}</span>
+                    <span className={asset.change24h >= 0 ? 'text-success text-xs' : 'text-destructive text-xs'}>{asset.change24h}%</span>
                   </div>
                 </Button>
               ))
+
             )}
           </div>
         </div>

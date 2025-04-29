@@ -1,9 +1,9 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { BasktAsset } from '../../types/baskt';
+import { BasktAssetInfo } from '@baskt/types';
 
 interface IndexCompositionProps {
-  assets: BasktAsset[];
+  assets: BasktAssetInfo[];
 }
 
 export function IndexComposition({ assets }: IndexCompositionProps) {
@@ -18,6 +18,7 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Asset</TableHead>
+                <TableHead>Direction</TableHead>
                 <TableHead>Weight</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead className="text-right">24h Change</TableHead>
@@ -28,11 +29,12 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                 <TableRow key={asset.id}>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
-                      <span>{asset.symbol}</span>
+                      <span>{asset.ticker}</span>
                       <span className="text-xs text-muted-foreground">{asset.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{asset.weightage}%</TableCell>
+                  <TableCell className="capitalize">{asset.direction ? 'long' : 'short'}</TableCell>
+                  <TableCell>{asset.weight}%</TableCell>
                   <TableCell>${asset.price.toLocaleString()}</TableCell>
                   <TableCell
                     className={`text-right ${asset.change24h >= 0 ? 'text-[#16C784]' : 'text-[#EA3943]'}`}
