@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
+import leoProfanity from 'leo-profanity';
 import { cn, useBasktClient } from '@baskt/ui';
 import { trpc } from '../../utils/trpc';
 import { X, Plus, Search, AlertCircle, Trash2, Clock, Image } from 'lucide-react';
@@ -37,6 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from '../../components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 
 // Hooks & Types
 import { useToast } from '../../hooks/use-toast';
@@ -85,9 +87,10 @@ type BasktFormData = z.infer<typeof BasktFormSchema>;
 
 const CreateBasktPage = () => {
   const router = useRouter();
-  const { authenticated, ready, login } = usePrivy();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { authenticated, ready, login } = usePrivy();
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { client: basktClient, wallet } = useBasktClient();
   const createBasktMutation = trpc.baskt.createBasktMetadata.useMutation();
 
@@ -331,8 +334,10 @@ const CreateBasktPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     if (!ready) {
+      setError('System is not ready. Please wait for initialization.');
       toast({
         title: 'Authentication required',
         description: 'Please sign in to create a Baskt.',
@@ -342,21 +347,34 @@ const CreateBasktPage = () => {
     }
 
     if (!authenticated) {
+      setError('Please connect your wallet to create a Baskt.');
       login();
+      return;
+    }
+
+    if (leoProfanity.check(formData.name)) {
+      setError('Your Baskt name contains inappropriate words. Please change it.');
+      return;
+    }
+
+    if (leoProfanity.check(formData.description)) {
+      setError(`Your Baskt description contains inappropriate word. Please remove these words.`);
+      return;
+    }
+
+    if (!formData.name.trim()) {
+      setError('Please provide a name for your Baskt.');
       return;
     }
 
     // Additional validation checks
     if (formData.assets.length < 2) {
-      toast({
-        title: 'Assets required',
-        description: 'Please add at least 2 assets to your Baskt.',
-        variant: 'destructive',
-      });
+      setError('Please add at least 2 assets to your Baskt.');
       return;
     }
 
     if (totalWeightage !== 100) {
+      setError(`Total weightage must be 100%. Current total: ${totalWeightage}%`);
       toast({
         title: 'Invalid weight',
         description: `Total weight must be 100%. Current total: ${totalWeightage}%`,
@@ -376,12 +394,7 @@ const CreateBasktPage = () => {
       // Call the create baskt function
       await createBaskt(formData);
     } catch (error) {
-      console.error('Error creating baskt:', error); //eslint-disable-line
-      toast({
-        title: 'Error',
-        description: 'Failed to create baskt. Please try again later.',
-        variant: 'destructive',
-      });
+      setError('Failed to create baskt. Please try again later.');
     } finally {
       setIsSubmitting(false);
     }
@@ -399,7 +412,15 @@ const CreateBasktPage = () => {
             </Button>
           </div>
 
-          <form onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 gap-8">
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-8">
             <Card>
               <CardHeader>
                 <CardTitle>Basic Information</CardTitle>
