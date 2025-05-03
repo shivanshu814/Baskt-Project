@@ -14,6 +14,7 @@ import { PublicKey } from '@solana/web3.js';
 import { Footer } from '../../components/Footer';
 import { CreateBasktGuideDialog } from '../../components/baskt/CreateBasktGuideDialog';
 import { AssetSelectionModal } from '../../components/baskt/AssetSelectionModal';
+import { TransactionStatusModal } from '../../components/baskt/TransactionStatusModal';
 
 // UI Components
 import { Button } from '../../components/ui/button';
@@ -48,7 +49,7 @@ import { OnchainAssetConfig, AssetInfo, BasktAssetInfo } from '@baskt/types';
 const BasktFormSchema = z.object({
   name: z.string().min(1, 'Name is required').max(30, 'Name must be 30 characters or less'),
   description: z.string().min(1, 'Description is required'),
-  tags: z.array(z.string()).min(1, 'At least one tag is required'),
+  categories: z.array(z.string()).min(1, 'At least one tag is required'),
   rebalancePeriod: z.object({
     value: z.number().min(1),
     unit: z.enum(['day', 'hour']),
@@ -93,12 +94,13 @@ const CreateBasktPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { client: basktClient, wallet } = useBasktClient();
   const createBasktMutation = trpc.baskt.createBasktMetadata.useMutation();
+  const uploadImageMutation = trpc.image.upload.useMutation();
 
   // Form state
   const [formData, setFormData] = useState<BasktFormData>({
     name: '',
     description: '',
-    tags: [],
+    categories: [],
     rebalancePeriod: {
       value: 1,
       unit: 'day',
@@ -113,11 +115,15 @@ const CreateBasktPage = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // UI state
-  const [tagInput, setTagInput] = useState('');
+  const [categoryInput, setCategoryInput] = useState('');
   const [isGuideDialogOpen, setIsGuideDialogOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [transactionStatus, setTransactionStatus] = useState<
+    'waiting' | 'confirmed' | 'creating' | 'success' | 'failed'
+  >('waiting');
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
 
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({
@@ -136,20 +142,28 @@ const CreateBasktPage = () => {
     }));
   };
 
-  const handleAddTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+  const handleAddCategory = () => {
+    if (categoryInput.trim() && !formData.categories.includes(categoryInput.trim())) {
+      if (leoProfanity.check(categoryInput.trim())) {
+        toast({
+          title: 'Inappropriate content',
+          description: 'The category contains inappropriate words. Please use different words.',
+          variant: 'destructive',
+        });
+        return;
+      }
       setFormData((prev) => ({
         ...prev,
-        tags: [...prev.tags, tagInput.trim()],
+        categories: [...prev.categories, categoryInput.trim()],
       }));
-      setTagInput('');
+      setCategoryInput('');
     }
   };
 
-  const handleRemoveTag = (tagToRemove: string) => {
+  const handleRemoveCategory = (categoryToRemove: string) => {
     setFormData((prev) => ({
       ...prev,
-      tags: prev.tags.filter((tag) => tag !== tagToRemove),
+      categories: prev.categories.filter((category) => category !== categoryToRemove),
     }));
   };
 
@@ -207,34 +221,63 @@ const CreateBasktPage = () => {
 
   const totalWeightage = formData.assets.reduce((sum, asset) => sum + asset.weight, 0);
 
-  // Handle image upload
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 15 * 1024 * 1024) {
       toast({
         title: 'File too large',
-        description: 'Image must be less than 5MB',
+        description: 'Image must be less than 15MB',
         variant: 'destructive',
       });
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const imageDataUrl = event.target?.result as string;
-      setPreviewImage(imageDataUrl);
-      setFormData((prev) => ({ ...prev, image: imageDataUrl }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+
+      reader.onload = async () => {
+        const base64Data = reader.result as string;
+        const filename = `${Date.now()}_${file.name}`;
+
+        const result = await uploadImageMutation.mutateAsync({
+          filename,
+          data: base64Data,
+          contentType: file.type,
+        });
+
+        if (result.url) {
+          setPreviewImage(result.url);
+          setFormData((prev) => ({ ...prev, image: result.url }));
+        }
+      };
+
+      reader.onerror = () => {
+        toast({
+          title: 'Upload failed',
+          description: 'Failed to read image file. Please try again.',
+          variant: 'destructive',
+        });
+      };
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to upload image. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Create baskt function
   const createBaskt = async (basktData: BasktFormData) => {
     if (!wallet) return;
     try {
+      setIsTransactionModalOpen(true);
+      setTransactionStatus('waiting');
+
       const result = await basktClient?.createBaskt(
         basktData.name,
         basktData.assets.map(
@@ -259,37 +302,41 @@ const CreateBasktPage = () => {
         throw new Error('Failed to create baskt');
       }
 
-      // Store baskt metadata using tRPC after transaction is confirmed
+      setTransactionStatus('confirmed');
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      setTransactionStatus('creating');
       try {
         const createBasktMetadataResult = await createBasktMutation.mutateAsync({
           basktId: basktId.toString(),
           name: basktData.name,
           description: basktData.description,
           creator: wallet?.address.toString() || '',
-          tags: basktData.tags,
+          categories: basktData.categories,
           risk: basktData.risk,
           assets: basktData.assets.map((asset) => asset.assetAddress.toString()),
-          image: 'https://placehold.co/640x480/',
+          image: basktData.image || 'https://placehold.co/640x480/',
           rebalancePeriod: basktData.rebalancePeriod,
           txSignature,
         });
 
         if (!createBasktMetadataResult.success) {
-          console.error('Failed to store baskt metadata:', createBasktMetadataResult);
+          setTransactionStatus('failed');
           toast({
             title: 'Warning',
             description:
               'Baskt created on-chain, but metadata storage failed. Some features may be limited.',
             variant: 'destructive',
           });
-        } else {
-          console.log('Baskt metadata stored successfully');
+          return;
         }
 
-        // Navigate to the baskt detail page
+        setTransactionStatus('success');
+        await new Promise((resolve) => setTimeout(resolve, 3000));
         router.push(`/baskts/${basktId}`);
       } catch (error) {
         console.error('Error storing baskt metadata:', error);
+        setTransactionStatus('failed');
         toast({
           title: 'Warning',
           description:
@@ -299,8 +346,13 @@ const CreateBasktPage = () => {
       }
     } catch (error) {
       console.error('Error creating baskt:', error);
-      throw error; // Re-throw to be handled by the caller
+      setTransactionStatus('failed');
     }
+  };
+
+  const handleRetry = () => {
+    setTransactionStatus('waiting');
+    handleSubmit(new Event('submit') as any);
   };
 
   // Validate form data
@@ -550,14 +602,14 @@ const CreateBasktPage = () => {
                     </div>
 
                     <div className="grid grid-cols-1 gap-2">
-                      <Label htmlFor="tags">Tags</Label>
+                      <Label htmlFor="categories">Categories</Label>
                       <div className="flex flex-wrap items-center gap-1 p-2 border rounded-md focus-within:ring-1 focus-within:ring-ring focus-within:border-input">
-                        {formData.tags.map((tag) => (
-                          <Badge key={tag} variant="secondary" className="gap-1 mb-1 mr-1">
-                            {tag}
+                        {formData.categories.map((category) => (
+                          <Badge key={category} variant="secondary" className="gap-1 mb-1 mr-1">
+                            {category}
                             <button
                               type="button"
-                              onClick={() => handleRemoveTag(tag)}
+                              onClick={() => handleRemoveCategory(category)}
                               className="ml-1 hover:text-destructive"
                             >
                               <X className="h-3 w-3" />
@@ -565,18 +617,18 @@ const CreateBasktPage = () => {
                           </Badge>
                         ))}
                         <input
-                          id="tags"
+                          id="categories"
                           placeholder={
-                            formData.tags.length > 0
-                              ? 'Add more tags...'
-                              : 'Add tags and press Enter'
+                            formData.categories.length > 0
+                              ? 'Add more categories...'
+                              : 'Add categories and press Enter'
                           }
-                          value={tagInput}
-                          onChange={(e) => setTagInput(e.target.value)}
+                          value={categoryInput}
+                          onChange={(e) => setCategoryInput(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
-                              handleAddTag();
+                              handleAddCategory();
                             }
                           }}
                           className="flex-1 min-w-[120px] bg-transparent border-none outline-none focus:outline-none focus:ring-0 p-0 text-sm"
@@ -746,6 +798,14 @@ const CreateBasktPage = () => {
         open={isAssetModalOpen}
         onOpenChange={setIsAssetModalOpen}
         onAssetSelect={handleAddAsset}
+      />
+
+      <TransactionStatusModal
+        open={isTransactionModalOpen}
+        onOpenChange={setIsTransactionModalOpen}
+        status={transactionStatus}
+        onRetry={handleRetry}
+        error={error || undefined}
       />
 
       <Footer />

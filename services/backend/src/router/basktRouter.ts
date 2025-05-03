@@ -10,7 +10,7 @@ const createBasktSchema = z.object({
   name: z.string().min(1).max(30),
   description: z.string().min(1),
   creator: z.string(),
-  tags: z.array(z.string()).min(1),
+  categories: z.array(z.string()).min(1),
   risk: z.enum(['low', 'medium', 'high']),
   assets: z.array(z.string()),
   image: z.string().optional(),
@@ -138,6 +138,7 @@ export async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) 
     totalAssets: 0,
     creator: basktMetadata.creator,
     id: basktMetadata.basktId.toString(),
+    image: basktMetadata.image,
     creationDate: new Date().toISOString(),
     priceHistory: {
       daily: Array(24)
@@ -176,4 +177,19 @@ export async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) 
       year: 45.6,
     },
   };
+}
+
+/**
+ * Check if a baskt name already exists in the database
+ * @param name The baskt name to check
+ * @returns Promise<boolean> True if name exists, false otherwise
+ */
+export async function checkBasktNameExists(name: string): Promise<boolean> {
+  try {
+    const existingBaskt = await BasktMetadataModel.findOne({ name }).exec();
+    return !!existingBaskt;
+  } catch (error) {
+    console.error('Error checking baskt name:', error);
+    throw new Error('Failed to check baskt name');
+  }
 }

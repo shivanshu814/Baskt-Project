@@ -84,7 +84,7 @@ export function CreateBasktGuideDialog({ open, onOpenChange }: CreateBasktGuideD
               <CardTitle className="text-base">Add Tags</CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground">
-              Add relevant tags to your Baskt for better organization and discoverability. Be
+              Add relevant categories to your Baskt for better organization and discoverability. Be
               specific about the focus of your Baskt.
             </CardContent>
           </Card>

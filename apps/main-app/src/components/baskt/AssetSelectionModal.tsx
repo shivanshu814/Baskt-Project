@@ -77,7 +77,7 @@ export function AssetSelectionModal({
             ) : (
               filteredAssets.map((asset) => (
                 <Button
-                  key={`select-${asset.assetAddress}`}
+                  key={`select-${asset.ticker}-${asset.assetAddress}`}
                   variant="outline"
                   className="w-full flex items-center justify-between"
                   onClick={() => onAssetSelect(asset)}
@@ -94,11 +94,16 @@ export function AssetSelectionModal({
                   </div>
                   <div className="flex flex-col items-end">
                     <span>{asset.price}</span>
-                    <span className={asset.change24h >= 0 ? 'text-success text-xs' : 'text-destructive text-xs'}>{asset.change24h}%</span>
+                    <span
+                      className={
+                        asset.change24h >= 0 ? 'text-success text-xs' : 'text-destructive text-xs'
+                      }
+                    >
+                      {asset.change24h}%
+                    </span>
                   </div>
                 </Button>
               ))
-
             )}
           </div>
         </div>

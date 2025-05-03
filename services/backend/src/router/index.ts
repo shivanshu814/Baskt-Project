@@ -7,6 +7,8 @@ import { AssetMetadataModel } from '../utils/models';
 import { sdkClient } from '../utils';
 import * as assetRouter from './assetRouter';
 import * as basktRouter from './basktRouter';
+import { TRPCError } from '@trpc/server';
+import { put } from '@vercel/blob';
 
 export const appRouter = router({
   // health check
@@ -115,7 +117,7 @@ export const appRouter = router({
           name: z.string().min(1).max(30),
           description: z.string().min(1),
           creator: z.string(),
-          tags: z.array(z.string()).min(1),
+          categories: z.array(z.string()).min(1),
           risk: z.enum(['low', 'medium', 'high']),
           assets: z.array(z.string()),
           image: z.string().optional(),
@@ -261,6 +263,35 @@ export const appRouter = router({
         return [];
       }
     }),
+  }),
+  image: router({
+    upload: publicProcedure
+      .input(
+        z.object({
+          filename: z.string(),
+          data: z.string(),
+          contentType: z.string(),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        try {
+          const { filename, data, contentType } = input;
+          const base64Data = data.replace(/^data:image\/\w+;base64,/, '');
+          const buffer = Buffer.from(base64Data, 'base64');
+          const blob = await put(filename, buffer, {
+            access: 'public',
+            contentType,
+          });
+
+          return blob;
+        } catch (error) {
+          console.error('Error uploading file:', error);
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Error uploading file',
+          });
+        }
+      }),
   }),
 });
 

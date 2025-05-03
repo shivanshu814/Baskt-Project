@@ -61,8 +61,8 @@ export function combineAsset(
   shouldPassConfig: boolean = false,
 ) {
   console.log(onchainAsset, config, shouldPassConfig);
-  const price = config.priceMetrics.price;
-  const change24h = config.priceMetrics.change24h;
+  const price = config.priceMetrics?.price ?? 0;
+  const change24h = config.priceMetrics?.change24h ?? 0;
 
   return {
     ticker: onchainAsset.ticker,

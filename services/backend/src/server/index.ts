@@ -9,7 +9,6 @@ import { connectDB, disconnectDB } from '../config/db';
 const app = express();
 const port = 4000;
 
-// Connect to MongoDB
 connectDB();
 
 app.use(cors());

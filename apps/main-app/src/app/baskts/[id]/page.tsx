@@ -25,6 +25,7 @@ export default function BasktDetailPage() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [chartPeriod, setChartPeriod] = useState('1D');
   const [chartType, setChartType] = useState<'line' | 'candle'>('line');
+
   const { data: cryptoNews = [] } = trpc.crypto.getCryptoNews.useQuery(undefined, {
     staleTime: 120 * 60 * 1000, // 2 hours
     refetchOnMount: false,
@@ -32,7 +33,8 @@ export default function BasktDetailPage() {
     refetchOnReconnect: false,
   });
 
-  const { data: basktInfo, isSuccess: isBasktDataLoaded } = trpc.baskt.getBasktMetadataById.useQuery({ basktId });
+  const { data: basktInfo, isSuccess: isBasktDataLoaded } =
+    trpc.baskt.getBasktMetadataById.useQuery({ basktId });
 
   const suggestedBaskts = [
     {
@@ -71,11 +73,9 @@ export default function BasktDetailPage() {
     const fetchBasktData = async () => {
       if (!isBasktDataLoaded) return;
       try {
-
         if (!basktInfo) {
           throw new Error('Baskt not found');
         }
-
 
         const tempPosition: UserBasktPositionInfo = {
           basktId: basktId,
@@ -124,17 +124,25 @@ export default function BasktDetailPage() {
 
   return (
     <div>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6 animate-fade-in p-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-3 space-y-6">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
-                      <div className="font-semibold text-primary text-sm">
-                        {baskt.name.substring(0, 2)}
-                      </div>
+                    <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden">
+                      {basktInfo ? (
+                        <img
+                          src={baskt.image}
+                          alt={baskt.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="font-semibold text-primary text-sm">
+                          {baskt.name.substring(0, 2)}
+                        </div>
+                      )}
                     </div>
 
                     <h1 className="text-[18px] font-bold">{baskt.name}</h1>

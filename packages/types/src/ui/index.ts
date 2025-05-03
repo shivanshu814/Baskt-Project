@@ -42,6 +42,7 @@ export interface BasktInfo {
   };
   risk: string;
   assets: BasktAssetInfo[];
+  image?: string;
   priceHistory: {
     daily: ChartData[];
     weekly: ChartData[];

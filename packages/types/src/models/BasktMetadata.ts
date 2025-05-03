@@ -10,7 +10,7 @@ export interface BasktMetadataModel {
   description: string;
   creator: string;
   creationDate: Date;
-  tags: string[];
+  categories: string[];
   risk: 'low' | 'medium' | 'high';
   assets: string[];
   image?: string;
@@ -54,7 +54,7 @@ export const BasktMetadataSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    tags: {
+    categories: {
       type: [String],
       required: true,
     },

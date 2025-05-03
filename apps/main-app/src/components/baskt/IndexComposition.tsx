@@ -35,12 +35,26 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                   </TableCell>
                   <TableCell className="capitalize">{asset.direction ? 'long' : 'short'}</TableCell>
                   <TableCell>{asset.weight}%</TableCell>
-                  <TableCell>${asset.price.toLocaleString()}</TableCell>
+                  <TableCell>
+                    {asset.price ? `$${asset.price.toLocaleString()}` : 'Price Unavailable'}
+                  </TableCell>
                   <TableCell
-                    className={`text-right ${asset.change24h >= 0 ? 'text-[#16C784]' : 'text-[#EA3943]'}`}
+                    className={`text-right ${
+                      asset.change24h !== undefined
+                        ? asset.change24h >= 0
+                          ? 'text-[#16C784]'
+                          : 'text-[#EA3943]'
+                        : ''
+                    }`}
                   >
-                    {asset.change24h >= 0 ? '+' : ''}
-                    {asset.change24h.toFixed(2)}%
+                    {asset.change24h !== undefined ? (
+                      <>
+                        {asset.change24h >= 0 ? '+' : ''}
+                        {asset.change24h.toFixed(2)}%
+                      </>
+                    ) : (
+                      'N/A'
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
