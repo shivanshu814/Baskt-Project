@@ -608,4 +608,25 @@ export abstract class BaseClient {
       )[0],
     );
   }
+
+  /**
+   * Check if a baskt name already exists
+   * @param basktName The name to check
+   * @returns Boolean indicating if the baskt name exists
+   */
+  public async doesBasktNameExist(basktName: string): Promise<boolean> {
+    const basktAccountAddress = PublicKey.findProgramAddressSync(
+      [Buffer.from('baskt'), Buffer.from(basktName)],
+      this.program.programId,
+    );
+    try {
+      const account = await this.connection.getAccountInfo(basktAccountAddress[0]);
+      if (!account) {
+        return false;
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
 }

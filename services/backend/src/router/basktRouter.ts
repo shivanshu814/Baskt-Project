@@ -178,18 +178,3 @@ export async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) 
     },
   };
 }
-
-/**
- * Check if a baskt name already exists in the database
- * @param name The baskt name to check
- * @returns Promise<boolean> True if name exists, false otherwise
- */
-export async function checkBasktNameExists(name: string): Promise<boolean> {
-  try {
-    const existingBaskt = await BasktMetadataModel.findOne({ name }).exec();
-    return !!existingBaskt;
-  } catch (error) {
-    console.error('Error checking baskt name:', error);
-    throw new Error('Failed to check baskt name');
-  }
-}

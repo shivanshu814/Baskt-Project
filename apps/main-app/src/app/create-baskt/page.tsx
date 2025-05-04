@@ -419,6 +419,17 @@ const CreateBasktPage = () => {
       return;
     }
 
+      const nameExists = await basktClient?.doesBasktNameExist(formData.name);
+      if (nameExists) {
+        setError('A Baskt with this name already exists. Please choose a different name.');
+        toast({
+          title: 'Name taken',
+          description: 'A Baskt with this name already exists. Please choose a different name.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
     // Additional validation checks
     if (formData.assets.length < 2) {
       setError('Please add at least 2 assets to your Baskt.');
