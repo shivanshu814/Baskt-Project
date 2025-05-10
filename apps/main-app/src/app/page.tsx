@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { Button } from '../components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, BarChart3, LineChart, ShieldCheck } from 'lucide-react';
@@ -47,9 +48,9 @@ export default function Homepage() {
         ...baskt,
         performance: baskt.performance
           ? {
-              daily: baskt.performance.day,
-              weekly: baskt.performance.week,
-              monthly: baskt.performance.month,
+              day: baskt.performance.daily,
+              week: baskt.performance.weekly,
+              month: baskt.performance.monthly,
               year: baskt.performance.year,
             }
           : undefined,

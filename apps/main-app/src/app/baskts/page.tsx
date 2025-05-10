@@ -132,9 +132,9 @@ const Baskts = () => {
         ...baskt,
         creationDate: new Date(baskt.creationDate),
         performance: {
-          daily: baskt.performance.day,
-          weekly: baskt.performance.week,
-          monthly: baskt.performance.month,
+          day: baskt.performance.daily,
+          week: baskt.performance.weekly,
+          month: baskt.performance.monthly,
           year: baskt.performance.year,
         },
         assets: baskt.assets.map(
