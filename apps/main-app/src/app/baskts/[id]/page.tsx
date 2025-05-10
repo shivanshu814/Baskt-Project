@@ -188,7 +188,7 @@ export default function BasktDetailPage() {
 
                   <div className="space-y-1">
                     <h3 className="text-[11px] text-muted-foreground">Category</h3>
-                    <p className="font-bold text-[14px]">{baskt.category}</p>
+                    <p className="font-bold text-[14px]">{baskt.categories}</p>
                   </div>
 
                   <div className="space-y-1">

@@ -5,32 +5,108 @@ import Link from 'next/link';
 import { ArrowRight, BarChart3, LineChart, ShieldCheck } from 'lucide-react';
 import { Footer } from '../components/Footer';
 import { BasktCard } from '../components/baskt/BasktCard';
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { trpc } from '../utils/trpc';
 import { BasktInfo } from '@baskt/types';
 
+const FEATURES = [
+  {
+    icon: BarChart3,
+    title: 'Data-Driven Insights',
+    description:
+      'Leverage cutting-edge AI analytics to make informed decisions about market trends and opportunities.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Risk Management',
+    description:
+      'Mitigate risk through diversified exposure while participating in high-growth sectors.',
+  },
+  {
+    icon: LineChart,
+    title: 'Active Management',
+    description:
+      'Stay ahead with expertly rebalanced indexes that adapt to evolving market narratives.',
+  },
+] as const;
+
 export default function Homepage() {
-  const [featuredBaskts, setFeaturedBaskts] = useState<BasktInfo[]>([]);
+  const { data: basktsData, isLoading } = trpc.baskt.getAllBaskts.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    // TODO: Replace with actual API call to fetch featured baskts
-    const fetchFeaturedBaskts = async () => {
-      try {
-        // const response = await fetch('/api/baskts/featured');
-        // const data = await response.json();
-        // setFeaturedBaskts(data);
-        setFeaturedBaskts([]); // Empty array for now
-      } catch (error) {
-        console.error('Error fetching featured baskts:', error); //eslint-disable-line
-        setFeaturedBaskts([]);
-      }
-    };
+  const featuredBaskts = useMemo(() => {
+    if (!basktsData?.success || !('data' in basktsData) || !Array.isArray(basktsData.data))
+      return [];
 
-    fetchFeaturedBaskts();
-  }, []);
+    const convertedBaskts = basktsData.data
+      .filter((baskt): baskt is NonNullable<typeof baskt> => baskt !== null)
+      .map((baskt) => ({
+        ...baskt,
+        performance: baskt.performance
+          ? {
+              daily: baskt.performance.day,
+              weekly: baskt.performance.week,
+              monthly: baskt.performance.month,
+              year: baskt.performance.year,
+            }
+          : undefined,
+        creationDate: baskt.creationDate ? new Date(baskt.creationDate) : new Date(),
+        assets: baskt.assets.map((asset) => ({
+          ...asset,
+          weight: Number(asset.weight),
+          weightage: Number(asset.weightage),
+        })),
+      })) as unknown as BasktInfo[];
+
+    return convertedBaskts.slice(0, 4);
+  }, [basktsData]);
+
+  const renderFeatureCard = ({ icon: Icon, title, description }: (typeof FEATURES)[number]) => (
+    <div className="bg-card rounded-xl p-6 text-center">
+      <div className="bg-primary/10 h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4">
+        <Icon className="h-6 w-6 text-primary" />
+      </div>
+      <h3 className="text-xl font-semibold mb-3">{title}</h3>
+      <p className="text-muted-foreground">{description}</p>
+    </div>
+  );
+
+  const renderFeaturedBaskts = () => {
+    if (isLoading) {
+      return (
+        <div className="text-center py-16">
+          <p className="text-muted-foreground">Loading featured baskts...</p>
+        </div>
+      );
+    }
+
+    if (featuredBaskts.length === 0) {
+      return (
+        <div className="text-center py-16 bg-secondary/20 rounded-lg">
+          <h3 className="text-xl font-medium mb-2">No baskts available</h3>
+          <p className="text-muted-foreground mb-4">Check back soon for new featured baskts.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {featuredBaskts.map((baskt) => (
+          <BasktCard
+            key={String(baskt.basktId)}
+            baskt={baskt}
+            className="hover:shadow-md transition-shadow"
+          />
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div>
-      {/* Hero Section */}
       <section className="bg-gradient-to-b from-primary/10 to-background pt-16 pb-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
@@ -54,46 +130,19 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Features Section */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">Why Choose Baskt?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-card rounded-xl p-6 text-center">
-              <div className="bg-primary/10 h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BarChart3 className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Data-Driven Insights</h3>
-              <p className="text-muted-foreground">
-                Leverage cutting-edge AI analytics to make informed decisions about market trends
-                and opportunities.
-              </p>
-            </div>
-            <div className="bg-card rounded-xl p-6 text-center">
-              <div className="bg-primary/10 h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ShieldCheck className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Risk Management</h3>
-              <p className="text-muted-foreground">
-                Mitigate risk through diversified exposure while participating in high-growth
-                sectors.
-              </p>
-            </div>
-            <div className="bg-card rounded-xl p-6 text-center">
-              <div className="bg-primary/10 h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                <LineChart className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Active Management</h3>
-              <p className="text-muted-foreground">
-                Stay ahead with expertly rebalanced indexes that adapt to evolving market
-                narratives.
-              </p>
-            </div>
+            {FEATURES.map((feature) => (
+              <React.Fragment key={feature.title}>
+                {renderFeatureCard(feature)}
+              </React.Fragment>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Featured Baskts */}
       <section className="py-16 bg-secondary/20">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
@@ -102,16 +151,10 @@ export default function Homepage() {
               <Link href="/baskts">View All</Link>
             </Button>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {featuredBaskts.map((baskt) => (
-              <BasktCard key={baskt.id} baskt={baskt} />
-            ))}
-          </div>
+          {renderFeaturedBaskts()}
         </div>
       </section>
 
-      {/* CTA Section */}
       <section className="py-16">
         <div className="container mx-auto px-4 text-center max-w-3xl">
           <h2 className="text-3xl font-bold mb-4">Ready to Start Trading?</h2>

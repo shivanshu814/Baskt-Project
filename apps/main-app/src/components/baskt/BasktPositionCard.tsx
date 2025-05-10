@@ -23,7 +23,7 @@ export function BasktPositionCard({ baskt, position, className }: BasktPositionC
           </div>
           <div>
             <h3 className="font-semibold">{baskt.name}</h3>
-            <p className="text-sm text-muted-foreground">{baskt.category}</p>
+            <p className="text-sm text-muted-foreground">{baskt.categories?.[0]}</p>
           </div>
         </div>
         <div
@@ -85,7 +85,7 @@ export function BasktPositionCard({ baskt, position, className }: BasktPositionC
           </div>
 
           <div className="grid grid-cols-2 gap-2 mt-2">
-            <Link href={`/baskts/${baskt.id}`}>
+            <Link href={`/baskts/${baskt?.basktId}`}>
               <Button variant="outline" size="sm" className="w-full">
                 View
               </Button>
@@ -95,7 +95,7 @@ export function BasktPositionCard({ baskt, position, className }: BasktPositionC
             </Button>
           </div>
 
-          <Link href={`/trade-baskt/${baskt.id}`}>
+          <Link href={`/trade-baskt/${baskt?.basktId}`}>
             <Button className="w-full mt-1" size="sm">
               <ArrowRightLeft className="h-4 w-4 mr-2" />
               Modify Position

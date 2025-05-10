@@ -43,7 +43,7 @@ import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 
 // Hooks & Types
 import { useToast } from '../../hooks/use-toast';
-import { OnchainAssetConfig, AssetInfo, BasktAssetInfo } from '@baskt/types';
+import { AssetInfo, BasktAssetInfo, OnchainAssetConfig } from '@baskt/types';
 
 // Zod schema for form validation
 const BasktFormSchema = z.object({
@@ -418,18 +418,16 @@ const CreateBasktPage = () => {
       setError('Please provide a name for your Baskt.');
       return;
     }
-
-      const nameExists = await basktClient?.doesBasktNameExist(formData.name);
-      if (nameExists) {
-        setError('A Baskt with this name already exists. Please choose a different name.');
-        toast({
-          title: 'Name taken',
-          description: 'A Baskt with this name already exists. Please choose a different name.',
-          variant: 'destructive',
-        });
-        return;
-      }
-
+    const nameExists = await basktClient?.doesBasktNameExist(formData.name);
+    if (nameExists) {
+      setError('A Baskt with this name already exists. Please choose a different name.');
+      toast({
+        title: 'Name taken',
+        description: 'A Baskt with this name already exists. Please choose a different name.',
+        variant: 'destructive',
+      });
+      return;
+    }
     // Additional validation checks
     if (formData.assets.length < 2) {
       setError('Please add at least 2 assets to your Baskt.');
@@ -490,7 +488,7 @@ const CreateBasktPage = () => {
               </CardHeader>
               <CardContent className="grid grid-cols-1 gap-4">
                 <div>
-                  <Label htmlFor="name">
+                  <Label htmlFor="name" className="mb-2 block">
                     Baskt Name{' '}
                     <span className="text-xs text-muted-foreground">(max 10 characters)</span>
                   </Label>

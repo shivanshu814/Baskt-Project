@@ -24,33 +24,6 @@ export interface BasktAssetInfo extends AssetInfo {
   direction: boolean;
 }
 
-export interface BasktInfo {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  change24h: number;
-  creator: string;
-  creationDate: string;
-  //TODO: Change to Tags
-  category: string;
-  performance: {
-    day: number;
-    week: number;
-    month: number;
-    year: number;
-  };
-  risk: string;
-  assets: BasktAssetInfo[];
-  image?: string;
-  priceHistory: {
-    daily: ChartData[];
-    weekly: ChartData[];
-    monthly: ChartData[];
-    yearly: ChartData[];
-  };
-}
-
 export interface UserBasktPositionInfo {
   basktId: string;
   positionSize: number;

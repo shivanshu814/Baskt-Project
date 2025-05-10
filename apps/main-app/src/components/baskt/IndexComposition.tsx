@@ -26,7 +26,7 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
             </TableHeader>
             <TableBody>
               {assets.map((asset) => (
-                <TableRow key={asset.id}>
+                <TableRow key={asset.assetAddress}>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
                       <span>{asset.ticker}</span>

@@ -7,7 +7,6 @@ import { Button } from '../ui/button';
 import { Search } from 'lucide-react';
 import { AssetInfo } from '@baskt/types';
 import { useBasktClient } from '@baskt/ui';
-import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { toast } from 'sonner';
 import { trpc } from '../../utils/trpc';
 
@@ -79,14 +78,11 @@ export function AssetSelectionModal({
                 <Button
                   key={`select-${asset.ticker}-${asset.assetAddress}`}
                   variant="outline"
-                  className="w-full flex items-center justify-between"
+                  className="w-full flex items-center justify-between px-4 py-8"
                   onClick={() => onAssetSelect(asset)}
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={asset.logo} alt={asset.ticker} />
-                      <AvatarFallback>{asset.ticker?.slice(0, 2)?.toUpperCase()}</AvatarFallback>
-                    </Avatar>
+                    <img src={asset.logo} alt={asset.ticker} className="h-8 w-8 rounded-full" />
                     <div className="flex flex-col items-start">
                       <span>{asset.ticker}</span>
                       <span className="text-xs text-muted-foreground">{asset.name}</span>
