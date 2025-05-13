@@ -255,6 +255,8 @@ async function getBasktInfoFromAddress(basktId: string) {
   if (!onchainBaskt) {
     return null;
   }
+  console.log({ basktMetadata }, ' this is basktmetadata');
+  console.log({ onchainBaskt }, ' this is onchainBaskt');
   return convertToBasktInfo(onchainBaskt, basktMetadata);
 }
 
@@ -273,9 +275,9 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     description: basktMetadata.description,
     price: 0,
     change24h: 0,
-    category: 'PlaceHolder',
-    risk: 'medium',
-    totalAssets: 0,
+    category: basktMetadata.categories,
+    risk: basktMetadata.risk,
+    totalAssets: assets.length,
     creator: basktMetadata.creator,
     id: basktMetadata.basktId.toString(),
     image: basktMetadata.image,

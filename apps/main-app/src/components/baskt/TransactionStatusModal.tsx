@@ -1,8 +1,16 @@
-import { CheckCircle2, XCircle, Loader2, X } from 'lucide-react';
+'use client';
+
+import { CheckCircle2, Loader2, Info} from 'lucide-react';
 import { Dialog, DialogContent } from '../ui/dialog';
 import { Button } from '../ui/button';
+import { motion } from 'framer-motion';
 
-type TransactionStatus = 'waiting' | 'confirmed' | 'creating' | 'success' | 'failed';
+type TransactionStatus =
+  | 'waiting'
+  | 'confirmed'
+  | 'processing'
+  | 'success'
+  | 'failed';
 
 interface TransactionStatusModalProps {
   open: boolean;
@@ -19,94 +27,118 @@ export const TransactionStatusModal = ({
   status,
   error,
 }: TransactionStatusModalProps) => {
-  const getStatusContent = () => {
-    switch (status) {
-      case 'waiting':
-        return {
-          title: 'Waiting for Transaction',
-          description: 'Please wait while we confirm your transaction on the blockchain...',
-          icon: (
-            <div className="relative">
-              <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl animate-pulse" />
-              <Loader2 className="h-12 w-12 text-blue-500 animate-spin relative z-10" />
-            </div>
-          ),
-        };
-      case 'confirmed':
-        return {
-          title: 'Transaction Confirmed!',
-          description: 'Your transaction has been confirmed on the blockchain.',
-          icon: (
-            <div className="relative">
-              <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl" />
-              <CheckCircle2 className="h-12 w-12 text-green-500 relative z-10" />
-            </div>
-          ),
-        };
-      case 'creating':
-        return {
-          title: 'Creating Your Baskt',
-          description: 'We are now creating your Baskt and saving the metadata...',
-          icon: (
-            <div className="relative">
-              <div className="absolute inset-0 bg-purple-500/20 rounded-full blur-xl animate-pulse" />
-              <Loader2 className="h-12 w-12 text-purple-500 animate-spin relative z-10" />
-            </div>
-          ),
-        };
-      case 'success':
-        return {
-          title: 'Baskt Created Successfully!',
-          description: 'Your Baskt has been created and is ready to use.',
-          icon: (
-            <div className="relative">
-              <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl" />
-              <CheckCircle2 className="h-12 w-12 text-green-500 relative z-10" />
-            </div>
-          ),
-        };
-      case 'failed':
-        return {
-          title: 'Transaction Failed',
-          description: error || 'There was an error processing your transaction.',
-          icon: (
-            <div className="relative">
-              <div className="absolute inset-0 bg-red-500/20 rounded-full blur-xl" />
-              <XCircle className="h-12 w-12 text-red-500 relative z-10" />
-            </div>
-          ),
-        };
-    }
-  };
+  const glowRing = (colorHex: string) => (
+    <motion.div
+      className="absolute inset-0 rounded-full blur-2xl animate-pulse-slow"
+      style={{ backgroundColor: colorHex, opacity: 0.2 }}
+      animate={{ scale: [1, 1.05, 1] }}
+      transition={{ repeat: Infinity, duration: 2.2 }}
+    />
+  );
 
-  const content = getStatusContent();
+  let title: string;
+  let description: React.ReactNode;
+  let icon: JSX.Element;
+
+  switch (status) {
+    case 'waiting':
+      title = 'Waiting for Signature';
+      description =
+        'Please sign the transaction in your wallet to continue.';
+      icon = (
+        <div className="relative w-16 h-16">
+          {glowRing('#4F46E5')}
+          <Loader2 className="relative z-10 h-16 w-16 text-[#4F46E5] animate-spin" />
+        </div>
+      );
+      break;
+
+    case 'confirmed':
+      title = 'On-Chain Confirmed';
+      description = 'Signature accepted—now saving on our side.';
+      icon = (
+        <div className="relative w-16 h-16">
+          {glowRing('#10B981')}
+          <CheckCircle2 className="relative z-10 h-16 w-16 text-[#10B981]" />
+        </div>
+      );
+      break;
+
+    case 'processing':
+      title = 'Processing';
+      description = 'Finalizing and writing to the database…';
+      icon = (
+        <div className="relative w-16 h-16">
+          {glowRing('#FBBF24')}
+          <Loader2 className="relative z-10 h-16 w-16 text-[#FBBF24] animate-spin" />
+        </div>
+      );
+      break;
+
+    case 'success':
+      title = 'Success!';
+      description = 'Your Baskt is live—go explore it now.';
+      icon = (
+        <div className="relative w-16 h-16">
+          {glowRing('#10B981')}
+          <CheckCircle2 className="relative z-10 h-16 w-16 text-[#10B981]" />
+        </div>
+      );
+      break;
+
+    case 'failed':
+      title = 'Something Went Wrong';
+      description = (
+        <div className="space-y-1 text-center text-gray-300">
+          <p>Your signature went through, but saving failed.</p>
+          {error && (
+            <p className="text-xs text-red-400">Details: {error}</p>
+          )}
+        </div>
+      );
+      icon = (
+        <div className="relative w-16 h-16">
+          {glowRing('#EF4444')}
+          <Info className="relative z-10 h-16 w-16 text-[#EF4444]" />
+        </div>
+      );
+      break;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md border-0 bg-gradient-to-b from-gray-900/90 to-gray-900 backdrop-blur-xl">
+      <DialogContent
+        className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-[#12131A] border border-[#2A2D3A] shadow-[0_0_80px_rgba(79,70,229,0.3)] rounded-2xl overflow-hidden`}
+      >
         <button
           onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
+          className="absolute top-4 right-4 p-1 rounded hover:bg-white/10 transition"
         >
-          <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </button>
 
-        <div className="flex flex-col items-center justify-center py-8 space-y-6">
-          <div className="w-20 h-20 flex items-center justify-center">{content?.icon}</div>
+        <div className="pt-12 pb-6 px-6 flex flex-col items-center space-y-4">
+          {icon}
+          <h2 className="text-2xl font-semibold text-white">{title}</h2>
+          <p className="text-center text-gray-400">{description}</p>
+        </div>
 
-          <div className="space-y-2 text-center">
-            <h2 className="text-2xl font-semibold tracking-tight text-white">{content?.title}</h2>
-            <p className="text-base text-gray-400">{content?.description}</p>
-          </div>
+        <div className="border-t border-[#2A2D3A]" />
 
-          {status === 'failed' && onRetry && (
+        <div className="py-6 px-6">
+          {status === 'failed' && onRetry ? (
             <Button
               onClick={onRetry}
-              className="mt-4 bg-red-500 hover:bg-red-600 text-white"
-              size="lg"
+              className={`w-full py-3 bg-gradient-to-r from-[#4F46E5] to-[#6366F1] hover:from-[#3B3FC1] hover:to-[#5059E0] text-white rounded-full shadow-[0_0_20px_rgba(79,70,229,0.5)] transition`}
             >
               Try Again
+            </Button>
+          ) : (
+            <Button
+              onClick={() => onOpenChange(false)}
+              className={`w-full py-3 bg-gradient-to-r from-[#4F46E5] to-[#6366F1] hover:from-[#3B3FC1] hover:to-[#5059E0] text-white rounded-full shadow-[0_0_20px_rgba(79,70,229,0.5)] transition`}
+            >
+              Close
             </Button>
           )}
         </div>

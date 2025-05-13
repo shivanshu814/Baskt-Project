@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Input } from '../ui/input';
-import { Button } from '../ui/button';
 import { Search } from 'lucide-react';
 import { AssetInfo } from '@baskt/types';
 import { useBasktClient } from '@baskt/ui';
@@ -47,47 +46,65 @@ export function AssetSelectionModal({
   const filteredAssets = assets.filter(
     (asset) =>
       asset.ticker.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.assetAddress.toLowerCase().includes(searchQuery.toLowerCase()),
+      asset.assetAddress.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] bg-[#0D0D1A] text-white rounded-2xl p-4">
         <DialogHeader>
-          <DialogTitle>Select Assets</DialogTitle>
+          <DialogTitle className="text-lg font-semibold">
+            Select Assets
+          </DialogTitle>
         </DialogHeader>
+
         <div className="space-y-4">
+            {/* Search bar */}
           <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-4 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search assets..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#1A1A2B] border border-[#2D2D3C] text-white placeholder:text-muted-foreground"
             />
           </div>
-          <div className="max-h-[300px] overflow-y-auto space-y-2">
+            {/* Asset list */}
+            <div className="max-h-[400px] overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
             ) : filteredAssets.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">No assets found</div>
+              <div className="text-center py-4 text-muted-foreground">
+                No assets found
+              </div>
             ) : (
               filteredAssets.map((asset) => (
-                <Button
-                  key={`select-${asset.ticker}-${asset.assetAddress}`}
-                  variant="outline"
-                  className="w-full flex items-center justify-between px-4 py-8"
-                  onClick={() => onAssetSelect(asset)}
+                <div
+                  key={asset.assetAddress}
+                  onClick={() => {
+                    onAssetSelect(asset);
+                    setSearchQuery('');
+                  }}
+                  className="flex items-center justify-between py-3 px-2 hover:bg-[#1E1E2F] cursor-pointer transition"
                 >
                   <div className="flex items-center gap-3">
-                    <img src={asset.logo} alt={asset.ticker} className="h-8 w-8 rounded-full" />
-                    <div className="flex flex-col items-start">
-                      <span>{asset.ticker}</span>
-                      <span className="text-xs text-muted-foreground">{asset.name}</span>
+                    <img
+                      src={asset.logo}
+                      alt={asset.ticker}
+                      className="h-8 w-8 rounded-full"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold">
+                        {asset.ticker}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {asset.name}
+                      </span>
                     </div>
                   </div>
+
                   <div className="flex flex-col items-end">
                     <span>{asset.price}</span>
                     <span
@@ -98,7 +115,7 @@ export function AssetSelectionModal({
                       {asset.change24h}%
                     </span>
                   </div>
-                </Button>
+                </div>
               ))
             )}
           </div>

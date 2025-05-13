@@ -121,7 +121,7 @@ const CreateBasktPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [transactionStatus, setTransactionStatus] = useState<
-    'waiting' | 'confirmed' | 'creating' | 'success' | 'failed'
+    'waiting' | 'confirmed' | 'processing' | 'success' | 'failed'
   >('waiting');
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
 
@@ -305,7 +305,7 @@ const CreateBasktPage = () => {
       setTransactionStatus('confirmed');
       await new Promise((resolve) => setTimeout(resolve, 3000));
 
-      setTransactionStatus('creating');
+      setTransactionStatus('processing');
       try {
         const createBasktMetadataResult = await createBasktMutation.mutateAsync({
           basktId: basktId.toString(),
@@ -747,7 +747,8 @@ const CreateBasktPage = () => {
                               <Input
                                 type="number"
                                 min="0"
-                                value={asset.weight.toString()}
+                                placeholder="0"
+                                value={asset.weight > 0 ? asset.weight.toString() : ''}
                                 onChange={(e) =>
                                   handleAssetWeightChange(asset.ticker, e.target.value)
                                 }

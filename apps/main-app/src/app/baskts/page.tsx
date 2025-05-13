@@ -153,6 +153,7 @@ const Baskts = () => {
             logo: asset.logo,
           }),
         ),
+        category: baskt.categories || [],
       })) as BasktInfo[];
   }, []);
 

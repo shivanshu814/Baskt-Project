@@ -35,7 +35,6 @@ export default function BasktDetailPage() {
 
   const { data: basktInfo, isSuccess: isBasktDataLoaded } =
     trpc.baskt.getBasktMetadataById.useQuery({ basktId });
-
   const suggestedBaskts = [
     {
       id: '1',
@@ -170,7 +169,7 @@ export default function BasktDetailPage() {
                         <ArrowDown className="h-3 w-3" />
                       )}
                       <span className="text-[12px]">
-                        {Math.abs(baskt.change24h).toFixed(2)}% (24h)
+                        {Math.abs(baskt?.change24h).toFixed(2)}% 
                       </span>
                     </div>
                   </div>
@@ -183,17 +182,17 @@ export default function BasktDetailPage() {
 
                   <div className="space-y-1">
                     <h3 className="text-[11px] text-muted-foreground">Risk Level</h3>
-                    <p className="font-bold text-[14px] capitalize">{baskt.risk}</p>
+                    <p className="font-bold text-[14px] capitalize">{baskt?.risk}</p>
                   </div>
 
                   <div className="space-y-1">
-                    <h3 className="text-[11px] text-muted-foreground">Category</h3>
-                    <p className="font-bold text-[14px]">{baskt.categories}</p>
+                    <h3 className="text-[11px] text-muted-foreground">Categories</h3>
+                    <p className="font-bold text-[14px]">{baskt?.category.join(', ')}</p>
                   </div>
 
                   <div className="space-y-1">
                     <h3 className="text-[11px] text-muted-foreground">Total Assets</h3>
-                    <p className="font-bold text-[14px]">{baskt.assets.length}</p>
+                    <p className="font-bold text-[14px]">{baskt?.assets.length}</p>
                   </div>
                 </div>
 

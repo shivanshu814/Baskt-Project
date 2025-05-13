@@ -54,8 +54,8 @@ export default function Homepage() {
               year: baskt.performance.year,
             }
           : undefined,
-        creationDate: baskt.creationDate ? new Date(baskt.creationDate) : new Date(),
-        assets: baskt.assets.map((asset) => ({
+        creationDate: baskt?.creationDate ? new Date(baskt.creationDate) : new Date(),
+        assets: baskt?.assets?.map((asset) => ({
           ...asset,
           weight: Number(asset.weight),
           weightage: Number(asset.weightage),

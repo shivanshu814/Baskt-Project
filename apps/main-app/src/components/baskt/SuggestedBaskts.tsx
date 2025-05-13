@@ -61,7 +61,7 @@ export function SuggestedBaskts({ suggestedBaskts }: SuggestedBasktsProps) {
                         <ArrowDown className="h-3 w-3" />
                       )}
                       <span className="text-[12px]">
-                        {Math.abs(baskt.change24h).toFixed(2)}% (24h)
+                        {Math.abs(baskt.change24h).toFixed(2)}% 
                       </span>
                     </div>
                   </div>
