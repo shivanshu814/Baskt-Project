@@ -131,7 +131,7 @@ pub fn activate_baskt(
     );
     let baskt = &mut ctx.accounts.baskt;
 
-    let current_nav = Constants::PRICE_PRECISION;
+    let current_nav = 100 * Constants::PRICE_PRECISION;
 
     // Check if the number of prices matches the number of assets in the baskt
     if prices.len() != baskt.current_asset_configs.len() {

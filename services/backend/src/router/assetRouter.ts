@@ -4,8 +4,11 @@ import { AssetMetadataModel } from '../utils/models';
 import { OnchainAsset } from '@baskt/types';
 import { router, publicProcedure } from '../trpc/trpc';
 import { z } from 'zod';
+import { BN } from 'bn.js';
 
 const sdkClientInstance = sdkClient();
+
+const assetIdCache: Map<string, string> = new Map();
 
 export const assetRouter = router({
   getAllAssets: publicProcedure.query(async () => {
@@ -57,6 +60,10 @@ async function getAllAssetsInternal(config: boolean) {
     const assetConfigs = await AssetMetadataModel.find().sort({ createdAt: -1 });
     const assets = await sdkClientInstance.getAllAssets();
 
+    assetConfigs.forEach((assetConfig) => {
+      assetIdCache.set(assetConfig.assetAddress, assetConfig._id.toString());
+    });
+
     if (!assets || !assetConfigs || assets.length === 0 || assetConfigs.length === 0) {
       console.error('No assets found');
       return {
@@ -85,9 +92,7 @@ async function getAllAssetsInternal(config: boolean) {
 
 export async function getAssetFromAddress(assetAddress: string) {
   try {
-    console.log('Fetching asset from address:', assetAddress);
     const asset = await AssetMetadataModel.findOne({ assetAddress }).exec();
-    console.log(await sdkClientInstance.getAssetRaw(new PublicKey(assetAddress)));
     const onchainAsset = await sdkClientInstance.getAsset(new PublicKey(assetAddress));
     return combineAsset(onchainAsset, asset, false);
   } catch (error) {
@@ -96,24 +101,38 @@ export async function getAssetFromAddress(assetAddress: string) {
   }
 }
 
+export async function getAssetIdFromAddress(assetAddress: string) {
+  if (!assetIdCache.has(assetAddress)) {
+    const asset = await AssetMetadataModel.findOne({ assetAddress }).exec();
+    if (!asset) {
+      return null;
+    }
+    assetIdCache.set(assetAddress, asset._id.toString());
+    return asset._id.toString();
+  }
+  return assetIdCache.get(assetAddress);
+}
+
 export function combineAsset(
   onchainAsset: OnchainAsset,
   config: any,
   shouldPassConfig: boolean = false,
 ) {
-  console.log(onchainAsset, config, shouldPassConfig);
   const price = config.priceMetrics?.price ?? 0;
   const change24h = config.priceMetrics?.change24h ?? 0;
+
+  //TODO a big concern is how we store BN price in the database
 
   return {
     ticker: onchainAsset.ticker,
     assetAddress: onchainAsset.address.toString(),
     logo: config.logo,
     name: config.name,
-    price,
+    price: price / 1e9,
+    priceRaw: price,
     change24h,
     account: onchainAsset,
-    weightage: 0,
+    weight: 0,
     config: shouldPassConfig ? config.priceConfig : undefined,
   };
 }

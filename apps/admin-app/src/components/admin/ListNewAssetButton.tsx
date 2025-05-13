@@ -14,7 +14,6 @@ import { trpc } from '../../utils/trpc';
 import { useBasktClient } from '@baskt/ui';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '../ui/form';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '../ui/select';
-import { AssetMetadataModel } from '@baskt/types';
 import { showTransactionToast } from '../ui/transaction-toast';
 
 const providerOptions = ['Binance', 'Dexscreener', 'Coingecko'];
@@ -147,7 +146,8 @@ export function ListNewAssetButton() {
         allowShorts: values.permissions.allowShort,
       });
 
-      const assetInput: AssetMetadataModel = {
+      // Create asset input with the correct structure expected by the API
+      const assetInput = {
         assetAddress: assetAddress.toString(),
         ticker: values.ticker,
         name: values.name,
@@ -169,7 +169,7 @@ export function ListNewAssetButton() {
       showTransactionToast({
         title: 'Asset Listed',
         description: `The asset ${values.ticker} has been listed`,
-        txSignature, // Update if you have a blockchain tx signature
+        txSignature,
       });
 
       setShowModal(false);

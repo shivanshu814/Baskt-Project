@@ -59,8 +59,8 @@ impl Default for Constants {
             USD_DECIMALS: 6, // For oracle price calculations
 
             // Price precision
-            PRICE_EXPONENT: 6,
-            PRICE_PRECISION: 10u64.pow(6), // 6 decimal places
+            PRICE_EXPONENT: 9,
+            PRICE_PRECISION: 10u64.pow(9), // 6 decimal places
         }
     }
 }
@@ -94,6 +94,6 @@ impl Constants {
     pub const USD_DECIMALS: u32 = 6; // For oracle price calculations
 
     // Price precision
-    pub const PRICE_EXPONENT: u32 = 6;
-    pub const PRICE_PRECISION: u64 = 10u64.pow(6); // 6 decimal places
+    pub const PRICE_EXPONENT: u32 = 9;
+    pub const PRICE_PRECISION: u64 = 10u64.pow(9); // 6 decimal places
 }

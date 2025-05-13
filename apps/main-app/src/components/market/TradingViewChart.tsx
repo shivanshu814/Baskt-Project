@@ -3,37 +3,17 @@ import { TradingViewChartProps } from '../../types/market';
 import { useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   createChart,
-  CandlestickSeries,
-  BaselineSeries,
   ColorType,
   Time,
   IChartApi,
-  ISeriesApi,
-  BaselineData as LightweightBaselineData, //eslint-disable-line
+  LineSeries,
 } from 'lightweight-charts';
 import { trpc } from '../../utils/trpc';
 
 type ChartPeriod = '1D' | '1W' | '1M' | '1Y' | 'All';
-type ChartType = 'candle' | 'baseline';
 
-interface CandleData {
-  time: Time;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-}
 
-interface BaselineData {
-  time: Time;
-  value: number;
-}
-
-interface TimeRange {
-  from: Time;
-  to: Time;
-}
-
+// Chart styling options
 const CHART_OPTIONS = {
   layout: {
     textColor: '#808A9D',
@@ -47,176 +27,129 @@ const CHART_OPTIONS = {
     borderColor: '#2B2B3C',
     textColor: '#808A9D',
   },
-  crosshair: {
-    vertLine: {
-      color: '#808A9D',
-      width: 1 as const,
-      style: 2,
-    },
-    horzLine: {
-      color: '#808A9D',
-      width: 1 as const,
-      style: 2,
-    },
-  },
-  watermark: {
-    visible: false,
-  },
+  // crosshair: {
+  //   vertLine: { color: '#808A9D', width: 1, style: 2 },
+  //   horzLine: { color: '#808A9D', width: 1, style: 2 },
+  // },
+  watermark: { visible: false },
   height: 500,
-} as const;
+};
 
-const CANDLE_SERIES_OPTIONS = {
-  upColor: '#16C784',
-  downColor: '#EA3943',
-  borderVisible: false,
-  wickUpColor: '#16C784',
-  wickDownColor: '#EA3943',
-} as const;
 
-const BASELINE_SERIES_OPTIONS = {
-  baseValue: { type: 'price' as const, price: 150 },
-  topLineColor: 'rgba(22, 199, 132, 1)',
-  topFillColor1: 'rgba(22, 199, 132, 0.28)',
-  topFillColor2: 'rgba(22, 199, 132, 0.05)',
-  bottomLineColor: 'rgba(234, 57, 67, 1)',
-  bottomFillColor1: 'rgba(234, 57, 67, 0.05)',
-  bottomFillColor2: 'rgba(234, 57, 67, 0.28)',
-} as const;
+// Line chart styling (blue)
+const LINE_SERIES_OPTIONS = {
+  color: '#0052FF',
+};
 
 const REFRESH_INTERVAL = 30 * 1000; // 30 seconds
 
 export function TradingViewChart({
   className,
-  chartType = 'candle',
   period = '1D',
 }: Partial<TradingViewChartProps>) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartInstanceRef = useRef<{
-    chart: IChartApi | null;
-    series: ISeriesApi<'Candlestick' | 'Baseline'> | null;
-  }>({ chart: null, series: null });
-  const timeRangeRef = useRef<TimeRange | null>(null);
+  const chartRef = useRef<IChartApi | null>(null);
 
+
+  // TODO: We can get this from initial fetch 
+  // Fetch chart data
   const { data: tradingData } = trpc.baskt.getTradingData.useQuery(
     {
       period: period as ChartPeriod,
-      chartType: chartType as ChartType,
-      basePrice: 150,
+      //TODO Change to baskt id from props
+      basktId: '6pHyAuUWFjHGQNX5wcDZ8nzkeDcmEmBmQh7PDQy5QZyM',
     },
-    {
-      refetchInterval: REFRESH_INTERVAL,
-    },
+    { refetchInterval: REFRESH_INTERVAL }
   );
 
-  const formatTime = useCallback(
-    (timestamp: number) => {
-      const date = new Date(timestamp * 1000);
-      if (period === '1D') {
-        return date.toLocaleTimeString();
-      }
-      if (period === '1W') {
-        return `${date.toLocaleDateString()} ${date.getHours()}:00`;
-      }
-      return date.toLocaleDateString();
-    },
-    [period],
-  );
+  // Format time labels based on selected period
+  const formatTime = useCallback((timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    if (period === '1D') return date.toDateString();
+    if (period === '1W') return `${date.toLocaleDateString()} ${date.getHours()}:00`;
+    return date.toLocaleDateString();
+  }, [period]);
 
-  const timeScaleOptions = useMemo(
-    () => ({
-      borderColor: '#2B2B3C',
-      tickMarkFormatter: (time: Time) => formatTime(Number(time)),
-      timeVisible: true,
-      secondsVisible: period === '1D',
-    }),
-    [formatTime, period],
-  );
+  // Configure time scale options
+  const timeScaleOptions = useMemo(() => ({
+    borderColor: '#2B2B3C',
+    tickMarkFormatter: (time: Time) => formatTime(Number(time)),
+    timeVisible: true,
+    secondsVisible: period === '1D',
+  }), [formatTime, period]);
 
-  const handleResize = useCallback(() => {
-    if (!chartContainerRef.current || !chartInstanceRef.current.chart) return;
-
-    const newWidth = chartContainerRef.current.clientWidth;
-    chartInstanceRef.current.chart.resize(newWidth, CHART_OPTIONS.height);
-
-    if (!timeRangeRef.current) {
-      chartInstanceRef.current.chart.timeScale().fitContent();
-    }
-  }, []);
-
-  const initializeChart = useCallback(() => {
+  // Initialize chart when component mounts
+  useEffect(() => {
     if (!chartContainerRef.current) return;
 
+    // Clean up any existing chart
+    if (chartRef.current) {
+      chartRef.current.remove();
+    }
+
+    // Create new chart
     const chart = createChart(chartContainerRef.current, {
       ...CHART_OPTIONS,
       width: chartContainerRef.current.clientWidth,
       timeScale: timeScaleOptions,
     });
 
-    const series =
-      chartType === 'candle'
-        ? chart.addSeries(CandlestickSeries, CANDLE_SERIES_OPTIONS)
-        : chart.addSeries(BaselineSeries, BASELINE_SERIES_OPTIONS);
+    const lineSeries = chart.addSeries(LineSeries, LINE_SERIES_OPTIONS);
 
-    chartInstanceRef.current = { chart, series };
-
-    chart.timeScale().subscribeVisibleTimeRangeChange((range) => {
-      if (range) {
-        timeRangeRef.current = {
-          from: range.from as Time,
-          to: range.to as Time,
-        };
-      }
+    // Configure zero-based Y-axis for line charts only
+    chart.priceScale('right').applyOptions({
+      autoScale: false,
+      scaleMargins: { top: 0.1, bottom: 0.1 },
     });
 
-    return chart;
-  }, [chartType, timeScaleOptions]);
+    // Store the series reference for later use
+    (chart as any).activeSeries = lineSeries;
 
-  const updateChartData = useCallback(() => {
-    if (!chartInstanceRef.current.series || !tradingData?.data) return;
+    // Store chart reference
+    chartRef.current = chart;
 
-    const data =
-      chartType === 'candle'
-        ? (tradingData.data as CandleData[])
-        : (tradingData.data as BaselineData[]);
+    // Make chart fit all data
+    chart.timeScale().fitContent();
 
-    chartInstanceRef.current.series.setData(data);
-
-    if (chartInstanceRef.current.chart && timeRangeRef.current) {
-      chartInstanceRef.current.chart.timeScale().setVisibleRange({
-        from: timeRangeRef.current.from,
-        to: timeRangeRef.current.to,
-      });
-    }
-  }, [tradingData?.data, chartType]);
-
-  useEffect(() => {
-    const chart = initializeChart();
-    if (!chart) return;
-
-    handleResize();
-
-    const resizeObserver = new ResizeObserver(handleResize);
-    if (chartContainerRef.current) {
-      resizeObserver.observe(chartContainerRef.current);
-    }
+    // Handle window resize
+    const handleResize = () => {
+      if (chartRef.current && chartContainerRef.current) {
+        chartRef.current.resize(
+          chartContainerRef.current.clientWidth,
+          CHART_OPTIONS.height
+        );
+      }
+      chartRef.current?.timeScale().fitContent();
+    };
 
     window.addEventListener('resize', handleResize);
 
+    // Clean up on unmount
     return () => {
       window.removeEventListener('resize', handleResize);
-      resizeObserver.disconnect();
-      chart.remove();
-      chartInstanceRef.current = { chart: null, series: null };
-      timeRangeRef.current = null;
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+      }
     };
-  }, [initializeChart, handleResize]);
+  }, [timeScaleOptions]);
 
+  // Update chart data when it changes
   useEffect(() => {
-    updateChartData();
-  }, [updateChartData]);
+    if (!chartRef.current || !tradingData?.data?.length) return;
+
+    // Access the stored series reference
+    const series = (chartRef.current as any).activeSeries;
+    if (!series) return;
+    // Set chart data
+    series.setData(tradingData.data);
+
+    chartRef.current?.timeScale().fitContent();
+
+  }, [tradingData?.data]);
 
   return (
-    <div className={cn('w-full overflow-hidden relative', className)}>
+    <div className={cn('w-full h-[500px]', className)}>
       <div ref={chartContainerRef} className="w-full h-full" />
     </div>
   );

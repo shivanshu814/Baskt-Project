@@ -3,13 +3,13 @@
 import express from 'express';
 import cors from 'cors';
 import * as trpcExpress from '@trpc/server/adapters/express';
-import { appRouter } from '../router';
-import { connectDB, disconnectDB } from '../config/db';
+import { appRouter } from '../router/';
+import { connectMongoDB, disconnectMongoDB } from '../config/mongo';
 
 const app = express();
 const port = 4000;
 
-connectDB();
+connectMongoDB();
 
 app.use(cors());
 app.use(express.json());
@@ -38,6 +38,6 @@ process.on('SIGTERM', () => {
   console.log('SIGTERM received. Shutting down gracefully');
   server.close(() => {
     console.log('Process terminated');
-    disconnectDB();
+    disconnectMongoDB();
   });
 });

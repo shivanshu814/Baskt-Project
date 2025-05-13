@@ -16,9 +16,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
-import { BasktInfo, BasktAssetInfo, BasktPageState } from '@baskt/types';
+import { BasktInfo, BasktAssetInfo } from '@baskt/types';
 import { Category, SortOption, CATEGORIES, SORT_OPTIONS } from '@baskt/ui/types/constants';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
+
+export interface BasktPageState {
+  filteredBaskts: BasktInfo[];
+  popularBaskts: BasktInfo[];
+  categoryBaskts: Record<string, BasktInfo[]>;
+}
+
 
 const SearchBar = memo(
   ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
@@ -154,6 +161,28 @@ const Baskts = () => {
           }),
         ),
         category: baskt.categories || [],
+        priceHistory: {
+          daily: baskt.priceHistory?.daily?.map(entry => ({
+            ...entry,
+            volume: 0, 
+            price: Number(entry.price)
+          })) || [],
+          weekly: baskt.priceHistory?.weekly?.map(entry => ({
+            ...entry,
+            volume: 0, 
+            price: Number(entry.price)
+          })) || [],
+          monthly: baskt.priceHistory?.monthly?.map(entry => ({
+            ...entry,
+            volume: 0, 
+            price: Number(entry.price) 
+          })) || [],
+          yearly: baskt.priceHistory?.yearly?.map(entry => ({
+            ...entry,
+            volume: 0,
+            price: Number(entry.price) 
+          })) || [],
+        },
       })) as BasktInfo[];
   }, []);
 

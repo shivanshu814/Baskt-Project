@@ -7,6 +7,7 @@ import { useBasktClient } from '@baskt/ui';
 import { Layout } from '../components/Layout';
 
 import { AdminAssetsList } from '../components/admin/AdminAssetsList';
+import { AdminBasktsList } from '../components/admin/AdminBasktsList';
 import { ListNewAssetButton } from '../components/admin/ListNewAssetButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ProtocolDetails } from '../components/admin/ProtocolDetails';
@@ -71,6 +72,13 @@ export default function AdminDashboard() {
             </TabsTrigger>
 
             <TabsTrigger
+              value="baskts"
+              className="rounded-md px-4 py-2 text-sm font-medium text-white/60 data-[state=active]:bg-[#0d1117] data-[state=active]:text-white hover:text-white transition-colors"
+            >
+              Baskts
+            </TabsTrigger>
+
+            <TabsTrigger
               value="protocol"
               className="rounded-md px-4 py-2 text-sm font-medium text-white/60 data-[state=active]:bg-[#0d1117] data-[state=active]:text-white hover:text-white transition-colors"
             >
@@ -86,10 +94,16 @@ export default function AdminDashboard() {
           </TabsList>
 
           <TabsContent value="assets" className="space-y-4">
-            <div className="glass-modal rounded-3xl">
-              <AdminAssetsList />
-            </div>
-          </TabsContent>
+  <div className="glass-modal rounded-3xl">
+    <AdminAssetsList />
+  </div>
+</TabsContent>
+
+<TabsContent value="baskts" className="space-y-4">
+  <div className="glass-modal rounded-3xl">
+    <AdminBasktsList />
+  </div>
+</TabsContent>
 
           <TabsContent value="protocol" className="space-y-4">
             <div className="glass-modal rounded-3xl">

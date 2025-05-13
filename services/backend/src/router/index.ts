@@ -5,27 +5,20 @@ import { assetRouter } from './assetRouter';
 import { basktRouter } from './basktRouter';
 import { cryptoRouter } from './cryptoRouter';
 import { imageRouter } from './imageRouter';
+import { assetPriceRouter } from './assetPrice';
 
 export const appRouter = router({
-  // health check
   health: publicProcedure.query(() => {
     return {
       status: 'ok',
       message: 'Server is running',
     };
   }),
-
-  // asset router
   asset: assetRouter,
-
-  // baskt router
   baskt: basktRouter,
-
-  // crypto router
   crypto: cryptoRouter,
-
-  // image router
   image: imageRouter,
+  assetPrice: assetPriceRouter,
 });
 
 export type AppRouter = typeof appRouter;

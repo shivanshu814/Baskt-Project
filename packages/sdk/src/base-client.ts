@@ -362,7 +362,7 @@ export abstract class BaseClient {
   private convertAsset(account: any) {
     const newAccount = account.permissions ? account : account.account;
     return {
-      address: newAccount.publicKey || account.publicKey,
+      address: newAccount.publicKey || account.publicKey || account.assetId,
       ticker: newAccount.ticker,
       permissions: {
         allowLongs: newAccount.permissions.allowLongs,

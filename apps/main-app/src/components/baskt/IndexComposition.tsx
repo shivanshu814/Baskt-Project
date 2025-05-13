@@ -6,6 +6,12 @@ interface IndexCompositionProps {
   assets: BasktAssetInfo[];
 }
 
+export function changeFromCurrentPrice(asset: BasktAssetInfo) {
+  const change = asset.price - (asset.baselinePrice || asset.price);
+  const changePercentage = (change / (asset.baselinePrice || asset.price)) * 100;
+  return changePercentage;
+}
+
 export function IndexComposition({ assets }: IndexCompositionProps) {
   return (
     <Card>
@@ -20,6 +26,7 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                 <TableHead>Asset</TableHead>
                 <TableHead>Direction</TableHead>
                 <TableHead>Weight</TableHead>
+                <TableHead>Baseline Price</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead className="text-right">24h Change</TableHead>
               </TableRow>
@@ -36,21 +43,20 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                   <TableCell className="capitalize">{asset.direction ? 'long' : 'short'}</TableCell>
                   <TableCell>{asset.weight}%</TableCell>
                   <TableCell>
-                    {asset.price ? `$${asset.price.toLocaleString()}` : 'Price Unavailable'}
+                    {asset.baselinePrice !== undefined ? `$${asset.baselinePrice.toFixed(2)}` : 'Price Unavailable'}
+                  </TableCell>
+                  <TableCell>
+                    {asset.price !== undefined ? `$${asset.price.toFixed(2)}` : 'Price Unavailable'}
                   </TableCell>
                   <TableCell
-                    className={`text-right ${
-                      asset.change24h !== undefined
-                        ? asset.change24h >= 0
-                          ? 'text-[#16C784]'
-                          : 'text-[#EA3943]'
-                        : ''
-                    }`}
+                    className={`text-right ${changeFromCurrentPrice(asset) >= 0
+                      ? 'text-[#16C784]'
+                      : 'text-[#EA3943]'
+                      }`}
                   >
-                    {asset.change24h !== undefined ? (
+                    {changeFromCurrentPrice(asset) !== undefined ? (
                       <>
-                        {asset.change24h >= 0 ? '+' : ''}
-                        {asset.change24h.toFixed(2)}%
+                        {changeFromCurrentPrice(asset).toFixed(2)}%
                       </>
                     ) : (
                       'N/A'

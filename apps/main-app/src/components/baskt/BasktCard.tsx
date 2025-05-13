@@ -51,6 +51,8 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
     };
   }, [baskt]);
 
+  console.log("baskt", baskt);
+
   const gradientId = `gradient-${baskt.basktId}`;
 
   return (

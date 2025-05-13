@@ -2,8 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import * as anchor from '@coral-xyz/anchor';
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
-import fs from 'fs';
-import path, { join } from 'path';
+import { join } from 'path';
 import { homedir } from 'os';
 import { BasktV1 } from '../target/types/baskt_v1';
 import { TestClient } from '../tests/utils/test-client';
@@ -11,6 +10,11 @@ import BasktV1Idl from '../target/idl/baskt_v1.json';
 import { AccessControlRole } from '@baskt/types';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from '../../../services/backend/src/router';
+import { AssetPrice } from '../../../services/oracle/src/config/sequelize';
+
+import assetConfig from './assets.json';
+
+const shouldCreateFakePrices = process.argv.includes('--create-fake-prices');
 
 async function addAssetsToTrpc(
   assets: {
@@ -85,6 +89,29 @@ export const getProvider = () => {
   };
 };
 
+async function createFakePrices(assetConfig: any[]) {
+  // We need to create a price feed for each asset which will be for an interval of 15 seconds
+  // Then we store this price feed in the timescale DB
+  const allAssetPrices = [];
+  for (const asset of assetConfig) {
+    let hour = Date.now();
+    for (let i = 0; i < 24 * 365; i++) {
+      allAssetPrices.push({
+        asset_id: asset.address,
+        price: new anchor.BN(Math.random() * 10000).mul(new anchor.BN(1e9)),
+        time: hour,
+      });
+      hour -= 60 * 60 * 1000; // decrement by 1 hour
+    }
+  }
+  console.log('Creating fake prices for assets');
+  try {
+    await AssetPrice.bulkCreate(allAssetPrices);
+  } catch (error) {
+    console.error('Error creating fake prices:', error);
+  }
+}
+
 async function main() {
   const { program, wallet } = getProvider();
 
@@ -93,94 +120,23 @@ async function main() {
 
   await client.initializeProtocol();
 
-  // Add 5 Assets to be used for us
-  const { assetAddress: btcAssetAddress } = await client.addAsset('BTC');
-  const { assetAddress: ethAssetAddress } = await client.addAsset('ETH');
-  const { assetAddress: dogeAssetAddress } = await client.addAsset('DOGE');
-  const { assetAddress: solAssetAddress } = await client.addAsset('SOL');
-  const { assetAddress: adaAssetAddress } = await client.addAsset('ADA');
+  const assetsWithAddress = [];
 
-  // Add all the assets and their configs to the Backend
-
-  try {
-    await addAssetsToTrpc([
-      {
-        ticker: 'BTC',
-        name: 'Bitcoin',
-        address: btcAssetAddress.toString(),
-        logo: 'https://assets.coingecko.com/coins/images/1/standard/bitcoin.png',
-        provider: {
-          id: 'BTCUSDT',
-          chain: '',
-          name: 'binance',
-        },
-      },
-      {
-        name: 'Ethereum',
-        ticker: 'ETH',
-        address: ethAssetAddress.toString(),
-        logo: 'https://assets.coingecko.com/coins/images/279/standard/ethereum.png',
-        provider: {
-          id: 'ETHUSDT',
-          chain: '',
-          name: 'binance',
-        },
-      },
-      {
-        name: 'Dogecoin',
-        ticker: 'DOGE',
-        address: dogeAssetAddress.toString(),
-        logo: 'https://assets.coingecko.com/coins/images/5/standard/dogecoin.png',
-        provider: {
-          id: 'DOGEUSDT',
-          chain: '',
-          name: 'binance',
-        },
-      },
-      {
-        name: 'Solana',
-        ticker: 'SOL',
-        address: solAssetAddress.toString(),
-        logo: 'https://assets.coingecko.com/coins/images/4128/standard/solana.png',
-        provider: {
-          id: 'SOLUSDT',
-          chain: '',
-          name: 'binance',
-        },
-      },
-      {
-        name: 'Cardano',
-        ticker: 'ADA',
-        address: adaAssetAddress.toString(),
-        logo: 'https://assets.coingecko.com/coins/images/975/standard/cardano.png',
-        provider: {
-          id: 'ADAUSDT',
-          chain: '',
-          name: 'binance',
-        },
-      },
-    ]);
-  } catch (error) {
-    console.error('Error adding assets to backend:', error);
+  for (const asset of assetConfig) {
+    const { assetAddress } = await client.addAsset(asset.ticker);
+    assetsWithAddress.push({
+      ...asset,
+      address: assetAddress.toString(),
+    });
   }
 
-  // Save deployment info
-  const deployInfo = {
-    programId: program.programId.toString(),
-    protocolPDA: client.protocolPDA.toString(),
-    lookupTable: client.lookupTable?.toString(),
-    assets: [
-      { assetAddress: btcAssetAddress.toString() },
-      { assetAddress: ethAssetAddress.toString() },
-      { assetAddress: dogeAssetAddress.toString() },
-      { assetAddress: solAssetAddress.toString() },
-      { assetAddress: adaAssetAddress.toString() },
-    ],
-  };
-
-  const deployDir = path.join(__dirname);
-  if (!fs.existsSync(deployDir)) {
-    fs.mkdirSync(deployDir, { recursive: true });
+  try {
+    await addAssetsToTrpc(assetsWithAddress);
+    if (shouldCreateFakePrices) {
+      await createFakePrices(assetsWithAddress);
+    }
+  } catch (error) {
+    console.error('Error adding assets to backend:', error);
   }
 
   const fundingAccount = new PublicKey(process.env.FUNDING_ACCOUNT || '');
@@ -200,19 +156,7 @@ async function main() {
 
   if (program.provider.sendAndConfirm) await program.provider.sendAndConfirm(transaction);
 
-  console.log(
-    'Funding Account:',
-    fundingAccount.toString(),
-    await program.provider.connection.getBalance(fundingAccount),
-  );
-
-  fs.writeFileSync(
-    path.join(deployDir, 'deployment-localnet.json'),
-    JSON.stringify(deployInfo, null, 2),
-  );
-
   console.log('Deployment complete! Info saved to deployment-localnet.json');
-  console.log(deployInfo);
 }
 
 main().catch((err) => {

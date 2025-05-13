@@ -5,7 +5,7 @@ dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/baskt';
 
-export const connectDB = async () => {
+export const connectMongoDB = async () => {
   try {
     await mongoose.connect(MONGODB_URI);
     console.log('MongoDB connected successfully');
@@ -15,7 +15,7 @@ export const connectDB = async () => {
   }
 };
 
-export const disconnectDB = async () => {
+export const disconnectMongoDB = async () => {
   try {
     await mongoose.disconnect();
     console.log('MongoDB disconnected successfully');

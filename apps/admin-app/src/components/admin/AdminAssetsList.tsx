@@ -4,8 +4,31 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { trpc } from '../../utils/trpc';
 import { getSolscanAddressUrl } from '@baskt/ui';
 
+import { AssetPriceHistoryPage } from './AssetPriceHistoryPage';
+import React, { useState } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '../ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
+
 export function AdminAssetsList() {
   const { data: assets, isLoading, error } = trpc.asset.getAllAssetsWithConfig.useQuery();
+  const [selectedAsset, setSelectedAsset] = useState<any | null>(null);
+
+  if (selectedAsset) {
+    return (
+      <AssetPriceHistoryPage
+        assetAddress={selectedAsset.account.address.toString()}
+        assetName={selectedAsset.name || selectedAsset.ticker}
+        assetLogo={selectedAsset.logo}
+        ticker={selectedAsset.ticker}
+        onBack={() => setSelectedAsset(null)}
+      />
+    );
+  }
 
   return (
     <div className="rounded-md border border-white/10">
@@ -69,10 +92,24 @@ export function AdminAssetsList() {
                     hour12: true,
                   })}
                 </TableCell>
-                <TableCell>10</TableCell>
+                <TableCell>{asset.price} </TableCell>
                 <TableCell>{asset.account.permissions.allowLongs ? 'Yes' : 'No'}</TableCell>
                 <TableCell>{asset.account.permissions.allowShorts ? 'Yes' : 'No'}</TableCell>
                 <TableCell>{asset.account.isActive ? 'Active' : 'Inactive'}</TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <MoreHorizontal size={18} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setSelectedAsset(asset)}>
+                        View Prices
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
               </TableRow>
             ))
           )}

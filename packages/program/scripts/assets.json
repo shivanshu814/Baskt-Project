@@ -1,0 +1,57 @@
+[
+  {
+    "ticker": "BTC",
+    "name": "Bitcoin",
+    "logo": "https://assets.coingecko.com/coins/images/1/standard/bitcoin.png",
+    "price": 100000,
+    "provider": {
+      "id": "BTCUSDT",
+      "chain": "",
+      "name": "binance"
+    }
+  },
+  {
+    "name": "Ethereum",
+    "ticker": "ETH",
+    "logo": "https://assets.coingecko.com/coins/images/279/standard/ethereum.png",
+    "price": 1000,
+    "provider": {
+      "id": "ETHUSDT",
+      "chain": "",
+      "name": "binance"
+    }
+  },
+  {
+    "name": "Dogecoin",
+    "ticker": "DOGE",
+    "logo": "https://assets.coingecko.com/coins/images/5/standard/dogecoin.png",
+    "price": 1,
+    "provider": {
+      "id": "DOGEUSDT",
+      "chain": "",
+      "name": "binance"
+    }
+  },
+  {
+    "name": "Solana",
+    "ticker": "SOL",
+    "logo": "https://assets.coingecko.com/coins/images/4128/standard/solana.png",
+    "price": 200,
+    "provider": {
+      "id": "SOLUSDT",
+      "chain": "",
+      "name": "binance"
+    }
+  },
+  {
+    "name": "Cardano",
+    "ticker": "ADA",
+    "logo": "https://assets.coingecko.com/coins/images/975/standard/cardano.png",
+    "price": 10,
+    "provider": {
+      "id": "ADAUSDT",
+      "chain": "",
+      "name": "binance"
+    }
+  }
+]

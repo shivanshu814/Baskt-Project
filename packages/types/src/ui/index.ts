@@ -1,3 +1,5 @@
+import { BasktMetadataModel } from '../models';
+
 export interface AssetInfo {
   id: string;
   name: string;
@@ -22,6 +24,7 @@ export interface MarketTrend {
 export interface BasktAssetInfo extends AssetInfo {
   weight: number;
   direction: boolean;
+  baselinePrice?: number;
 }
 
 export interface UserBasktPositionInfo {
@@ -41,4 +44,33 @@ export interface ChartData {
   date: string;
   price: number;
   volume: number;
+}
+
+interface PriceHistoryEntry {
+  date: string;
+  price: number;
+  volume: number;
+}
+
+interface PriceHistory {
+  daily: PriceHistoryEntry[];
+  weekly: PriceHistoryEntry[];
+  monthly: PriceHistoryEntry[];
+  yearly: PriceHistoryEntry[];
+}
+
+export interface BasktInfo extends Omit<BasktMetadataModel, 'assets'> {
+  assets: BasktAssetInfo[];
+  aum: number;
+  change24h: number;
+  price: number;
+  totalAssets: number;
+  performance: {
+    day: number;
+    week: number;
+    month: number;
+    year?: number;
+  };
+  sparkline: number[];
+  priceHistory?: PriceHistory;
 }

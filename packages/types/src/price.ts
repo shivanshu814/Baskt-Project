@@ -3,3 +3,9 @@ export interface AssetPrice {
   assetId: string;
   timestamp: number;
 }
+
+export interface AssetPriceDBValue {
+  assetId: string;
+  price: string;
+  time: number;
+}

@@ -121,6 +121,8 @@ export default function BasktDetailPage() {
     );
   }
 
+  console.log('baskt', baskt);
+
   return (
     <div>
       <div className="space-y-6 animate-fade-in p-6">

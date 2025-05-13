@@ -104,7 +104,8 @@ export const BasktMetadataSchema = new mongoose.Schema(
       required: true,
     },
     assets: {
-      type: [String],
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'AssetMetadata',
       required: true,
     },
     image: {
