@@ -109,7 +109,6 @@ export function CreateBasktDialog({ open, onOpenChange }: CreateBasktDialogProps
       return;
     }
 
-    // Simulate creation of a new Baskt
     setTimeout(() => {
       toast({
         title: 'Baskt Created',
@@ -118,8 +117,6 @@ export function CreateBasktDialog({ open, onOpenChange }: CreateBasktDialogProps
       setIsSubmitting(false);
       onOpenChange(false);
 
-      // In a real app, this would navigate to the new Baskt
-      // For now, we'll just navigate back to the Baskts page
       navigate.push('/baskts');
     }, 1500);
   };

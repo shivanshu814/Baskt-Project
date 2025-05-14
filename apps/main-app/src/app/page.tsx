@@ -9,6 +9,7 @@ import { BasktCard } from '../components/baskt/BasktCard';
 import { useMemo } from 'react';
 import { trpc } from '../utils/trpc';
 import { BasktInfo } from '@baskt/types';
+import { Loading } from '../components/ui/loading';
 
 const FEATURES = [
   {
@@ -78,8 +79,8 @@ export default function Homepage() {
   const renderFeaturedBaskts = () => {
     if (isLoading) {
       return (
-        <div className="text-center py-16">
-          <p className="text-muted-foreground">Loading featured baskts...</p>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loading />
         </div>
       );
     }

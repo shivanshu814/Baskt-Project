@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Search } from 'lucide-react';
+import { Loading } from '../ui/loading';
 import { AssetInfo } from '@baskt/types';
 import { useBasktClient } from '@baskt/ui';
 import { toast } from 'sonner';
@@ -73,7 +74,7 @@ export function AssetSelectionModal({
             <div className="max-h-[400px] overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                <Loading />
               </div>
             ) : filteredAssets.length === 0 ? (
               <div className="text-center py-4 text-muted-foreground">
@@ -87,7 +88,7 @@ export function AssetSelectionModal({
                     onAssetSelect(asset);
                     setSearchQuery('');
                   }}
-                  className="flex items-center justify-between py-3 px-2 hover:bg-[#1E1E2F] cursor-pointer transition"
+                  className="flex items-center justify-between py-3 px-2 hover:bg-[#1E1E2F] cursor-pointer transition rounded-md"
                 >
                   <div className="flex items-center gap-3">
                     <img

@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Copy, Trash2, Check, MoreVertical, SquareArrowOutUpRight } from 'lucide-react';
+import { Loading } from '../ui/loading';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -22,13 +23,7 @@ import {
   DropdownMenuItem,
 } from '../ui/dropdown-menu';
 import { AccessControlRole } from '@baskt/types';
-
-const ROLE_DISPLAY_MAP = {
-  AssetManager: 'Asset Manager',
-  OracleManager: 'Oracle Manager',
-  Rebalancer: 'Rebalancer',
-  Owner: 'Owner',
-};
+import { ROLE_DISPLAY_MAP } from '@baskt/ui/types/constants';
 
 const formSchema = z.object({
   address: z
@@ -75,6 +70,7 @@ export function RolesManagement({
     try {
       const protocol = await client.getProtocolAccount();
       const userAddress = client.getPublicKey().toString();
+      
       const isProtocolOwner = protocol.owner === userAddress;
       const hasOwnerRole = protocol.accessControl.entries.some(
         (entry) => entry.account === userAddress && entry.role.toLowerCase() === 'owner',
@@ -291,7 +287,16 @@ export function RolesManagement({
                     className="h-11 px-8 bg-blue-500 text-white hover:bg-blue-500/90 rounded-full"
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Adding...' : 'Add Role'}
+                    <div className="flex items-center gap-2">
+                      {isLoading ? (
+                        <div className="flex items-center gap-2">
+                          <Loading />
+                          <span>Adding...</span>
+                        </div>
+                      ) : (
+                        <span>Add Role</span>
+                      )}
+                    </div>
                   </Button>
                 </div>
               </form>
@@ -310,7 +315,23 @@ export function RolesManagement({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {roles.map((role, index) => (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={3} className="h-32">
+                  <div className="flex items-center justify-center">
+                    <Loading />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : roles.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} className="h-32">
+                  <div className="flex items-center justify-center text-white/60">
+                    No roles found
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : roles.map((role, index) => (
               <TableRow key={index}>
                 <TableCell className="font-mono text-xs">
                   <div className="flex items-center gap-2">

@@ -1,17 +1,6 @@
 import { Card, CardContent } from '../ui/card';
 import { ArrowUpRight } from 'lucide-react';
-
-interface NewsItem {
-  id: string;
-  title: string;
-  time: string;
-  url: string;
-  cover: string;
-}
-
-interface CryptoNewsProps {
-  news: NewsItem[];
-}
+import { CryptoNewsProps } from '@baskt/ui/types/constants';
 
 export function CryptoNews({ news }: CryptoNewsProps) {
   return (

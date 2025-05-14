@@ -19,6 +19,7 @@ import {
 import { BasktInfo, BasktAssetInfo } from '@baskt/types';
 import { Category, SortOption, CATEGORIES, SORT_OPTIONS } from '@baskt/ui/types/constants';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
+import { Loading } from '../../components/ui/loading';
 
 export interface BasktPageState {
   filteredBaskts: BasktInfo[];
@@ -272,8 +273,8 @@ const Baskts = () => {
 
             <TabsContent value="all">
               {isLoading ? (
-                <div className="text-center py-16">
-                  <p className="text-muted-foreground">Loading baskts...</p>
+                <div className="flex items-center justify-center min-h-[400px]">
+                  <Loading />
                 </div>
               ) : filteredBaskts.length === 0 ? (
                 <EmptyState onCreateClick={handleCreateClick} />

@@ -14,5 +14,5 @@ export interface TradingViewChartProps {
   period: ChartPeriod;
 }
 
-export type ChartType = 'line' | 'candle';
+export type ChartType = 'line' | 'candle' | 'baseline';
 export type ChartPeriod = string;

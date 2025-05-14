@@ -5,7 +5,7 @@ import { BasktTradingForm } from '../../../components/baskt/BasktTradingForm';
 import { TradingViewChart } from '../../../components/market/TradingViewChart';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
-import { ArrowUp, ArrowDown, Share2, LineChart, CandlestickChart } from 'lucide-react';
+import { ArrowUp, ArrowDown, Share2, LineChart } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import { IndexComposition } from '../../../components/baskt/IndexComposition';
 import { useState, useEffect } from 'react';
@@ -14,6 +14,7 @@ import { SuggestedBaskts } from '../../../components/baskt/SuggestedBaskts';
 import { ShareBasktModal } from '../../../components/baskt/ShareBasktModal';
 import { CryptoNews } from '../../../components/baskt/CryptoNews';
 import { trpc } from '../../../utils/trpc';
+import { Loading } from '../../../components/ui/loading';
 
 export default function BasktDetailPage() {
   const router = useRouter();
@@ -35,6 +36,8 @@ export default function BasktDetailPage() {
 
   const { data: basktInfo, isSuccess: isBasktDataLoaded } =
     trpc.baskt.getBasktMetadataById.useQuery({ basktId });
+
+  // TODO: Fetch suggested baskts from API
   const suggestedBaskts = [
     {
       id: '1',
@@ -104,7 +107,11 @@ export default function BasktDetailPage() {
   }, [basktId, isBasktDataLoaded]);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
+      </div>
+    );
   }
 
   if (!baskt) {
@@ -170,9 +177,7 @@ export default function BasktDetailPage() {
                       ) : (
                         <ArrowDown className="h-3 w-3" />
                       )}
-                      <span className="text-[12px]">
-                        {Math.abs(baskt?.change24h).toFixed(2)}% 
-                      </span>
+                      <span className="text-[12px]">{Math.abs(baskt?.change24h).toFixed(2)}%</span>
                     </div>
                   </div>
                 </div>
@@ -251,14 +256,6 @@ export default function BasktDetailPage() {
                       onClick={() => setChartType('line')}
                     >
                       <LineChart className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`rounded-md px-3 py-1 text-xs ${chartType === 'candle' ? 'bg-background text-primary' : 'text-muted-foreground hover:text-primary'}`}
-                      onClick={() => setChartType('candle')}
-                    >
-                      <CandlestickChart className="h-4 w-4" />
                     </Button>
                   </div>
 

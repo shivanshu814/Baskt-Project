@@ -78,11 +78,9 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
   );
 }
 
-// Helper function to format feature flag names for display
 function formatFeatureFlagName(key: string): string {
-  // Convert camelCase to Title Case with spaces
   return key
-    .replace(/([A-Z])/g, ' $1') // Insert a space before all capital letters
-    .replace(/^./, (str) => str.toUpperCase()) // Capitalize the first letter
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (str) => str.toUpperCase())
     .trim();
 }

@@ -3,6 +3,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { trpc } from '../../utils/trpc';
 import { getSolscanAddressUrl } from '@baskt/ui';
+import { Loading } from '../ui/loading';
 
 import { AssetPriceHistoryPage } from './AssetPriceHistoryPage';
 import React, { useState } from 'react';
@@ -13,6 +14,7 @@ import {
   DropdownMenuItem,
 } from '../ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
+
 
 export function AdminAssetsList() {
   const { data: assets, isLoading, error } = trpc.asset.getAllAssetsWithConfig.useQuery();
@@ -52,17 +54,17 @@ export function AdminAssetsList() {
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={10} className="h-32 text-center">
-                <div className="flex flex-col items-center justify-center gap-2">
-                  <p className="text-white/60 text-sm">Loading assets...</p>
+              <TableCell colSpan={10} className="h-32">
+                <div className="flex items-center justify-center">
+                  <Loading />
                 </div>
               </TableCell>
             </TableRow>
           ) : assets?.data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="h-32 text-center">
-                <div className="flex flex-col items-center justify-center gap-2">
-                  <p className="text-white/60 text-sm">No assets found</p>
+              <TableCell colSpan={10} className="h-32">
+                <div className="flex items-center justify-center">
+                  <Loading />
                 </div>
               </TableCell>
             </TableRow>

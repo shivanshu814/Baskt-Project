@@ -3,17 +3,7 @@ import { Button } from '../ui/button';
 import { Share2, ArrowUp, ArrowDown } from 'lucide-react';
 import { ShareBasktModal } from './ShareBasktModal';
 import { useState } from 'react';
-
-interface SuggestedBaskt {
-  id: string;
-  name: string;
-  price: number;
-  change24h: number;
-}
-
-interface SuggestedBasktsProps {
-  suggestedBaskts: SuggestedBaskt[];
-}
+import { SuggestedBaskt, SuggestedBasktsProps } from '@baskt/ui/types/constants';
 
 export function SuggestedBaskts({ suggestedBaskts }: SuggestedBasktsProps) {
   const [selectedBaskt, setSelectedBaskt] = useState<SuggestedBaskt | null>(null);
