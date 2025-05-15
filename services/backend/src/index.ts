@@ -4,6 +4,8 @@ import express from 'express';
 import cors from 'cors';
 import { initTRPC } from '@trpc/server';
 import { z } from 'zod';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const t = initTRPC.create();
 
@@ -24,7 +26,7 @@ app.use('/trpc', (_req, res) => {
   res.json({ message: 'tRPC endpoint' });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
