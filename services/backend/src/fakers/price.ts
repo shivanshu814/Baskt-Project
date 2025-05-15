@@ -24,16 +24,16 @@ export function generateDailyNavHistory(baselineconfig: OnchainAssetConfig[], ba
 
 export function generateNavHistory(baselineconfig: OnchainAssetConfig[], baselineNav: BN) {
   const dailyHistory = generateDailyNavHistory(baselineconfig, baselineNav);
-  
+
   // Generate weekly history by taking every 7th day
   const weeklyHistory = dailyHistory.filter((_, index) => index % 7 === 0);
-  
+
   // Generate monthly history by taking every 30th day
   const monthlyHistory = dailyHistory.filter((_, index) => index % 30 === 0);
-  
+
   // Generate yearly history by taking every 365th day
   const yearlyHistory = dailyHistory.filter((_, index) => index % 365 === 0);
-  
+
   return {
     daily: dailyHistory,
     weekly: weeklyHistory,

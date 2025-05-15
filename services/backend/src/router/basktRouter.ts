@@ -99,8 +99,6 @@ export const basktRouter = router({
         }),
       );
 
-      console.log(combinedBaskts);
-
       return { success: true, data: combinedBaskts };
     } catch (error) {
       console.error('Error fetching baskts:', error);
@@ -178,33 +176,27 @@ async function getBasktInfoFromAddress(basktId: string) {
   if (!onchainBaskt) {
     return null;
   }
-  console.log({ basktMetadata }, ' this is basktmetadata');
-  console.log({ onchainBaskt }, ' this is onchainBaskt');
   return convertToBasktInfo(onchainBaskt, basktMetadata);
 }
 
 async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
-  console.log(onchainBaskt);
   const assets = await Promise.all(
     onchainBaskt.currentAssetConfigs.map(async (asset: any) => ({
       ...(await getAssetFromAddress(asset.assetId.toString())),
       weight: (asset.weight.toNumber() * 100) / 10_000,
       direction: asset.direction,
       id: asset.assetId.toString(),
-      baselinePrice: asset.baselinePrice.toNumber(),
+      baselinePrice: asset.baselinePrice.toNumber() / 1e9,
       volume24h: 0,
       marketCap: 0,
     })),
   );
-
-  console.log(assets);
 
   const basktId =
     basktMetadata?.basktId?.toString() ||
     onchainBaskt.basktId?.toString() ||
     onchainBaskt.account?.basktId?.toString();
 
-  //TODO pricing from somewhere else
   const price = calculateNav(
     onchainBaskt.currentAssetConfigs.map((asset: any) => ({
       ...asset,
@@ -215,7 +207,7 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
           assetId: new PublicKey(asset.id),
           direction: asset.direction,
           weight: new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100),
-          baselinePrice: new BN(asset.price),
+          baselinePrice: new BN(asset.priceRaw),
         }) as OnchainAssetConfig,
     ),
     new BN(onchainBaskt.baselineNav),
@@ -234,7 +226,7 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     txSignature: basktMetadata?.txSignature,
     assets,
     totalAssets: assets.length,
-    price: price.toNumber() / NAV_PRECISION.toNumber(),
+    price: price ? price.toNumber() / NAV_PRECISION.toNumber() : null,
     change24h: 0,
     aum: 0,
     sparkline: [],

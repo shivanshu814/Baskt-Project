@@ -30,7 +30,6 @@ export async function fetchAssetPrices(tokens: AssetPriceProviderConfig[]): Prom
   cache.clear();
   for (const token of tokens) {
     let prices;
-    console.log(token);
     const priceProvider = token.provider;
     prices = await fetchTokenPrice(priceProvider.name, priceProvider.chain, priceProvider.id);
     if (!prices) {

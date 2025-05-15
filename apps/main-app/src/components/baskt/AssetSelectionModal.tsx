@@ -60,7 +60,7 @@ export function AssetSelectionModal({
         </DialogHeader>
 
         <div className="space-y-4">
-            {/* Search bar */}
+          {/* Search bar */}
           <div className="relative">
             <Search className="absolute left-4 top-3 h-4 w-4 text-muted-foreground" />
             <Input
@@ -70,8 +70,8 @@ export function AssetSelectionModal({
               className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#1A1A2B] border border-[#2D2D3C] text-white placeholder:text-muted-foreground"
             />
           </div>
-            {/* Asset list */}
-            <div className="max-h-[400px] overflow-y-auto">
+          {/* Asset list */}
+          <div className="max-h-[400px] overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center py-4">
                 <Loading />
@@ -107,7 +107,7 @@ export function AssetSelectionModal({
                   </div>
 
                   <div className="flex flex-col items-end">
-                    <span>{asset.price}</span>
+                    <span>{asset.price.toFixed(2)}</span>
                     <span
                       className={
                         asset.change24h >= 0 ? 'text-success text-xs' : 'text-destructive text-xs'

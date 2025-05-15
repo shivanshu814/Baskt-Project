@@ -128,7 +128,6 @@ export default function BasktDetailPage() {
     );
   }
 
-  console.log('baskt', baskt);
 
   return (
     <div>
@@ -194,7 +193,7 @@ export default function BasktDetailPage() {
 
                   <div className="space-y-1">
                     <h3 className="text-[11px] text-muted-foreground">Categories</h3>
-                    <p className="font-bold text-[14px]">{baskt?.category.join(', ')}</p>
+                    <p className="font-bold text-[14px]">{baskt?.categories?.join(', ')}</p>
                   </div>
 
                   <div className="space-y-1">

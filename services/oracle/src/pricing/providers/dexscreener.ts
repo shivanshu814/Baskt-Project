@@ -1,7 +1,6 @@
 import axios from 'axios';
 
 export default async function getDexScreenerData(pairId: string, chain: string) {
-  console.log(pairId, chain);
   const url = `https://api.dexscreener.com/latest/dex/pairs/${chain}/${pairId}`;
   const options = {
     method: 'GET',

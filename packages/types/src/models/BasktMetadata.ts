@@ -1,21 +1,7 @@
 import mongoose, { ObjectId } from 'mongoose';
-import { BasktAssetInfo } from '../ui';
 
 type TimeUnit = 'day' | 'hour';
 type RiskLevel = 'low' | 'medium' | 'high';
-
-interface PriceHistoryEntry {
-  date: string;
-  price: number;
-  volume: number;
-}
-
-interface PriceHistory {
-  daily: PriceHistoryEntry[];
-  weekly: PriceHistoryEntry[];
-  monthly: PriceHistoryEntry[];
-  yearly: PriceHistoryEntry[];
-}
 
 /**
  * Interface for BasktMetadata model
@@ -39,29 +25,6 @@ export interface BasktMetadataModel {
   _id?: string;
   createdAt?: Date;
   updatedAt?: Date;
-}
-
-export interface BasktInfo extends Omit<BasktMetadataModel, 'assets'> {
-  assets: BasktAssetInfo[];
-  aum: number;
-  change24h: number;
-  price: number;
-  totalAssets: number;
-  category: string[];
-  performance: {
-    day: number;
-    week: number;
-    month: number;
-    year?: number;
-  };
-  sparkline: number[];
-  priceHistory?: PriceHistory;
-}
-
-export interface BasktPageState {
-  filteredBaskts: BasktInfo[];
-  popularBaskts: BasktInfo[];
-  categoryBaskts: Record<string, BasktInfo[]>;
 }
 
 /**

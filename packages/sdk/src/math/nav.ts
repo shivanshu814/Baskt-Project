@@ -10,21 +10,26 @@ export function calculateNav(
   current: OnchainAssetConfig[],
   currentNav: BN,
 ) {
-  let newNav = currentNav.clone();
-  let navChange = new BN(0);
+  try {
+    let newNav = currentNav.clone();
+    let navChange = new BN(0);
 
-  for (let i = 0; i < current.length; i++) {
-    const asset = current[i];
-    const baselineAsset = baseline[i];
-    const priceChange = asset.baselinePrice.sub(baselineAsset.baselinePrice); // in 1e9
-    const relativePriceChange = priceChange; // There is technicall a div(baselineAsset.price) here but we are not doing it to preservice BN precision
-    const weightedPriceChange = relativePriceChange.mul(new BN(asset.weight));
-    const directionalChange = weightedPriceChange.mul(new BN(asset.direction ? 1 : -1));
-    navChange = navChange.add(currentNav.mul(directionalChange).div(baselineAsset.baselinePrice));
+    for (let i = 0; i < current.length; i++) {
+      const asset = current[i];
+      const baselineAsset = baseline[i];
+      const priceChange = asset.baselinePrice.sub(baselineAsset.baselinePrice); // in 1e9
+      const relativePriceChange = priceChange; // There is technicall a div(baselineAsset.price) here but we are not doing it to preservice BN precision
+      const weightedPriceChange = relativePriceChange.mul(new BN(asset.weight));
+      const directionalChange = weightedPriceChange.mul(new BN(asset.direction ? 1 : -1));
+      navChange = navChange.add(currentNav.mul(directionalChange).div(baselineAsset.baselinePrice));
+    }
+
+    // in weightPriceChange we multiply by weight which is WEIGHT_PRECISION so we need to remove it from the nav here
+    newNav = newNav.add(navChange.div(WEIGHT_PRECISION));
+
+    return newNav.lte(new BN(0)) ? new BN(0) : newNav;
+  } catch (error) {
+    console.error('Error calculating NAV:', error);
+    return currentNav;
   }
-
-  // in weightPriceChange we multiply by weight which is WEIGHT_PRECISION so we need to remove it from the nav here
-  newNav = newNav.add(navChange.div(WEIGHT_PRECISION));
-
-  return newNav.lte(new BN(0)) ? new BN(0) : newNav;
 }
