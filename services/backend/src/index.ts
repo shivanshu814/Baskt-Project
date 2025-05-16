@@ -22,7 +22,6 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/trpc', (_req, res) => {
-  // tRPC handler will be implemented here
   res.json({ message: 'tRPC endpoint' });
 });
 

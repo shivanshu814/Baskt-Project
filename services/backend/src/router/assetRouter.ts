@@ -4,10 +4,8 @@ import { AssetMetadataModel } from '../utils/models';
 import { OnchainAsset } from '@baskt/types';
 import { router, publicProcedure } from '../trpc/trpc';
 import { z } from 'zod';
-import { BN } from 'bn.js';
 
 const sdkClientInstance = sdkClient();
-
 const assetIdCache: Map<string, string> = new Map();
 
 export const assetRouter = router({
@@ -72,7 +70,7 @@ async function getAllAssetsInternal(config: boolean) {
       };
     }
 
-    // Map Asset to the configs and combine then
+    // Map Asset to the configs and combine then backend + onchain
     const combinedAssets = assetConfigs.map((assetConfig) => {
       return combineAsset(
         assets.find((asset) => asset.ticker.toString() === assetConfig.ticker.toString())!,

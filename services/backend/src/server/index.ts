@@ -14,7 +14,6 @@ connectMongoDB();
 app.use(cors());
 app.use(express.json());
 
-// tRPC middleware
 app.use(
   '/trpc',
   trpcExpress.createExpressMiddleware({
@@ -23,7 +22,6 @@ app.use(
   }),
 );
 
-// Health check endpoint
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
@@ -33,7 +31,6 @@ const server = app.listen(port, () => {
   console.log(`tRPC endpoint: http://localhost:${port}/trpc`);
 });
 
-// Handle graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received. Shutting down gracefully');
   server.close(() => {

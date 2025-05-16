@@ -12,27 +12,18 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
-    "@baskt/sdk": "workspace:*",
     "@baskt/types": "workspace:*",
-    "@trpc/client": "^10.45.1",
     "axios": "^1.8.4",
     "bn.js": "^5.2.1",
     "bullmq": "^5.49.1",
     "dotenv": "^16.4.7",
     "ioredis": "^5.6.1",
     "mongoose": "^8.13.2",
-    "pg": "^8.14.1",
-    "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.7",
-    "sequelize-cli": "^6.6.2"
+    "uuid": "^11.1.0",
+    "ws": "^8.18.2"
   },
   "devDependencies": {
-    "@eslint/js": "^8.57.0",
-    "@types/bn.js": "^5.1.6",
-    "@types/node": "^20.11.24",
-    "eslint": "^9.0.0",
-    "tsx": "^4.7.1",
-    "typescript": "^5.3.3",
-    "typescript-eslint": "^7.2.0"
+    "@types/bn.js": "^5.1.6"
   }
 }

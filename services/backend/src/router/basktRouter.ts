@@ -9,7 +9,7 @@ import { OnchainAssetConfig } from '@baskt/types';
 import { BN } from 'bn.js';
 import { generateNavHistory } from '../fakers/price';
 
-// Schema for validating baskt creation request
+const sdkClientInstance = sdkClient();
 const createBasktSchema = z.object({
   basktId: z.string(),
   name: z.string().min(1).max(30),
@@ -25,8 +25,6 @@ const createBasktSchema = z.object({
   }),
   txSignature: z.string(),
 });
-
-const sdkClientInstance = sdkClient();
 
 export const basktRouter = router({
   createBasktMetadata: publicProcedure.input(createBasktSchema).mutation(async ({ input }) => {
@@ -151,12 +149,10 @@ export const basktRouter = router({
         };
       }
 
-      // Format the time data for lightweight-charts
       // It expects either a UNIX timestamp (seconds) or a string in format 'YYYY-MM-DD'
       return {
         success: true,
         data: basktInfo.priceHistory.daily.map((item) => {
-          // Convert ISO string to timestamp in seconds
           const timestamp = Math.floor(new Date(item.date).getTime() / 1000);
           return {
             time: timestamp,

@@ -2,7 +2,6 @@
 
 import { initTRPC, TRPCError } from '@trpc/server';
 
-// Do not move. This has to be at the base
 import dotenv from 'dotenv';
 dotenv.config();
 

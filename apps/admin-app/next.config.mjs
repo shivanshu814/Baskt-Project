@@ -5,14 +5,14 @@
 
 const nextConfig = {
 	reactStrictMode: true,
-	transpilePackages: ['@monorepo/ui'],
+	transpilePackages: ['@baskt/ui'],
 	experimental: {
 		serverActions: true,
 	},
 	webpack: (config) => {
 		config.resolve.alias = {
 			...config.resolve.alias,
-			'@monorepo/ui': require.resolve('@monorepo/ui'),
+			'@baskt/ui': require.resolve('@baskt/ui'),
 		};
 		return config;
 	},
