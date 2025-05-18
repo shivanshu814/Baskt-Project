@@ -46,9 +46,7 @@ jobs:
     needs: [test-and-build]
     if: |
       github.event_name == 'push' &&
-      !contains(github.event.head_commit.message, 'skip-deploy') &&
-      startsWith(github.event.head_commit.message, 'Merge')
-
+      !contains(github.event.head_commit.message, 'skip-deploy')
     env:
       BRANCH_NAME: ${{ github.ref_name }}
 
