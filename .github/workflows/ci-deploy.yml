@@ -79,7 +79,7 @@ jobs:
           password: ${{ steps.env.outputs.PASS }}
           port: 22
           script: |
-            cd /monorepo
+            cd ~/monorepo
             git fetch origin
             git reset --hard origin/${{ github.ref_name }}
             pnpm install
