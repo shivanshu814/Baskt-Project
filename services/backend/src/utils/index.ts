@@ -1,12 +1,18 @@
 import { BaseClient } from '@baskt/sdk';
 import { Connection, Keypair } from '@solana/web3.js';
+import * as anchor from '@coral-xyz/anchor';
 
 export class SDKClient extends BaseClient {
   public keypair: Keypair;
+
   constructor() {
     const keypair = Keypair.generate();
-    super(
+    const anchorProvider = new anchor.AnchorProvider(
       new Connection(process.env.SOLANA_RPC_URL || 'http://localhost:8899'),
+      new anchor.Wallet(keypair),
+    );
+    super(
+      anchorProvider.connection,
       {
         sendAndConfirmLegacy: (tx) => {
           console.error('sendAndConfirmLegacy not implemented');
@@ -18,6 +24,7 @@ export class SDKClient extends BaseClient {
         },
       },
       keypair.publicKey,
+      anchorProvider,
     );
     this.keypair = keypair;
   }

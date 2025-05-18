@@ -8,8 +8,6 @@ const isProd = process.env.NODE_ENV === 'production';
 const scriptSrc = [
   "'self'",
   "https://challenges.cloudflare.com",
-  !isProd && "'unsafe-inline'",
-  !isProd && "'unsafe-eval'",
 ].filter(Boolean).join(' ');
 
 const connectSrc = [
@@ -20,9 +18,6 @@ const connectSrc = [
   "wss://www.walletlink.org",
   "https://*.rpc.privy.systems",
   "https://explorer-api.walletconnect.com",
-  !isProd && "http://localhost:4000",
-  !isProd && "http://127.0.0.1:8899",
-  !isProd && "http://localhost:8899",
 ].filter(Boolean).join(' ');
 
 const imgSrc = [
@@ -65,7 +60,7 @@ const nextConfig = {
         source: '/:path*',
         headers: [
           {
-            key: 'Content-Security-Policy',
+            key: 'Content-Security-Policy-Report-Only',
             value: ContentSecurityPolicy,
           },
         ],

@@ -122,6 +122,7 @@ export function combineAsset(
   //TODO a big concern is how we store BN price in the database
 
   return {
+    _id: config._id,
     ticker: onchainAsset.ticker,
     assetAddress: onchainAsset.address.toString(),
     logo: config.logo,

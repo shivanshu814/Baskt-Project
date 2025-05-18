@@ -1,4 +1,6 @@
 /** @format */
+import dotenv from 'dotenv';
+dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
@@ -7,7 +9,7 @@ import { appRouter } from '../router/';
 import { connectMongoDB, disconnectMongoDB } from '../config/mongo';
 
 const app = express();
-const port = 4000;
+const port = process.env.PORT || 4000;
 
 connectMongoDB();
 

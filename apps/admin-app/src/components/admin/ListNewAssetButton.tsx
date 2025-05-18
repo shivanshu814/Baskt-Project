@@ -262,7 +262,7 @@ export function ListNewAssetButton() {
                               </SelectTrigger>
                               <SelectContent>
                                 {providerOptions.map((option) => (
-                                  <SelectItem key={option} value={option}>
+                                  <SelectItem key={option} value={option.toLowerCase()}>
                                     {option}
                                   </SelectItem>
                                 ))}

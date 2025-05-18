@@ -13,6 +13,7 @@
   "dependencies": {
     "@baskt/sdk": "workspace:*",
     "@baskt/types": "workspace:*",
+    "@coral-xyz/anchor": "0.31.0",
     "@solana/web3.js": "1.98.0",
     "@trpc/server": "^10.45.1",
     "@vercel/blob": "^1.0.0",

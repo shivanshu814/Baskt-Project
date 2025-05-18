@@ -2,10 +2,13 @@ import { Worker } from 'bullmq';
 import { pricingQueue, connection } from './config/queue';
 import { AssetMetadataModel as AssetMetadataModelType, AssetMetadataSchema } from '@baskt/types';
 import { fetchAssetPrices } from './pricing';
-
+import { connectMongoDB } from './config/mongo';
 import { AssetPrice } from './config/sequelize';
 import { Op } from 'sequelize';
 import mongoose from 'mongoose';
+
+//TODO: We need to store strings as stuff for all numbers
+//TODO: This is broken for 24h window
 
 const AssetMetadataModel = mongoose.model('AssetMetadata', AssetMetadataSchema);
 
@@ -14,6 +17,8 @@ const pricingWorker = new Worker(
   pricingQueue.name,
   async (job) => {
     console.log(`Processing job: ${job.name} ${job.data._id}`);
+
+    await connectMongoDB();
 
     const oracleConfig = job.data as AssetMetadataModelType;
 
@@ -45,8 +50,8 @@ const pricingWorker = new Worker(
         {
           $set: {
             priceMetrics: {
-              price: prices[0].priceUSD,
-              change24h: priceChange24h,
+              price: prices[0].priceUSD.toString(),
+              change24h: priceChange24h.toString(),
               timestamp: new Date().getTime(),
             },
           },

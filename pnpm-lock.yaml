@@ -409,6 +409,9 @@ importers:
       chai:
         specifier: ^4.3.4
         version: 4.5.0
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
 
   packages/types:
     dependencies:
@@ -468,6 +471,9 @@ importers:
       react:
         specifier: ^18.3.1
         version: 18.3.1
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
 
   services/backend:
     dependencies:
@@ -477,6 +483,9 @@ importers:
       '@baskt/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@coral-xyz/anchor':
+        specifier: 0.31.0
+        version: 0.31.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
       '@solana/web3.js':
         specifier: 1.98.0
         version: 1.98.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)

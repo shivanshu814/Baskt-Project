@@ -20,10 +20,11 @@ export function AdminAssetsList() {
   const { data: assets, isLoading, error } = trpc.asset.getAllAssetsWithConfig.useQuery();
   const [selectedAsset, setSelectedAsset] = useState<any | null>(null);
 
+
   if (selectedAsset) {
     return (
       <AssetPriceHistoryPage
-        assetAddress={selectedAsset.account.address.toString()}
+        assetAddress={selectedAsset._id.toString()}
         assetName={selectedAsset.name || selectedAsset.ticker}
         assetLogo={selectedAsset.logo}
         ticker={selectedAsset.ticker}
