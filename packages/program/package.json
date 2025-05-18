@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build:anchor": "pnpm --filter @baskt/sdk build && anchor build",
+    "build:anchor": "anchor build && pnpm --filter @baskt/sdk build",
     "clean": "rimraf dist",
     "localnet": "anchor localnet",
-    "test": "pnpm --filter @baskt/sdk build && anchor test",
+    "test": "anchor build && pnpm --filter @baskt/sdk build && anchor test",
+    "test:file": "anchor build && pnpm --filter @baskt/sdk build && anchor test --run",
     "lint": "eslint tests --ext test.ts",
     "deploy:local": "npx tsx scripts/deploy-local.ts"
   },
@@ -26,6 +27,7 @@
     "@types/node": "^22.13.11",
     "chai": "^4.3.4",
     "eslint": "^8.56.0",
-    "mocha": "^9.0.3"
+    "mocha": "^9.0.3",
+    "ts-mocha": "^10.0.0"
   }
 }

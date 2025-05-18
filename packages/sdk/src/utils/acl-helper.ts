@@ -10,6 +10,14 @@ export function toRoleString(role: AccessControlRole): string {
       return 'OracleManager';
     case AccessControlRole.Rebalancer:
       return 'Rebalancer';
+    case AccessControlRole.Matcher:
+      return 'Matcher';
+    case AccessControlRole.Liquidator:
+      return 'Liquidator';
+    case AccessControlRole.FundingManager:
+      return 'FundingManager';
+    case AccessControlRole.Treasury:
+      return 'Treasury';
     default:
       return 'Unknown';
   }
@@ -22,6 +30,14 @@ export function stringToRole(roleStr: string): AccessControlRole {
       return AccessControlRole.OracleManager;
     case 'Rebalancer':
       return AccessControlRole.Rebalancer;
+    case 'Matcher':
+      return AccessControlRole.Matcher;
+    case 'Liquidator':
+      return AccessControlRole.Liquidator;
+    case 'FundingManager':
+      return AccessControlRole.FundingManager;
+    case 'Treasury':
+      return AccessControlRole.Treasury;
     case 'Owner':
       // For Owner role, we can't actually add it as a role in the access control list
       // but we handle it specially in the hasPermission method

@@ -30,6 +30,8 @@ describe('activate baskt', () => {
     return basktId;
   }
 
+  // Default maxPriceAgeSec for tests
+  const DEFAULT_MAX_PRICE_AGE_SEC = 60;
   // Set up test roles and assets before running tests
   before(async () => {
     // Create assets that will be used across tests
@@ -81,7 +83,7 @@ describe('activate baskt', () => {
     ];
 
     // Activate the baskt as the owner (using default client)
-    await client.activateBaskt(basktId, prices);
+    await client.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
 
     // Get the baskt after activation
     const basktAfter = await client.getBaskt(basktId);
@@ -98,11 +100,11 @@ describe('activate baskt', () => {
     );
 
     // Verify baseline NAV was set
-    expect(basktAfter.baselineNav.toString()).to.equal('1000000');
+    expect(basktAfter.baselineNav.toString()).to.equal('100000000000');
 
     // Try to activate again - should fail with BasktAlreadyActive
     try {
-      await client.activateBaskt(basktId, prices);
+      await client.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('BasktAlreadyActive');
@@ -131,7 +133,7 @@ describe('activate baskt', () => {
 
     // Activate the baskt as the oracle manager
     const oracleManagerClient = await TestClient.forUser(client.oracleManager);
-    await oracleManagerClient.activateBaskt(basktId, prices);
+    await oracleManagerClient.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
 
     // Get the baskt after activation
     const basktAfter = await client.getBaskt(basktId);
@@ -145,7 +147,7 @@ describe('activate baskt', () => {
     );
 
     // Verify baseline NAV was set
-    expect(basktAfter.baselineNav.toString()).to.equal('1000000');
+    expect(basktAfter.baselineNav.toString()).to.equal('100000000000');
   });
 
   it('Fails to activate a baskt from a regular user', async () => {
@@ -178,7 +180,7 @@ describe('activate baskt', () => {
 
     // Attempt to activate the baskt as a regular user - should fail
     try {
-      await userClient.activateBaskt(basktId, prices);
+      await userClient.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('Unauthorized');
@@ -210,7 +212,7 @@ describe('activate baskt', () => {
 
     // Attempt to activate the baskt as a rebalancer - should fail
     try {
-      await rebalancerClient.activateBaskt(basktId, prices);
+      await rebalancerClient.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('Unauthorized');
@@ -242,7 +244,7 @@ describe('activate baskt', () => {
       .map((_, i) => new BN(1000 + i * 100)); // Different price for each asset
 
     // Activate the baskt as the owner (using default client)
-    await client.activateBaskt(basktId, prices);
+    await client.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
 
     // Get the baskt after activation
     const basktAfter = await client.getBaskt(basktId);
@@ -258,7 +260,7 @@ describe('activate baskt', () => {
     }
 
     // Verify baseline NAV was set
-    expect(basktAfter.baselineNav.toString()).to.equal('1000000');
+    expect(basktAfter.baselineNav.toString()).to.equal('100000000000');
   });
 
   it('Fails to activate a baskt with mismatched price count', async () => {
@@ -287,7 +289,7 @@ describe('activate baskt', () => {
     try {
       // Use the oracle manager client to ensure we don't fail due to permissions
       const oracleManagerClient = await TestClient.forUser(client.oracleManager);
-      await oracleManagerClient.activateBaskt(basktId, prices);
+      await oracleManagerClient.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('InvalidBasktConfig');

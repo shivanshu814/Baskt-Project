@@ -1,3 +1,4 @@
+use crate::constants::Constants;
 use crate::error::PerpetualsError;
 use anchor_lang::prelude::*;
 
@@ -9,56 +10,52 @@ impl Utils {
         Ok(account_info.data_is_empty() || account_info.data_len() == 0)
     }
 
-    /// REVIEW: This basically would mean the user would have to keep positions open for atleast an hour to receive the fuding
-    /// We can't have that since it would be detrimental for us.
-    /// We should be charging them a fuding rate even if the positions are open for > X amount.
-    /// The current math won't allow anything else other than hours.
-    /// Example if elapsed time is 15mins. it would be zero in this case.
-    /// This feedback applies to both payment and rate methods
-
     /// Calculate funding payment for a position based on funding rate, position size, and elapsed time
+    /// This implementation uses integer math for all calculations to avoid precision loss for sub-hourly periods
     pub fn calculate_funding_payment(
         funding_rate: i64,
         position_size: u64,
         is_long: bool,
         elapsed_time_seconds: i64,
         bps_divisor: u64,
-        price_precision: u64,
     ) -> Result<i64> {
         // If funding rate is zero, no payment
         if funding_rate == 0 {
             return Ok(0);
         }
 
-        // Calculate time in hours (as a fraction)
-        // REVIEW: This basically would mean the user would have to keep positions open for atleast an hour to receive the fuding
-        // We can't have that since it would be detrimental for us.
-        // We should be charging them a fuding rate even if the positions are open for > X amount.
-        // The current math won't allow anything else other than hours.
-        // Example if elapsed time is 15mins. it would be zero in this case.
-        let hours_elapsed = (elapsed_time_seconds as f64) / 3600.0;
-        let hours_elapsed_scaled = (hours_elapsed * price_precision as f64) as i64;
-
-        // Calculate funding payment
         // For longs: positive funding rate means they pay, negative means they receive
         // For shorts: positive funding rate means they receive, negative means they pay
         let funding_direction = if is_long { 1 } else { -1 };
         let payment_direction = funding_direction * funding_rate.signum();
-
-        // Calculate absolute payment amount
-        let payment_amount = (position_size as i128)
+        
+        // Calculate absolute payment amount using precise integer math
+        // The funding rate is hourly, so we need to scale by elapsed_time_seconds / FUNDING_INTERVAL_SECONDS
+        // Formula: payment = position_size * funding_rate * elapsed_time_seconds / (bps_divisor * FUNDING_INTERVAL_SECONDS)
+        
+        // First, calculate position_size * funding_rate
+        let position_funding = (position_size as i128)
             .checked_mul(funding_rate.abs() as i128)
-            .ok_or(PerpetualsError::MathOverflow)?
-            .checked_mul(hours_elapsed_scaled as i128)
-            .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(bps_divisor as i128)
-            .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(price_precision as i128)
+            .ok_or(PerpetualsError::MathOverflow)?;
+            
+        // Then multiply by elapsed_time_seconds
+        let time_scaled_funding = position_funding
+            .checked_mul(elapsed_time_seconds as i128)
+            .ok_or(PerpetualsError::MathOverflow)?;
+            
+        // Divide by bps_divisor * FUNDING_INTERVAL_SECONDS
+        // Note: We're using Constants::FUNDING_INTERVAL_SECONDS (3600) directly to avoid any floating-point conversions
+        let divisor = (bps_divisor as i128)
+            .checked_mul(Constants::FUNDING_INTERVAL_SECONDS as i128)
+            .ok_or(PerpetualsError::MathOverflow)?;
+            
+        let payment_amount = time_scaled_funding
+            .checked_div(divisor)
             .ok_or(PerpetualsError::MathOverflow)? as i64;
 
         // Apply direction (positive means user pays, negative means user receives)
         let final_payment = payment_amount * payment_direction;
-
+        
         Ok(final_payment)
     }
 
@@ -170,34 +167,32 @@ impl Utils {
 
                 -(loss as i64)
             }
+        } else if entry_price > exit_price {
+            // Short profit
+            let price_diff = entry_price
+                .checked_sub(exit_price)
+                .ok_or(PerpetualsError::MathOverflow)?;
+
+            let profit = (price_diff as u128)
+                .checked_mul(size as u128)
+                .ok_or(PerpetualsError::MathOverflow)?
+                .checked_div(price_precision as u128)
+                .ok_or(PerpetualsError::MathOverflow)?;
+
+            profit as i64
         } else {
-            if entry_price > exit_price {
-                // Short profit
-                let price_diff = entry_price
-                    .checked_sub(exit_price)
-                    .ok_or(PerpetualsError::MathOverflow)?;
+            // Short loss
+            let price_diff = exit_price
+                .checked_sub(entry_price)
+                .ok_or(PerpetualsError::MathOverflow)?;
 
-                let profit = (price_diff as u128)
-                    .checked_mul(size as u128)
-                    .ok_or(PerpetualsError::MathOverflow)?
-                    .checked_div(price_precision as u128)
-                    .ok_or(PerpetualsError::MathOverflow)?;
+            let loss = (price_diff as u128)
+                .checked_mul(size as u128)
+                .ok_or(PerpetualsError::MathOverflow)?
+                .checked_div(price_precision as u128)
+                .ok_or(PerpetualsError::MathOverflow)?;
 
-                profit as i64
-            } else {
-                // Short loss
-                let price_diff = exit_price
-                    .checked_sub(entry_price)
-                    .ok_or(PerpetualsError::MathOverflow)?;
-
-                let loss = (price_diff as u128)
-                    .checked_mul(size as u128)
-                    .ok_or(PerpetualsError::MathOverflow)?
-                    .checked_div(price_precision as u128)
-                    .ok_or(PerpetualsError::MathOverflow)?;
-
-                -(loss as i64)
-            }
+            -(loss as i64)
         };
 
         Ok(pnl)
@@ -222,13 +217,13 @@ impl Utils {
         liquidation_threshold_bps: u64,
         bps_divisor: u64,
     ) -> Result<bool> {
-        // Calculate PnL
+        let price_precision = Constants::PRICE_PRECISION;
         let pnl = Utils::calculate_pnl(
             entry_price,
             current_price,
             position_size,
             is_long,
-            bps_divisor, // Use bps_divisor as price precision for tests
+            price_precision,
         )?;
 
         // If profit, not liquidatable
@@ -444,7 +439,6 @@ mod tests {
         let is_long = true;
         let elapsed_time_seconds = 3600; // 1 hour
         let bps_divisor = 10000;
-        let price_precision = 1000000; // 6 decimal places
 
         let payment = Utils::calculate_funding_payment(
             funding_rate,
@@ -452,7 +446,6 @@ mod tests {
             is_long,
             elapsed_time_seconds,
             bps_divisor,
-            price_precision,
         )
         .unwrap();
 
@@ -470,7 +463,6 @@ mod tests {
         let is_long = false;
         let elapsed_time_seconds = 3600; // 1 hour
         let bps_divisor = 10000;
-        let price_precision = 1000000; // 6 decimal places
 
         let payment = Utils::calculate_funding_payment(
             funding_rate,
@@ -478,7 +470,6 @@ mod tests {
             is_long,
             elapsed_time_seconds,
             bps_divisor,
-            price_precision,
         )
         .unwrap();
 
@@ -496,7 +487,6 @@ mod tests {
         let is_long = true;
         let elapsed_time_seconds = 1800; // 30 minutes (0.5 hours)
         let bps_divisor = 10000;
-        let price_precision = 1000000; // 6 decimal places
 
         let payment = Utils::calculate_funding_payment(
             funding_rate,
@@ -504,7 +494,6 @@ mod tests {
             is_long,
             elapsed_time_seconds,
             bps_divisor,
-            price_precision,
         )
         .unwrap();
 
@@ -521,7 +510,6 @@ mod tests {
         let is_long = true;
         let elapsed_time_seconds = 3600; // 1 hour
         let bps_divisor = 10000;
-        let price_precision = 1000000; // 6 decimal places
 
         let payment = Utils::calculate_funding_payment(
             funding_rate,
@@ -529,7 +517,6 @@ mod tests {
             is_long,
             elapsed_time_seconds,
             bps_divisor,
-            price_precision,
         )
         .unwrap();
 
@@ -547,7 +534,6 @@ mod tests {
         let is_long = false;
         let elapsed_time_seconds = 3600; // 1 hour
         let bps_divisor = 10000;
-        let price_precision = 1000000; // 6 decimal places
 
         let payment = Utils::calculate_funding_payment(
             funding_rate,
@@ -555,7 +541,6 @@ mod tests {
             is_long,
             elapsed_time_seconds,
             bps_divisor,
-            price_precision,
         )
         .unwrap();
 
@@ -573,7 +558,6 @@ mod tests {
         let is_long = true;
         let elapsed_time_seconds = 3600; // 1 hour
         let bps_divisor = 10000;
-        let price_precision = 1000000; // 6 decimal places
 
         let payment = Utils::calculate_funding_payment(
             funding_rate,
@@ -581,7 +565,6 @@ mod tests {
             is_long,
             elapsed_time_seconds,
             bps_divisor,
-            price_precision,
         )
         .unwrap();
 
@@ -597,7 +580,6 @@ mod tests {
         let is_long = true;
         let elapsed_time_seconds = 28800; // 8 hours
         let bps_divisor = 10000;
-        let price_precision = 1000000; // 6 decimal places
 
         let payment = Utils::calculate_funding_payment(
             funding_rate,
@@ -605,7 +587,6 @@ mod tests {
             is_long,
             elapsed_time_seconds,
             bps_divisor,
-            price_precision,
         )
         .unwrap();
 
@@ -622,7 +603,6 @@ mod tests {
         let is_long = true;
         let elapsed_time_seconds = 3600; // 1 hour
         let bps_divisor = 10000;
-        let price_precision = 1000000; // 6 decimal places
 
         let payment = Utils::calculate_funding_payment(
             funding_rate,
@@ -630,7 +610,6 @@ mod tests {
             is_long,
             elapsed_time_seconds,
             bps_divisor,
-            price_precision,
         )
         .unwrap();
 
@@ -646,7 +625,6 @@ mod tests {
         let is_long = true;
         let elapsed_time_seconds = 3723; // 1 hour, 2 minutes, 3 seconds
         let bps_divisor = 10000;
-        let price_precision = 1000000; // 6 decimal places
 
         let payment = Utils::calculate_funding_payment(
             funding_rate,
@@ -654,16 +632,14 @@ mod tests {
             is_long,
             elapsed_time_seconds,
             bps_divisor,
-            price_precision,
         )
         .unwrap();
 
         // Expected: close to 10.34 (10000 * 10 / 10000 * (3723/3600))
-        // With integer math and scaling by price_precision, we need to check the actual value
+        // With integer math, we need to check the actual value
         // Let's calculate the expected value manually:
         // hours_elapsed = 3723/3600 = 1.034166...
-        // hours_elapsed_scaled = 1.034166... * 1000000 = 1034166.666...
-        // payment = 10000 * 10 * 1034166 / 10000 / 1000000 = 10.34166... (rounded to 10)
+        // payment = 10000 * 10 * 3723 / 10000 / 3600 = 10.34166... (rounded to 10)
         assert_eq!(payment, 10);
     }
 

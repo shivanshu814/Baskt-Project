@@ -37,6 +37,7 @@ describe('protocol feature flags', () => {
       allowClosePosition: true,
       allowPnlWithdrawal: false,
       allowCollateralWithdrawal: true,
+      allowAddCollateral: false,
       allowBasktCreation: false,
       allowBasktUpdate: true,
       allowTrading: false,
@@ -54,6 +55,7 @@ describe('protocol feature flags', () => {
     expect(featureFlags.allowClosePosition).to.be.true;
     expect(featureFlags.allowPnlWithdrawal).to.be.false;
     expect(featureFlags.allowCollateralWithdrawal).to.be.true;
+    expect(featureFlags.allowAddCollateral).to.be.false;
     expect(featureFlags.allowBasktCreation).to.be.false;
     expect(featureFlags.allowBasktUpdate).to.be.true;
     expect(featureFlags.allowTrading).to.be.false;
@@ -67,6 +69,7 @@ describe('protocol feature flags', () => {
       allowClosePosition: true,
       allowPnlWithdrawal: true,
       allowCollateralWithdrawal: true,
+      allowAddCollateral: true,
       allowBasktCreation: true,
       allowBasktUpdate: true,
       allowTrading: true,
@@ -82,18 +85,19 @@ describe('protocol feature flags', () => {
     const mockUpdateFeatureFlags = async () => {
       // Use the program directly with non-owner account
       return await program.methods
-        .updateFeatureFlags(
-          true, // allow_add_liquidity
-          true, // allow_remove_liquidity
-          true, // allow_open_position
-          true, // allow_close_position
-          true, // allow_pnl_withdrawal
-          true, // allow_collateral_withdrawal
-          true, // allow_baskt_creation
-          true, // allow_baskt_update
-          true, // allow_trading
-          true, // allow_liquidations
-        )
+        .updateFeatureFlags({
+          allowAddLiquidity: true, // allow_add_liquidity
+          allowRemoveLiquidity: true, // allow_remove_liquidity
+          allowOpenPosition: true, // allow_open_position
+          allowClosePosition: true, // allow_close_position
+          allowPnlWithdrawal: true, // allow_pnl_withdrawal
+          allowCollateralWithdrawal: true, // allow_collateral_withdrawal
+          allowAddCollateral: true, // allow_add_collateral
+          allowBasktCreation: true, // allow_baskt_creation
+          allowBasktUpdate: true, // allow_baskt_update
+          allowTrading: true, // allow_trading
+          allowLiquidations: true, // allow_liquidations
+        })
         .accounts({
           owner: nonOwnerAccount.publicKey,
           protocol: client.protocolPDA,

@@ -53,12 +53,12 @@ describe('asset', () => {
       await unauthorizedUser.addAsset('UNAUTH');
 
       // If we reach here, the test failed
-      expect.fail('Expected transaction to fail with UnauthorizedSigner error');
+      expect.fail('Expected transaction to fail with Unauthorized error');
     } catch (error) {
       // Use type assertion for the error
       const err = error as { message: string };
       // Verify the error is the expected one
-      expect(err.message).to.include('UnauthorizedSigner');
+      expect(err.message).to.include('Unauthorized');
     }
   });
 
@@ -99,7 +99,7 @@ describe('asset', () => {
       // Use type assertion for the error
       const err = error as { message: string };
       // Verify the error is the expected one
-      expect(err.message).to.include('UnauthorizedSigner');
+      expect(err.message).to.include('Unauthorized');
     }
 
     // Derive the asset address from the ticker

@@ -1,4 +1,4 @@
-// queue.js
+// queue.ts
 import dotenv from 'dotenv';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
@@ -11,7 +11,8 @@ export const connection = new Redis(process.env.REDIS_URL || 'redis://localhost:
 
 export const pricingQueueName = 'pricingQueue';
 export const managerQueueName = 'managerQueue';
+export const eventsQueueName = 'events';
 
 export const pricingQueue = new Queue(pricingQueueName, { connection });
-
 export const managerQueue = new Queue(managerQueueName, { connection });
+export const eventsQueue = new Queue(eventsQueueName, { connection });

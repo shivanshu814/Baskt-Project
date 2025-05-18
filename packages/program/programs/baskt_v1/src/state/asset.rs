@@ -7,7 +7,7 @@ pub struct AssetPermissions {
 }
 
 #[account]
-#[derive(Default, InitSpace)]
+#[derive(InitSpace)]
 pub struct SyntheticAsset {
     pub asset_id: Pubkey, // Account ID of the asset
     #[max_len(10)]

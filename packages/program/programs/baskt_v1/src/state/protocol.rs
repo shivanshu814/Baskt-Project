@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 /// Roles that can be assigned to accounts for access control
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq, InitSpace)]
 pub enum Role {
-    /// Owner,
+    /// Owner with global permissions
     Owner,
     /// Asset manager role with permission to add and manage assets
     AssetManager,
@@ -12,6 +12,14 @@ pub enum Role {
     OracleManager,
     /// Rebalancer role with permission to rebalance baskts
     Rebalancer,
+    /// Matcher role with permission to match orders and open/close positions
+    Matcher,
+    /// Liquidator role with permission to liquidate underwater positions
+    Liquidator,
+    /// FundingManager role with permission to update funding rates and indices
+    FundingManager,
+    /// Treasury role for receiving fees and penalties
+    Treasury,
 }
 
 /// Access control entry for a specific account
@@ -33,21 +41,21 @@ pub struct AccessControl {
 
 impl AccessControl {
     /// Check if an account has a specific role
-    pub fn has_role(&self, account: &Pubkey, role: Role) -> bool {
+    pub fn has_role(&self, account: Pubkey, role: Role) -> bool {
         self.entries
             .iter()
-            .any(|entry| &entry.account == account && entry.role == role)
+            .any(|entry| entry.account == account && entry.role == role)
     }
 
     /// Check if an account has owner role
-    pub fn is_owner(&self, account: &Pubkey) -> bool {
+    pub fn is_owner(&self, account: Pubkey) -> bool {
         self.has_role(account, Role::Owner)
     }
 
     /// Add a role to an account
     pub fn add_role(&mut self, account: Pubkey, role: Role) -> Result<()> {
         // Check if the account already has this role
-        if self.has_role(&account, role) {
+        if self.has_role(account, role) {
             return Ok(());
         }
 
@@ -58,10 +66,10 @@ impl AccessControl {
     }
 
     /// Remove a role from an account
-    pub fn remove_role(&mut self, account: &Pubkey, role: Role) -> Result<()> {
+    pub fn remove_role(&mut self, account: Pubkey, role: Role) -> Result<()> {
         let initial_len = self.entries.len();
         self.entries
-            .retain(|entry| !(entry.account == *account && entry.role == role));
+            .retain(|entry| !(entry.account == account && entry.role == role));
 
         if self.entries.len() == initial_len {
             return Err(error!(PerpetualsError::RoleNotFound));
@@ -86,6 +94,8 @@ pub struct FeatureFlags {
     pub allow_pnl_withdrawal: bool,
     /// Allow withdrawal of collateral
     pub allow_collateral_withdrawal: bool,
+    /// Allow adding collateral to existing positions
+    pub allow_add_collateral: bool,
     /// Allow creation of new baskts
     pub allow_baskt_creation: bool,
     /// Allow updating existing baskts
@@ -97,7 +107,7 @@ pub struct FeatureFlags {
 }
 
 #[account]
-#[derive(Default, InitSpace)]
+#[derive(InitSpace)]
 
 /**
  * REVIEW: I will need a permissions struct which can be used to turn of certain features of the system
@@ -132,6 +142,7 @@ impl Protocol {
             allow_close_position: true,
             allow_pnl_withdrawal: true,
             allow_collateral_withdrawal: true,
+            allow_add_collateral: true,
             allow_baskt_creation: true,
             allow_baskt_update: true,
             allow_trading: true,
@@ -147,22 +158,22 @@ impl Protocol {
     }
 
     /// Remove a role from an account
-    pub fn remove_role(&mut self, account: &Pubkey, role: Role) -> Result<()> {
+    pub fn remove_role(&mut self, account: Pubkey, role: Role) -> Result<()> {
         self.access_control.remove_role(account, role)
     }
 
     /// Check if an account has a specific role
-    pub fn has_role(&self, account: &Pubkey, role: Role) -> bool {
+    pub fn has_role(&self, account: Pubkey, role: Role) -> bool {
         self.access_control.has_role(account, role)
     }
 
     /// Check if an account is the owner or has owner role
-    pub fn is_owner(&self, account: &Pubkey) -> bool {
-        *account == self.owner || self.access_control.is_owner(account)
+    pub fn is_owner(&self, account: Pubkey) -> bool {
+        account == self.owner || self.access_control.is_owner(account)
     }
 
     /// Check if an account has permission (is owner or has the specified role)
-    pub fn has_permission(&self, account: &Pubkey, role: Role) -> bool {
+    pub fn has_permission(&self, account: Pubkey, role: Role) -> bool {
         self.is_owner(account) || self.has_role(account, role)
     }
 
@@ -194,12 +205,81 @@ mod tests {
 
     #[test]
     fn test_protocol_initialize() {
-        let mut state = Protocol::default();
+        let mut state = Protocol {
+            is_initialized: false,
+            owner: Pubkey::default(),
+            access_control: AccessControl::default(),
+            feature_flags: FeatureFlags::default(),
+        };
         let owner = Pubkey::new_unique();
 
         state.initialize(owner).unwrap();
 
         assert!(state.is_initialized());
         assert_eq!(state.get_owner(), owner);
+    }
+
+    #[test]
+    fn test_role_based_permissions() {
+        let mut state = Protocol {
+            is_initialized: false,
+            owner: Pubkey::default(),
+            access_control: AccessControl::default(),
+            feature_flags: FeatureFlags::default(),
+        };
+        let owner = Pubkey::new_unique();
+        let asset_manager = Pubkey::new_unique();
+        let liquidator = Pubkey::new_unique();
+        let random_user = Pubkey::new_unique();
+
+        // Initialize protocol with owner
+        state.initialize(owner).unwrap();
+
+        // Add roles to accounts
+        state.add_role(asset_manager, Role::AssetManager).unwrap();
+        state.add_role(liquidator, Role::Liquidator).unwrap();
+
+        // Test owner permissions
+        assert!(state.has_permission(owner, Role::Owner));
+        assert!(state.has_permission(owner, Role::AssetManager)); // Owner has all permissions
+        assert!(state.has_permission(owner, Role::Liquidator)); // Owner has all permissions
+
+        // Test specific role permissions
+        assert!(state.has_permission(asset_manager, Role::AssetManager));
+        assert!(!state.has_permission(asset_manager, Role::Liquidator));
+        assert!(state.has_permission(liquidator, Role::Liquidator));
+        assert!(!state.has_permission(liquidator, Role::AssetManager));
+
+        // Test unauthorized user
+        assert!(!state.has_permission(random_user, Role::AssetManager));
+        assert!(!state.has_permission(random_user, Role::Liquidator));
+        assert!(!state.has_permission(random_user, Role::Owner));
+
+        // Test role removal
+        state.remove_role(liquidator, Role::Liquidator).unwrap();
+        assert!(!state.has_permission(liquidator, Role::Liquidator));
+    }
+
+    #[test]
+    fn test_role_not_found_error() {
+        let mut state = Protocol {
+            is_initialized: false,
+            owner: Pubkey::default(),
+            access_control: AccessControl::default(),
+            feature_flags: FeatureFlags::default(),
+        };
+        let user = Pubkey::new_unique();
+
+        state.initialize(user).unwrap();
+
+        // Try to remove a role that doesn't exist
+        let random_user = Pubkey::new_unique();
+        let result = state.remove_role(random_user, Role::Liquidator);
+
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            error!(PerpetualsError::RoleNotFound).to_string()
+        );
     }
 }

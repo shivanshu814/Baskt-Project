@@ -1,3 +1,6 @@
+use anchor_lang::prelude::Pubkey;
+use anchor_lang::pubkey;
+
 #[allow(non_snake_case)]
 pub struct Constants {
     // Fee constants
@@ -28,6 +31,13 @@ pub struct Constants {
     // Price precision
     pub PRICE_EXPONENT: u32,
     pub PRICE_PRECISION: u64,
+
+    // Position constants
+    pub FUNDING_PRECISION: u64,
+    pub SECONDS_IN_HOUR: i64,
+
+    // Escrow mint
+    pub ESCROW_MINT: Pubkey,
 }
 
 impl Default for Constants {
@@ -60,7 +70,14 @@ impl Default for Constants {
 
             // Price precision
             PRICE_EXPONENT: 9,
-            PRICE_PRECISION: 10u64.pow(9), // 6 decimal places
+            PRICE_PRECISION: 10u64.pow(9), // 9 decimal places
+
+            // Position constants
+            FUNDING_PRECISION: 10u64.pow(6), // 6 decimal places
+            SECONDS_IN_HOUR: 3600,
+
+            // Escrow mint USDC token Address
+            ESCROW_MINT: pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"),
         }
     }
 }
@@ -74,12 +91,11 @@ impl Constants {
     pub const BPS_POWER: u32 = 4; // 10^4 = 10000
 
     // Funding rate constants
-    pub const FUNDING_RATE_MAX_BPS: u64 = 100; // 1% max funding rate
-    pub const MAX_FUNDING_RATE_BPS: u64 = 100; // 1% max funding rate
+    pub const MAX_FUNDING_RATE_BPS: u64 = 57; // 0.57% hourly = ~5000% APR
     pub const FUNDING_INTERVAL_SECONDS: i64 = 3600; // 1 hour
 
     // Collateral constants
-    pub const MIN_COLLATERAL_RATIO_BPS: u64 = 1000; // 10% minimum collateral
+    pub const MIN_COLLATERAL_RATIO_BPS: u64 = 11000; // 110% minimum collateral
     pub const LIQUIDATION_THRESHOLD_BPS: u64 = 500; // 5% threshold for liquidation
 
     // Liquidity pool constants
@@ -95,5 +111,12 @@ impl Constants {
 
     // Price precision
     pub const PRICE_EXPONENT: u32 = 9;
-    pub const PRICE_PRECISION: u64 = 10u64.pow(9); // 6 decimal places
+    pub const PRICE_PRECISION: u64 = 10u64.pow(9); // 9 decimal places
+
+    // Position constants
+    pub const FUNDING_PRECISION: u64 = 10u64.pow(6); // 6 decimal places
+    pub const SECONDS_IN_HOUR: i64 = 3600;
+
+    // Escrow mint
+    pub const ESCROW_MINT: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 }

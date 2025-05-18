@@ -1,30 +1,42 @@
 use crate::constants::Constants;
 use crate::error::PerpetualsError;
+use crate::events::BasktCreatedEvent;
 use crate::state::asset::SyntheticAsset;
 use crate::state::baskt::{AssetConfig, Baskt};
 use crate::state::protocol::{Protocol, Role};
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::keccak;
+
+// Make this a helper function that returns the right type for seeds
+fn get_baskt_name_seed(baskt_name: &str) -> [u8; 32] {
+    keccak::hash(baskt_name.as_bytes()).to_bytes()
+}
+
+// Helper function to check if an authority can activate a baskt
+fn can_activate_baskt(baskt: &Baskt, authority: Pubkey, protocol: &Protocol) -> bool {
+    baskt.creator == authority || 
+    protocol.has_permission(authority, Role::OracleManager)
+}
 
 #[derive(Accounts)]
-#[instruction(baskt_name: String)]
+#[instruction(params: CreateBasktParams)]
 pub struct CreateBaskt<'info> {
-    #[account(mut)]
-    pub creator: Signer<'info>,
-
     #[account(
-        init,
-        payer = creator,
-        space = 8 + Baskt::INIT_SPACE,
-        seeds = [b"baskt", baskt_name.as_bytes()],
+        init, 
+        payer = creator, 
+        space = 8 + Baskt::INIT_SPACE, 
+        seeds = [b"baskt", &get_baskt_name_seed(&params.baskt_name)[..]], 
         bump
     )]
     pub baskt: Account<'info, Baskt>,
 
-    /// Protocol account to check feature flags
+    #[account(mut)]
+    pub creator: Signer<'info>,
+
     #[account(seeds = [b"protocol"], bump)]
     pub protocol: Account<'info, Protocol>,
 
-    pub system_program: Program<'info, System>,
+    pub system_program: Program<'info, System>
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -46,7 +58,6 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
     let protocol = &ctx.accounts.protocol;
     let clock = Clock::get()?;
     let remaining = &ctx.remaining_accounts;
-
     // Check if baskt creation is allowed
     if !protocol.feature_flags.allow_baskt_creation {
         return Err(PerpetualsError::FeatureDisabled.into());
@@ -84,46 +95,67 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
         }
     }
 
-    // Map the asset configs to include the correct baseline prices
     let asset_configs: Vec<AssetConfig> = params
-        .asset_params
-        .iter()
-        .enumerate()
-        .map(|(i, config)| AssetConfig {
-            asset_id: remaining[i].key(),
-            direction: config.direction,
-            weight: config.weight,
-            baseline_price: 0,
-        })
-        .collect();
+    .asset_params
+    .iter()
+    .enumerate()
+    .map(|(i, config)| AssetConfig {
+        asset_id: remaining[i].key(),
+        direction: config.direction,
+        weight: config.weight,
+        baseline_price: 0,
+    })
+    .collect();
 
     baskt.initialize(
         baskt_key,
+        params.baskt_name.clone(),
         asset_configs,
         params.is_public,
         creator.key(),
         clock.unix_timestamp,
+        ctx.bumps.baskt
     )?;
+
+    emit!(BasktCreatedEvent {
+        baskt_id: baskt.key(),
+        baskt_name: params.baskt_name,
+        creator: creator.key(),
+        is_public: params.is_public,
+        asset_count: params.asset_params.len() as u8,
+        timestamp: clock.unix_timestamp,
+    });
 
     Ok(())
 }
 
 #[derive(Accounts)]
+#[instruction(params: ActivateBasktParams)]
 pub struct ActivateBaskt<'info> {
-    #[account(mut)]
+    #[account(
+        mut, 
+        seeds = [b"baskt", &get_baskt_name_seed(&baskt.baskt_name)[..]], 
+        bump = baskt.bump
+    )]
     pub baskt: Account<'info, Baskt>,
-
-    #[account(mut, constraint = protocol.has_permission(&authority.key(), Role::OracleManager) @ PerpetualsError::Unauthorized)]
-    pub authority: Signer<'info>,
-
+    
+    /// @dev Requires either baskt creator or OracleManager role to activate baskts
     #[account(seeds = [b"protocol"], bump)]
     pub protocol: Account<'info, Protocol>,
+
+    #[account(mut, constraint = can_activate_baskt(&baskt, authority.key(), &protocol) @ PerpetualsError::Unauthorized)]
+    pub authority: Signer<'info>,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct ActivateBasktParams {
+    pub prices: Vec<u64>,
+    pub max_price_age_sec: u32,
 }
 
 pub fn activate_baskt(
     ctx: Context<ActivateBaskt>,
-    prices: Vec<u64>,
-    max_price_age_sec: u32,
+    params: ActivateBasktParams,
 ) -> Result<()> {
     require!(
         ctx.accounts.baskt.is_active == false,
@@ -134,17 +166,19 @@ pub fn activate_baskt(
     let current_nav = 100 * Constants::PRICE_PRECISION;
 
     // Check if the number of prices matches the number of assets in the baskt
-    if prices.len() != baskt.current_asset_configs.len() {
+    if params.prices.len() != baskt.current_asset_configs.len() {
         return Err(PerpetualsError::InvalidBasktConfig.into());
     }
 
     // Activate the baskt with the provided prices
-    baskt.activate(prices, current_nav)?;
+    baskt.activate(params.prices, current_nav)?;
+    
+    // Set oracle params and validate max_price_age_sec
     baskt.oracle.set(
         current_nav,
         Clock::get().unwrap().unix_timestamp,
-        max_price_age_sec,
-    );
+        params.max_price_age_sec,
+    )?;
 
     Ok(())
 }

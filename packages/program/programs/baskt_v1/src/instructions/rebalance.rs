@@ -21,11 +21,12 @@ pub struct Rebalance<'info> {
     )]
     pub rebalance_history: Account<'info, RebalanceHistory>,
 
+    /// @dev Requires either baskt creator or Rebalancer role to rebalance
     #[account(
         mut,
         constraint = 
             baskt.creator == payer.key() ||
-            protocol.has_role(&payer.key(), Role::Rebalancer) @ PerpetualsError::Unauthorized
+            protocol.has_permission(payer.key(), Role::Rebalancer) @ PerpetualsError::Unauthorized
     )]
     pub payer: Signer<'info>,
     

@@ -10,10 +10,11 @@ pub struct UpdateCustomOracle<'info> {
     #[account(mut)]
     pub baskt: Account<'info, Baskt>,
 
-    #[account(mut, constraint = protocol.has_permission(&authority.key(), Role::OracleManager) @ PerpetualsError::Unauthorized)]
+    /// @dev Requires OracleManager role to update oracle prices
+    #[account(mut, constraint = protocol.has_permission(authority.key(), Role::OracleManager) @ PerpetualsError::Unauthorized)]
     pub authority: Signer<'info>,
 
-    #[account(seeds = [b"protocol"], bump)]
+    #[account(seeds = [b"protocol"], bump, mut)]
     pub protocol: Account<'info, Protocol>,
 }
 

@@ -10,10 +10,15 @@ pub struct OracleParams {
 }
 
 impl OracleParams {
-    pub fn set(&mut self, price: u64, publish_time: i64, max_price_age_sec: u32) {
+    pub fn set(&mut self, price: u64, publish_time: i64, max_price_age_sec: u32) -> Result<()> {
+        // Validate max_price_age_sec is not zero to ensure staleness checks always work
+        require!(max_price_age_sec > 0, PerpetualsError::InvalidOracleParameter);
+        
         self.price = price;
         self.publish_time = publish_time;
         self.max_price_age_sec = max_price_age_sec;
+        
+        Ok(())
     }
     pub fn update(&mut self, price: u64, publish_time: i64) {
         self.price = price;

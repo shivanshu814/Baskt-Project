@@ -6,9 +6,12 @@ import {
   TransactionInstruction,
   TransactionMessage,
   VersionedTransaction,
+  SystemProgram,
+  SYSVAR_RENT_PUBKEY,
 } from '@solana/web3.js';
 import { OracleHelper } from './utils/oracle-helper';
 import BN from 'bn.js';
+import { keccak256 } from 'js-sha3';
 
 // Import the types from our local files
 import type { BasktV1 } from './program/types';
@@ -23,6 +26,7 @@ import {
   OnchainAssetConfig,
   AccessControlRole,
 } from '@baskt/types';
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { toU64LeBytes } from './utils';
 
 /**
@@ -119,8 +123,10 @@ export abstract class BaseClient {
     const tx = await this.program.methods
       .initializeProtocol()
       .accounts({
-        payer: this.getPublicKey(),
-      })
+        authority: this.getPublicKey(),
+        protocol: this.protocolPDA,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      } as any) // Type assertion needed for now
       .transaction();
 
     return {
@@ -181,6 +187,7 @@ export abstract class BaseClient {
         allowClosePosition: rawProtocol.featureFlags.allowClosePosition,
         allowPnlWithdrawal: rawProtocol.featureFlags.allowPnlWithdrawal,
         allowCollateralWithdrawal: rawProtocol.featureFlags.allowCollateralWithdrawal,
+        allowAddCollateral: rawProtocol.featureFlags.allowAddCollateral,
         allowBasktCreation: rawProtocol.featureFlags.allowBasktCreation,
         allowBasktUpdate: rawProtocol.featureFlags.allowBasktUpdate,
         allowTrading: rawProtocol.featureFlags.allowTrading,
@@ -196,15 +203,14 @@ export abstract class BaseClient {
    * @returns Transaction signature
    */
   public async addRole(account: PublicKey, role: AccessControlRole): Promise<string> {
-    const roleEnum = typeof role === 'string' ? stringToRole(role) : role;
     // Submit the transaction to add the role
     const tx = await this.program.methods
-      .addRole(parseInt(roleEnum.toString()))
+      .addRole(role)
       .accounts({
         owner: this.getPublicKey(),
         account: account,
         protocol: this.protocolPDA,
-      })
+      } as any) // Type assertion needed for now
       .transaction();
 
     return await this.provider.sendAndConfirmLegacy(tx);
@@ -225,7 +231,7 @@ export abstract class BaseClient {
         owner: this.getPublicKey(),
         account: account,
         protocol: this.protocolPDA,
-      })
+      } as any) // Type assertion needed for now
       .transaction();
 
     return await this.provider.sendAndConfirmLegacy(tx);
@@ -313,10 +319,12 @@ export abstract class BaseClient {
       .addAsset({
         ticker,
         permissions: permissions as any,
-      })
+      } as any)
       .accounts({
         admin: this.getPublicKey(),
-      })
+        protocol: this.protocolPDA,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      } as any)
       .postInstructions(postInstructions)
       .transaction();
 
@@ -383,6 +391,17 @@ export abstract class BaseClient {
   }
 
   /**
+   * Get a baskt name seed buffer
+   * @param basktName The name of the baskt
+   * @returns A 32-byte Buffer containing the keccak256 hash of the baskt name
+   */
+  public getBasktNameSeedBuffer(basktName: string): Buffer {
+    // Use keccak256 to hash the basktName, then convert the hex string to a Buffer.
+    const hash = keccak256(basktName); // Hashes the UTF-8 representation by default
+    return Buffer.from(hash, 'hex');
+  }
+
+  /**
    * Create a new baskt
    * @param basktName The name of the baskt
    * @param assetConfigs Array of asset configurations with weights
@@ -394,22 +413,22 @@ export abstract class BaseClient {
     assetConfigs: Array<OnchainAssetConfig>,
     isPublic: boolean,
   ) {
-    // Derive the baskt PDA
+    const basktNameSeed = this.getBasktNameSeedBuffer(basktName);
+
     const [basktId] = PublicKey.findProgramAddressSync(
-      [Buffer.from('baskt'), Buffer.from(basktName)],
+      [Buffer.from('baskt'), basktNameSeed],
       this.program.programId,
     );
 
-    // Prepare the transaction builder
     const txBuilder = this.program.methods
       .createBaskt({
         basktName,
         assetParams: assetConfigs.map((config) => ({
-          weight: config.weight,
+          weight: new BN(config.weight), // Convert weight to BN
           direction: config.direction,
         })),
         isPublic,
-      })
+      } as any)
       .accounts({
         creator: this.getPublicKey(),
         baskt: basktId,
@@ -426,9 +445,8 @@ export abstract class BaseClient {
 
     txBuilder.remainingAccounts([...assetAccounts]);
 
-    const instruction = await txBuilder.instruction();
-    // Execute the transaction
-    const txSignature = await this.sendAndConfirm([instruction]);
+    // Send transaction using Anchor's RPC to avoid versioned address lookup issues
+    const txSignature = await txBuilder.rpc();
     return {
       basktId,
       txSignature,
@@ -439,7 +457,7 @@ export abstract class BaseClient {
    * Activate a baskt with the provided prices
    * @param basktId The public key of the baskt to activate
    * @param prices Array of prices for each asset in the baskt
-   * @param authority Optional authority to use for activation (defaults to oracleManager)
+   * @param maxPriceAgeSec The maximum price age in seconds
    * @returns Transaction signature
    */
   public async activateBaskt(
@@ -447,13 +465,18 @@ export abstract class BaseClient {
     prices: anchor.BN[],
     maxPriceAgeSec: number = 60,
   ): Promise<string> {
-    const txBuilder = this.program.methods.activateBaskt(prices, maxPriceAgeSec).accounts({
+    const baskt = await this.getBaskt(basktId);
+    const basktNameSeed = this.getBasktNameSeedBuffer(baskt.basktName);
+    
+    const txBuilder = this.program.methods.activateBaskt({ prices, maxPriceAgeSec }).accounts({
+      // Let's try using the original ID
       baskt: basktId,
       authority: this.getPublicKey(),
-    });
+      protocol: this.protocolPDA,
+    } as any);
 
-    const instruction = await txBuilder.instruction();
-    return await this.sendAndConfirm([instruction]);
+    // Send transaction using Anchor's RPC to avoid versioned address lookup issues
+    return await txBuilder.rpc();
   }
 
   private async sendAndConfirm(instructions: TransactionInstruction[]) {
@@ -545,29 +568,31 @@ export abstract class BaseClient {
     allowClosePosition: boolean;
     allowPnlWithdrawal: boolean;
     allowCollateralWithdrawal: boolean;
-    allowBasktCreation: boolean;
-    allowBasktUpdate: boolean;
-    allowTrading: boolean;
-    allowLiquidations: boolean;
+    allowBasktCreation?: boolean;
+    allowBasktUpdate?: boolean;
+    allowTrading?: boolean;
+    allowLiquidations?: boolean;
+    allowAddCollateral?: boolean;
   }): Promise<string> {
     try {
       const tx = await this.program.methods
-        .updateFeatureFlags(
-          featureFlags.allowAddLiquidity,
-          featureFlags.allowRemoveLiquidity,
-          featureFlags.allowOpenPosition,
-          featureFlags.allowClosePosition,
-          featureFlags.allowPnlWithdrawal,
-          featureFlags.allowCollateralWithdrawal,
-          featureFlags.allowBasktCreation,
-          featureFlags.allowBasktUpdate,
-          featureFlags.allowTrading,
-          featureFlags.allowLiquidations,
-        )
+        .updateFeatureFlags({
+          allowAddLiquidity: featureFlags.allowAddLiquidity,
+          allowRemoveLiquidity: featureFlags.allowRemoveLiquidity,
+          allowOpenPosition: featureFlags.allowOpenPosition,
+          allowClosePosition: featureFlags.allowClosePosition,
+          allowPnlWithdrawal: featureFlags.allowPnlWithdrawal,
+          allowCollateralWithdrawal: featureFlags.allowCollateralWithdrawal,
+          allowAddCollateral: featureFlags.allowAddCollateral ?? true,
+          allowBasktCreation: featureFlags.allowBasktCreation ?? true,
+          allowBasktUpdate: featureFlags.allowBasktUpdate ?? true,
+          allowTrading: featureFlags.allowTrading ?? true,
+          allowLiquidations: featureFlags.allowLiquidations ?? true,
+        } as any)
         .accounts({
           owner: this.getPublicKey(),
           protocol: this.protocolPDA,
-        })
+        } as any) // Type assertion needed for now
         .transaction();
 
       return await this.provider.sendAndConfirmLegacy(tx);
@@ -608,7 +633,6 @@ export abstract class BaseClient {
       )[0],
     );
   }
-
   /**
    * Check if a baskt name already exists
    * @param basktName The name to check
@@ -628,5 +652,303 @@ export abstract class BaseClient {
     } catch (error) {
       return false;
     }
+  }
+
+  /**
+   * Initialize a liquidity pool
+   * @param depositFeeBps Deposit fee in basis points (e.g., 50 = 0.5%)
+   * @param withdrawalFeeBps Withdrawal fee in basis points
+   * @param minDeposit Minimum deposit amount in token units
+   * @returns Transaction signature
+   */
+  public async initializeLiquidityPool(
+    depositFeeBps: number,
+    withdrawalFeeBps: number,
+    minDeposit: anchor.BN,
+    lpMint: PublicKey,
+    tokenVault: PublicKey,
+    tokenMint: PublicKey,
+    lpMintKeypair?: anchor.web3.Keypair,
+    tokenVaultKeypair?: anchor.web3.Keypair,
+  ): Promise<string> {
+    // Find the liquidity pool PDA
+    const [liquidityPool] = PublicKey.findProgramAddressSync(
+      [Buffer.from('liquidity_pool'), this.protocolPDA.toBuffer()],
+      this.program.programId,
+    );
+
+    // Find the pool authority PDA
+    const [poolAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from('pool_authority'), liquidityPool.toBuffer(), this.protocolPDA.toBuffer()],
+      this.program.programId,
+    );
+
+    // Build the transaction
+    const tx = await this.program.methods
+      .initializeLiquidityPool(
+        depositFeeBps,
+        withdrawalFeeBps,
+        minDeposit,
+      )
+      .accounts({
+        admin: this.getPublicKey(),
+        payer: this.getPublicKey(),
+        protocol: this.protocolPDA,
+        liquidityPool,
+        lpMint,
+        tokenVault,
+        tokenMint,
+        poolAuthority,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+      } as any)
+      .transaction();
+    
+    // If keypairs are provided, add them as signers
+    if (lpMintKeypair && tokenVaultKeypair) {
+      // Create a versioned transaction with signers
+      const transaction = new Transaction().add(tx);
+      transaction.feePayer = this.getPublicKey();
+      const signers = [lpMintKeypair, tokenVaultKeypair];
+      
+      // Get recent blockhash
+      const { blockhash } = await this.connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      
+      // Sign the transaction with the provided signers
+      transaction.sign(...signers);
+      
+      return await this.provider.sendAndConfirmLegacy(transaction);
+    }
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Add liquidity to the pool
+   * @param liquidityPool The public key of the liquidity pool
+   * @param amount The amount of tokens to add
+   * @param minSharesOut The minimum number of LP tokens to receive
+   * @param providerTokenAccount The provider's token account
+   * @param tokenVault The token vault account
+   * @param providerLpAccount The provider's LP token account
+   * @param lpMint The LP token mint
+   * @param treasuryTokenAccount The treasury token account
+   * @param treasury The treasury account
+   * @returns Transaction signature
+   */
+  public async addLiquidity(
+    liquidityPool: PublicKey,
+    amount: anchor.BN,
+    minSharesOut: anchor.BN,
+    providerTokenAccount: PublicKey,
+    tokenVault: PublicKey,
+    providerLpAccount: PublicKey,
+    lpMint: PublicKey,
+    treasuryTokenAccount: PublicKey,
+    treasury: PublicKey,
+  ): Promise<string> {
+    // Find the pool authority PDA
+    const [poolAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from('pool_authority'), liquidityPool.toBuffer(), this.protocolPDA.toBuffer()],
+      this.program.programId,
+    );
+
+    // Build the transaction
+    const tx = await this.program.methods
+      .addLiquidity(
+        amount,
+        minSharesOut,
+      )
+      .accounts({
+        provider: this.getPublicKey(),
+        liquidityPool,
+        protocol: this.protocolPDA,
+        providerTokenAccount,
+        tokenVault,
+        providerLpAccount,
+        lpMint,
+        treasuryTokenAccount,
+        treasury,
+        poolAuthority,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+      } as any)
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Remove liquidity from the pool
+   * @param liquidityPool The public key of the liquidity pool
+   * @param lpAmount The amount of LP tokens to burn
+   * @param minTokensOut The minimum number of tokens to receive
+   * @param providerTokenAccount The provider's token account
+   * @param tokenVault The token vault account
+   * @param providerLpAccount The provider's LP token account
+   * @param lpMint The LP token mint
+   * @param treasuryTokenAccount The treasury token account
+   * @param treasury The treasury account
+   * @returns Transaction signature
+   */
+  public async removeLiquidity(
+    liquidityPool: PublicKey,
+    lpAmount: anchor.BN,
+    minTokensOut: anchor.BN,
+    providerTokenAccount: PublicKey,
+    tokenVault: PublicKey,
+    providerLpAccount: PublicKey,
+    lpMint: PublicKey,
+    treasuryTokenAccount: PublicKey,
+    treasury: PublicKey,
+  ): Promise<string> {
+    // Find the pool authority PDA
+    const [poolAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from('pool_authority'), liquidityPool.toBuffer(), this.protocolPDA.toBuffer()],
+      this.program.programId,
+    );
+
+    // Build the transaction
+    const tx = await this.program.methods
+      .removeLiquidity(
+        lpAmount,
+        minTokensOut,
+      )
+      .accounts({
+        provider: this.getPublicKey(),
+        liquidityPool,
+        protocol: this.protocolPDA,
+        providerTokenAccount,
+        tokenVault,
+        providerLpAccount,
+        lpMint,
+        treasuryTokenAccount,
+        treasury,
+        poolAuthority,
+        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+      } as any)
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Find the liquidity pool PDA
+   * @returns The liquidity pool PDA
+   */
+  public async findLiquidityPoolPDA(): Promise<PublicKey> {
+    const [liquidityPool] = PublicKey.findProgramAddressSync(
+      [Buffer.from('liquidity_pool'), this.protocolPDA.toBuffer()],
+      this.program.programId,
+    );
+    return liquidityPool;
+  }
+
+  /**
+   * Find the pool authority PDA
+   * @param liquidityPool The liquidity pool PDA
+   * @returns The pool authority PDA
+   */
+  public async findPoolAuthorityPDA(liquidityPool: PublicKey): Promise<PublicKey> {
+    const [poolAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from('pool_authority'), liquidityPool.toBuffer(), this.protocolPDA.toBuffer()],
+      this.program.programId,
+    );
+    return poolAuthority;
+  }
+
+  /**
+   * Get a liquidity pool account by its public key
+   * @param liquidityPoolPubkey The public key of the liquidity pool account
+   * @returns The liquidity pool account data
+   */
+  public async getLiquidityPool(liquidityPoolPubkey: PublicKey) {
+    return await this.program.account.liquidityPool.fetch(liquidityPoolPubkey);
+  }
+
+  public async createOrderTx(
+    orderId: BN,
+    size: BN,
+    collateral: BN,
+    isLong: boolean,
+    action: any, // e.g., { open: {} } or { close: {} }
+    targetPosition: PublicKey | null,
+    basktId: PublicKey,
+    ownerTokenAccount: PublicKey,
+    collateralMint: PublicKey, // This is the escrowMint for the program
+  ): Promise<string> {
+    const owner = this.getPublicKey();
+    const [orderPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('order'), owner.toBuffer(), orderId.toArrayLike(Buffer, 'le', 8)],
+      this.program.programId
+    );
+    const [programAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from('authority')],
+      this.program.programId
+    );
+    const [escrowTokenAccount] = PublicKey.findProgramAddressSync(
+      [Buffer.from('user_escrow'), owner.toBuffer()],
+      this.program.programId
+    );
+
+    const tx = await this.program.methods
+      .createOrder(orderId, size, collateral, isLong, action, targetPosition)
+      .accounts({
+        owner: owner,
+        order: orderPDA, // PDA for the order account being created
+        baskt: basktId,
+        ownerToken: ownerTokenAccount,
+        escrowMint: collateralMint, // Renamed for clarity, matches program struct field
+        escrowToken: escrowTokenAccount, // PDA for the user's escrow token account
+        programAuthority: programAuthority,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      } as any)
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  public async cancelOrderTx(
+    orderPDA: PublicKey,
+    orderIdNum: BN, // The order_id, needed for PDA resolution if IDL implies it
+    ownerTokenAccount: PublicKey,
+  ): Promise<string> {
+    const owner = this.getPublicKey();
+    const [programAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from('authority')],
+      this.program.programId
+    );
+    const [escrowTokenAccount] = PublicKey.findProgramAddressSync(
+      [Buffer.from('user_escrow'), owner.toBuffer()],
+      this.program.programId
+    );
+
+    // The `order` account itself (orderPDA) is passed. Anchor might use the orderIdNum
+    // implicitly if the type definition for .accounts() is sophisticated enough,
+    // or it might be needed if constructing seeds manually for a more raw transaction.
+    // For a direct .methods call, usually just passing the PDA is enough if the program
+    // defines seeds like `&order.order_id.to_le_bytes()` and `bump = order.bump`,
+    // as Anchor will fetch the account by its PDA and use its fields.
+
+    const tx = await this.program.methods
+      .cancelOrder()
+      .accounts({
+        owner: owner,
+        order: orderPDA, // The PDA of the order account to cancel
+        ownerToken: ownerTokenAccount,
+        escrowToken: escrowTokenAccount,
+        programAuthority: programAuthority,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        // Note: The CreateOrderAccounts struct in Rust shows `escrow_mint` and `rent`
+        // but CancelOrderAccounts does not explicitly list `escrow_mint` or `rent`.
+        // `escrow_mint` is validated via constraints on `owner_token.mint` and `escrow_token.mint`.
+        // `rent` is implicitly handled by `close = owner` on the `order` account in Rust.
+      } as any)
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
   }
 }

@@ -68,4 +68,56 @@ pub enum PerpetualsError {
     InactiveAsset,
     #[msg("Baskt Already Active")]
     BasktAlreadyActive,
+    #[msg("Invalid asset weights")]
+    InvalidAssetWeights,
+    #[msg("Invalid oracle parameter")]
+    InvalidOracleParameter,
+    #[msg("Order already processed")]
+    OrderAlreadyProcessed,
+    #[msg("Invalid escrow account")]
+    InvalidEscrowAccount,
+    #[msg("Invalid program authority")]
+    InvalidProgramAuthority,
+    #[msg("Token has delegate")]
+    TokenHasDelegate,
+    #[msg("Token has close authority")]
+    TokenHasCloseAuthority,
+    #[msg("Invalid mint")]
+    InvalidMint,
+    #[msg("Zero sized position")]
+    ZeroSizedPosition,
+    #[msg("Invalid target position")]
+    InvalidTargetPosition,
+    #[msg("Invalid baskt")]
+    InvalidBaskt,
+    #[msg("Invalid order action")]
+    InvalidOrderAction,
+    #[msg("Funding not up to date")]
+    FundingNotUpToDate,
+    #[msg("Position still open")]
+    PositionStillOpen,
+    #[msg("Invalid treasury account")]
+    InvalidTreasuryAccount,
+    #[msg("Collateral amount would overflow maximum value")]
+    CollateralOverflow,
+    #[msg("Liquidity pool deposits are currently disabled")]
+    DepositsDisabled,
+    #[msg("Liquidity pool withdrawals are currently disabled")]
+    WithdrawalsDisabled,
+    #[msg("Deposit amount is below the minimum")]
+    BelowMinimumDeposit,
+    #[msg("Division by zero")]
+    DivisionByZero,
+    #[msg("Invalid liquidity pool account")]
+    InvalidLiquidityPool,
+    #[msg("Invalid token vault account")]
+    InvalidTokenVault,
+    #[msg("Slippage tolerance exceeded")]
+    SlippageExceeded,
+
+    #[msg("Invalid fee basis points")]
+    InvalidFeeBps,
+    
+    #[msg("Funding rate exceeds maximum allowed")]
+    FundingRateExceedsMaximum,
 }

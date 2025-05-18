@@ -16,6 +16,8 @@ export interface OnchainFeatureFlags {
   allowPnlWithdrawal: boolean;
   /** Allow withdrawal of collateral */
   allowCollateralWithdrawal: boolean;
+  /** Allow adding collateral to positions */
+  allowAddCollateral?: boolean;
   /** Allow creation of new baskts */
   allowBasktCreation: boolean;
   /** Allow updating existing baskts */

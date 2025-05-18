@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/baskt_v1.json`.
  */
 export type BasktV1 = {
-  "address": "GK52S4WZPVEAMAgjRf8XsBd7upmG862AjMF89HavDpkm",
+  "address": "C7Kzixzk3i8hdAqkuQBpmNgjhzabUBgg7q8nY94Bk25n",
   "metadata": {
     "name": "basktV1",
     "version": "0.1.0",
@@ -31,12 +31,10 @@ export type BasktV1 = {
           "writable": true
         },
         {
-          "name": "authority",
-          "writable": true,
-          "signer": true
-        },
-        {
           "name": "protocol",
+          "docs": [
+            "@dev Requires either baskt creator or OracleManager role to activate baskts"
+          ],
           "pda": {
             "seeds": [
               {
@@ -54,18 +52,21 @@ export type BasktV1 = {
               }
             ]
           }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
         }
       ],
       "args": [
         {
-          "name": "prices",
+          "name": "params",
           "type": {
-            "vec": "u64"
+            "defined": {
+              "name": "activateBasktParams"
+            }
           }
-        },
-        {
-          "name": "maxPriceAgeSec",
-          "type": "u32"
         }
       ]
     },
@@ -84,6 +85,9 @@ export type BasktV1 = {
       "accounts": [
         {
           "name": "admin",
+          "docs": [
+            "@dev Requires AssetManager role to add new assets"
+          ],
           "writable": true,
           "signer": true
         },
@@ -149,6 +153,310 @@ export type BasktV1 = {
       ]
     },
     {
+      "name": "addCollateral",
+      "discriminator": [
+        127,
+        82,
+        121,
+        42,
+        161,
+        176,
+        249,
+        206
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "position.position_id",
+                "account": "position"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ownerToken",
+          "writable": true
+        },
+        {
+          "name": "escrowToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position"
+              }
+            ]
+          }
+        },
+        {
+          "name": "programAuthority",
+          "docs": [
+            "PDA used for token authority over escrow"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol account - required for validating the feature flag"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "addCollateralParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "addLiquidity",
+      "discriminator": [
+        181,
+        157,
+        89,
+        67,
+        143,
+        182,
+        52,
+        72
+      ],
+      "accounts": [
+        {
+          "name": "provider",
+          "docs": [
+            "The liquidity provider"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "liquidityPool",
+          "docs": [
+            "The liquidity pool account"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol account to verify feature flags"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "providerTokenAccount",
+          "docs": [
+            "The provider's token account to withdraw funds from"
+          ],
+          "writable": true
+        },
+        {
+          "name": "tokenVault",
+          "docs": [
+            "The vault that holds the pool's assets"
+          ],
+          "writable": true
+        },
+        {
+          "name": "providerLpAccount",
+          "docs": [
+            "The provider's LP token account to receive LP tokens"
+          ],
+          "writable": true
+        },
+        {
+          "name": "lpMint",
+          "docs": [
+            "The LP token mint"
+          ],
+          "writable": true
+        },
+        {
+          "name": "treasuryTokenAccount",
+          "docs": [
+            "The treasury token account to receive fees"
+          ],
+          "writable": true
+        },
+        {
+          "name": "treasury"
+        },
+        {
+          "name": "poolAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "minSharesOut",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "addRole",
       "discriminator": [
         45,
@@ -163,6 +471,9 @@ export type BasktV1 = {
       "accounts": [
         {
           "name": "owner",
+          "docs": [
+            "@dev Requires Owner role to assign roles to other accounts"
+          ],
           "writable": true,
           "signer": true
         },
@@ -174,13 +485,403 @@ export type BasktV1 = {
         },
         {
           "name": "protocol",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         }
       ],
       "args": [
         {
           "name": "roleType",
           "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "cancelOrder",
+      "discriminator": [
+        95,
+        129,
+        237,
+        240,
+        8,
+        49,
+        223,
+        132
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "order",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "order.order_id",
+                "account": "order"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ownerToken",
+          "writable": true
+        },
+        {
+          "name": "escrowToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "programAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "closePosition",
+      "discriminator": [
+        123,
+        134,
+        81,
+        0,
+        49,
+        68,
+        98,
+        98
+      ],
+      "accounts": [
+        {
+          "name": "matcher",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "order",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "order.owner",
+                "account": "order"
+              },
+              {
+                "kind": "account",
+                "path": "order.order_id",
+                "account": "order"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position.owner",
+                "account": "position"
+              },
+              {
+                "kind": "account",
+                "path": "position.position_id",
+                "account": "position"
+              }
+            ]
+          }
+        },
+        {
+          "name": "fundingIndex",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  105,
+                  110,
+                  100,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position.baskt_id",
+                "account": "position"
+              }
+            ]
+          }
+        },
+        {
+          "name": "baskt",
+          "docs": [
+            "Baskt account that contains the embedded oracle for price validation"
+          ]
+        },
+        {
+          "name": "ownerToken",
+          "writable": true
+        },
+        {
+          "name": "escrowToken",
+          "writable": true
+        },
+        {
+          "name": "treasuryToken",
+          "writable": true
+        },
+        {
+          "name": "treasury"
+        },
+        {
+          "name": "programAuthority",
+          "docs": [
+            "PDA used for token authority over escrow"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol account for checking permissions",
+            "@dev Requires Matcher role to close positions"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "liquidityPool",
+          "docs": [
+            "Shared liquidity pool (counter-party)"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenVault",
+          "docs": [
+            "SPL-token vault that holds pooled collateral"
+          ],
+          "writable": true
+        },
+        {
+          "name": "poolAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "closePositionParams"
+            }
+          }
         }
       ]
     },
@@ -198,37 +899,16 @@ export type BasktV1 = {
       ],
       "accounts": [
         {
+          "name": "baskt",
+          "writable": true
+        },
+        {
           "name": "creator",
           "writable": true,
           "signer": true
         },
         {
-          "name": "baskt",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  98,
-                  97,
-                  115,
-                  107,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "basktName"
-              }
-            ]
-          }
-        },
-        {
           "name": "protocol",
-          "docs": [
-            "Protocol account to check feature flags"
-          ],
           "pda": {
             "seeds": [
               {
@@ -264,6 +944,413 @@ export type BasktV1 = {
       ]
     },
     {
+      "name": "createOrder",
+      "discriminator": [
+        141,
+        54,
+        37,
+        207,
+        237,
+        210,
+        250,
+        215
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "order",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "orderId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "baskt",
+          "docs": [
+            "Baskt account"
+          ]
+        },
+        {
+          "name": "ownerToken",
+          "writable": true
+        },
+        {
+          "name": "escrowMint"
+        },
+        {
+          "name": "escrowToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "programAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "orderId",
+          "type": "u64"
+        },
+        {
+          "name": "size",
+          "type": "u64"
+        },
+        {
+          "name": "collateral",
+          "type": "u64"
+        },
+        {
+          "name": "isLong",
+          "type": "bool"
+        },
+        {
+          "name": "action",
+          "type": {
+            "defined": {
+              "name": "orderAction"
+            }
+          }
+        },
+        {
+          "name": "targetPosition",
+          "type": {
+            "option": "pubkey"
+          }
+        }
+      ]
+    },
+    {
+      "name": "initializeFundingIndex",
+      "discriminator": [
+        150,
+        223,
+        168,
+        231,
+        205,
+        101,
+        166,
+        21
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "@dev Requires Owner role to initialize funding indices"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "fundingIndex",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  105,
+                  110,
+                  100,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt"
+              }
+            ]
+          }
+        },
+        {
+          "name": "baskt",
+          "docs": [
+            "Baskt account to initialize funding index for."
+          ]
+        },
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initializeLiquidityPool",
+      "discriminator": [
+        155,
+        18,
+        138,
+        107,
+        111,
+        23,
+        178,
+        178
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "docs": [
+            "Admin with Owner role who can initialize the pool"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "docs": [
+            "Payer for the rent fees"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol account to verify admin role",
+            "@dev Requires Owner role to initialize liquidity pool"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "liquidityPool",
+          "docs": [
+            "Liquidity pool account to initialize"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lpMint",
+          "docs": [
+            "The mint that will be used for LP tokens"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "tokenVault",
+          "docs": [
+            "The token account that will hold the pool's assets"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "tokenMint",
+          "docs": [
+            "The mint of the token used for collateral"
+          ]
+        },
+        {
+          "name": "poolAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "depositFeeBps",
+          "type": "u16"
+        },
+        {
+          "name": "withdrawalFeeBps",
+          "type": "u16"
+        },
+        {
+          "name": "minDeposit",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "initializeProtocol",
       "discriminator": [
         188,
@@ -276,6 +1363,11 @@ export type BasktV1 = {
         91
       ],
       "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
         {
           "name": "protocol",
           "writable": true,
@@ -298,16 +1390,492 @@ export type BasktV1 = {
           }
         },
         {
-          "name": "payer",
-          "writable": true,
-          "signer": true
-        },
-        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": []
+    },
+    {
+      "name": "liquidatePosition",
+      "discriminator": [
+        187,
+        74,
+        229,
+        149,
+        102,
+        81,
+        221,
+        68
+      ],
+      "accounts": [
+        {
+          "name": "liquidator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position.owner",
+                "account": "position"
+              },
+              {
+                "kind": "account",
+                "path": "position.position_id",
+                "account": "position"
+              }
+            ]
+          }
+        },
+        {
+          "name": "fundingIndex",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  105,
+                  110,
+                  100,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position.baskt_id",
+                "account": "position"
+              }
+            ]
+          }
+        },
+        {
+          "name": "baskt",
+          "docs": [
+            "Baskt account that contains the embedded oracle for price validation"
+          ]
+        },
+        {
+          "name": "ownerToken",
+          "writable": true
+        },
+        {
+          "name": "escrowToken",
+          "writable": true
+        },
+        {
+          "name": "treasuryToken",
+          "writable": true
+        },
+        {
+          "name": "treasury"
+        },
+        {
+          "name": "programAuthority",
+          "docs": [
+            "PDA used for token authority over escrow"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol account for checking permissions",
+            "@dev Requires Liquidator role to liquidate positions"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "liquidityPool",
+          "docs": [
+            "Shared liquidity pool (counter-party)"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenVault",
+          "docs": [
+            "SPL-token vault that holds pooled collateral"
+          ],
+          "writable": true
+        },
+        {
+          "name": "poolAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "liquidatePositionParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "openPosition",
+      "discriminator": [
+        135,
+        128,
+        47,
+        77,
+        15,
+        152,
+        240,
+        49
+      ],
+      "accounts": [
+        {
+          "name": "matcher",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "order",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "order.owner",
+                "account": "order"
+              },
+              {
+                "kind": "account",
+                "path": "order.order_id",
+                "account": "order"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "order.owner",
+                "account": "order"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "fundingIndex",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  105,
+                  110,
+                  100,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "order.baskt_id",
+                "account": "order"
+              }
+            ]
+          }
+        },
+        {
+          "name": "baskt",
+          "docs": [
+            "Baskt account that contains the embedded oracle for price validation"
+          ]
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol account for checking permissions",
+            "@dev Requires Matcher role to open positions"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "escrowMint"
+        },
+        {
+          "name": "orderEscrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "order.owner",
+                "account": "order"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrowToken",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position"
+              }
+            ]
+          }
+        },
+        {
+          "name": "programAuthority",
+          "docs": [
+            "PDA used for token authority over escrow"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "openPositionParams"
+            }
+          }
+        }
+      ]
     },
     {
       "name": "rebalance",
@@ -368,6 +1936,9 @@ export type BasktV1 = {
         },
         {
           "name": "payer",
+          "docs": [
+            "@dev Requires either baskt creator or Rebalancer role to rebalance"
+          ],
           "writable": true,
           "signer": true
         },
@@ -410,6 +1981,172 @@ export type BasktV1 = {
       ]
     },
     {
+      "name": "removeLiquidity",
+      "discriminator": [
+        80,
+        85,
+        209,
+        72,
+        24,
+        206,
+        177,
+        108
+      ],
+      "accounts": [
+        {
+          "name": "provider",
+          "docs": [
+            "The liquidity provider"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "liquidityPool",
+          "docs": [
+            "The liquidity pool account"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol account to verify feature flags"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "providerTokenAccount",
+          "docs": [
+            "The provider's token account to receive funds"
+          ],
+          "writable": true
+        },
+        {
+          "name": "tokenVault",
+          "docs": [
+            "The vault that holds the pool's assets"
+          ],
+          "writable": true
+        },
+        {
+          "name": "providerLpAccount",
+          "docs": [
+            "The provider's LP token account to burn LP tokens from"
+          ],
+          "writable": true
+        },
+        {
+          "name": "lpMint",
+          "docs": [
+            "The LP token mint"
+          ],
+          "writable": true
+        },
+        {
+          "name": "treasuryTokenAccount",
+          "docs": [
+            "The treasury token account to receive fees"
+          ],
+          "writable": true
+        },
+        {
+          "name": "treasury"
+        },
+        {
+          "name": "poolAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "lpAmount",
+          "type": "u64"
+        },
+        {
+          "name": "minTokensOut",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "removeRole",
       "discriminator": [
         74,
@@ -424,6 +2161,9 @@ export type BasktV1 = {
       "accounts": [
         {
           "name": "owner",
+          "docs": [
+            "@dev Requires Owner role to remove roles from other accounts"
+          ],
           "writable": true,
           "signer": true
         },
@@ -435,7 +2175,24 @@ export type BasktV1 = {
         },
         {
           "name": "protocol",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         }
       ],
       "args": [
@@ -464,11 +2221,15 @@ export type BasktV1 = {
         },
         {
           "name": "authority",
+          "docs": [
+            "@dev Requires OracleManager role to update oracle prices"
+          ],
           "writable": true,
           "signer": true
         },
         {
           "name": "protocol",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -510,54 +2271,146 @@ export type BasktV1 = {
       "accounts": [
         {
           "name": "owner",
+          "docs": [
+            "@dev Requires Owner role to update feature flags"
+          ],
           "writable": true,
           "signer": true
         },
         {
           "name": "protocol",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         }
       ],
       "args": [
         {
-          "name": "allowAddLiquidity",
-          "type": "bool"
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "updateFeatureFlagsParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateFundingIndex",
+      "discriminator": [
+        27,
+        238,
+        109,
+        184,
+        62,
+        17,
+        163,
+        149
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "@dev Requires FundingManager role to update funding indices"
+          ],
+          "writable": true,
+          "signer": true
         },
         {
-          "name": "allowRemoveLiquidity",
-          "type": "bool"
+          "name": "fundingIndex",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  117,
+                  110,
+                  100,
+                  105,
+                  110,
+                  103,
+                  95,
+                  105,
+                  110,
+                  100,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt"
+              }
+            ]
+          }
         },
         {
-          "name": "allowOpenPosition",
-          "type": "bool"
+          "name": "baskt",
+          "docs": [
+            "Baskt account associated with the funding index. Used only for seed verification."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt.baskt_id",
+                "account": "baskt"
+              }
+            ]
+          }
         },
         {
-          "name": "allowClosePosition",
-          "type": "bool"
-        },
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
         {
-          "name": "allowPnlWithdrawal",
-          "type": "bool"
-        },
-        {
-          "name": "allowCollateralWithdrawal",
-          "type": "bool"
-        },
-        {
-          "name": "allowBasktCreation",
-          "type": "bool"
-        },
-        {
-          "name": "allowBasktUpdate",
-          "type": "bool"
-        },
-        {
-          "name": "allowTrading",
-          "type": "bool"
-        },
-        {
-          "name": "allowLiquidations",
-          "type": "bool"
+          "name": "newRate",
+          "type": "i64"
         }
       ]
     }
@@ -574,6 +2427,71 @@ export type BasktV1 = {
         63,
         190,
         248
+      ]
+    },
+    {
+      "name": "fundingIndex",
+      "discriminator": [
+        205,
+        206,
+        185,
+        89,
+        105,
+        187,
+        167,
+        31
+      ]
+    },
+    {
+      "name": "liquidityPool",
+      "discriminator": [
+        66,
+        38,
+        17,
+        64,
+        188,
+        80,
+        68,
+        129
+      ]
+    },
+    {
+      "name": "order",
+      "discriminator": [
+        134,
+        173,
+        223,
+        185,
+        77,
+        86,
+        28,
+        51
+      ]
+    },
+    {
+      "name": "position",
+      "discriminator": [
+        170,
+        188,
+        143,
+        228,
+        122,
+        64,
+        247,
+        208
+      ]
+    },
+    {
+      "name": "programAuthority",
+      "discriminator": [
+        38,
+        198,
+        188,
+        60,
+        171,
+        210,
+        169,
+        38
       ]
     },
     {
@@ -613,6 +2531,190 @@ export type BasktV1 = {
         40,
         189,
         218
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "basktActivatedEvent",
+      "discriminator": [
+        88,
+        137,
+        206,
+        103,
+        196,
+        4,
+        65,
+        8
+      ]
+    },
+    {
+      "name": "basktCreatedEvent",
+      "discriminator": [
+        230,
+        10,
+        18,
+        30,
+        165,
+        178,
+        209,
+        132
+      ]
+    },
+    {
+      "name": "basktRebalancedEvent",
+      "discriminator": [
+        201,
+        140,
+        15,
+        4,
+        88,
+        198,
+        74,
+        170
+      ]
+    },
+    {
+      "name": "collateralAddedEvent",
+      "discriminator": [
+        90,
+        251,
+        19,
+        246,
+        134,
+        164,
+        243,
+        177
+      ]
+    },
+    {
+      "name": "fundingIndexInitializedEvent",
+      "discriminator": [
+        103,
+        198,
+        106,
+        15,
+        181,
+        173,
+        213,
+        165
+      ]
+    },
+    {
+      "name": "fundingIndexUpdatedEvent",
+      "discriminator": [
+        142,
+        186,
+        249,
+        164,
+        193,
+        209,
+        84,
+        145
+      ]
+    },
+    {
+      "name": "liquidityAddedEvent",
+      "discriminator": [
+        220,
+        104,
+        7,
+        39,
+        147,
+        1,
+        194,
+        142
+      ]
+    },
+    {
+      "name": "liquidityPoolInitializedEvent",
+      "discriminator": [
+        206,
+        100,
+        66,
+        15,
+        113,
+        180,
+        118,
+        59
+      ]
+    },
+    {
+      "name": "liquidityRemovedEvent",
+      "discriminator": [
+        233,
+        117,
+        13,
+        70,
+        229,
+        1,
+        106,
+        215
+      ]
+    },
+    {
+      "name": "orderCancelledEvent",
+      "discriminator": [
+        200,
+        73,
+        179,
+        145,
+        247,
+        176,
+        10,
+        101
+      ]
+    },
+    {
+      "name": "orderCreatedEvent",
+      "discriminator": [
+        75,
+        88,
+        56,
+        153,
+        87,
+        22,
+        170,
+        46
+      ]
+    },
+    {
+      "name": "positionClosedEvent",
+      "discriminator": [
+        76,
+        129,
+        10,
+        225,
+        238,
+        51,
+        158,
+        126
+      ]
+    },
+    {
+      "name": "positionLiquidatedEvent",
+      "discriminator": [
+        70,
+        153,
+        226,
+        254,
+        176,
+        139,
+        225,
+        72
+      ]
+    },
+    {
+      "name": "positionOpenedEvent",
+      "discriminator": [
+        163,
+        1,
+        92,
+        149,
+        138,
+        188,
+        177,
+        23
       ]
     }
   ],
@@ -781,6 +2883,131 @@ export type BasktV1 = {
       "code": 6032,
       "name": "basktAlreadyActive",
       "msg": "Baskt Already Active"
+    },
+    {
+      "code": 6033,
+      "name": "invalidAssetWeights",
+      "msg": "Invalid asset weights"
+    },
+    {
+      "code": 6034,
+      "name": "invalidOracleParameter",
+      "msg": "Invalid oracle parameter"
+    },
+    {
+      "code": 6035,
+      "name": "orderAlreadyProcessed",
+      "msg": "Order already processed"
+    },
+    {
+      "code": 6036,
+      "name": "invalidEscrowAccount",
+      "msg": "Invalid escrow account"
+    },
+    {
+      "code": 6037,
+      "name": "invalidProgramAuthority",
+      "msg": "Invalid program authority"
+    },
+    {
+      "code": 6038,
+      "name": "tokenHasDelegate",
+      "msg": "Token has delegate"
+    },
+    {
+      "code": 6039,
+      "name": "tokenHasCloseAuthority",
+      "msg": "Token has close authority"
+    },
+    {
+      "code": 6040,
+      "name": "invalidMint",
+      "msg": "Invalid mint"
+    },
+    {
+      "code": 6041,
+      "name": "zeroSizedPosition",
+      "msg": "Zero sized position"
+    },
+    {
+      "code": 6042,
+      "name": "invalidTargetPosition",
+      "msg": "Invalid target position"
+    },
+    {
+      "code": 6043,
+      "name": "invalidBaskt",
+      "msg": "Invalid baskt"
+    },
+    {
+      "code": 6044,
+      "name": "invalidOrderAction",
+      "msg": "Invalid order action"
+    },
+    {
+      "code": 6045,
+      "name": "fundingNotUpToDate",
+      "msg": "Funding not up to date"
+    },
+    {
+      "code": 6046,
+      "name": "positionStillOpen",
+      "msg": "Position still open"
+    },
+    {
+      "code": 6047,
+      "name": "invalidTreasuryAccount",
+      "msg": "Invalid treasury account"
+    },
+    {
+      "code": 6048,
+      "name": "collateralOverflow",
+      "msg": "Collateral amount would overflow maximum value"
+    },
+    {
+      "code": 6049,
+      "name": "depositsDisabled",
+      "msg": "Liquidity pool deposits are currently disabled"
+    },
+    {
+      "code": 6050,
+      "name": "withdrawalsDisabled",
+      "msg": "Liquidity pool withdrawals are currently disabled"
+    },
+    {
+      "code": 6051,
+      "name": "belowMinimumDeposit",
+      "msg": "Deposit amount is below the minimum"
+    },
+    {
+      "code": 6052,
+      "name": "divisionByZero",
+      "msg": "Division by zero"
+    },
+    {
+      "code": 6053,
+      "name": "invalidLiquidityPool",
+      "msg": "Invalid liquidity pool account"
+    },
+    {
+      "code": 6054,
+      "name": "invalidTokenVault",
+      "msg": "Invalid token vault account"
+    },
+    {
+      "code": 6055,
+      "name": "slippageExceeded",
+      "msg": "Slippage tolerance exceeded"
+    },
+    {
+      "code": 6056,
+      "name": "invalidFeeBps",
+      "msg": "Invalid fee basis points"
+    },
+    {
+      "code": 6057,
+      "name": "fundingRateExceedsMaximum",
+      "msg": "Funding rate exceeds maximum allowed"
     }
   ],
   "types": [
@@ -838,14 +3065,28 @@ export type BasktV1 = {
       }
     },
     {
-      "name": "addAssetParams",
+      "name": "activateBasktParams",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "ticker",
-            "type": "string"
+            "name": "prices",
+            "type": {
+              "vec": "u64"
+            }
           },
+          {
+            "name": "maxPriceAgeSec",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "addAssetParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
           {
             "name": "permissions",
             "type": {
@@ -853,6 +3094,22 @@ export type BasktV1 = {
                 "name": "assetPermissions"
               }
             }
+          },
+          {
+            "name": "ticker",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "addCollateralParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "additionalCollateral",
+            "type": "u64"
           }
         ]
       }
@@ -910,6 +3167,10 @@ export type BasktV1 = {
             "type": "pubkey"
           },
           {
+            "name": "basktName",
+            "type": "string"
+          },
+          {
             "name": "currentAssetConfigs",
             "type": {
               "vec": {
@@ -954,6 +3215,130 @@ export type BasktV1 = {
           {
             "name": "baselineNav",
             "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "basktActivatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "baselineNav",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "basktCreatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "basktName",
+            "type": "string"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "isPublic",
+            "type": "bool"
+          },
+          {
+            "name": "assetCount",
+            "type": "u8"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "basktRebalancedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "rebalanceIndex",
+            "type": "u64"
+          },
+          {
+            "name": "baselineNav",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "closePositionParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "exitPrice",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "collateralAddedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "positionId",
+            "type": "u64"
+          },
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "additionalCollateral",
+            "type": "u64"
+          },
+          {
+            "name": "newTotalCollateral",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }
@@ -1051,6 +3436,13 @@ export type BasktV1 = {
             "type": "bool"
           },
           {
+            "name": "allowAddCollateral",
+            "docs": [
+              "Allow adding collateral to existing positions"
+            ],
+            "type": "bool"
+          },
+          {
             "name": "allowBasktCreation",
             "docs": [
               "Allow creation of new baskts"
@@ -1082,6 +3474,289 @@ export type BasktV1 = {
       }
     },
     {
+      "name": "fundingIndex",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "cumulativeIndex",
+            "type": "i128"
+          },
+          {
+            "name": "lastUpdateTimestamp",
+            "type": "i64"
+          },
+          {
+            "name": "currentRate",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fundingIndexInitializedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "initialIndex",
+            "type": "i128"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fundingIndexUpdatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "cumulativeIndex",
+            "type": "i128"
+          },
+          {
+            "name": "currentRate",
+            "type": "i64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "liquidatePositionParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "exitPrice",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "liquidityAddedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "provider",
+            "type": "pubkey"
+          },
+          {
+            "name": "liquidityPool",
+            "type": "pubkey"
+          },
+          {
+            "name": "depositAmount",
+            "type": "u64"
+          },
+          {
+            "name": "feeAmount",
+            "type": "u64"
+          },
+          {
+            "name": "sharesMinted",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "liquidityPool",
+      "docs": [
+        "LiquidityPool represents the shared liquidity pool for the entire protocol",
+        "This is a single pool that acts as the counterparty to all user positions"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "totalLiquidity",
+            "docs": [
+              "The total amount of liquidity in the pool"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "lpMint",
+            "docs": [
+              "The token mint for the LP tokens"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "tokenVault",
+            "docs": [
+              "The token account where collateral is stored"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "totalShares",
+            "docs": [
+              "Total supply of LP tokens"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "lastUpdateTimestamp",
+            "docs": [
+              "The timestamp of the last pool update"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "depositFeeBps",
+            "docs": [
+              "Fee percentage charged on deposits in basis points (e.g. 10 = 0.1%)"
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "withdrawalFeeBps",
+            "docs": [
+              "Fee percentage charged on withdrawals in basis points (e.g. 30 = 0.3%)"
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "minDeposit",
+            "docs": [
+              "Minimum deposit amount allowed"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump for this PDA"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "liquidityPoolInitializedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "liquidityPool",
+            "type": "pubkey"
+          },
+          {
+            "name": "lpMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "tokenVault",
+            "type": "pubkey"
+          },
+          {
+            "name": "depositFeeBps",
+            "type": "u16"
+          },
+          {
+            "name": "withdrawalFeeBps",
+            "type": "u16"
+          },
+          {
+            "name": "minDeposit",
+            "type": "u64"
+          },
+          {
+            "name": "initializer",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "liquidityRemovedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "provider",
+            "type": "pubkey"
+          },
+          {
+            "name": "liquidityPool",
+            "type": "pubkey"
+          },
+          {
+            "name": "sharesBurned",
+            "type": "u64"
+          },
+          {
+            "name": "withdrawalAmount",
+            "type": "u64"
+          },
+          {
+            "name": "feeAmount",
+            "type": "u64"
+          },
+          {
+            "name": "netAmountReceived",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "openPositionParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "positionId",
+            "type": "u64"
+          },
+          {
+            "name": "entryPrice",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "oracleParams",
       "type": {
         "kind": "struct",
@@ -1099,6 +3774,421 @@ export type BasktV1 = {
             "type": "i64"
           }
         ]
+      }
+    },
+    {
+      "name": "order",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "orderId",
+            "type": "u64"
+          },
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "size",
+            "type": "u64"
+          },
+          {
+            "name": "collateral",
+            "type": "u64"
+          },
+          {
+            "name": "isLong",
+            "type": "bool"
+          },
+          {
+            "name": "action",
+            "type": {
+              "defined": {
+                "name": "orderAction"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "orderStatus"
+              }
+            }
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "targetPosition",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "orderAction",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "open"
+          },
+          {
+            "name": "close"
+          }
+        ]
+      }
+    },
+    {
+      "name": "orderCancelledEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "orderId",
+            "type": "u64"
+          },
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "orderCreatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "orderId",
+            "type": "u64"
+          },
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "size",
+            "type": "u64"
+          },
+          {
+            "name": "collateral",
+            "type": "u64"
+          },
+          {
+            "name": "isLong",
+            "type": "bool"
+          },
+          {
+            "name": "action",
+            "type": {
+              "defined": {
+                "name": "orderAction"
+              }
+            }
+          },
+          {
+            "name": "targetPosition",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "orderStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "pending"
+          },
+          {
+            "name": "filled"
+          },
+          {
+            "name": "cancelled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "position",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "positionId",
+            "type": "u64"
+          },
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "size",
+            "type": "u64"
+          },
+          {
+            "name": "collateral",
+            "type": "u64"
+          },
+          {
+            "name": "isLong",
+            "type": "bool"
+          },
+          {
+            "name": "entryPrice",
+            "type": "u64"
+          },
+          {
+            "name": "exitPrice",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "entryFundingIndex",
+            "type": "i128"
+          },
+          {
+            "name": "lastFundingIndex",
+            "type": "i128"
+          },
+          {
+            "name": "fundingAccumulated",
+            "type": "i128"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "positionStatus"
+              }
+            }
+          },
+          {
+            "name": "timestampOpen",
+            "type": "i64"
+          },
+          {
+            "name": "timestampClose",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "positionClosedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "positionId",
+            "type": "u64"
+          },
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "size",
+            "type": "u64"
+          },
+          {
+            "name": "exitPrice",
+            "type": "u64"
+          },
+          {
+            "name": "pnl",
+            "type": "i64"
+          },
+          {
+            "name": "feeAmount",
+            "type": "u64"
+          },
+          {
+            "name": "fundingPayment",
+            "type": "i128"
+          },
+          {
+            "name": "settlementAmount",
+            "type": "u64"
+          },
+          {
+            "name": "poolPayout",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "positionLiquidatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "positionId",
+            "type": "u64"
+          },
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "size",
+            "type": "u64"
+          },
+          {
+            "name": "exitPrice",
+            "type": "u64"
+          },
+          {
+            "name": "pnl",
+            "type": "i64"
+          },
+          {
+            "name": "liquidationFee",
+            "type": "u64"
+          },
+          {
+            "name": "fundingPayment",
+            "type": "i128"
+          },
+          {
+            "name": "remainingCollateral",
+            "type": "u64"
+          },
+          {
+            "name": "poolPayout",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "positionOpenedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "positionId",
+            "type": "u64"
+          },
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "size",
+            "type": "u64"
+          },
+          {
+            "name": "collateral",
+            "type": "u64"
+          },
+          {
+            "name": "isLong",
+            "type": "bool"
+          },
+          {
+            "name": "entryPrice",
+            "type": "u64"
+          },
+          {
+            "name": "entryFundingIndex",
+            "type": "i128"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "positionStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "open"
+          },
+          {
+            "name": "closed"
+          },
+          {
+            "name": "liquidated"
+          }
+        ]
+      }
+    },
+    {
+      "name": "programAuthority",
+      "type": {
+        "kind": "struct",
+        "fields": []
       }
     },
     {
@@ -1189,6 +4279,18 @@ export type BasktV1 = {
           },
           {
             "name": "rebalancer"
+          },
+          {
+            "name": "matcher"
+          },
+          {
+            "name": "liquidator"
+          },
+          {
+            "name": "fundingManager"
+          },
+          {
+            "name": "treasury"
           }
         ]
       }
@@ -1221,6 +4323,58 @@ export type BasktV1 = {
           {
             "name": "listingTime",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "updateFeatureFlagsParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "allowAddLiquidity",
+            "type": "bool"
+          },
+          {
+            "name": "allowRemoveLiquidity",
+            "type": "bool"
+          },
+          {
+            "name": "allowOpenPosition",
+            "type": "bool"
+          },
+          {
+            "name": "allowClosePosition",
+            "type": "bool"
+          },
+          {
+            "name": "allowPnlWithdrawal",
+            "type": "bool"
+          },
+          {
+            "name": "allowCollateralWithdrawal",
+            "type": "bool"
+          },
+          {
+            "name": "allowAddCollateral",
+            "type": "bool"
+          },
+          {
+            "name": "allowBasktCreation",
+            "type": "bool"
+          },
+          {
+            "name": "allowBasktUpdate",
+            "type": "bool"
+          },
+          {
+            "name": "allowTrading",
+            "type": "bool"
+          },
+          {
+            "name": "allowLiquidations",
+            "type": "bool"
           }
         ]
       }
