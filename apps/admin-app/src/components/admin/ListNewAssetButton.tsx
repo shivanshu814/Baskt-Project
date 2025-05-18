@@ -23,7 +23,7 @@ const formSchema = z.object({
   name: z.string().min(1, { message: 'Asset name is required' }),
   priceConfig: z.object({
     provider: z.object({
-      name: z.enum(providerOptions as [string, ...string[]], {
+      name: z.enum(providerOptions.map((option) => option.toLowerCase()) as [string, ...string[]], {
         required_error: 'Provider name is required',
       }),
       id: z.string().min(1, { message: 'Provider ID is required' }),
