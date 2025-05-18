@@ -1,0 +1,89 @@
+name: Baskt CI + Deploy
+
+on:
+  pull_request:
+  push:
+    branches: [dev, staging, main]
+
+jobs:
+  test-and-build:
+    name: 🧪 Test and Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - name: Set up npm authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: pnpm build
+
+      - name: Test SDK project
+        run: pnpm test --filter @baskt/sdk
+
+  deploy:
+    name: 🚀 Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: [test-and-build]
+    if: |
+      github.event_name == 'push' &&
+      !contains(github.event.head_commit.message, 'skip-deploy') &&
+      startsWith(github.event.head_commit.message, 'Merge')
+
+    env:
+      BRANCH_NAME: ${{ github.ref_name }}
+
+    steps:
+      - name: Set VPS ENV
+        id: env
+        run: |
+          if [ "${BRANCH_NAME}" == "main" ]; then
+            echo "HOST=${{ secrets.VPS_PROD_HOST }}" >> $GITHUB_OUTPUT
+            echo "USER=${{ secrets.VPS_PROD_USER }}" >> $GITHUB_OUTPUT
+            echo "PASS=${{ secrets.VPS_PROD_PASS }}" >> $GITHUB_OUTPUT
+          elif [ "${BRANCH_NAME}" == "staging" ]; then
+            echo "HOST=${{ secrets.VPS_STAGING_HOST }}" >> $GITHUB_OUTPUT
+            echo "USER=${{ secrets.VPS_STAGING_USER }}" >> $GITHUB_OUTPUT
+            echo "PASS=${{ secrets.VPS_STAGING_PASS }}" >> $GITHUB_OUTPUT
+          elif [ "${BRANCH_NAME}" == "dev" ]; then
+            echo "HOST=${{ secrets.VPS_DEV_HOST }}" >> $GITHUB_OUTPUT
+            echo "USER=${{ secrets.VPS_DEV_USER }}" >> $GITHUB_OUTPUT
+            echo "PASS=${{ secrets.VPS_DEV_PASS }}" >> $GITHUB_OUTPUT
+          else
+            echo "Unknown branch: ${BRANCH_NAME}"
+            exit 1
+          fi
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ steps.env.outputs.HOST }}
+          username: ${{ steps.env.outputs.USER }}
+          password: ${{ steps.env.outputs.PASS }}
+          port: 22
+          script: |
+            cd /monorepo
+            git fetch origin
+            git reset --hard origin/${{ github.ref_name }}
+            pnpm install
+            pnpm build
+            pm2 restart all
