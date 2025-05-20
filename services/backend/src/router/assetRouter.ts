@@ -116,17 +116,30 @@ export function combineAsset(
   config: any,
   shouldPassConfig: boolean = false,
 ) {
+  if (!config) {
+    return {
+      ticker: onchainAsset.ticker,
+      assetAddress: onchainAsset.address.toString(),
+      logo: '',
+      name: onchainAsset.ticker,
+      price: 0,
+      priceRaw: 0,
+      change24h: 0,
+      account: onchainAsset,
+      weight: 0,
+      config: shouldPassConfig ? undefined : undefined,
+    };
+  }
+
   const price = config.priceMetrics?.price ?? 0;
   const change24h = config.priceMetrics?.change24h ?? 0;
-
   //TODO a big concern is how we store BN price in the database
-
   return {
     _id: config._id,
     ticker: onchainAsset.ticker,
     assetAddress: onchainAsset.address.toString(),
-    logo: config.logo,
-    name: config.name,
+    logo: config.logo || '',
+    name: config.name || onchainAsset.ticker,
     price: price / 1e9,
     priceRaw: price,
     change24h,

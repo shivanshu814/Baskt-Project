@@ -281,6 +281,7 @@ export default function BasktDetailPage() {
                   yearlyData={baskt.priceHistory?.yearly || []}
                   chartType={chartType}
                   period={chartPeriod}
+                  basktId={baskt.basktId.toString()}
                 />
               </CardContent>
             </Card>

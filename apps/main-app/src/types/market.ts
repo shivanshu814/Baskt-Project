@@ -12,6 +12,7 @@ export interface TradingViewChartProps {
   yearlyData: ChartData[];
   chartType: ChartType;
   period: ChartPeriod;
+  basktId: string;
 }
 
 export type ChartType = 'line' | 'candle' | 'baseline';

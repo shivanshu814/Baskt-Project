@@ -9,7 +9,7 @@ import { OnchainAssetConfig } from '@baskt/types';
 import { BN } from 'bn.js';
 import { generateNavHistory } from '../fakers/price';
 
-const sdkClientInstance = sdkClient();
+// Schema for validating baskt creation request
 const createBasktSchema = z.object({
   basktId: z.string(),
   name: z.string().min(1).max(30),
@@ -25,6 +25,8 @@ const createBasktSchema = z.object({
   }),
   txSignature: z.string(),
 });
+
+const sdkClientInstance = sdkClient();
 
 export const basktRouter = router({
   createBasktMetadata: publicProcedure.input(createBasktSchema).mutation(async ({ input }) => {
@@ -97,6 +99,8 @@ export const basktRouter = router({
         }),
       );
 
+      console.log(combinedBaskts);
+
       return { success: true, data: combinedBaskts };
     } catch (error) {
       console.error('Error fetching baskts:', error);
@@ -138,7 +142,7 @@ export const basktRouter = router({
       }),
     )
     .query(async ({ input }) => {
-      const { basktId } = input;
+      const { basktId, period } = input;
 
       const basktInfo = await getBasktInfoFromAddress(basktId);
       if (!basktInfo) {
@@ -149,16 +153,40 @@ export const basktRouter = router({
         };
       }
 
-      // It expects either a UNIX timestamp (seconds) or a string in format 'YYYY-MM-DD'
+      const now = Math.floor(Date.now() / 1000);
+
+      let startTime: number;
+      switch (period) {
+        case '1D':
+          startTime = now - 24 * 60 * 60;
+          break;
+        case '1W':
+          startTime = now - 7 * 24 * 60 * 60;
+          break;
+        case '1M':
+          startTime = now - 30 * 24 * 60 * 60;
+          break;
+        case '1Y':
+          startTime = now - 365 * 24 * 60 * 60;
+          break;
+        case 'All':
+        default:
+          startTime = 0;
+      }
+
+      const filteredData = basktInfo.priceHistory.daily
+        .filter((item) => {
+          const timestamp = Math.floor(new Date(item.date).getTime() / 1000);
+          return timestamp >= startTime;
+        })
+        .map((item) => ({
+          time: Math.floor(new Date(item.date).getTime() / 1000),
+          value: item.price.toNumber() / 1e9,
+        }));
+
       return {
         success: true,
-        data: basktInfo.priceHistory.daily.map((item) => {
-          const timestamp = Math.floor(new Date(item.date).getTime() / 1000);
-          return {
-            time: timestamp,
-            value: item.price.toNumber() / 1e9,
-          };
-        }),
+        data: filteredData,
       };
     }),
 });
@@ -172,42 +200,55 @@ async function getBasktInfoFromAddress(basktId: string) {
   if (!onchainBaskt) {
     return null;
   }
+  console.log({ basktMetadata }, ' this is basktmetadata');
+  console.log({ onchainBaskt }, ' this is onchainBaskt');
   return convertToBasktInfo(onchainBaskt, basktMetadata);
 }
 
 async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
+  console.log(onchainBaskt);
   const assets = await Promise.all(
     onchainBaskt.currentAssetConfigs.map(async (asset: any) => ({
       ...(await getAssetFromAddress(asset.assetId.toString())),
       weight: (asset.weight.toNumber() * 100) / 10_000,
       direction: asset.direction,
       id: asset.assetId.toString(),
-      baselinePrice: asset.baselinePrice.toNumber() / 1e9,
+      baselinePrice: asset.baselinePrice.toNumber(),
       volume24h: 0,
       marketCap: 0,
     })),
   );
+
+  console.log(assets);
 
   const basktId =
     basktMetadata?.basktId?.toString() ||
     onchainBaskt.basktId?.toString() ||
     onchainBaskt.account?.basktId?.toString();
 
-  const price = calculateNav(
-    onchainBaskt.currentAssetConfigs.map((asset: any) => ({
-      ...asset,
-    })),
-    assets.map(
-      (asset) =>
-        ({
-          assetId: new PublicKey(asset.id),
-          direction: asset.direction,
-          weight: new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100),
-          baselinePrice: new BN(asset.priceRaw),
-        }) as OnchainAssetConfig,
-    ),
-    new BN(onchainBaskt.baselineNav),
-  );
+  let price = new BN(0);
+  try {
+    if (assets.length > 0 && assets.every((asset) => asset && asset.price > 0)) {
+      price = calculateNav(
+        onchainBaskt.currentAssetConfigs.map((asset: any) => ({
+          ...asset,
+        })),
+        assets.map(
+          (asset) =>
+            ({
+              assetId: new PublicKey(asset.id),
+              direction: asset.direction,
+              weight: new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100),
+              baselinePrice: new BN(asset.price),
+            }) as OnchainAssetConfig,
+        ),
+        new BN(onchainBaskt.baselineNav || 0),
+      );
+    }
+  } catch (error) {
+    console.error('Error calculating NAV:', error);
+    price = new BN(0);
+  }
 
   return {
     id: basktId,
@@ -222,7 +263,7 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     txSignature: basktMetadata?.txSignature,
     assets,
     totalAssets: assets.length,
-    price: price ? price.toNumber() / NAV_PRECISION.toNumber() : null,
+    price: price.toNumber() / NAV_PRECISION.toNumber(),
     change24h: 0,
     aum: 0,
     sparkline: [],

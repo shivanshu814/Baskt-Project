@@ -20,13 +20,16 @@ export function AdminBasktsList() {
   const { data: trpcResponse, isLoading, error } = trpc.baskt.getAllBaskts.useQuery();
   const [activatingBasktId, setActivatingBasktId] = useState<string | null>(null);
   const { client } = useBasktClient();
-  const basktList = trpcResponse && trpcResponse.success ? (trpcResponse as { data: BasktMetadataModel[] }).data : [];
+  const basktList =
+    trpcResponse && trpcResponse.success
+      ? (trpcResponse as { data: BasktMetadataModel[] }).data
+      : [];
 
   // Placeholder for activation logic (to be replaced with actual mutation)
   const activateBaskt = async (basktId: string) => {
     setActivatingBasktId(basktId);
 
-    const basktInfo = basktList.find((baskt: any) => baskt.basktId === basktId);
+    const basktInfo = basktList.find((baskt: any) => baskt?.basktId === basktId);
 
     if (!basktInfo) {
       console.error('Baskt not found');
@@ -35,12 +38,11 @@ export function AdminBasktsList() {
 
     await client?.activateBaskt(
       new PublicKey(basktId),
-      basktInfo.assets.map((asset: any) => new anchor.BN(asset.priceRaw))
-    )
+      basktInfo.assets.map((asset: any) => new anchor.BN(asset.priceRaw)),
+    );
 
     setTimeout(() => setActivatingBasktId(null), 1000); // Simulate delay
   };
-
   return (
     <div className="rounded-md border border-white/10 mt-6">
       {error && (
@@ -66,37 +68,39 @@ export function AdminBasktsList() {
                 </div>
               </TableCell>
             </TableRow>
-          ) : (
-            basktList.length ? (
-              basktList.map((baskt: any) => (
-                <TableRow key={baskt.basktId}>
-                  <TableCell>{baskt.name || 'Unnamed'}</TableCell>
-                  <TableCell>
-                    <span className="font-mono text-xs text-white/80">{baskt.basktId}</span>
-                  </TableCell>
-                  <TableCell>{baskt.account.isActive ? 'Yes' : 'No'}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="p-1 rounded hover:bg-white/10"><MoreHorizontal className="w-5 h-5 text-white/60" /></button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => activateBaskt(baskt.basktId)}
-                          disabled={activatingBasktId === baskt.basktId}
-                        >
-                          {activatingBasktId === baskt.basktId ? 'Activating...' : 'Activate'}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center text-white/60">No baskts found.</TableCell>
+          ) : basktList.length ? (
+            basktList.map((baskt: any) => (
+              <TableRow key={baskt?.basktId}>
+                <TableCell>{baskt?.name || 'Unnamed'}</TableCell>
+                <TableCell>
+                  <span className="font-mono text-xs text-white/80">{baskt?.basktId}</span>
+                </TableCell>
+                <TableCell>{baskt?.account.isActive ? 'Yes' : 'No'}</TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-1 rounded hover:bg-white/10">
+                        <MoreHorizontal className="w-5 h-5 text-white/60" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => activateBaskt(baskt?.basktId)}
+                        disabled={activatingBasktId === baskt?.basktId}
+                      >
+                        {activatingBasktId === baskt?.basktId ? 'Activating...' : 'Activate'}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
               </TableRow>
-            )
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={3} className="text-center text-white/60">
+                No baskts found.
+              </TableCell>
+            </TableRow>
           )}
         </TableBody>
       </Table>
