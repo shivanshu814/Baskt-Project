@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev:manager": "tsx watch src/manager.ts",
-    "dev:event-engine": "tsx watch src/event-engine.ts",
+    "dev:listener": "tsx watch src/listener.ts",
+    "dev:worker": "tsx watch src/worker.ts",
     "build": "tsc",
-    "start:manager": "node dist/manager.js",
-    "start:event-engine": "node dist/event-engine.js",
+    "start:listener": "node dist/listener.js",
+    "start:worker": "node dist/worker.js",
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {

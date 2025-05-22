@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
+import { EVENT_ENGINE_QUEUE_NAME } from './const';
 
 dotenv.config();
 
@@ -8,5 +9,5 @@ export const connection = new Redis(process.env.REDIS_URL || 'redis://localhost:
   maxRetriesPerRequest: null,
 });
 
-export const eventsQueueName = 'events';
-export const eventsQueue = new Queue(eventsQueueName, { connection });
+export const eventsQueue = new Queue(EVENT_ENGINE_QUEUE_NAME, { connection });
+
