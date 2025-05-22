@@ -13,6 +13,7 @@ import type { AppRouter } from '../../../services/backend/src/router';
 import { AssetPrice } from '../../../services/oracle/src/config/sequelize';
 
 import assetConfig from './assets.json';
+import { getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';
 
 const shouldCreateFakePrices = process.argv.includes('--create-fake-prices');
 
@@ -113,7 +114,7 @@ async function createFakePrices(assetConfig: any[]) {
 }
 
 async function main() {
-  const { program, wallet } = getProvider();
+  const { program, wallet, provider } = getProvider();
 
   const client = new TestClient(program);
   client.setPublicKey(wallet.publicKey);
@@ -155,6 +156,25 @@ async function main() {
   console.log('Has Role', await client.hasRole(fundingAccount, AccessControlRole.Owner));
 
   if (program.provider.sendAndConfirm) await program.provider.sendAndConfirm(transaction);
+
+
+  // Give USDC to the funding account
+  const usdcMint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+  const usdcAta = await getOrCreateAssociatedTokenAccount(
+    provider.connection,
+    wallet.payer, 
+    usdcMint, 
+    fundingAccount, 
+  );
+  const usdcAmount = new anchor.BN(10_000 * 1e6);
+  await mintTo(
+    provider.connection,
+    wallet.payer,
+    usdcMint,
+    usdcAta.address,
+    wallet.payer,
+    usdcAmount.toNumber(),
+    );
 
   console.log('Deployment complete! Info saved to deployment-localnet.json');
 }

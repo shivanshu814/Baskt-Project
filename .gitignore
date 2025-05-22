@@ -46,6 +46,10 @@ packages/*/node_modules/
 packages/*/dist/
 packages/*/build/
 
+packages/program/usdc-mock.json
+
 # Misc
 .cache/
 .turbo/
+
+test-ledger/
