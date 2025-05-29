@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { useBasktClient } from '@baskt/ui';
 import { Layout } from '../components/Layout';
@@ -17,9 +17,10 @@ import { Plus } from 'lucide-react';
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { authenticated, ready } = usePrivy();
   const { client } = useBasktClient();
-  const [activeTab, setActiveTab] = useState('assets');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'assets');
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
 
@@ -49,6 +50,11 @@ export default function AdminDashboard() {
     initializeDashboard();
   }, [ready, authenticated, router, client]);
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    router.push(`?tab=${value}`);
+  };
+
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
@@ -62,7 +68,7 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        <Tabs defaultValue="assets" className="w-full" onValueChange={setActiveTab}>
+        <Tabs value={activeTab} className="w-full" onValueChange={handleTabChange}>
           <TabsList className="bg-[#1a1f2e] p-1 rounded-lg border border-white/10">
             <TabsTrigger
               value="assets"
@@ -94,16 +100,16 @@ export default function AdminDashboard() {
           </TabsList>
 
           <TabsContent value="assets" className="space-y-4">
-  <div className="glass-modal rounded-3xl">
-    <AdminAssetsList />
-  </div>
-</TabsContent>
+            <div className="glass-modal rounded-3xl">
+              <AdminAssetsList />
+            </div>
+          </TabsContent>
 
-<TabsContent value="baskts" className="space-y-4">
-  <div className="glass-modal rounded-3xl">
-    <AdminBasktsList />
-  </div>
-</TabsContent>
+          <TabsContent value="baskts" className="space-y-4">
+            <div className="glass-modal rounded-3xl">
+              <AdminBasktsList />
+            </div>
+          </TabsContent>
 
           <TabsContent value="protocol" className="space-y-4">
             <div className="glass-modal rounded-3xl">
