@@ -46,6 +46,7 @@
     "@trpc/client": "^10.45.1",
     "@trpc/react-query": "^10.45.1",
     "aws4": "^1.13.2",
+    "bn.js": "^5.2.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -68,6 +69,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/bn.js": "^5.1.5",
     "@types/leo-profanity": "^1.5.4",
     "@types/react": "^18.3.1",
     "autoprefixer": "^10.4.21",

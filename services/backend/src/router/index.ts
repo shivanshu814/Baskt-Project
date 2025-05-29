@@ -6,7 +6,7 @@ import { basktRouter } from './basktRouter';
 import { cryptoRouter } from './cryptoRouter';
 import { imageRouter } from './imageRouter';
 import { assetPriceRouter } from './assetPrice';
-
+import { poolRouter } from './poolRouter';
 export const appRouter = router({
   health: publicProcedure.query(() => {
     return {
@@ -19,6 +19,7 @@ export const appRouter = router({
   crypto: cryptoRouter,
   image: imageRouter,
   assetPrice: assetPriceRouter,
+  pool: poolRouter,
 });
 
 export type AppRouter = typeof appRouter;

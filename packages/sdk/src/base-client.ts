@@ -26,8 +26,9 @@ import {
   OnchainAssetConfig,
   AccessControlRole,
 } from '@baskt/types';
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { toU64LeBytes } from './utils';
+import { USDC_MINT } from './utils/const';
 
 /**
  * Abstract base client for Solana programs
@@ -950,5 +951,20 @@ export abstract class BaseClient {
       .transaction();
 
     return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+
+  public async getUSDCAccount(userPublicKey: PublicKey, isPDA: boolean = false) {
+    return await this.getUserTokenAccount(userPublicKey, USDC_MINT, isPDA)
+  }
+
+  public async getUserTokenAccount(userPublicKey: PublicKey, mintAccount: PublicKey, isPDA: boolean = false) {
+    const ata = await getAssociatedTokenAddressSync(
+      mintAccount,
+      userPublicKey,
+      isPDA
+    );
+   const account = await getAccount(this.connection, ata);
+   return account;
   }
 }

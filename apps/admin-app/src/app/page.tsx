@@ -14,6 +14,7 @@ import { ProtocolDetails } from '../components/admin/ProtocolDetails';
 import { RolesManagement } from '../components/admin/RolesManagement';
 import { Button } from '../components/ui/button';
 import { Plus } from 'lucide-react';
+import { LiquidityPoolManagement } from '../components/admin/LiquidityPoolManagement';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -97,6 +98,13 @@ export default function AdminDashboard() {
             >
               Roles
             </TabsTrigger>
+
+            <TabsTrigger
+              value="liquidity"
+              className="rounded-md px-4 py-2 text-sm font-medium text-white/60 data-[state=active]:bg-[#0d1117] data-[state=active]:text-white hover:text-white transition-colors"
+            >
+              BLP
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="assets" className="space-y-4">
@@ -120,6 +128,12 @@ export default function AdminDashboard() {
           <TabsContent value="roles" className="space-y-4">
             <div className="glass-modal rounded-3xl">
               <RolesManagement showModal={showRoleModal} setShowModal={setShowRoleModal} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="liquidity" className="space-y-4">
+            <div className="glass-modal rounded-3xl">
+              <LiquidityPoolManagement />
             </div>
           </TabsContent>
         </Tabs>

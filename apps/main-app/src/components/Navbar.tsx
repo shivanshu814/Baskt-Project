@@ -18,7 +18,6 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { toast } from 'sonner';
-
 interface NavbarProps {
   setSidebarOpen?: (open: boolean) => void;
 }
@@ -73,6 +72,11 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
               <NavigationMenuItem>
                 <Link href="/how-it-works" className={navigationMenuTriggerStyle()}>
                   How It Works
+                </Link>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <Link href="/pool" className={navigationMenuTriggerStyle()}>
+                  Pool
                 </Link>
               </NavigationMenuItem>
             </NavigationMenuList>

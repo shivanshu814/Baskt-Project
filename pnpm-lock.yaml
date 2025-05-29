@@ -96,6 +96,9 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.1.4
         version: 1.1.8(@types/react-dom@18.3.5(@types/react@18.3.20))(@types/react@18.3.20)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@solana/spl-token':
+        specifier: ^0.4.13
+        version: 0.4.13(@solana/web3.js@1.98.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10))(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10)
       '@solana/web3.js':
         specifier: 1.98.0
         version: 1.98.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
@@ -148,6 +151,9 @@ importers:
 
   apps/main-app:
     dependencies:
+      '@baskt/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
       '@baskt/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -259,6 +265,9 @@ importers:
       aws4:
         specifier: ^1.13.2
         version: 1.13.2
+      bn.js:
+        specifier: ^5.2.1
+        version: 5.2.1
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -320,6 +329,9 @@ importers:
         specifier: ^3.23.8
         version: 3.24.2
     devDependencies:
+      '@types/bn.js':
+        specifier: ^5.1.5
+        version: 5.1.6
       '@types/leo-profanity':
         specifier: ^1.5.4
         version: 1.5.4
