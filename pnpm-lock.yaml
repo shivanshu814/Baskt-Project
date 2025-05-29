@@ -151,9 +151,6 @@ importers:
 
   apps/main-app:
     dependencies:
-      '@baskt/sdk':
-        specifier: workspace:*
-        version: link:../../packages/sdk
       '@baskt/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -577,6 +574,10 @@ importers:
       ioredis:
         specifier: ^5.6.1
         version: 5.6.1
+    devDependencies:
+      typescript:
+        specifier: ^5.3.3
+        version: 5.8.3
 
   services/oracle:
     dependencies:
@@ -617,6 +618,9 @@ importers:
       '@types/bn.js':
         specifier: ^5.1.6
         version: 5.1.6
+      typescript:
+        specifier: ^5.3.3
+        version: 5.8.3
 
 packages:
 

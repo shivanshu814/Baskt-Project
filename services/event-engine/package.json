@@ -16,5 +16,8 @@
     "bullmq": "^5.49.1",
     "dotenv": "^16.4.7",
     "ioredis": "^5.6.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
   }
 }

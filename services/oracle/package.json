@@ -25,6 +25,7 @@
     "ws": "^8.18.2"
   },
   "devDependencies": {
-    "@types/bn.js": "^5.1.6"
+    "@types/bn.js": "^5.1.6",
+    "typescript": "^5.3.3"
   }
 }
