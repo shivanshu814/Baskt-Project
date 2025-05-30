@@ -128,7 +128,6 @@ export default function BasktDetailPage() {
     );
   }
 
-
   return (
     <div>
       <div className="space-y-6 animate-fade-in p-6">
@@ -169,7 +168,9 @@ export default function BasktDetailPage() {
                   <div className="flex items-center gap-2">
                     <div className="text-[32px] font-bold">${baskt.price.toLocaleString()}</div>
                     <div
-                      className={`flex items-center gap-1 ${baskt.change24h >= 0 ? 'text-[#16c784]' : 'text-[#ea3943]'}`}
+                      className={`flex items-center gap-1 ${
+                        baskt.change24h >= 0 ? 'text-[#16c784]' : 'text-[#ea3943]'
+                      }`}
                     >
                       {baskt.change24h >= 0 ? (
                         <ArrowUp className="h-3 w-3" />
@@ -182,13 +183,8 @@ export default function BasktDetailPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <h3 className="text-[11px] text-muted-foreground">Creator</h3>
-                    <PublicKeyText publicKey={baskt.creator} className="font-bold text-[14px]" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <h3 className="text-[11px] text-muted-foreground">Risk Level</h3>
-                    <p className="font-bold text-[14px] capitalize">{baskt?.risk}</p>
+                    <h3 className="text-[11px] text-muted-foreground">30D Change</h3>
+                    <p className="font-bold text-[14px]">+10.02%</p>
                   </div>
 
                   <div className="space-y-1">
@@ -200,11 +196,6 @@ export default function BasktDetailPage() {
                     <h3 className="text-[11px] text-muted-foreground">Total Assets</h3>
                     <p className="font-bold text-[14px]">{baskt?.assets.length}</p>
                   </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t">
-                  <h3 className="text-sm text-muted-foreground mb-2">Description</h3>
-                  <p className="text-sm">{baskt.description}</p>
                 </div>
               </CardContent>
             </Card>
@@ -239,9 +230,6 @@ export default function BasktDetailPage() {
                     >
                       Position
                     </button>
-                    <button className="px-1 py-2 text-[14px] text-muted-foreground hover:text-primary">
-                      About
-                    </button>
                   </div>
                 </div>
               </CardHeader>
@@ -251,7 +239,11 @@ export default function BasktDetailPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`rounded-md px-3 py-1 text-xs ${chartType === 'line' ? 'bg-background text-primary' : 'text-muted-foreground hover:text-primary'}`}
+                      className={`rounded-md px-3 py-1 text-xs ${
+                        chartType === 'line'
+                          ? 'bg-background text-primary'
+                          : 'text-muted-foreground hover:text-primary'
+                      }`}
                       onClick={() => setChartType('line')}
                     >
                       <LineChart className="h-4 w-4" />
@@ -264,7 +256,11 @@ export default function BasktDetailPage() {
                         key={period}
                         variant="ghost"
                         size="sm"
-                        className={`rounded-md px-3 py-1 text-xs ${chartPeriod === period ? 'bg-background text-primary' : 'text-muted-foreground hover:text-primary'}`}
+                        className={`rounded-md px-3 py-1 text-xs ${
+                          chartPeriod === period
+                            ? 'bg-background text-primary'
+                            : 'text-muted-foreground hover:text-primary'
+                        }`}
                         onClick={() => setChartPeriod(period)}
                       >
                         {period}
@@ -309,7 +305,11 @@ export default function BasktDetailPage() {
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Position Type</span>
                       <span
-                        className={`font-medium ${(userPosition.type || 'long') === 'long' ? 'text-[#16c784]' : 'text-[#ea3943]'}`}
+                        className={`font-medium ${
+                          (userPosition.type || 'long') === 'long'
+                            ? 'text-[#16c784]'
+                            : 'text-[#ea3943]'
+                        }`}
                       >
                         {userPosition.type
                           ? userPosition.type.charAt(0).toUpperCase() + userPosition.type.slice(1)
@@ -327,7 +327,9 @@ export default function BasktDetailPage() {
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">P&L</span>
                       <span
-                        className={`font-medium ${userPosition.pnl >= 0 ? 'text-[#16c784]' : 'text-[#ea3943]'}`}
+                        className={`font-medium ${
+                          userPosition.pnl >= 0 ? 'text-[#16c784]' : 'text-[#ea3943]'
+                        }`}
                       >
                         {userPosition.pnl >= 0 ? '+' : ''}
                         {userPosition.pnl.toFixed(2)} USD ({userPosition.pnl >= 0 ? '+' : ''}
