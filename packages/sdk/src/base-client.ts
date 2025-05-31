@@ -655,7 +655,7 @@ export abstract class BaseClient {
     tokenMint: PublicKey,
     lpMintKeypair: anchor.web3.Keypair,
   ): Promise<string> {
-    console.log('Using RPC');
+    console.log('Using RPC', lpMintKeypair.publicKey.toBase58());
     // Build the transaction
     const tx = await this.program.methods
       .initializeLiquidityPool(depositFeeBps, withdrawalFeeBps, minDeposit)
