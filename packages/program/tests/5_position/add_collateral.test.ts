@@ -5,6 +5,7 @@ import BN from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { AccessControlRole } from '@baskt/types';
+import { initializeProtocolAndRoles, getGlobalTestAccounts } from '../utils/test-setup';
 
 describe('Add Collateral to Position', () => {
   // Get the test client instance
@@ -14,7 +15,7 @@ describe('Add Collateral to Position', () => {
   const ORDER_SIZE = new BN(10_000_000); // 10 units
   const INITIAL_COLLATERAL = new BN(11_000_000); // 11 USDC (110% of 10-unit order)
   const ADDITIONAL_COLLATERAL = new BN(2_000_000); // 2 USDC
-  const ENTRY_PRICE = new BN(50_000_000_000); // $50,000 with 6 decimals
+  const ENTRY_PRICE = new BN(100_000_000); // NAV starts at 100 with 6 decimals
   const TICKER = 'BTC';
 
   // Test accounts
@@ -43,46 +44,23 @@ describe('Add Collateral to Position', () => {
   const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
   before(async () => {
-    try {
-      // Check if protocol is already initialized
-      await client.getProtocolAccount();
-    } catch (error) {
-      try {
-        await client.initializeProtocol();
-      } catch (initError) {
-        throw initError; // Fail the test if we can't initialize the protocol
-      }
-    }
+    // Initialize protocol and roles using centralized setup
+    const globalAccounts = await initializeProtocolAndRoles(client);
+    treasury = globalAccounts.treasury;
+    matcher = globalAccounts.matcher;
 
-    // Set up test roles
-    await client.initializeRoles();
-
-    // Create test keypairs
+    // Create test-specific accounts
     user = Keypair.generate();
-    treasury = Keypair.generate();
-    matcher = Keypair.generate();
     otherUser = Keypair.generate();
 
-    // Fund the test accounts
+    // Fund the test-specific accounts
     await requestAirdrop(user.publicKey, client.connection);
-    await requestAirdrop(treasury.publicKey, client.connection);
-    await requestAirdrop(matcher.publicKey, client.connection);
     await requestAirdrop(otherUser.publicKey, client.connection);
 
     // Create user clients
     userClient = await TestClient.forUser(user);
     matcherClient = await TestClient.forUser(matcher);
     otherUserClient = await TestClient.forUser(otherUser);
-
-    // Add roles
-    await client.addRole(treasury.publicKey, AccessControlRole.Treasury);
-    await client.addRole(matcher.publicKey, AccessControlRole.Matcher);
-
-    // Verify roles
-    const hasTreasuryRole = await client.hasRole(treasury.publicKey, AccessControlRole.Treasury);
-    const hasMatcherRole = await client.hasRole(matcher.publicKey, AccessControlRole.Matcher);
-    expect(hasTreasuryRole).to.be.true;
-    expect(hasMatcherRole).to.be.true;
 
     // Enable features for testing
     await client.updateFeatureFlags({
@@ -125,9 +103,10 @@ describe('Add Collateral to Position', () => {
     basktId = createdBasktId;
 
     // Activate the baskt with initial prices
+    // Since weight is 100% (10000 bps), the asset price should equal the target NAV
     await client.activateBaskt(
       basktId,
-      [new BN(50000 * 1000000)], // $50,000 price with 6 decimals
+      [new BN(100_000_000)], // NAV = 100 with 6 decimals
       60 // maxPriceAgeSec
     );
 

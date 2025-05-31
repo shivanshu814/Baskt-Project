@@ -133,7 +133,7 @@ describe('Baskt Rebalance', () => {
       );
     }
 
-    expect(rebalanceHistory.baselineNav.toNumber()).to.equal(100000000000);
+    expect(rebalanceHistory.baselineNav.toNumber()).to.equal(100000000);
     expect(parseInt(rebalanceHistory.timestamp)).to.be.greaterThan(0);
   });
 

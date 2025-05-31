@@ -63,6 +63,7 @@ pub struct OpenPosition<'info> {
         seeds = [b"protocol"],
         bump,
         owner = crate::ID @ PerpetualsError::InvalidProgramAuthority,
+        constraint = protocol.feature_flags.allow_open_position && protocol.feature_flags.allow_trading @ PerpetualsError::FeatureDisabled,
         constraint = protocol.has_permission(matcher.key(), Role::Matcher) @ PerpetualsError::Unauthorized
     )]
     pub protocol: Account<'info, Protocol>,
@@ -112,7 +113,11 @@ pub fn open_position(ctx: Context<OpenPosition>, params: OpenPositionParams) -> 
     let bump = ctx.bumps.position;
     let clock = Clock::get()?;
 
-    // TODO: Validate oracle price is fresh and valid
+    // Validate oracle price is fresh and valid
+    ctx.accounts.baskt.oracle.validate_execution_price(
+        params.entry_price,
+        clock.unix_timestamp
+    )?;
 
     // Initialize the position using existing Position::initialize
     position.initialize(
@@ -347,6 +352,7 @@ pub struct ClosePosition<'info> {
         seeds = [b"protocol"],
         bump,
         owner = crate::ID @ PerpetualsError::InvalidProgramAuthority,
+        constraint = protocol.feature_flags.allow_close_position && protocol.feature_flags.allow_trading @ PerpetualsError::FeatureDisabled,
         constraint = protocol.has_permission(matcher.key(), Role::Matcher) @ PerpetualsError::Unauthorized
     )]
     pub protocol: Box<Account<'info, Protocol>>,
@@ -398,7 +404,10 @@ pub fn close_position(ctx: Context<ClosePosition>, params: ClosePositionParams) 
         PerpetualsError::InvalidTargetPosition
     );
 
-    // TODO: Validate oracle price is fresh and valid
+    ctx.accounts.baskt.oracle.validate_execution_price(
+        params.exit_price,
+        clock.unix_timestamp
+    )?;
 
     // Settle the position state: update funding, set exit price, status, timestamp
     position.settle_close(
@@ -660,6 +669,7 @@ pub struct LiquidatePosition<'info> {
         seeds = [b"protocol"],
         bump,
         owner = crate::ID @ PerpetualsError::InvalidProgramAuthority,
+        constraint = protocol.feature_flags.allow_liquidations @ PerpetualsError::FeatureDisabled,
         constraint = protocol.has_permission(liquidator.key(), Role::Liquidator) @ PerpetualsError::Unauthorized
     )]
     pub protocol: Account<'info, Protocol>,
@@ -703,7 +713,10 @@ pub fn liquidate_position(
     let funding_index = &ctx.accounts.funding_index;
     let clock = Clock::get()?;
 
-    // TODO: Validate oracle price is fresh and valid
+    ctx.accounts.baskt.oracle.validate_liquidation_price(
+        params.exit_price,
+        clock.unix_timestamp
+    )?;
 
     // Update funding first to ensure accurate liquidation check
     position.update_funding(funding_index.cumulative_index)?;

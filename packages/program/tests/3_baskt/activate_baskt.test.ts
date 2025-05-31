@@ -100,7 +100,7 @@ describe('activate baskt', () => {
     );
 
     // Verify baseline NAV was set
-    expect(basktAfter.baselineNav.toString()).to.equal('100000000000');
+    expect(basktAfter.baselineNav.toString()).to.equal('100000000');
 
     // Try to activate again - should fail with BasktAlreadyActive
     try {
@@ -147,7 +147,7 @@ describe('activate baskt', () => {
     );
 
     // Verify baseline NAV was set
-    expect(basktAfter.baselineNav.toString()).to.equal('100000000000');
+    expect(basktAfter.baselineNav.toString()).to.equal('100000000');
   });
 
   it('Fails to activate a baskt from a regular user', async () => {
@@ -260,7 +260,7 @@ describe('activate baskt', () => {
     }
 
     // Verify baseline NAV was set
-    expect(basktAfter.baselineNav.toString()).to.equal('100000000000');
+    expect(basktAfter.baselineNav.toString()).to.equal('100000000');
   });
 
   it('Fails to activate a baskt with mismatched price count', async () => {

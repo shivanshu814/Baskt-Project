@@ -1,6 +1,13 @@
 import * as anchor from '@coral-xyz/anchor';
 import { Program } from '@coral-xyz/anchor';
-import { Keypair, PublicKey, LAMPORTS_PER_SOL, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction } from '@solana/web3.js';
+import {
+  Keypair,
+  PublicKey,
+  LAMPORTS_PER_SOL,
+  SystemProgram,
+  SYSVAR_RENT_PUBKEY,
+  Transaction,
+} from '@solana/web3.js';
 import { BaseClient } from '@baskt/sdk';
 import { BasktV1 } from '../../target/types/baskt_v1';
 import { AccessControlRole, OnchainAssetPermissions } from '@baskt/types';
@@ -12,6 +19,7 @@ import {
   mintTo,
   getAccount,
   TOKEN_PROGRAM_ID,
+  getMint,
 } from '@solana/spl-token';
 import BN from 'bn.js';
 import * as fs from 'fs';
@@ -182,21 +190,16 @@ export class TestClient extends BaseClient {
     const payer = provider.wallet.payer as Keypair;
 
     // Special handling for USDC mint
-    if (mint.toString() === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v") {
+    if (mint.toString() === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v') {
       return this.getOrCreateUSDCAccount(owner);
     }
 
     // Create the token account
-    const tokenAccount = await createAccount(
-      provider.connection,
-      payer,
-      mint,
-      owner
-    );
+    const tokenAccount = await createAccount(provider.connection, payer, mint, owner);
 
     return tokenAccount;
   }
-  
+
   /**
    * Creates a USDC token account for the specified owner if it doesn't exist
    * @param owner Owner of the token account
@@ -204,11 +207,11 @@ export class TestClient extends BaseClient {
    */
   public async getOrCreateUSDCAccount(owner: PublicKey): Promise<PublicKey> {
     // USDC mint address from constants
-    const usdcMint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
-    
+    const usdcMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+
     // Find the associated token address
     const tokenAccount = await getAssociatedTokenAddress(usdcMint, owner);
-    
+
     try {
       // Check if account exists
       await getAccount(this.program.provider.connection, tokenAccount);
@@ -220,16 +223,11 @@ export class TestClient extends BaseClient {
         throw new Error('Provider is undefined');
       }
       const payer = provider.wallet.payer as Keypair;
-      await createAssociatedTokenAccount(
-        provider.connection,
-        payer,
-        usdcMint,
-        owner
-      );
+      await createAssociatedTokenAccount(provider.connection, payer, usdcMint, owner);
       return tokenAccount;
     }
   }
-  
+
   /**
    * Mints USDC tokens to a specified token account
    * Uses our mock USDC with controlled mint authority
@@ -240,22 +238,23 @@ export class TestClient extends BaseClient {
   public async mintUSDC(destination: PublicKey, amount: number | BN): Promise<string> {
     const provider = this.program.provider as anchor.AnchorProvider;
     const payer = provider.wallet.payer as Keypair;
-    const usdcMint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
-    // Load mint authority from test-wallet.json
-    const walletPath = path.resolve(process.cwd(), 'tests/utils/test-wallet.json');
-    const secretKeyText = fs.readFileSync(walletPath, 'utf-8');
-    const secretKey = Uint8Array.from(JSON.parse(secretKeyText));
-    const mintAuthority = Keypair.fromSecretKey(secretKey);
+    const usdcMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
     // Convert amount for minting
     const mintAmount = typeof amount === 'number' ? amount : BigInt(amount.toString());
+
+    const usdcMintAccount = await getMint(provider.connection, usdcMint);
+    if (!usdcMintAccount) {
+      throw new Error('USDC mint account not found');
+    }
+
     // Mint USDC tokens to the destination account
     const signature = await mintTo(
       provider.connection,
       payer, // Payer for transaction fees
       usdcMint,
       destination,
-      mintAuthority, // Use our controlled mint authority
-      mintAmount
+      payer, // Use our controlled mint authority
+      mintAmount,
     );
     await provider.connection.confirmTransaction(signature, 'confirmed');
     return signature;
@@ -303,9 +302,6 @@ export class TestClient extends BaseClient {
     poolAuthority: PublicKey;
     txSignature: string;
   }> {
-    const provider = this.program.provider as anchor.AnchorProvider;
-    const payer = provider.wallet.payer as Keypair;
-
     // Find the liquidity pool PDA
     const liquidityPool = await this.findLiquidityPoolPDA();
 
@@ -313,14 +309,12 @@ export class TestClient extends BaseClient {
     const poolAuthority = await this.findPoolAuthorityPDA(liquidityPool);
 
     let lpMint: PublicKey;
-    let tokenVault: PublicKey;
+    let [tokenVault]: [PublicKey, number] = await super.getTokenVaultPda();
     let txSignature: string;
     try {
       // Generate keypairs for the LP mint and token vault
       const lpMintKeypair = Keypair.generate();
-      const tokenVaultKeypair = Keypair.generate();
       lpMint = lpMintKeypair.publicKey;
-      tokenVault = tokenVaultKeypair.publicKey;
 
       // Initialize the liquidity pool with keypairs as signers
       txSignature = await super.initializeLiquidityPool(
@@ -328,10 +322,8 @@ export class TestClient extends BaseClient {
         params.withdrawalFeeBps,
         params.minDeposit,
         lpMint,
-        tokenVault,
         params.collateralMint,
         lpMintKeypair,
-        tokenVaultKeypair
       );
     } catch (error: any) {
       // If the liquidity pool has already been initialized, reuse existing accounts
@@ -376,7 +368,7 @@ export class TestClient extends BaseClient {
       params.providerLpAccount,
       params.lpMint,
       params.treasuryTokenAccount,
-      params.treasury
+      params.treasury,
     );
   }
 
@@ -396,7 +388,6 @@ export class TestClient extends BaseClient {
     treasuryTokenAccount: PublicKey;
     treasury: PublicKey;
   }): Promise<string> {
-
     // Remove liquidity
     return await super.removeLiquidity(
       params.liquidityPool,
@@ -407,7 +398,7 @@ export class TestClient extends BaseClient {
       params.providerLpAccount,
       params.lpMint,
       params.treasuryTokenAccount,
-      params.treasury
+      params.treasury,
     );
   }
 
@@ -436,17 +427,14 @@ export class TestClient extends BaseClient {
     depositTxSignature: string;
   }> {
     // Use the USDC mint for pool collateral
-    const collateralMint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+    const collateralMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
     // Create or fetch USDC token accounts for provider and treasury
     const providerTokenAccount = await this.getOrCreateUSDCAccount(params.provider.publicKey);
     const treasuryTokenAccount = await this.getOrCreateUSDCAccount(params.treasury.publicKey);
 
     // Mint USDC tokens to provider (10x for multiple tests)
-    await this.mintUSDC(
-      providerTokenAccount,
-      params.initialDeposit.muln(10)
-    );
+    await this.mintUSDC(providerTokenAccount, params.initialDeposit.muln(10));
 
     // Setup liquidity pool
     const {
@@ -454,12 +442,12 @@ export class TestClient extends BaseClient {
       lpMint,
       tokenVault,
       poolAuthority,
-      txSignature: initTxSignature
+      txSignature: initTxSignature,
     } = await this.setupLiquidityPool({
       depositFeeBps: params.depositFeeBps,
       withdrawalFeeBps: params.withdrawalFeeBps,
       minDeposit: params.minDeposit,
-      collateralMint
+      collateralMint,
     });
 
     // Create provider LP token account
@@ -467,7 +455,7 @@ export class TestClient extends BaseClient {
       this.program.provider.connection,
       (this.program.provider as anchor.AnchorProvider).wallet.payer as Keypair,
       lpMint,
-      params.provider.publicKey
+      params.provider.publicKey,
     );
 
     // Calculate expected fee and shares
@@ -479,17 +467,7 @@ export class TestClient extends BaseClient {
 
     // Create a client for the provider to ensure proper transaction signing
     const providerClient = await TestClient.forUser(params.provider);
-    
-    // Double check the treasury token account ownership
-    try {
-      const treasuryTokenInfo = await getAccount(
-        this.program.provider.connection,
-        treasuryTokenAccount
-      );
-    } catch (error) {
-      console.error("Error checking token account:", error);
-    }
-    
+
     // Add initial liquidity using the provider's client
     const depositTxSignature = await providerClient.addLiquidityToPool({
       liquidityPool,
@@ -500,7 +478,7 @@ export class TestClient extends BaseClient {
       providerLpAccount,
       lpMint,
       treasuryTokenAccount,
-      treasury: params.treasury.publicKey
+      treasury: params.treasury.publicKey,
     });
 
     return {
@@ -513,7 +491,7 @@ export class TestClient extends BaseClient {
       providerLpAccount,
       treasuryTokenAccount,
       initTxSignature,
-      depositTxSignature
+      depositTxSignature,
     };
   }
 
@@ -541,7 +519,7 @@ export class TestClient extends BaseClient {
       params.targetPosition,
       params.basktId,
       params.ownerTokenAccount,
-      params.collateralMint
+      params.collateralMint,
     );
   }
 
@@ -554,11 +532,7 @@ export class TestClient extends BaseClient {
     const orderAccount = await this.program.account.order.fetch(params.orderPDA);
     const orderIdNum = orderAccount.orderId as BN; // Assuming orderId is stored as BN or compatible
 
-    return await super.cancelOrderTx(
-      params.orderPDA,
-      orderIdNum,
-      params.ownerTokenAccount
-    );
+    return await super.cancelOrderTx(params.orderPDA, orderIdNum, params.ownerTokenAccount);
   }
 
   /**
@@ -574,23 +548,23 @@ export class TestClient extends BaseClient {
   }): Promise<string> {
     // Fetch the order account to get the owner
     const orderAccount = await this.program.account.order.fetch(params.order);
-    
+
     // Derive program authority PDA
     const [programAuthority] = PublicKey.findProgramAddressSync(
       [Buffer.from('authority')],
-      this.program.programId
+      this.program.programId,
     );
     // Use USDC escrow mint
     const escrowMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
     // Derive user escrow account PDA using the order owner's key
     const [orderEscrow] = PublicKey.findProgramAddressSync(
       [Buffer.from('user_escrow'), orderAccount.owner.toBuffer()],
-      this.program.programId
+      this.program.programId,
     );
     // Derive position escrow PDA
     const [escrowToken] = PublicKey.findProgramAddressSync(
       [Buffer.from('escrow'), params.position.toBuffer()],
-      this.program.programId
+      this.program.programId,
     );
     // Call openPosition with full account context
     return await this.program.methods
@@ -622,12 +596,13 @@ export class TestClient extends BaseClient {
     ownerTokenAccount: PublicKey;
   }): Promise<string> {
     // Derive PDAs
-    const [programAuthority] = PublicKey.findProgramAddressSync([
-      Buffer.from('authority')
-    ], this.program.programId);
+    const [programAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from('authority')],
+      this.program.programId,
+    );
     const [escrowToken] = PublicKey.findProgramAddressSync(
       [Buffer.from('escrow'), params.position.toBuffer()],
-      this.program.programId
+      this.program.programId,
     );
     return await this.program.methods
       .addCollateral({ additionalCollateral: params.additionalCollateral })
@@ -647,7 +622,7 @@ export class TestClient extends BaseClient {
    * Close a position using the on-chain instruction
    */
   public async closePosition(params: {
-    order: PublicKey;
+    orderPDA: PublicKey;
     position: PublicKey;
     exitPrice: BN;
     fundingIndex: PublicKey;
@@ -656,40 +631,28 @@ export class TestClient extends BaseClient {
     treasury: PublicKey;
     treasuryTokenAccount: PublicKey;
   }): Promise<string> {
-    // Derive program authority and escrow token PDAs
-    const [programAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from('authority')],
-      this.program.programId
-    );
     const [escrowToken] = PublicKey.findProgramAddressSync(
       [Buffer.from('escrow'), params.position.toBuffer()],
-      this.program.programId
+      this.program.programId,
     );
     // Derive liquidity pool PDAs and fetch token vault
     const liquidityPool = await this.findLiquidityPoolPDA();
-    const poolAuthority = await this.findPoolAuthorityPDA(liquidityPool);
     const poolAccount = await this.program.account.liquidityPool.fetch(liquidityPool);
     const tokenVault = poolAccount.tokenVault;
     return await this.program.methods
       .closePosition({ exitPrice: params.exitPrice })
-      .accounts({
+      .accountsPartial({
         matcher: this.getPublicKey(),
-        order: params.order,
-        position: params.position,
-        fundingIndex: params.fundingIndex,
         baskt: params.baskt,
-        ownerToken: params.ownerTokenAccount,
         escrowToken: escrowToken,
+        ownerToken: params.ownerTokenAccount,
+        tokenVault: tokenVault,
         treasury: params.treasury,
         treasuryToken: params.treasuryTokenAccount,
-        programAuthority: programAuthority,
-        protocol: this.protocolPDA,
-        // liquidity pool accounts for settlement
-        liquidityPool: liquidityPool,
-        tokenVault: tokenVault,
-        poolAuthority: poolAuthority,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      } as any)
+        order: params.orderPDA,
+        position: params.position,
+        fundingIndex: params.fundingIndex,
+      })
       .rpc();
   }
 
@@ -708,11 +671,11 @@ export class TestClient extends BaseClient {
     // Derive program authority and escrow token PDAs
     const [programAuthority] = PublicKey.findProgramAddressSync(
       [Buffer.from('authority')],
-      this.program.programId
+      this.program.programId,
     );
     const [escrowToken] = PublicKey.findProgramAddressSync(
       [Buffer.from('escrow'), params.position.toBuffer()],
-      this.program.programId
+      this.program.programId,
     );
     // Derive liquidity pool PDAs and fetch token vault
     const liquidityPool = await this.findLiquidityPoolPDA();

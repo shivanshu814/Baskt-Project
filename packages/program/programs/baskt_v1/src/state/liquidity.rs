@@ -45,6 +45,11 @@ impl LiquidityPool {
         gross_deposit_amount: u64,
         fee_amount: u64,
     ) -> Result<u64> {
+        msg!("gross_deposit_amount: {}", gross_deposit_amount);
+        msg!("fee_amount: {}", fee_amount);
+        msg!("min_deposit: {}", self.min_deposit);
+        msg!("total_liquidity: {}", self.total_liquidity);
+        msg!("total_shares: {}", self.total_shares);
         // Ensure the deposit meets the minimum requirement
         require!(
             gross_deposit_amount >= self.min_deposit,

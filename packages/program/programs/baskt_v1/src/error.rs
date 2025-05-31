@@ -32,6 +32,8 @@ pub enum PerpetualsError {
     StaleOraclePrice,
     #[msg("Invalid oracle price")]
     InvalidOraclePrice,
+    #[msg("Submitted price is outside acceptable deviation bounds from oracle price")]
+    PriceOutOfBounds,
     #[msg("Insufficient funds for operation")]
     InsufficientFunds,
     #[msg("Invalid baskt name")]

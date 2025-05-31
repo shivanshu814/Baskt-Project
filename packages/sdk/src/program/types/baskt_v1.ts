@@ -635,6 +635,29 @@ export type BasktV1 = {
           }
         },
         {
+          "name": "protocol",
+          "docs": [
+            "Protocol account to verify feature flags"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
@@ -1068,6 +1091,29 @@ export type BasktV1 = {
                   105,
                   116,
                   121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol account to verify feature flags"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
                 ]
               }
             ]
@@ -2873,216 +2919,221 @@ export type BasktV1 = {
     },
     {
       "code": 6015,
+      "name": "priceOutOfBounds",
+      "msg": "Submitted price is outside acceptable deviation bounds from oracle price"
+    },
+    {
+      "code": 6016,
       "name": "insufficientFunds",
       "msg": "Insufficient funds for operation"
     },
     {
-      "code": 6016,
+      "code": 6017,
       "name": "invalidBasktName",
       "msg": "Invalid baskt name"
     },
     {
-      "code": 6017,
+      "code": 6018,
       "name": "basktInactive",
       "msg": "Baskt is inactive"
     },
     {
-      "code": 6018,
+      "code": 6019,
       "name": "roleNotFound",
       "msg": "Role not found for the account"
     },
     {
-      "code": 6019,
+      "code": 6020,
       "name": "missingRequiredRole",
       "msg": "Missing required role for this operation"
     },
     {
-      "code": 6020,
+      "code": 6021,
       "name": "unauthorizedSigner",
       "msg": "Unauthorized signer for this operation"
     },
     {
-      "code": 6021,
+      "code": 6022,
       "name": "invalidRoleType",
       "msg": "Invalid role type"
     },
     {
-      "code": 6022,
+      "code": 6023,
       "name": "invalidRemainingAccounts",
       "msg": "Invalid remaining accounts"
     },
     {
-      "code": 6023,
+      "code": 6024,
       "name": "invalidAssetAccount",
       "msg": "Invalid asset account"
     },
     {
-      "code": 6024,
+      "code": 6025,
       "name": "longPositionsDisabled",
       "msg": "Long positions are disabled for this asset"
     },
     {
-      "code": 6025,
+      "code": 6026,
       "name": "shortPositionsDisabled",
       "msg": "Short positions are disabled for this asset"
     },
     {
-      "code": 6026,
+      "code": 6027,
       "name": "invalidOrStaleOraclePrice",
       "msg": "Invalid or stale oracle price"
     },
     {
-      "code": 6027,
+      "code": 6028,
       "name": "assetNotInBaskt",
       "msg": "Asset not in baskt"
     },
     {
-      "code": 6028,
+      "code": 6029,
       "name": "invalidAssetConfig",
       "msg": "Invalid asset config"
     },
     {
-      "code": 6029,
+      "code": 6030,
       "name": "featureDisabled",
       "msg": "Feature is currently disabled"
     },
     {
-      "code": 6030,
+      "code": 6031,
       "name": "priceNotFound",
       "msg": "Price not found"
     },
     {
-      "code": 6031,
+      "code": 6032,
       "name": "inactiveAsset",
       "msg": "Asset Not Active"
     },
     {
-      "code": 6032,
+      "code": 6033,
       "name": "basktAlreadyActive",
       "msg": "Baskt Already Active"
     },
     {
-      "code": 6033,
+      "code": 6034,
       "name": "invalidAssetWeights",
       "msg": "Invalid asset weights"
     },
     {
-      "code": 6034,
+      "code": 6035,
       "name": "invalidOracleParameter",
       "msg": "Invalid oracle parameter"
     },
     {
-      "code": 6035,
+      "code": 6036,
       "name": "orderAlreadyProcessed",
       "msg": "Order already processed"
     },
     {
-      "code": 6036,
+      "code": 6037,
       "name": "invalidEscrowAccount",
       "msg": "Invalid escrow account"
     },
     {
-      "code": 6037,
+      "code": 6038,
       "name": "invalidProgramAuthority",
       "msg": "Invalid program authority"
     },
     {
-      "code": 6038,
+      "code": 6039,
       "name": "tokenHasDelegate",
       "msg": "Token has delegate"
     },
     {
-      "code": 6039,
+      "code": 6040,
       "name": "tokenHasCloseAuthority",
       "msg": "Token has close authority"
     },
     {
-      "code": 6040,
+      "code": 6041,
       "name": "invalidMint",
       "msg": "Invalid mint"
     },
     {
-      "code": 6041,
+      "code": 6042,
       "name": "zeroSizedPosition",
       "msg": "Zero sized position"
     },
     {
-      "code": 6042,
+      "code": 6043,
       "name": "invalidTargetPosition",
       "msg": "Invalid target position"
     },
     {
-      "code": 6043,
+      "code": 6044,
       "name": "invalidBaskt",
       "msg": "Invalid baskt"
     },
     {
-      "code": 6044,
+      "code": 6045,
       "name": "invalidOrderAction",
       "msg": "Invalid order action"
     },
     {
-      "code": 6045,
+      "code": 6046,
       "name": "fundingNotUpToDate",
       "msg": "Funding not up to date"
     },
     {
-      "code": 6046,
+      "code": 6047,
       "name": "positionStillOpen",
       "msg": "Position still open"
     },
     {
-      "code": 6047,
+      "code": 6048,
       "name": "invalidTreasuryAccount",
       "msg": "Invalid treasury account"
     },
     {
-      "code": 6048,
+      "code": 6049,
       "name": "collateralOverflow",
       "msg": "Collateral amount would overflow maximum value"
     },
     {
-      "code": 6049,
+      "code": 6050,
       "name": "depositsDisabled",
       "msg": "Liquidity pool deposits are currently disabled"
     },
     {
-      "code": 6050,
+      "code": 6051,
       "name": "withdrawalsDisabled",
       "msg": "Liquidity pool withdrawals are currently disabled"
     },
     {
-      "code": 6051,
+      "code": 6052,
       "name": "belowMinimumDeposit",
       "msg": "Deposit amount is below the minimum"
     },
     {
-      "code": 6052,
+      "code": 6053,
       "name": "divisionByZero",
       "msg": "Division by zero"
     },
     {
-      "code": 6053,
+      "code": 6054,
       "name": "invalidLiquidityPool",
       "msg": "Invalid liquidity pool account"
     },
     {
-      "code": 6054,
+      "code": 6055,
       "name": "invalidTokenVault",
       "msg": "Invalid token vault account"
     },
     {
-      "code": 6055,
+      "code": 6056,
       "name": "slippageExceeded",
       "msg": "Slippage tolerance exceeded"
     },
     {
-      "code": 6056,
+      "code": 6057,
       "name": "invalidFeeBps",
       "msg": "Invalid fee basis points"
     },
     {
-      "code": 6057,
+      "code": 6058,
       "name": "fundingRateExceedsMaximum",
       "msg": "Funding rate exceeds maximum allowed"
     }

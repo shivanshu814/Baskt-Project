@@ -3,6 +3,7 @@ use crate::error::PerpetualsError;
 use crate::state::{
     baskt::Baskt,
     order::{Order, OrderAction, OrderStatus},
+    protocol::Protocol,
 };
 use crate::events::*;
 use anchor_lang::prelude::*;
@@ -69,6 +70,14 @@ pub struct CreateOrder<'info> {
         bump,
     )]
     pub program_authority: AccountInfo<'info>,
+
+    /// Protocol account to verify feature flags
+    #[account(
+        seeds = [b"protocol"],
+        bump,
+        constraint = protocol.feature_flags.allow_trading @ PerpetualsError::FeatureDisabled
+    )]
+    pub protocol: Account<'info, Protocol>,
 
     pub system_program: Program<'info, System>,
 
@@ -206,6 +215,14 @@ pub struct CancelOrder<'info> {
         bump,
     )]
     pub program_authority: AccountInfo<'info>,
+
+    /// Protocol account to verify feature flags
+    #[account(
+        seeds = [b"protocol"],
+        bump,
+        constraint = protocol.feature_flags.allow_trading @ PerpetualsError::FeatureDisabled
+    )]
+    pub protocol: Account<'info, Protocol>,
 
     pub token_program: Program<'info, Token>,
     // Removed program_authority_bump parameter since it will be derived

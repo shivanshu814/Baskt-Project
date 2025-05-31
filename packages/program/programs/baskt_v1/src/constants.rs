@@ -23,10 +23,11 @@ pub struct Constants {
     // Oracle constants
     pub MAX_PRICE_AGE_SEC: u32,
     pub MAX_PRICE_ERROR_BPS: u64,
+    pub MAX_PRICE_DEVIATION_BPS: u64,
+    pub LIQUIDATION_PRICE_DEVIATION_BPS: u64,
 
     // USDC decimals
     pub USDC_DECIMALS: u8,
-    pub USD_DECIMALS: u32,
 
     // Price precision
     pub PRICE_EXPONENT: u32,
@@ -63,14 +64,15 @@ impl Default for Constants {
             // Oracle constants
             MAX_PRICE_AGE_SEC: 60,    // 1 minute max oracle price age
             MAX_PRICE_ERROR_BPS: 100, // 1% max price error
+            MAX_PRICE_DEVIATION_BPS: 2500, // 25% max price deviation for regular operations
+            LIQUIDATION_PRICE_DEVIATION_BPS: 2000, // 20% max price deviation for liquidations
 
             // USDC decimals
             USDC_DECIMALS: 6,
-            USD_DECIMALS: 6, // For oracle price calculations
 
-            // Price precision
-            PRICE_EXPONENT: 9,
-            PRICE_PRECISION: 10u64.pow(9), // 9 decimal places
+            // Price precision - aligned with USDC decimals
+            PRICE_EXPONENT: 6,
+            PRICE_PRECISION: 10u64.pow(6), // 6 decimal places to match USDC
 
             // Position constants
             FUNDING_PRECISION: 10u64.pow(6), // 6 decimal places
@@ -104,14 +106,15 @@ impl Constants {
     // Oracle constants
     pub const MAX_PRICE_AGE_SEC: u32 = 60; // 1 minute max oracle price age
     pub const MAX_PRICE_ERROR_BPS: u64 = 100; // 1% max price error
+    pub const MAX_PRICE_DEVIATION_BPS: u64 = 2500; // 25% max price deviation for regular operations
+    pub const LIQUIDATION_PRICE_DEVIATION_BPS: u64 = 2000; // 20% max price deviation for liquidations
 
     // USDC decimals
     pub const USDC_DECIMALS: u8 = 6;
-    pub const USD_DECIMALS: u32 = 6; // For oracle price calculations
 
-    // Price precision
-    pub const PRICE_EXPONENT: u32 = 9;
-    pub const PRICE_PRECISION: u64 = 10u64.pow(9); // 9 decimal places
+    // Price precision - aligned with USDC decimals  
+    pub const PRICE_EXPONENT: u32 = 6;
+    pub const PRICE_PRECISION: u64 = 10u64.pow(6); // 6 decimal places to match USDC
 
     // Position constants
     pub const FUNDING_PRECISION: u64 = 10u64.pow(6); // 6 decimal places

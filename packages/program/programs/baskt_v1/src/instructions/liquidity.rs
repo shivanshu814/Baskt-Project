@@ -336,6 +336,9 @@ pub fn add_liquidity(ctx: Context<AddLiquidity>, amount: u64, min_shares_out: u6
     // Ensure shares_to_mint is greater than zero
     require!(shares_to_mint > 0, PerpetualsError::InvalidLpTokenAmount);
 
+    msg!("Shares to mint: {}", shares_to_mint);
+    msg!("Min shares out: {}", min_shares_out);
+
     // Check minimum shares out safeguard
     require!(
         shares_to_mint >= min_shares_out,

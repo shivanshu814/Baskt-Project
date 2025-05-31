@@ -26,7 +26,6 @@ export default function Faucet() {
     (async () => {
       try {
         const acc = await client?.getUSDCAccount(userPubkey);
-        console.log(acc);
         setBalance((Number(acc?.amount) / 1e6).toLocaleString());
       } catch {
         setBalance("0");
