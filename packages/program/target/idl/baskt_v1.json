@@ -374,7 +374,31 @@
           "docs": [
             "The vault that holds the pool's assets"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              }
+            ]
+          }
         },
         {
           "name": "provider_lp_account",
@@ -1197,7 +1221,8 @@
         {
           "name": "payer",
           "docs": [
-            "Payer for the rent fees"
+            "Payer for the rent fees",
+            "TODO sidduHERE admin and payer should be the same"
           ],
           "writable": true,
           "signer": true
@@ -1263,7 +1288,8 @@
         {
           "name": "lp_mint",
           "docs": [
-            "The mint that will be used for LP tokens"
+            "The mint that will be used for LP tokens",
+            "TODO sidduHERE  need clarity on this. Who is creating this."
           ],
           "writable": true,
           "signer": true
@@ -1274,7 +1300,30 @@
             "The token account that will hold the pool's assets"
           ],
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              }
+            ]
+          }
         },
         {
           "name": "token_mint",
@@ -2064,7 +2113,31 @@
           "docs": [
             "The vault that holds the pool's assets"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              }
+            ]
+          }
         },
         {
           "name": "provider_lp_account",
@@ -2083,12 +2156,16 @@
         {
           "name": "treasury_token_account",
           "docs": [
-            "The treasury token account to receive fees"
+            "The treasury token account to receive fees",
+            "/TODO sidduHERE where is the check for this"
           ],
           "writable": true
         },
         {
-          "name": "treasury"
+          "name": "treasury",
+          "docs": [
+            "TODO sidduHERE where is the check for this. We should be setting this during init"
+          ]
         },
         {
           "name": "pool_authority",

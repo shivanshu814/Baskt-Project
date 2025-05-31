@@ -79,6 +79,11 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
                   Pool
                 </Link>
               </NavigationMenuItem>
+              <NavigationMenuItem>
+                <Link href="/faucet" className={navigationMenuTriggerStyle()}>
+                  Faucet
+                </Link>
+              </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
         </div>

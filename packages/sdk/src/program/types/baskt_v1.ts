@@ -380,7 +380,31 @@ export type BasktV1 = {
           "docs": [
             "The vault that holds the pool's assets"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              }
+            ]
+          }
         },
         {
           "name": "providerLpAccount",
@@ -1203,7 +1227,8 @@ export type BasktV1 = {
         {
           "name": "payer",
           "docs": [
-            "Payer for the rent fees"
+            "Payer for the rent fees",
+            "TODO sidduHERE admin and payer should be the same"
           ],
           "writable": true,
           "signer": true
@@ -1269,7 +1294,8 @@ export type BasktV1 = {
         {
           "name": "lpMint",
           "docs": [
-            "The mint that will be used for LP tokens"
+            "The mint that will be used for LP tokens",
+            "TODO sidduHERE  need clarity on this. Who is creating this."
           ],
           "writable": true,
           "signer": true
@@ -1280,7 +1306,30 @@ export type BasktV1 = {
             "The token account that will hold the pool's assets"
           ],
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              }
+            ]
+          }
         },
         {
           "name": "tokenMint",
@@ -2070,7 +2119,31 @@ export type BasktV1 = {
           "docs": [
             "The vault that holds the pool's assets"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              }
+            ]
+          }
         },
         {
           "name": "providerLpAccount",
@@ -2089,12 +2162,16 @@ export type BasktV1 = {
         {
           "name": "treasuryTokenAccount",
           "docs": [
-            "The treasury token account to receive fees"
+            "The treasury token account to receive fees",
+            "/TODO sidduHERE where is the check for this"
           ],
           "writable": true
         },
         {
-          "name": "treasury"
+          "name": "treasury",
+          "docs": [
+            "TODO sidduHERE where is the check for this. We should be setting this during init"
+          ]
         },
         {
           "name": "poolAuthority",

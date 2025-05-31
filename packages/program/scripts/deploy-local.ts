@@ -157,14 +157,48 @@ async function main() {
 
   if (program.provider.sendAndConfirm) await program.provider.sendAndConfirm(transaction);
 
+  // === Create LP Mint and Token Vault for Liquidity Pool ===
+
+  // 1. Derive PDAs
+  const protocolPDA = await client.protocolPDA;
+  const liquidityPoolPDA = await client.findLiquidityPoolPDA();
+  const poolAuthorityPDA = await client.findPoolAuthorityPDA(liquidityPoolPDA);
+  console.log('Protocol PDA:', protocolPDA.toBase58());
+  console.log('Liquidity Pool PDA:', liquidityPoolPDA.toBase58());
+  console.log('Pool Authority PDA:', poolAuthorityPDA.toBase58());
+
+  // 2. Use USDC as the collateral mint
+  const usdcMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+
+  // 3. Create LP Mint (poolAuthorityPDA as mint authority)
+  // const lpMintKeypair = Keypair.generate();
+  // const lpMint = await createMint(
+  //   provider.connection,
+  //   wallet.payer,
+  //   poolAuthorityPDA,
+  //   null, // Freeze authority (optional)
+  //   6, // Decimals (match USDC)
+  //   lpMintKeypair,
+  // );
+  // console.log('LP Mint:', lpMintKeypair.publicKey.toBase58());
+
+  // 4. Create Token Vault (owned by poolAuthorityPDA)
+  // const tokenVault = await getOrCreateAssociatedTokenAccount(
+  //   provider.connection,
+  //   wallet.payer,
+  //   usdcMint,
+  //   poolAuthorityPDA,
+  //   true,
+  // );
+
+  // console.log('Token Vault:', tokenVault.address.toBase58());
 
   // Give USDC to the funding account
-  const usdcMint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
   const usdcAta = await getOrCreateAssociatedTokenAccount(
     provider.connection,
-    wallet.payer, 
-    usdcMint, 
-    fundingAccount, 
+    wallet.payer,
+    usdcMint,
+    fundingAccount,
   );
   const usdcAmount = new anchor.BN(10_000 * 1e6);
   await mintTo(
@@ -174,7 +208,7 @@ async function main() {
     usdcAta.address,
     wallet.payer,
     usdcAmount.toNumber(),
-    );
+  );
 
   console.log('Deployment complete! Info saved to deployment-localnet.json');
 }

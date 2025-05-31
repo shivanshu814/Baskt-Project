@@ -467,8 +467,7 @@ export abstract class BaseClient {
     maxPriceAgeSec: number = 60,
   ): Promise<string> {
     const baskt = await this.getBaskt(basktId);
-    const basktNameSeed = this.getBasktNameSeedBuffer(baskt.basktName);
-    
+
     const txBuilder = this.program.methods.activateBaskt({ prices, maxPriceAgeSec }).accounts({
       // Let's try using the original ID
       baskt: basktId,
@@ -480,7 +479,7 @@ export abstract class BaseClient {
     return await txBuilder.rpc();
   }
 
-  private async sendAndConfirm(instructions: TransactionInstruction[]) {
+  public async sendAndConfirm(instructions: TransactionInstruction[]) {
     // Send the signed transaction to the network
     const transaction = await this.getVersionTransaction(instructions);
     return await this.provider.sendAndConfirmV0(transaction);
@@ -667,61 +666,28 @@ export abstract class BaseClient {
     withdrawalFeeBps: number,
     minDeposit: anchor.BN,
     lpMint: PublicKey,
-    tokenVault: PublicKey,
     tokenMint: PublicKey,
-    lpMintKeypair?: anchor.web3.Keypair,
-    tokenVaultKeypair?: anchor.web3.Keypair,
+    lpMintKeypair: anchor.web3.Keypair,
   ): Promise<string> {
-    // Find the liquidity pool PDA
-    const [liquidityPool] = PublicKey.findProgramAddressSync(
-      [Buffer.from('liquidity_pool'), this.protocolPDA.toBuffer()],
-      this.program.programId,
-    );
-
-    // Find the pool authority PDA
-    const [poolAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from('pool_authority'), liquidityPool.toBuffer(), this.protocolPDA.toBuffer()],
-      this.program.programId,
-    );
-
     // Build the transaction
     const tx = await this.program.methods
-      .initializeLiquidityPool(
-        depositFeeBps,
-        withdrawalFeeBps,
-        minDeposit,
-      )
+      .initializeLiquidityPool(depositFeeBps, withdrawalFeeBps, minDeposit)
+      .signers([lpMintKeypair])
       .accounts({
         admin: this.getPublicKey(),
         payer: this.getPublicKey(),
-        protocol: this.protocolPDA,
-        liquidityPool,
         lpMint,
-        tokenVault,
         tokenMint,
-        poolAuthority,
-        systemProgram: anchor.web3.SystemProgram.programId,
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-      } as any)
+      })
       .transaction();
-    
-    // If keypairs are provided, add them as signers
-    if (lpMintKeypair && tokenVaultKeypair) {
-      // Create a versioned transaction with signers
-      const transaction = new Transaction().add(tx);
-      transaction.feePayer = this.getPublicKey();
-      const signers = [lpMintKeypair, tokenVaultKeypair];
-      
-      // Get recent blockhash
-      const { blockhash } = await this.connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      
-      // Sign the transaction with the provided signers
-      transaction.sign(...signers);
-      
-      return await this.provider.sendAndConfirmLegacy(transaction);
-    }
+
+    // const transaction = new Transaction().add(tx);
+    // transaction.feePayer = this.getPublicKey();
+
+    // const { blockhash } = await this.connection.getLatestBlockhash();
+    // transaction.recentBlockhash = blockhash;
+
+    // transaction.sign(lpMintKeypair);
 
     return await this.provider.sendAndConfirmLegacy(tx);
   }
@@ -750,31 +716,17 @@ export abstract class BaseClient {
     treasuryTokenAccount: PublicKey,
     treasury: PublicKey,
   ): Promise<string> {
-    // Find the pool authority PDA
-    const [poolAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from('pool_authority'), liquidityPool.toBuffer(), this.protocolPDA.toBuffer()],
-      this.program.programId,
-    );
-
     // Build the transaction
     const tx = await this.program.methods
-      .addLiquidity(
-        amount,
-        minSharesOut,
-      )
+      .addLiquidity(amount, minSharesOut)
       .accounts({
         provider: this.getPublicKey(),
-        liquidityPool,
-        protocol: this.protocolPDA,
-        providerTokenAccount,
-        tokenVault,
-        providerLpAccount,
         lpMint,
-        treasuryTokenAccount,
+        providerTokenAccount,
+        providerLpAccount,
         treasury,
-        poolAuthority,
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-      } as any)
+        treasuryTokenAccount,
+      })
       .transaction();
 
     return await this.provider.sendAndConfirmLegacy(tx);
@@ -804,31 +756,17 @@ export abstract class BaseClient {
     treasuryTokenAccount: PublicKey,
     treasury: PublicKey,
   ): Promise<string> {
-    // Find the pool authority PDA
-    const [poolAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from('pool_authority'), liquidityPool.toBuffer(), this.protocolPDA.toBuffer()],
-      this.program.programId,
-    );
-
     // Build the transaction
     const tx = await this.program.methods
-      .removeLiquidity(
-        lpAmount,
-        minTokensOut,
-      )
+      .removeLiquidity(lpAmount, minTokensOut)
       .accounts({
         provider: this.getPublicKey(),
-        liquidityPool,
-        protocol: this.protocolPDA,
         providerTokenAccount,
-        tokenVault,
         providerLpAccount,
         lpMint,
         treasuryTokenAccount,
         treasury,
-        poolAuthority,
-        tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-      } as any)
+      })
       .transaction();
 
     return await this.provider.sendAndConfirmLegacy(tx);
@@ -882,15 +820,15 @@ export abstract class BaseClient {
     const owner = this.getPublicKey();
     const [orderPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('order'), owner.toBuffer(), orderId.toArrayLike(Buffer, 'le', 8)],
-      this.program.programId
+      this.program.programId,
     );
     const [programAuthority] = PublicKey.findProgramAddressSync(
       [Buffer.from('authority')],
-      this.program.programId
+      this.program.programId,
     );
     const [escrowTokenAccount] = PublicKey.findProgramAddressSync(
       [Buffer.from('user_escrow'), owner.toBuffer()],
-      this.program.programId
+      this.program.programId,
     );
 
     const tx = await this.program.methods
@@ -920,11 +858,11 @@ export abstract class BaseClient {
     const owner = this.getPublicKey();
     const [programAuthority] = PublicKey.findProgramAddressSync(
       [Buffer.from('authority')],
-      this.program.programId
+      this.program.programId,
     );
     const [escrowTokenAccount] = PublicKey.findProgramAddressSync(
       [Buffer.from('user_escrow'), owner.toBuffer()],
-      this.program.programId
+      this.program.programId,
     );
 
     // The `order` account itself (orderPDA) is passed. Anchor might use the orderIdNum
@@ -953,18 +891,17 @@ export abstract class BaseClient {
     return await this.provider.sendAndConfirmLegacy(tx);
   }
 
-
   public async getUSDCAccount(userPublicKey: PublicKey, isPDA: boolean = false) {
-    return await this.getUserTokenAccount(userPublicKey, USDC_MINT, isPDA)
+    return await this.getUserTokenAccount(userPublicKey, USDC_MINT, isPDA);
   }
 
-  public async getUserTokenAccount(userPublicKey: PublicKey, mintAccount: PublicKey, isPDA: boolean = false) {
-    const ata = await getAssociatedTokenAddressSync(
-      mintAccount,
-      userPublicKey,
-      isPDA
-    );
-   const account = await getAccount(this.connection, ata);
-   return account;
+  public async getUserTokenAccount(
+    userPublicKey: PublicKey,
+    mintAccount: PublicKey,
+    isPDA: boolean = false,
+  ) {
+    const ata = await getAssociatedTokenAddressSync(mintAccount, userPublicKey, isPDA);
+    const account = await getAccount(this.connection, ata);
+    return account;
   }
 }

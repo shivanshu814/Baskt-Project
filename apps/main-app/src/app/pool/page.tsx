@@ -11,25 +11,26 @@ import {
 } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import {
-  ArrowUpRight,
-  ArrowDownRight,
-  RefreshCw,
-  Info,
-  TrendingUp,
-  DollarSign,
-  Percent,
-  Coins,
-  Wallet,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import React from 'react';
 import BN from 'bn.js';
-import { useBasktClient } from '@baskt/ui';
+import { useBasktClient, USDC_MINT } from '@baskt/ui';
 import { PublicKey } from '@solana/web3.js';
+import { getAssociatedTokenAddressSync } from '@solana/spl-token';
+import { trpc } from '../../utils/trpc';
+import { createAssociatedTokenAccountInstruction } from '@solana/spl-token';
+import { Transaction } from '@solana/web3.js';
+import { AccessControlRole } from '@baskt/types';
+import { useToast } from '../../components/ui/use-toast';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
+import { Slider } from '../../components/ui/slider';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui/tooltip';
 
 interface PoolData {
   totalLiquidity: string;
@@ -42,26 +43,25 @@ interface PoolData {
   tokenVault: string;
 }
 
-const MOCK_CONFIG = {
-  pool: {
-    totalLiquidity: '1000000000',
-    totalShares: '1000000000',
-    depositFeeBps: 50,
-    withdrawalFeeBps: 50,
-    minDeposit: '100000',
-    lpMint: 'mock_lp_mint',
-    tokenVault: 'mock_token_vault',
-  },
-  user: {
-    usdcBalance: '500000000',
-    lpBalance: '100000000',
-  },
-  market: {
-    apy: 5.2,
-    apyChange: 0.8,
-    liquidityChange: 2.5,
-  },
-};
+type PoolResponse =
+  | {
+    success: true;
+    data: {
+      totalLiquidity: string;
+      totalShares: string;
+      depositFeeBps: number;
+      withdrawalFeeBps: number;
+      minDeposit: string;
+      lastUpdateTimestamp: number;
+      lpMint: string;
+      tokenVault: string;
+      bump: number;
+    };
+  }
+  | {
+    success: false;
+    error: string;
+  };
 
 const AnimatedNumber = React.memo(({ value, className }: { value: string; className?: string }) => {
   const [display, setDisplay] = useState(value);
@@ -80,9 +80,8 @@ const AnimatedNumber = React.memo(({ value, className }: { value: string; classN
 
   return (
     <span
-      className={`${className || ''} transition-opacity duration-300 ${
-        fade ? 'opacity-40' : 'opacity-100'
-      }`}
+      className={`${className || ''} transition-opacity duration-300 ${fade ? 'opacity-40' : 'opacity-100'
+        }`}
     >
       {display}
     </span>
@@ -119,9 +118,8 @@ const StatCard = React.memo(
         </div>
         {trend && (
           <div
-            className={`flex items-center gap-1 text-sm ${
-              trend.isPositive ? 'text-green-400' : 'text-red-400'
-            }`}
+            className={`flex items-center gap-1 text-sm ${trend.isPositive ? 'text-green-400' : 'text-red-400'
+              }`}
           >
             {trend.isPositive ? (
               <ChevronUp className="h-4 w-4" />
@@ -153,11 +151,12 @@ const ActionCard = React.memo(
     loading,
     color,
     disabled,
-    priceImpact,
     fee,
-    maxAmount,
     onMaxClick,
     expectedOutput,
+    sliderSection,
+    unit,
+    userBalance,
   }: {
     title: string;
     description: string;
@@ -169,11 +168,13 @@ const ActionCard = React.memo(
     loading: boolean;
     color: 'green' | 'red';
     disabled: boolean;
-    priceImpact?: string;
     fee?: string;
     maxAmount?: string;
     onMaxClick?: () => void;
     expectedOutput?: string;
+    sliderSection?: React.ReactNode;
+    unit?: string;
+    userBalance?: BN;
   }) => {
     const handleInputChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,31 +206,28 @@ const ActionCard = React.memo(
                 disabled={loading}
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                {maxAmount && (
-                  <button
-                    onClick={onMaxClick}
-                    className="text-xs text-primary hover:text-primary/80 transition-colors bg-primary/10 px-2 py-1 rounded"
-                  >
-                    MAX
-                  </button>
-                )}
-                <span className="text-white/60 font-medium">USDC</span>
+                <button
+                  onClick={onMaxClick}
+                  className="text-xs text-primary hover:text-primary/80 transition-colors bg-primary/10 px-2 py-1 rounded"
+                  type="button"
+                >
+                  MAX
+                </button>
+                <span className="text-white/60 font-medium">{unit || 'USDC'}</span>
               </div>
             </div>
-
+            {userBalance !== undefined && unit === 'USDC' && (
+              <div className="text-xs text-white/60 mt-1">
+                Your USDC:{' '}
+                {(userBalance ? Number(userBalance.toString()) / 1_000_000 : 0).toFixed(2)} USDC
+              </div>
+            )}
+            {sliderSection && <div>{sliderSection}</div>}
             <div className="space-y-2 text-sm bg-white/5 p-3 rounded-lg">
               {expectedOutput && (
                 <div className="flex justify-between text-white/80">
                   <span>You will receive:</span>
                   <span className="font-medium">{expectedOutput}</span>
-                </div>
-              )}
-              {priceImpact && (
-                <div className="flex justify-between text-white/80">
-                  <span>Price Impact:</span>
-                  <span className={Number(priceImpact) > 1 ? 'text-red-400' : 'text-green-400'}>
-                    {priceImpact}
-                  </span>
                 </div>
               )}
               {fee && (
@@ -239,13 +237,11 @@ const ActionCard = React.memo(
                 </div>
               )}
             </div>
-
             <Button
-              className={`w-full text-base font-bold py-3 rounded-xl shadow-md transition-all duration-200 ${
-                color === 'green'
-                  ? 'bg-green-500 hover:bg-green-600 focus:ring-green-700'
-                  : 'bg-red-500 hover:bg-red-600 focus:ring-red-700'
-              } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className={`w-full text-base font-bold py-3 rounded-xl shadow-md transition-all duration-200 ${color === 'green'
+                ? 'bg-green-500 hover:bg-green-600 focus:ring-green-700'
+                : 'bg-red-500 hover:bg-red-600 focus:ring-red-700'
+                } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
               onClick={onAction}
               disabled={loading || disabled}
               aria-label={actionLabel}
@@ -268,19 +264,25 @@ const ActionCard = React.memo(
 ActionCard.displayName = 'ActionCard';
 
 export default function PoolPage() {
+  // ...
+  // Render Faucet at the top
+  // ...
   const { authenticated } = usePrivy();
   const { client, wallet } = useBasktClient();
   const router = useRouter();
-
+  const { toast } = useToast();
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); //eslint-disable-line
   const [poolData, setPoolData] = useState<PoolData | null>(null);
   const [userBalance, setUserBalance] = useState<BN | null>(null);
   const [liquidityPool, setLiquidityPool] = useState<PublicKey | null>(null);
   const [userLpBalance, setUserLpBalance] = useState<BN | null>(null);
+  const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
+
+  const { data: poolDataResponse } = trpc.pool.getLiquidityPool.useQuery<PoolResponse>();
 
   const isDepositValid = useMemo(
     () => depositAmount && !isNaN(Number(depositAmount)) && Number(depositAmount) > 0,
@@ -296,136 +298,328 @@ export default function PoolPage() {
     setIsLoading(true);
     try {
       if (!client) return;
+      const [liquidityPoolPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from('liquidity_pool'), client.protocolPDA.toBuffer()],
+        client.program.programId,
+      );
 
-      setPoolData({
-        ...MOCK_CONFIG.pool,
-        lastUpdateTimestamp: new Date().toISOString(),
-      });
-      setUserBalance(new BN(MOCK_CONFIG.user.usdcBalance));
-      setUserLpBalance(new BN(MOCK_CONFIG.user.lpBalance));
-      setLiquidityPool(new PublicKey('mock_pool_address'));
+      setLiquidityPool(liquidityPoolPDA);
+
+      if (wallet?.address) {
+        try {
+          const userTokenAccount = await client.getUSDCAccount(new PublicKey(wallet.address));
+          const balance = new BN(userTokenAccount.amount.toString());
+
+          setUserBalance(balance);
+        } catch (error) {
+          setUserBalance(new BN(0));
+        }
+
+        setUserLpBalance(new BN(0));
+
+        if (poolDataResponse?.success) {
+          try {
+            const userLpAccount = await client.getUserTokenAccount(
+              new PublicKey(wallet.address),
+              new PublicKey(poolDataResponse.data.lpMint),
+            );
+            const lpBalance = new BN(userLpAccount.amount.toString());
+            setUserLpBalance(lpBalance);
+          } catch (error) {
+            toast({
+              title: 'Failed to fetch pool data',
+              variant: 'destructive',
+            });
+          }
+        }
+      }
     } catch (error) {
-      console.error('Error fetching pool data:', error);
-      toast.error('Failed to fetch pool data');
+      toast({
+        title: 'Failed to fetch pool data',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [client]);
-
-  const fetchUserData = useCallback(async () => {
-    if (!wallet?.address) return;
-    try {
-      setUserBalance(new BN(MOCK_CONFIG.user.usdcBalance));
-    } catch (error) {
-      console.error('Error fetching USDC account:', error);
-      setUserBalance(new BN(0));
-      toast.error('Failed to fetch USDC balance. Please try again.');
-    }
-  }, [wallet]);
+  }, [client, wallet?.address, poolDataResponse]);
 
   useEffect(() => {
-    if (authenticated) {
-      fetchPoolData();
-      fetchUserData();
+    if (poolDataResponse?.success) {
+      setPoolData({
+        totalLiquidity: poolDataResponse.data.totalLiquidity,
+        totalShares: poolDataResponse.data.totalShares,
+        depositFeeBps: poolDataResponse.data.depositFeeBps,
+        withdrawalFeeBps: poolDataResponse.data.withdrawalFeeBps,
+        minDeposit: poolDataResponse.data.minDeposit,
+        lastUpdateTimestamp: new Date(poolDataResponse.data.lastUpdateTimestamp).toISOString(),
+        lpMint: poolDataResponse.data.lpMint,
+        tokenVault: poolDataResponse.data.tokenVault,
+      });
     }
-  }, [authenticated, fetchPoolData, fetchUserData]);
+  }, [poolDataResponse]);
 
-  const calculateUserShare = useCallback(() => {
-    if (!poolData || !userLpBalance) return '0%';
-    const userShare = (Number(userLpBalance.toString()) / Number(poolData.totalShares)) * 100;
-    return `${userShare.toFixed(2)}%`;
-  }, [poolData, userLpBalance]);
-
-  const calculatePriceImpact = useCallback(
-    (amount: string) => {
-      if (!poolData || !amount) return '0%';
-      const depositAmount = Number(amount);
-      const totalLiquidity = Number(poolData.totalLiquidity) / 1_000_000;
-      const impact = (depositAmount / (totalLiquidity + depositAmount)) * 100;
-      return `${impact.toFixed(2)}%`;
-    },
-    [poolData],
-  );
+  useEffect(() => {
+    fetchPoolData();
+  }, [fetchPoolData]);
 
   const calculateFee = useCallback(
-    (amount: string) => {
-      if (!poolData || !amount) return '0 USDC';
-      const depositAmount = Number(amount);
-      const fee = (depositAmount * poolData.depositFeeBps) / 10000;
-      return `${fee.toFixed(2)} USDC`;
+    (amount: string, isDeposit: boolean) => {
+      if (!poolData || !amount) return isDeposit ? '0 USDC' : '0 BLP';
+      const amt = Number(amount);
+      if (isDeposit) {
+        const fee = (amt * poolData.depositFeeBps) / 10000;
+        return `${fee.toFixed(2)} USDC`;
+      } else {
+        const fee = (amt * poolData.withdrawalFeeBps) / 10000;
+        return `${fee.toFixed(2)} BLP`;
+      }
     },
     [poolData],
   );
 
   const calculateExpectedOutput = useCallback(
     (amount: string, isDeposit: boolean) => {
-      if (!poolData || !amount) return '0 USDC';
+      if (!poolData || !amount) return isDeposit ? '0 LP' : '0 BLP';
       const depositAmount = Number(amount);
       const totalLiquidity = Number(poolData.totalLiquidity) / 1_000_000;
-      const impact = (depositAmount / (totalLiquidity + depositAmount)) * 100;
-      const expectedOutput = (depositAmount * (100 - impact)) / 100;
-      return `${expectedOutput.toFixed(2)} ${isDeposit ? 'LP' : 'USDC'}`;
+      if (isDeposit) {
+        const impact = (depositAmount / (totalLiquidity + depositAmount)) * 100;
+        const expectedOutput = (depositAmount * (100 - impact)) / 100;
+        return `${expectedOutput.toFixed(2)} LP`;
+      } else {
+        return `${Number(amount).toFixed(2)} BLP`;
+      }
     },
     [poolData],
   );
 
   const handleDeposit = useCallback(async () => {
     if (!isDepositValid || !client || !wallet?.address || !liquidityPool || !poolData) {
-      toast.error('Please enter a valid amount');
       return;
     }
 
-    setIsDepositing(true);
     try {
-      toast.success('Deposit successful');
+      setIsDepositing(true);
+
+      const depositAmountNum = Number(depositAmount);
+      if (isNaN(depositAmountNum)) {
+        toast({
+          title: 'Invalid deposit amount',
+          variant: 'destructive',
+        });
+        setIsDepositing(false);
+        return;
+      }
+      const depositAmountBN = new BN(depositAmountNum * 1e6);
+      const userTokenAccount = await client.getUserTokenAccount(
+        new PublicKey(wallet.address),
+        USDC_MINT,
+      );
+
+      let userLpAccount;
+      try {
+        userLpAccount = await client.getUserTokenAccount(
+          new PublicKey(wallet.address),
+          new PublicKey(poolData.lpMint),
+        );
+      } catch (error) {
+        try {
+          const createAtaIx = createAssociatedTokenAccountInstruction(
+            new PublicKey(wallet.address),
+            getAssociatedTokenAddressSync(
+              new PublicKey(poolData.lpMint),
+              new PublicKey(wallet.address),
+            ),
+            new PublicKey(wallet.address),
+            new PublicKey(poolData.lpMint),
+          );
+
+          const tx = new Transaction().add(createAtaIx);
+          await client.provider.sendAndConfirmLegacy(tx);
+
+          userLpAccount = await client.getUserTokenAccount(
+            new PublicKey(wallet.address),
+            new PublicKey(poolData.lpMint),
+          );
+        } catch (createError) {
+          toast({
+            title: 'Failed to create LP token account. Please try again.',
+            variant: 'destructive',
+          });
+          setIsDepositing(false);
+          return;
+        }
+      }
+
+      const minSharesOut = new BN(0);
+      const liquidityPool = await client.findLiquidityPoolPDA();
+
+      const poolAuthority = await client.findPoolAuthorityPDA(liquidityPool);
+      const treasuryTokenAccount = getAssociatedTokenAddressSync(USDC_MINT, poolAuthority, true);
+
+      try {
+        const hasTreasuryRole = await client.hasRole(poolAuthority, AccessControlRole.Treasury);
+
+        if (!hasTreasuryRole) {
+          await client.addRole(poolAuthority, AccessControlRole.Treasury);
+        }
+
+        const treasuryTokenAccountInfo = await client.connection.getAccountInfo(
+          treasuryTokenAccount,
+        );
+        if (!treasuryTokenAccountInfo) {
+          const createTreasuryAtaIx = createAssociatedTokenAccountInstruction(
+            new PublicKey(wallet.address),
+            treasuryTokenAccount,
+            poolAuthority,
+            USDC_MINT,
+          );
+          const tx = new Transaction().add(createTreasuryAtaIx);
+          await client.provider.sendAndConfirmLegacy(tx);
+        }
+      } catch (error) {
+        toast({
+          title: 'Failed to verify treasury accounts. Please contact support.',
+          variant: 'destructive',
+        });
+        setIsDepositing(false);
+        return;
+      }
+
+      await client.addLiquidity(
+        liquidityPool,
+        depositAmountBN,
+        minSharesOut,
+        userTokenAccount.address,
+        new PublicKey(poolData.tokenVault),
+        userLpAccount.address,
+        new PublicKey(poolData.lpMint),
+        treasuryTokenAccount,
+        poolAuthority,
+      );
+
+      toast({
+        title: 'Deposit successful!',
+        description: 'Your deposit has been processed',
+        variant: 'default',
+      });
       setDepositAmount('');
-      fetchPoolData();
-      fetchUserData();
+      await fetchPoolData();
     } catch (error) {
-      console.error('Error depositing:', error);
-      toast.error('Failed to deposit');
+      if (error instanceof Error) {
+        if (error.message.includes('Treasury')) {
+          toast({
+            title: 'Treasury account error. Please contact support.',
+            variant: 'destructive',
+          });
+        } else if (error.message.includes('insufficient funds')) {
+          toast({
+            title: 'Insufficient USDC balance for deposit',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Failed to deposit. Please try again.',
+            variant: 'destructive',
+          });
+        }
+      } else {
+        toast({
+          title: 'Failed to deposit. Please try again.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsDepositing(false);
     }
-  }, [
-    isDepositValid,
-    client,
-    wallet,
-    liquidityPool,
-    poolData,
-    depositAmount,
-    fetchPoolData,
-    fetchUserData,
-  ]);
+  }, [client, wallet, liquidityPool, poolData, depositAmount, isDepositValid, fetchPoolData]);
 
   const handleWithdraw = useCallback(async () => {
     if (!isWithdrawValid || !client || !wallet?.address || !liquidityPool || !poolData) {
-      toast.error('Please enter a valid amount');
+      toast({
+        title: 'Please enter a valid amount',
+        variant: 'destructive',
+      });
       return;
     }
 
     setIsWithdrawing(true);
     try {
-      toast.success('Withdrawal successful');
+      const withdrawAmountBN = new BN(Number(withdrawAmount) * 1_000_000);
+      const userTokenAccount = await client.getUSDCAccount(new PublicKey(wallet.address));
+
+      let userLpAccount;
+      try {
+        userLpAccount = await client.getUserTokenAccount(
+          new PublicKey(wallet.address),
+          new PublicKey(poolData.lpMint),
+        );
+      } catch (error) {
+        toast({
+          title: 'LP token account not found. Please deposit first.',
+          variant: 'destructive',
+        });
+        setIsWithdrawing(false);
+        return;
+      }
+
+      const poolAuthority = await client.findPoolAuthorityPDA(liquidityPool);
+      const treasuryTokenAccount = getAssociatedTokenAddressSync(USDC_MINT, poolAuthority, true);
+
+      const minTokensOut = new BN(0);
+      await client.removeLiquidity(
+        liquidityPool,
+        withdrawAmountBN,
+        minTokensOut,
+        userTokenAccount.address,
+        new PublicKey(poolData.tokenVault),
+        userLpAccount.address,
+        new PublicKey(poolData.lpMint),
+        treasuryTokenAccount,
+        poolAuthority,
+      );
+
+      toast({
+        title: 'Withdrawal successful!',
+        description: 'Your withdrawal has been processed',
+        variant: 'default',
+      });
       setWithdrawAmount('');
-      fetchPoolData();
-      fetchUserData();
+      await fetchPoolData();
     } catch (error) {
-      console.error('Error withdrawing:', error);
-      toast.error('Failed to withdraw');
+      if (error instanceof Error) {
+        if (error.message.includes('insufficient funds')) {
+          toast({
+            title: 'Insufficient LP tokens for withdrawal',
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Failed to withdraw. Please try again.',
+            variant: 'destructive',
+          });
+        }
+      } else {
+        toast({
+          title: 'Failed to withdraw. Please try again.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsWithdrawing(false);
     }
-  }, [
-    isWithdrawValid,
-    client,
-    wallet,
-    liquidityPool,
-    poolData,
-    withdrawAmount,
-    fetchPoolData,
-    fetchUserData,
-  ]);
+  }, [isWithdrawValid, client, wallet, liquidityPool, poolData, withdrawAmount, fetchPoolData]);
+
+  const getDepositAmountFromPercent = (percent: number) => {
+    if (!userBalance) return '';
+    return ((Number(userBalance.toString()) / 1_000_000) * (percent / 100)).toFixed(2);
+  };
+  const getWithdrawAmountFromPercent = (percent: number) => {
+    if (!userLpBalance) return '';
+    return ((Number(userLpBalance.toString()) / 1_000_000) * (percent / 100)).toFixed(2);
+  };
+
+  const randomAPY = '15.08%';
 
   if (!authenticated) {
     router.push('/');
@@ -434,133 +628,385 @@ export default function PoolPage() {
 
   return (
     <div className="min-h-screen w-full bg-[#010b1d]/80 flex flex-col items-center justify-center px-4 py-8">
-      <div className="w-full flex flex-col gap-8">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <div className="rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-1">
-              <div className="bg-[#181c27] rounded-full p-2 flex items-center justify-center">
-                <Coins className="h-6 w-6 text-white" />
+      <div className="w-full max-w-[85rem] mx-auto flex flex-col lg:flex-row gap-8 mb-8">
+        <div className="flex-1 min-w-0">
+          <div className="bg-white/5 border border-white/10 rounded-2xl pl-6 pr-6 pt-4 pb-4 flex flex-col md:flex-row md:items-start md:justify-between gap-8">
+            <div className="flex-1">
+              <h1 className="text-[30px] font-semibold text-primary mb-4">BLP Pool</h1>
+              <div className="text-xs text-white/90 mb-4">
+                <span className="font-bold text-primary">
+                  The Baskt Liquidity Provider (BLP) Pool
+                </span>{' '}
+                is a liquidity pool where it acts as a counterparty to traders — when traders seek
+                to open leverage positions, they borrow tokens from the pool.
+              </div>
+              <div className="text-white/80 text-xs mb-4">
+                <span className="font-bold text-primary">The BLP token</span> is the liquidity
+                provider token where its value is derived from:
+                <ul className="list-disc pl-6 mt-2 space-y-1">
+                  <li>An index fund of USDC, SOL, ETH, WBTC, USDT.</li>
+                  <li>Earn a share of trading fees and protocol growth.</li>
+                  <li>
+                    75% of the generated fees from trading activities are distributed to BLP
+                    holders.
+                  </li>
+                </ul>
+              </div>
+              <div className="text-white/80 text-xs mb-4">
+                <span className="font-bold text-primary">The APY</span>, denominated in USD, is
+                calculated based on 75% of fees generated from trading activities, which does not
+                include asset appreciation and traders' PnL. The generated fees are distributed back
+                to holders by redepositing the fees into the pool hourly.
               </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">Liquidity Pool</h1>
-              <p className="text-white/60 text-sm mt-1">Deposit USDC to earn trading fees</p>
+            <div className="flex flex-col items-end min-w-[180px] justify-start">
+              <div className="flex items-center gap-2 text-primary text-xs font-bold mb-1">
+                APY
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-block align-middle cursor-pointer">
+                        <Info className="h-4 w-4 text-primary" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="max-w-xs text-xs text-white bg-[#23263a] border border-white/10"
+                    >
+                      APR/APY is updated weekly based on the fees generated by the pool denominated
+                      in USD.
+                      <br />
+                      <br />
+                      Fees are compounded automatically every hour.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <span className="text-2xl font-extrabold text-primary">{randomAPY}</span>
+              <span className="text-xs text-white/50 mt-1">Last updated at 5/29/2025</span>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchPoolData}
-            className="flex items-center gap-2 border border-white/10 bg-white/10 text-white hover:bg-white/20"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard
-            label="Total Liquidity"
-            value={`$${(Number(poolData?.totalLiquidity || 0) / 1_000_000).toLocaleString()}`}
-            subtext="Total value locked in the pool"
-            icon={<DollarSign className="h-4 w-4" />}
-            trend={{ value: MOCK_CONFIG.market.liquidityChange, isPositive: true }}
-          />
-          <StatCard
-            label="Your Share"
-            value={calculateUserShare()}
-            subtext="Your ownership percentage"
-            icon={<Percent className="h-4 w-4" />}
-          />
-          <StatCard
-            label="APY"
-            value={`${MOCK_CONFIG.market.apy}%`}
-            subtext="Current annual yield"
-            icon={<TrendingUp className="h-4 w-4" />}
-            trend={{ value: MOCK_CONFIG.market.apyChange, isPositive: true }}
-          />
-          <StatCard
-            label="Your Balance"
-            value={`${userBalance ? Number(userBalance.toString()) / 1_000_000 : 0} USDC`}
-            subtext="Available for deposit"
-            icon={<Wallet className="h-4 w-4" />}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="bg-white/5 border-white/10">
-            <CardHeader>
-              <CardTitle className="text-xl font-bold text-white">Pool Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Deposit Fee</span>
-                  <span className="text-white">
-                    {poolData ? `${poolData.depositFeeBps / 100}%` : '-'}
-                  </span>
+          <div className="mt-8">
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-8 flex flex-col gap-6">
+              <div>
+                <div className="text-sm font-semibold text-white mb-1">Total Value Locked</div>
+                <div className="text-3xl font-semibold text-primary mb-1">$1,554,457,666.26</div>
+                <div className="text-xs text-white/50">AUM limit: $1,750,000,000</div>
+              </div>
+              <div>
+                <div className="text-base font-semibold text-white mb-3 mt-4">
+                  Liquidity Allocation
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Withdrawal Fee</span>
-                  <span className="text-white">
-                    {poolData ? `${poolData.withdrawalFeeBps / 100}%` : '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Minimum Deposit</span>
-                  <span className="text-white">
-                    {poolData ? `${Number(poolData.minDeposit) / 1_000_000} USDC` : '-'}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Total Shares</span>
-                  <span className="text-white">
-                    {poolData ? `${Number(poolData.totalShares) / 1_000_000} LP` : '-'}
-                  </span>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-white/90 text-sm rounded-xl overflow-hidden">
+                    <thead>
+                      <tr className="bg-white/10">
+                        <th className="px-4 py-2 text-left font-medium">Token</th>
+                        <th className="px-4 py-2 text-left font-medium">Pool Size</th>
+                        <th className="px-4 py-2 text-left font-medium">
+                          <span className="flex items-center gap-1">
+                            Current / Target Weightage
+                            <Info className="h-4 w-4 text-white/40" />
+                          </span>
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium">Utilization</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="px-4 py-3 flex items-center gap-3">
+                          <img
+                            src="https://assets.coingecko.com/coins/images/975/standard/cardano.png"
+                            alt="ADA"
+                            className="w-7 h-7 rounded-full"
+                          />
+                          <div>
+                            <div className="font-semibold text-white">ADA</div>
+                            <div className="text-xs text-white/50">Cardano</div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-white">$100,000,000.00</div>
+                          <div className="text-xs text-white/50">150,000,000 ADA</div>
+                        </td>
+                        <td className="px-4 py-3">20.00% / 20%</td>
+                        <td className="px-4 py-3">10.00%</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-3 flex items-center gap-3">
+                          <img
+                            src="https://assets.coingecko.com/coins/images/4128/standard/solana.png"
+                            alt="SOL"
+                            className="w-7 h-7 rounded-full"
+                          />
+                          <div>
+                            <div className="font-semibold text-white">SOL</div>
+                            <div className="text-xs text-white/50">Solana</div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-white">$200,000,000.00</div>
+                          <div className="text-xs text-white/50">4,000,000 SOL</div>
+                        </td>
+                        <td className="px-4 py-3">25.00% / 25%</td>
+                        <td className="px-4 py-3">15.00%</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-3 flex items-center gap-3">
+                          <img
+                            src="https://assets.coingecko.com/coins/images/5/standard/dogecoin.png"
+                            alt="DOGE"
+                            className="w-7 h-7 rounded-full"
+                          />
+                          <div>
+                            <div className="font-semibold text-white">DOGE</div>
+                            <div className="text-xs text-white/50">Dogecoin</div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-white">$50,000,000.00</div>
+                          <div className="text-xs text-white/50">700,000,000 DOGE</div>
+                        </td>
+                        <td className="px-4 py-3">10.00% / 10%</td>
+                        <td className="px-4 py-3">5.00%</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-3 flex items-center gap-3">
+                          <img
+                            src="https://assets.coingecko.com/coins/images/279/standard/ethereum.png"
+                            alt="ETH"
+                            className="w-7 h-7 rounded-full"
+                          />
+                          <div>
+                            <div className="font-semibold text-white">ETH</div>
+                            <div className="text-xs text-white/50">Ethereum</div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-white">$300,000,000.00</div>
+                          <div className="text-xs text-white/50">100,000 ETH</div>
+                        </td>
+                        <td className="px-4 py-3">30.00% / 30%</td>
+                        <td className="px-4 py-3">20.00%</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-3 flex items-center gap-3">
+                          <img
+                            src="https://assets.coingecko.com/coins/images/1/standard/bitcoin.png"
+                            alt="BTC"
+                            className="w-7 h-7 rounded-full"
+                          />
+                          <div>
+                            <div className="font-semibold text-white">BTC</div>
+                            <div className="text-xs text-white/50">Bitcoin</div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-white">$400,000,000.00</div>
+                          <div className="text-xs text-white/50">10,000 BTC</div>
+                        </td>
+                        <td className="px-4 py-3">15.00% / 15%</td>
+                        <td className="px-4 py-3">50.00%</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <div className="space-y-6">
-            <ActionCard
-              title="Deposit"
-              description="Add liquidity to the pool"
-              icon={<ArrowUpRight className="h-5 w-5 text-green-400" />}
-              inputValue={depositAmount}
-              setInputValue={setDepositAmount}
-              onAction={handleDeposit}
-              actionLabel="Deposit"
-              loading={isDepositing}
-              color="green"
-              disabled={!isDepositValid}
-              priceImpact={calculatePriceImpact(depositAmount)}
-              fee={calculateFee(depositAmount)}
-              maxAmount={
-                userBalance ? (Number(userBalance.toString()) / 1_000_000).toString() : undefined
-              }
-              onMaxClick={() =>
-                setDepositAmount(
-                  userBalance ? (Number(userBalance.toString()) / 1_000_000).toString() : '',
-                )
-              }
-              expectedOutput={calculateExpectedOutput(depositAmount, true)}
-            />
-            <ActionCard
-              title="Withdraw"
-              description="Remove liquidity from the pool"
-              icon={<ArrowDownRight className="h-5 w-5 text-red-400" />}
-              inputValue={withdrawAmount}
-              setInputValue={setWithdrawAmount}
-              onAction={handleWithdraw}
-              actionLabel="Withdraw"
-              loading={isWithdrawing}
-              color="red"
-              disabled={!isWithdrawValid}
-              priceImpact={calculatePriceImpact(withdrawAmount)}
-              fee={calculateFee(withdrawAmount)}
-              expectedOutput={calculateExpectedOutput(withdrawAmount, false)}
-            />
+              <div className="flex flex-col gap-2 mt-6">
+                <div className="flex flex-row items-center justify-between w-full">
+                  <span className="text-white/60 text-sm">BLP Price</span>
+                  <span className="text-sm font-bold text-white">$4.491</span>
+                </div>
+                <div className="flex flex-row items-center justify-between w-full">
+                  <span className="text-white/60 text-sm">Total Supply</span>
+                  <span className="text-sm font-bold text-white">346,141,137.074 BLP</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="w-full lg:w-96 flex-shrink-0">
+          <div className="flex flex-col gap-8 h-full justify-stretch">
+            <div className="grid grid-cols-1 gap-8 items-start h-full">
+              <Card className="bg-white/5 border-white/10 p-0">
+                <div className="p-4">
+                  <Card className="bg-white/10 border-0 rounded-2xl p-4 mb-4">
+                    <div>
+                      <div className="text-white/60 text-sm mb-1">Your LP</div>
+                      <div className="text-2xl font-bold text-white">
+                        {userLpBalance
+                          ? (Number(userLpBalance.toString()) / 1_000_000).toFixed(2)
+                          : '0.00'}{' '}
+                        BLP
+                      </div>
+                      <div className="text-xs text-white/50 mt-1">~ $0</div>
+                    </div>
+                  </Card>
+                  <Tabs
+                    value={activeTab}
+                    onValueChange={(val) => setActiveTab(val as 'deposit' | 'withdraw')}
+                  >
+                    <TabsList className="mb-4">
+                      <TabsTrigger value="deposit">Deposit</TabsTrigger>
+                      <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="deposit">
+                      <ActionCard
+                        title="Deposit"
+                        description="Add liquidity to the pool"
+                        icon={<ArrowUpRight className="h-5 w-5 text-green-400" />}
+                        inputValue={depositAmount}
+                        setInputValue={setDepositAmount}
+                        onAction={handleDeposit}
+                        actionLabel="Deposit"
+                        loading={isDepositing}
+                        color="green"
+                        disabled={!isDepositValid}
+                        fee={calculateFee(depositAmount, true)}
+                        maxAmount={undefined}
+                        expectedOutput={calculateExpectedOutput(depositAmount, true)}
+                        onMaxClick={() =>
+                          setDepositAmount(
+                            userBalance
+                              ? (Number(userBalance.toString()) / 1_000_000).toString()
+                              : '',
+                          )
+                        }
+                        sliderSection={
+                          <>
+                            <div className="flex items-center justify-between gap-2 mb-4 flex-wrap mt-4">
+                              {[0, 25, 50, 100].map((percent) => (
+                                <Button
+                                  key={percent}
+                                  variant={
+                                    Number(depositAmount) ===
+                                      Number(getDepositAmountFromPercent(percent))
+                                      ? 'default'
+                                      : 'outline'
+                                  }
+                                  size="sm"
+                                  onClick={() =>
+                                    setDepositAmount(getDepositAmountFromPercent(percent))
+                                  }
+                                  type="button"
+                                  className={`rounded-full border font-semibold transition-colors px-4 py-1 ${Number(depositAmount) ===
+                                    Number(getDepositAmountFromPercent(percent))
+                                    ? 'bg-primary text-white'
+                                    : 'bg-transparent text-primary border-primary hover:bg-primary/10'
+                                    }`}
+                                >
+                                  {percent}%
+                                </Button>
+                              ))}
+                            </div>
+                            <div className="flex items-center gap-2 w-full">
+                              <span className="text-xs text-white/50 w-8 text-left">0%</span>
+                              <Slider
+                                min={0}
+                                max={100}
+                                step={1}
+                                value={[
+                                  userBalance
+                                    ? Math.round(
+                                      (Number(depositAmount) /
+                                        (Number(userBalance.toString()) / 1_000_000)) *
+                                      100,
+                                    )
+                                    : 0,
+                                ]}
+                                onValueChange={([val]) =>
+                                  setDepositAmount(getDepositAmountFromPercent(val))
+                                }
+                                className="w-full"
+                              />
+                              <span className="text-xs text-white/50 w-8 text-right">100%</span>
+                            </div>
+                          </>
+                        }
+                        unit="USDC"
+                        userBalance={userBalance ?? undefined}
+                      />
+                    </TabsContent>
+                    <TabsContent value="withdraw">
+                      <ActionCard
+                        title="Withdraw"
+                        description="Remove liquidity from the pool"
+                        icon={<ArrowDownRight className="h-5 w-5 text-red-400" />}
+                        inputValue={withdrawAmount}
+                        setInputValue={setWithdrawAmount}
+                        onAction={handleWithdraw}
+                        actionLabel="Withdraw"
+                        loading={isWithdrawing}
+                        color="red"
+                        disabled={!isWithdrawValid}
+                        fee={calculateFee(withdrawAmount, false)}
+                        maxAmount={undefined}
+                        expectedOutput={calculateExpectedOutput(withdrawAmount, false)}
+                        onMaxClick={() =>
+                          setWithdrawAmount(
+                            userLpBalance
+                              ? (Number(userLpBalance.toString()) / 1_000_000).toString()
+                              : '',
+                          )
+                        }
+                        sliderSection={
+                          <>
+                            <div className="flex items-center justify-between gap-2 mb-4 flex-wrap mt-4">
+                              {[0, 25, 50, 100].map((percent) => (
+                                <Button
+                                  key={percent}
+                                  variant={
+                                    Number(withdrawAmount) ===
+                                      Number(getWithdrawAmountFromPercent(percent))
+                                      ? 'default'
+                                      : 'outline'
+                                  }
+                                  size="sm"
+                                  onClick={() =>
+                                    setWithdrawAmount(getWithdrawAmountFromPercent(percent))
+                                  }
+                                  type="button"
+                                  className={`rounded-full border font-semibold transition-colors px-4 py-1 ${Number(withdrawAmount) ===
+                                    Number(getWithdrawAmountFromPercent(percent))
+                                    ? 'bg-primary text-white'
+                                    : 'bg-transparent text-primary border-primary hover:bg-primary/10'
+                                    }`}
+                                >
+                                  {percent}%
+                                </Button>
+                              ))}
+                            </div>
+                            <div className="flex items-center gap-2 w-full">
+                              <span className="text-xs text-white/50 w-8 text-left">0%</span>
+                              <Slider
+                                min={0}
+                                max={100}
+                                step={1}
+                                value={[
+                                  userLpBalance
+                                    ? Math.round(
+                                      (Number(withdrawAmount) /
+                                        (Number(userLpBalance.toString()) / 1_000_000)) *
+                                      100,
+                                    )
+                                    : 0,
+                                ]}
+                                onValueChange={([val]) =>
+                                  setWithdrawAmount(getWithdrawAmountFromPercent(val))
+                                }
+                                className="w-full"
+                              />
+                              <span className="text-xs text-white/50 w-8 text-right">100%</span>
+                            </div>
+                          </>
+                        }
+                        unit="BLP"
+                      />
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </Card>
+            </div>
           </div>
         </div>
       </div>

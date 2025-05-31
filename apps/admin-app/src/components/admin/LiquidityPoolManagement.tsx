@@ -10,60 +10,40 @@ import {
   AlertCircle,
   RefreshCw,
   Info,
-  TrendingUp,
-  DollarSign,
-  Percent,
   Coins,
   ChevronUp,
   ChevronDown,
+  Copy,
+  Check,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import React from 'react';
+import { useBasktClient, USDC_MINT } from '@baskt/ui';
+import { Keypair } from '@solana/web3.js';
+import BN from 'bn.js';
+import { usePrivy } from '@privy-io/react-auth';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const BPS_TO_PERCENT = 100;
 const USDC_DECIMALS = 1_000_000;
 const MIN_FEE_BPS = 0;
 const MAX_FEE_BPS = 1000;
 const MIN_DEPOSIT_AMOUNT = 100_000;
+const REFRESH_INTERVAL = 10000;
 
-interface LiquidityPoolData {
-  totalLiquidity: string;
-  totalShares: string;
-  depositFeeBps: number;
-  withdrawalFeeBps: number;
-  minDeposit: string;
-  lastUpdateTimestamp: string;
-  lpMint: string;
-  tokenVault: string;
-}
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const;
+type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
-interface PoolParticipant {
+
+
+type PoolDeposit = {
   address: string;
   usdcDeposit: number;
-  sharePercentage: number;
+  sharePercentage: string;
   lpTokens: number;
-}
-
-const mockParticipants: PoolParticipant[] = [
-  {
-    address: '6SoyijgsZ5nQdabjHnPYe9a9kgJWZ8yQZGFvtdHCi57W',
-    usdcDeposit: 5000,
-    sharePercentage: 25,
-    lpTokens: 5000,
-  },
-  {
-    address: '7KZaKob6HRFDEXhdc2wNRReteGPTgkPbDQ1i4W7qAiUT',
-    usdcDeposit: 3000,
-    sharePercentage: 15,
-    lpTokens: 3000,
-  },
-  {
-    address: '8LZaKob6HRFDEXhdc2wNRReteGPTgkPbDQ1i4W7qAiUT',
-    usdcDeposit: 2000,
-    sharePercentage: 10,
-    lpTokens: 2000,
-  },
-];
+};
 
 interface FormData {
   depositFeeBps: string;
@@ -76,6 +56,55 @@ interface FormErrors {
   withdrawalFeeBps?: string;
   minDeposit?: string;
 }
+
+interface StatCardProps {
+  label: string;
+  value: string;
+  subtext?: string;
+  icon?: React.ReactNode;
+  tooltip?: string;
+  trend?: { value: number; isPositive: boolean };
+}
+
+
+
+const usePoolData = () => {
+  const { toast } = useToast();
+
+  const {
+    data: liquidityPool,
+    refetch,
+    isLoading: isRefetching,
+  } = trpc.pool.getLiquidityPool.useQuery();
+
+  useEffect(() => {
+    if (liquidityPool && 'error' in liquidityPool && liquidityPool.error) {
+      toast({
+        title: 'Error',
+        description: `Failed to fetch pool data: ${liquidityPool.error}`,
+        variant: 'destructive',
+      });
+    }
+  }, [liquidityPool, toast]);
+
+  // Determine initialization and pool data from TRPC result
+  const isInitialized = liquidityPool?.success === true && 'data' in liquidityPool;
+  const poolData = isInitialized ? liquidityPool.data : null;
+
+  useEffect(() => {
+    if (isInitialized) {
+      const interval = setInterval(refetch, REFRESH_INTERVAL);
+      return () => clearInterval(interval);
+    }
+  }, [isInitialized, refetch]);
+
+  return {
+    isInitialized,
+    poolData,
+    isRefetching,
+    refetch,
+  };
+};
 
 const validateFormData = (data: FormData): FormErrors => {
   const errors: FormErrors = {};
@@ -92,22 +121,12 @@ const validateFormData = (data: FormData): FormErrors => {
 
   const minDeposit = Number(data.minDeposit);
   if (isNaN(minDeposit) || minDeposit < MIN_DEPOSIT_AMOUNT) {
-    errors.minDeposit = `Minimum deposit must be at least ${
-      MIN_DEPOSIT_AMOUNT / USDC_DECIMALS
-    } USDC`;
+    errors.minDeposit = `Minimum deposit must be at least ${MIN_DEPOSIT_AMOUNT / USDC_DECIMALS
+      } USDC`;
   }
 
   return errors;
 };
-
-interface StatCardProps {
-  label: string;
-  value: string;
-  subtext?: string;
-  icon?: React.ReactNode;
-  tooltip?: string;
-  trend?: { value: number; isPositive: boolean };
-}
 
 const StatCard = React.memo(({ label, value, subtext, icon, tooltip, trend }: StatCardProps) => (
   <div className="relative group rounded-xl p-4 bg-white/5 backdrop-blur-md border border-white/10 shadow-lg flex flex-col gap-1 hover:bg-white/10 transition-all duration-200">
@@ -130,9 +149,8 @@ const StatCard = React.memo(({ label, value, subtext, icon, tooltip, trend }: St
       </div>
       {trend && (
         <div
-          className={`flex items-center gap-1 text-sm ${
-            trend.isPositive ? 'text-green-400' : 'text-red-400'
-          }`}
+          className={`flex items-center gap-1 text-sm ${trend.isPositive ? 'text-green-400' : 'text-red-400'
+            }`}
         >
           {trend.isPositive ? (
             <ChevronUp className="h-4 w-4" />
@@ -152,18 +170,53 @@ const StatCard = React.memo(({ label, value, subtext, icon, tooltip, trend }: St
 
 StatCard.displayName = 'StatCard';
 
+const CopyField = React.memo(({ value, label }: { value: string; label: string }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    if (!value) return;
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  }, [value]);
+
+  return (
+    <div className="mb-2">
+      <div className="flex items-center gap-2 text-white/60 text-sm mb-1">
+        {label}
+        <button
+          onClick={handleCopy}
+          className="ml-1 p-1 rounded hover:bg-white/10 transition"
+          title="Copy"
+          type="button"
+        >
+          {copied ? (
+            <Check className="h-4 w-4 text-green-400" />
+          ) : (
+            <Copy className="h-4 w-4 text-white/40" />
+          )}
+        </button>
+      </div>
+      <div className="flex items-center bg-white/10 rounded px-3 py-2 font-mono text-white text-sm break-all shadow-inner">
+        {value}
+      </div>
+    </div>
+  );
+});
+
+CopyField.displayName = 'CopyField';
+
 export function LiquidityPoolManagement() {
   const { toast } = useToast();
-  const [isInitialized, setIsInitialized] = useState(() => {
-    return localStorage.getItem('poolInitialized') === 'true';
-  });
+  const { client } = useBasktClient();
+  const { user } = usePrivy();
+  const { isInitialized, poolData, isRefetching, refetch } = usePoolData();
   const [isLoading, setIsLoading] = useState(false);
-  const [poolData, setPoolData] = useState<LiquidityPoolData | null>(() => {
-    const savedData = localStorage.getItem('poolData');
-    return savedData ? JSON.parse(savedData) : null;
-  });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
-  const [participants, setParticipants] = useState<PoolParticipant[]>(mockParticipants); // eslint-disable-line
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<PageSize>(25);
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+  const { data: depositsData } = trpc.pool.getPoolDeposits.useQuery();
 
   const [formData, setFormData] = useState<FormData>({
     depositFeeBps: '10',
@@ -171,31 +224,42 @@ export function LiquidityPoolManagement() {
     minDeposit: '1000000',
   });
 
-  const {
-    data: liquidityPool,
-    refetch,
-    isLoading: isRefetching,
-  } = trpc.pool.getLiquidityPool.useQuery(undefined, {
-    retry: 3,
-    retryDelay: 1000,
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to fetch pool data: ${error.message}`,
-        variant: 'destructive',
-      });
-    },
-  });
+  const paginatedParticipants = useMemo(() => {
+    if (
+      !depositsData ||
+      !('success' in depositsData) ||
+      !depositsData.success ||
+      !('data' in depositsData) ||
+      !Array.isArray(depositsData.data)
+    )
+      return [];
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return depositsData.data.slice(startIndex, endIndex);
+  }, [depositsData, currentPage, pageSize]);
 
-  useEffect(() => {
-    if (liquidityPool?.success === true && 'data' in liquidityPool) {
-      setIsInitialized(true);
-      setPoolData(liquidityPool.data);
-    } else {
-      setIsInitialized(false);
-      setPoolData(null);
-    }
-  }, [liquidityPool]);
+  const totalPages = useMemo(
+    () =>
+      Math.ceil(
+        (depositsData &&
+          'success' in depositsData &&
+          depositsData.success &&
+          'data' in depositsData &&
+          Array.isArray(depositsData.data)
+          ? depositsData.data.length
+          : 0) / pageSize,
+      ),
+    [depositsData, pageSize],
+  );
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setCurrentPage(newPage);
+  }, []);
+
+  const handlePageSizeChange = useCallback((value: string) => {
+    setPageSize(Number(value) as PageSize);
+    setCurrentPage(1);
+  }, []);
 
   const handleInputChange = useCallback(
     (field: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,33 +282,46 @@ export function LiquidityPoolManagement() {
       return;
     }
 
+    if (!client || !user?.wallet) {
+      toast({
+        title: 'Error',
+        description: 'Baskt client or wallet not initialized',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
 
-      // Create mock pool data
-      const mockPoolData: LiquidityPoolData = {
-        totalLiquidity: '10000',
-        totalShares: '10000',
-        depositFeeBps: Number(formData.depositFeeBps),
-        withdrawalFeeBps: Number(formData.withdrawalFeeBps),
-        minDeposit: formData.minDeposit,
-        lastUpdateTimestamp: Date.now().toString(),
-        lpMint: 'mockLpMintAddress',
-        tokenVault: 'mockTokenVaultAddress',
-      };
+      const depositFeeBps = Number(formData.depositFeeBps);
+      const withdrawalFeeBps = Number(formData.withdrawalFeeBps);
+      const minDeposit = new BN(formData.minDeposit);
 
-      // Save to localStorage
-      localStorage.setItem('poolInitialized', 'true');
-      localStorage.setItem('poolData', JSON.stringify(mockPoolData));
+      const lpMintKeypair = Keypair.generate();
+      const lpMint = lpMintKeypair.publicKey;
 
-      setIsInitialized(true);
-      setPoolData(mockPoolData);
+
+
+
+
+      await client.initializeLiquidityPool(
+        depositFeeBps,
+        withdrawalFeeBps,
+        minDeposit,
+        lpMint,
+        USDC_MINT,
+        lpMintKeypair,
+      );
+
+
+
 
       toast({
         title: 'Success',
         description: 'Liquidity pool initialized successfully',
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error initializing liquidity pool:', error);
       toast({
         title: 'Error',
@@ -254,17 +331,25 @@ export function LiquidityPoolManagement() {
     } finally {
       setIsLoading(false);
     }
-  }, [formData, toast]);
+  }, [formData, toast, client, user]);
 
   const formattedPoolData = useMemo(() => {
     if (!poolData) return null;
+
+    const lastUpdateNum = Number(poolData.lastUpdateTimestamp);
+    const formatDate = (timestamp: number) => {
+      const date = new Date(timestamp * 1000);
+      return date.toISOString().split('T')[0];
+    };
+
     return {
       totalLiquidity: `${Number(poolData.totalLiquidity) / USDC_DECIMALS} USDC`,
       totalShares: `${Number(poolData.totalShares) / USDC_DECIMALS} LP`,
       depositFee: `${Number(poolData.depositFeeBps) / BPS_TO_PERCENT}%`,
       withdrawalFee: `${Number(poolData.withdrawalFeeBps) / BPS_TO_PERCENT}%`,
       minDeposit: `${Number(poolData.minDeposit) / USDC_DECIMALS} USDC`,
-      lastUpdate: new Date(Number(poolData.lastUpdateTimestamp) * 1000).toLocaleString(),
+      lastUpdate: lastUpdateNum > 0 ? formatDate(lastUpdateNum) : '-',
+      bump: poolData.bump,
     };
   }, [poolData]);
 
@@ -332,9 +417,8 @@ export function LiquidityPoolManagement() {
                       value={formData.depositFeeBps}
                       onChange={handleInputChange('depositFeeBps')}
                       placeholder="e.g., 10 for 0.1%"
-                      className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${
-                        formErrors.depositFeeBps ? 'border-red-500' : ''
-                      }`}
+                      className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${formErrors.depositFeeBps ? 'border-red-500' : ''
+                        }`}
                     />
                     <div className="flex justify-between text-sm">
                       <span className="text-white/60">
@@ -357,9 +441,8 @@ export function LiquidityPoolManagement() {
                       value={formData.withdrawalFeeBps}
                       onChange={handleInputChange('withdrawalFeeBps')}
                       placeholder="e.g., 30 for 0.3%"
-                      className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${
-                        formErrors.withdrawalFeeBps ? 'border-red-500' : ''
-                      }`}
+                      className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${formErrors.withdrawalFeeBps ? 'border-red-500' : ''
+                        }`}
                     />
                     <div className="flex justify-between text-sm">
                       <span className="text-white/60">
@@ -382,9 +465,8 @@ export function LiquidityPoolManagement() {
                       value={formData.minDeposit}
                       onChange={handleInputChange('minDeposit')}
                       placeholder="e.g., 1000000 for 1 USDC"
-                      className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${
-                        formErrors.minDeposit ? 'border-red-500' : ''
-                      }`}
+                      className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${formErrors.minDeposit ? 'border-red-500' : ''
+                        }`}
                     />
                     <div className="flex justify-between text-sm">
                       <span className="text-white/60">
@@ -416,94 +498,90 @@ export function LiquidityPoolManagement() {
           </Card>
         ) : (
           <>
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <StatCard
-                label="Total Liquidity"
-                value={formattedPoolData?.totalLiquidity || '-'}
-                subtext="Total value locked in the pool"
-                icon={<DollarSign className="h-4 w-4" />}
-                trend={{ value: 2.5, isPositive: true }}
-              />
-              <StatCard
-                label="Total Shares"
-                value={formattedPoolData?.totalShares || '-'}
-                subtext="Total LP tokens issued"
-                icon={<Percent className="h-4 w-4" />}
-              />
-              <StatCard
-                label="Deposit Fee"
-                value={formattedPoolData?.depositFee || '-'}
-                subtext="Fee charged on deposits"
-                icon={<TrendingUp className="h-4 w-4" />}
-              />
-              <StatCard
-                label="Withdrawal Fee"
-                value={formattedPoolData?.withdrawalFee || '-'}
-                subtext="Fee charged on withdrawals"
-                icon={<TrendingUp className="h-4 w-4" />}
-              />
-            </div>
-
-            {/* Pool Participants Table */}
-            <Card className="bg-white/5 border-white/10 shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-white">Pool Participants</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-white/10">
-                        <th className="text-left py-3 px-4 text-white/60">S.No</th>
-                        <th className="text-left py-3 px-4 text-white/60">Address</th>
-                        <th className="text-left py-3 px-4 text-white/60">USDC Deposit</th>
-                        <th className="text-left py-3 px-4 text-white/60">Share %</th>
-                        <th className="text-left py-3 px-4 text-white/60">LP Tokens</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {participants.map((participant, index) => (
-                        <tr
-                          key={participant.address}
-                          className="border-b border-white/5 hover:bg-white/5"
-                        >
-                          <td className="py-3 px-4 text-white/80">{index + 1}</td>
-                          <td className="py-3 px-4 text-white/80 font-mono text-sm">
-                            {participant.address.slice(0, 4)}...{participant.address.slice(-4)}
-                          </td>
-                          <td className="py-3 px-4 text-white/80">
-                            ${participant.usdcDeposit.toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4 text-white/80">
-                            {participant.sharePercentage}%
-                          </td>
-                          <td className="py-3 px-4 text-white/80">
-                            {participant.lpTokens.toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Pool Details */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 gap-8">
               <Card className="bg-white/5 border-white/10 shadow-xl">
                 <CardHeader>
                   <CardTitle className="text-xl font-bold text-white">Pool Information</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-white/60">Minimum Deposit</span>
-                      <span className="text-white">{formattedPoolData?.minDeposit || '-'}</span>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <div className="text-white/60 text-sm">Total Liquidity</div>
+                        <div className="text-lg font-semibold text-primary">
+                          {formattedPoolData?.totalLiquidity || '-'}
+                        </div>
+                        <div className="text-xs text-white/40">
+                          Total amount of liquidity in the pool
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-white/60 text-sm">Total Shares</div>
+                        <div className="text-lg font-semibold text-primary">
+                          {formattedPoolData?.totalShares || '-'}
+                        </div>
+                        <div className="text-xs text-white/40">Total supply of LP tokens</div>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-white/60">Last Update</span>
-                      <span className="text-white">{formattedPoolData?.lastUpdate || '-'}</span>
+                    <hr className="border-white/10" />
+
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <div className="text-white/60 text-sm">Deposit Fee</div>
+                        <div className="text-lg font-semibold text-primary">
+                          {formattedPoolData?.depositFee || '-'}
+                        </div>
+                        <div className="text-xs text-white/40">Fee on deposits (bps)</div>
+                      </div>
+                      <div>
+                        <div className="text-white/60 text-sm">Withdrawal Fee</div>
+                        <div className="text-lg font-semibold text-primary">
+                          {formattedPoolData?.withdrawalFee || '-'}
+                        </div>
+                        <div className="text-xs text-white/40">Fee on withdrawals (bps)</div>
+                      </div>
+                    </div>
+                    <hr className="border-white/10" />
+
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <div className="text-white/60 text-sm">Minimum Deposit</div>
+                        <div className="text-lg font-semibold text-primary">
+                          {formattedPoolData?.minDeposit || '-'}
+                        </div>
+                        <div className="text-xs text-white/40">Minimum deposit allowed</div>
+                      </div>
+                      <div>
+                        <div className="text-white/60 text-sm">Last Update</div>
+                        <div className="text-lg font-semibold text-primary">
+                          {formattedPoolData?.lastUpdate &&
+                            formattedPoolData.lastUpdate !== 'Invalid Date'
+                            ? formattedPoolData.lastUpdate
+                            : '-'}
+                        </div>
+                        <div className="text-xs text-white/40">Last pool update</div>
+                      </div>
+                    </div>
+                    <hr className="border-white/10" />
+
+                    <CopyField value={poolData?.lpMint || 'Loading...'} label="LP Token Mint" />
+                    <div className="text-xs text-white/40 mb-2">
+                      The token mint for the LP tokens
+                    </div>
+                    <CopyField value={poolData?.tokenVault || 'Loading...'} label="Token Vault" />
+                    <div className="text-xs text-white/40">
+                      The token account where collateral is stored
+                    </div>
+                    <hr className="border-white/10" />
+
+                    <div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/60">Bump</span>
+                        <span className="text-lg font-semibold text-primary">
+                          {formattedPoolData?.bump || '-'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-white/40">Bump for this PDA</div>
                     </div>
                   </div>
                 </CardContent>
@@ -511,21 +589,135 @@ export function LiquidityPoolManagement() {
 
               <Card className="bg-white/5 border-white/10 shadow-xl">
                 <CardHeader>
-                  <CardTitle className="text-xl font-bold text-white">Pool Addresses</CardTitle>
+                  <CardTitle className="text-xl font-bold text-white">Pool Participants</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-white/60 text-sm">LP Token Mint</span>
-                      <span className="text-sm break-all font-mono bg-white/5 p-2 rounded">
-                        {poolData?.lpMint || 'Loading...'}
-                      </span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-white/60">Rows per page</span>
+                        <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                          <SelectTrigger className="w-[100px] bg-white/5 border-white/10">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAGE_SIZE_OPTIONS.map((size) => (
+                              <SelectItem key={size} value={size.toString()}>
+                                {size}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="text-sm text-white/60">
+                        Page {currentPage} of {totalPages}
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-white/60 text-sm">Token Vault</span>
-                      <span className="text-sm break-all font-mono bg-white/5 p-2 rounded">
-                        {poolData?.tokenVault || 'Loading...'}
-                      </span>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-white/10">
+                            <th className="text-left py-3 px-4 text-white/60">S.No</th>
+                            <th className="text-left py-3 px-4 text-white/60">Address</th>
+                            <th className="text-left py-3 px-4 text-white/60">USDC Deposit</th>
+                            <th className="text-left py-3 px-4 text-white/60">Share %</th>
+                            <th className="text-left py-3 px-4 text-white/60">LP Tokens</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedParticipants.map((participant: PoolDeposit, index: number) => (
+                            <tr
+                              key={participant.address}
+                              className="border-b border-white/5 hover:bg-white/5"
+                            >
+                              <td className="py-3 px-4 text-white/80">
+                                {(currentPage - 1) * pageSize + index + 1}
+                              </td>
+                              <td className="py-3 px-4 text-white/80 font-mono text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span>
+                                    {participant.address.slice(0, 4)}...
+                                    {participant.address.slice(-4)}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(participant.address);
+                                      setCopiedAddress(participant.address);
+                                      setTimeout(() => setCopiedAddress(null), 1200);
+                                    }}
+                                    className="p-1 rounded hover:bg-white/10 transition"
+                                    title="Copy address"
+                                    type="button"
+                                  >
+                                    {copiedAddress === participant.address ? (
+                                      <Check className="h-4 w-4 text-green-400" />
+                                    ) : (
+                                      <Copy className="h-4 w-4 text-white/40" />
+                                    )}
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 text-white/80">
+                                ${participant.usdcDeposit.toLocaleString()}
+                              </td>
+                              <td className="py-3 px-4 text-white/80">
+                                {participant.sharePercentage}%
+                              </td>
+                              <td className="py-3 px-4 text-white/80">
+                                {participant.lpTokens.toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4">
+                      <div className="text-sm text-white/60">
+                        Showing {(currentPage - 1) * pageSize + 1} to{' '}
+                        {Math.min(
+                          currentPage * pageSize,
+                          depositsData &&
+                            'success' in depositsData &&
+                            depositsData.success &&
+                            'data' in depositsData &&
+                            Array.isArray(depositsData.data)
+                            ? depositsData.data.length
+                            : 0,
+                        )}{' '}
+                        of{' '}
+                        {depositsData &&
+                          'success' in depositsData &&
+                          depositsData.success &&
+                          'data' in depositsData &&
+                          Array.isArray(depositsData.data)
+                          ? depositsData.data.length
+                          : 0}{' '}
+                        entries
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

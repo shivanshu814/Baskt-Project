@@ -48,9 +48,9 @@ export function AdminNavbar({ className }: AdminNavbarProps) {
       Cookies.remove('wallet-connected');
 
       await new Promise((resolve) => setTimeout(resolve, 500));
-      router.push('/login');
+      router.push('/');
     } catch (error) {
-      router.push('/login');
+      router.push('/');
     } finally {
       document.getElementById('logout-overlay')?.remove();
       setIsLoggingOut(false);

@@ -15,11 +15,12 @@ pub struct InitializeLiquidityPool<'info> {
     /// Admin with Owner role who can initialize the pool
     #[account(mut)]
     pub admin: Signer<'info>,
-    
+
     /// Payer for the rent fees
+    /// TODO sidduHERE admin and payer should be the same
     #[account(mut)]
     pub payer: Signer<'info>,
-    
+
     /// Protocol account to verify admin role
     /// @dev Requires Owner role to initialize liquidity pool
     #[account(
@@ -28,7 +29,7 @@ pub struct InitializeLiquidityPool<'info> {
         constraint = protocol.has_permission(admin.key(), Role::Owner) @ PerpetualsError::Unauthorized
     )]
     pub protocol: Account<'info, Protocol>,
-    
+
     /// Liquidity pool account to initialize
     #[account(
         init,
@@ -38,8 +39,9 @@ pub struct InitializeLiquidityPool<'info> {
         bump
     )]
     pub liquidity_pool: Account<'info, LiquidityPool>,
-    
+
     /// The mint that will be used for LP tokens
+    /// TODO sidduHERE  need clarity on this. Who is creating this.
     #[account(
         init,
         payer = payer,
@@ -47,26 +49,28 @@ pub struct InitializeLiquidityPool<'info> {
         mint::authority = pool_authority,
     )]
     pub lp_mint: Account<'info, Mint>,
-    
+
     /// The token account that will hold the pool's assets
     #[account(
         init,
         payer = payer,
         token::mint = token_mint,
         token::authority = pool_authority,
+        seeds = [b"token_vault", liquidity_pool.key().as_ref()],
+        bump
     )]
     pub token_vault: Account<'info, TokenAccount>,
-    
+
     /// The mint of the token used for collateral
     pub token_mint: Account<'info, Mint>,
-    
+
     /// CHECK: PDA used for pool operations authority
     #[account(
         seeds = [b"pool_authority", liquidity_pool.key().as_ref(), protocol.key().as_ref()],
         bump
     )]
     pub pool_authority: UncheckedAccount<'info>,
-    
+
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
@@ -79,7 +83,7 @@ pub struct AddLiquidity<'info> {
     /// The liquidity provider
     #[account(mut)]
     pub provider: Signer<'info>,
-    
+
     /// The liquidity pool account
     #[account(
         mut,
@@ -87,7 +91,7 @@ pub struct AddLiquidity<'info> {
         bump = liquidity_pool.bump,
     )]
     pub liquidity_pool: Account<'info, LiquidityPool>,
-    
+
     /// Protocol account to verify feature flags
     #[account(
         seeds = [b"protocol"],
@@ -95,7 +99,7 @@ pub struct AddLiquidity<'info> {
         constraint = protocol.feature_flags.allow_add_liquidity @ PerpetualsError::FeatureDisabled
     )]
     pub protocol: Account<'info, Protocol>,
-    
+
     /// The provider's token account to withdraw funds from
     #[account(
         mut,
@@ -105,17 +109,19 @@ pub struct AddLiquidity<'info> {
         constraint = provider_token_account.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
     )]
     pub provider_token_account: Account<'info, TokenAccount>,
-    
+
     /// The vault that holds the pool's assets
     #[account(
         mut,
         constraint = token_vault.key() == liquidity_pool.token_vault @ PerpetualsError::InvalidTokenVault,
         constraint = token_vault.owner == pool_authority.key() @ PerpetualsError::InvalidProgramAuthority,
         constraint = token_vault.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
-        constraint = token_vault.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
+        constraint = token_vault.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority, 
+        seeds = [b"token_vault", liquidity_pool.key().as_ref()],
+        bump
     )]
     pub token_vault: Account<'info, TokenAccount>,
-    
+
     /// The provider's LP token account to receive LP tokens
     #[account(
         mut,
@@ -125,7 +131,7 @@ pub struct AddLiquidity<'info> {
         constraint = provider_lp_account.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
     )]
     pub provider_lp_account: Account<'info, TokenAccount>,
-    
+
     /// The LP token mint
     #[account(
         mut,
@@ -135,7 +141,7 @@ pub struct AddLiquidity<'info> {
         constraint = lp_mint.freeze_authority.is_none() @ PerpetualsError::InvalidMint
     )]
     pub lp_mint: Account<'info, Mint>,
-    
+
     /// The treasury token account to receive fees
     #[account(
         mut,
@@ -145,20 +151,20 @@ pub struct AddLiquidity<'info> {
         constraint = treasury_token_account.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
     )]
     pub treasury_token_account: Account<'info, TokenAccount>,
-    
+
     /// CHECK: Treasury account that receives fees
     #[account(
         constraint = protocol.has_permission(treasury.key(), Role::Treasury) @ PerpetualsError::InvalidTreasuryAccount
     )]
     pub treasury: UncheckedAccount<'info>,
-    
+
     /// CHECK: PDA used for pool operations authority
     #[account(
         seeds = [b"pool_authority", liquidity_pool.key().as_ref(), protocol.key().as_ref()],
         bump,
     )]
     pub pool_authority: UncheckedAccount<'info>,
-    
+
     pub token_program: Program<'info, Token>,
 }
 
@@ -169,7 +175,7 @@ pub struct RemoveLiquidity<'info> {
     /// The liquidity provider
     #[account(mut)]
     pub provider: Signer<'info>,
-    
+
     /// The liquidity pool account
     #[account(
         mut,
@@ -177,7 +183,7 @@ pub struct RemoveLiquidity<'info> {
         bump = liquidity_pool.bump,
     )]
     pub liquidity_pool: Account<'info, LiquidityPool>,
-    
+
     /// Protocol account to verify feature flags
     #[account(
         seeds = [b"protocol"],
@@ -185,7 +191,7 @@ pub struct RemoveLiquidity<'info> {
         constraint = protocol.feature_flags.allow_remove_liquidity @ PerpetualsError::FeatureDisabled
     )]
     pub protocol: Account<'info, Protocol>,
-    
+
     /// The provider's token account to receive funds
     #[account(
         mut,
@@ -195,17 +201,19 @@ pub struct RemoveLiquidity<'info> {
         constraint = provider_token_account.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
     )]
     pub provider_token_account: Account<'info, TokenAccount>,
-    
+
     /// The vault that holds the pool's assets
     #[account(
         mut,
         constraint = token_vault.key() == liquidity_pool.token_vault @ PerpetualsError::InvalidTokenVault,
         constraint = token_vault.owner == pool_authority.key() @ PerpetualsError::InvalidProgramAuthority,
         constraint = token_vault.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
-        constraint = token_vault.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
+        constraint = token_vault.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority, 
+        seeds = [b"token_vault", liquidity_pool.key().as_ref()],
+        bump
     )]
     pub token_vault: Account<'info, TokenAccount>,
-    
+
     /// The provider's LP token account to burn LP tokens from
     #[account(
         mut,
@@ -215,7 +223,7 @@ pub struct RemoveLiquidity<'info> {
         constraint = provider_lp_account.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
     )]
     pub provider_lp_account: Account<'info, TokenAccount>,
-    
+
     /// The LP token mint
     #[account(
         mut,
@@ -225,8 +233,9 @@ pub struct RemoveLiquidity<'info> {
         constraint = lp_mint.freeze_authority.is_none() @ PerpetualsError::InvalidMint
     )]
     pub lp_mint: Account<'info, Mint>,
-    
+
     /// The treasury token account to receive fees
+    /// /TODO sidduHERE where is the check for this 
     #[account(
         mut,
         constraint = treasury_token_account.owner == treasury.key() @ PerpetualsError::InvalidTreasuryAccount,
@@ -235,20 +244,21 @@ pub struct RemoveLiquidity<'info> {
         constraint = treasury_token_account.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
     )]
     pub treasury_token_account: Account<'info, TokenAccount>,
-    
+
     /// CHECK: Treasury account that receives fees
+    ///    TODO sidduHERE where is the check for this. We should be setting this during init 
     #[account(
         constraint = protocol.has_permission(treasury.key(), Role::Treasury) @ PerpetualsError::InvalidTreasuryAccount
     )]
     pub treasury: UncheckedAccount<'info>,
-    
+
     /// CHECK: PDA used for pool operations authority
     #[account(
         seeds = [b"pool_authority", liquidity_pool.key().as_ref(), protocol.key().as_ref()],
         bump,
     )]
     pub pool_authority: UncheckedAccount<'info>,
-    
+
     pub token_program: Program<'info, Token>,
 }
 
@@ -260,9 +270,15 @@ pub fn initialize_liquidity_pool(
     min_deposit: u64,
 ) -> Result<()> {
     // Validate inputs
-    require!(deposit_fee_bps <= MAX_FEE_BPS, PerpetualsError::InvalidFeeBps); // Max 5%
-    require!(withdrawal_fee_bps <= MAX_FEE_BPS, PerpetualsError::InvalidFeeBps); // Max 5%
-    
+    require!(
+        deposit_fee_bps <= MAX_FEE_BPS,
+        PerpetualsError::InvalidFeeBps
+    ); // Max 5%
+    require!(
+        withdrawal_fee_bps <= MAX_FEE_BPS,
+        PerpetualsError::InvalidFeeBps
+    ); // Max 5%
+
     let liquidity_pool = &mut ctx.accounts.liquidity_pool;
     liquidity_pool.lp_mint = ctx.accounts.lp_mint.key();
     liquidity_pool.token_vault = ctx.accounts.token_vault.key();
@@ -274,8 +290,11 @@ pub fn initialize_liquidity_pool(
     liquidity_pool.last_update_timestamp = Clock::get()?.unix_timestamp;
     liquidity_pool.bump = ctx.bumps.liquidity_pool;
 
-    msg!("Liquidity pool initialized with deposit fee: {}bps, withdrawal fee: {}bps",
-        deposit_fee_bps, withdrawal_fee_bps);
+    msg!(
+        "Liquidity pool initialized with deposit fee: {}bps, withdrawal fee: {}bps",
+        deposit_fee_bps,
+        withdrawal_fee_bps
+    );
 
     // Emit initialization event
     emit!(LiquidityPoolInitializedEvent {
@@ -289,7 +308,7 @@ pub fn initialize_liquidity_pool(
         timestamp: Clock::get()?.unix_timestamp,
     });
 
-    Ok(())  
+    Ok(())
 }
 
 /// Add liquidity to the pool
@@ -301,27 +320,28 @@ pub fn initialize_liquidity_pool(
 /// at least the expected number of shares. This is not for slippage protection
 /// in the traditional DEX sense (as this is a single-asset vault), but rather
 /// to protect against unexpected state changes between tx submission and execution.
-pub fn add_liquidity(
-    ctx: Context<AddLiquidity>,
-    amount: u64,
-    min_shares_out: u64
-) -> Result<()> {
+pub fn add_liquidity(ctx: Context<AddLiquidity>, amount: u64, min_shares_out: u64) -> Result<()> {
     // Validate inputs
     let liquidity_pool = &ctx.accounts.liquidity_pool;
 
     // Calculate fee - min_deposit check is now handled in calculate_shares_to_mint
     let fee_amount = liquidity_pool.calculate_fee(amount, liquidity_pool.deposit_fee_bps)?;
-    
+
     // Calculate shares to mint (after fee is taken)
-    let net_deposit = amount.checked_sub(fee_amount).ok_or(PerpetualsError::MathOverflow)?;
+    let net_deposit = amount
+        .checked_sub(fee_amount)
+        .ok_or(PerpetualsError::MathOverflow)?;
     let shares_to_mint = liquidity_pool.calculate_shares_to_mint(amount, fee_amount)?;
 
     // Ensure shares_to_mint is greater than zero
     require!(shares_to_mint > 0, PerpetualsError::InvalidLpTokenAmount);
 
     // Check minimum shares out safeguard
-    require!(shares_to_mint >= min_shares_out, PerpetualsError::InvalidLpTokenAmount);
-    
+    require!(
+        shares_to_mint >= min_shares_out,
+        PerpetualsError::InvalidLpTokenAmount
+    );
+
     // Transfer tokens from provider to vault
     token::transfer(
         CpiContext::new(
@@ -342,7 +362,7 @@ pub fn add_liquidity(
         b"pool_authority" as &[u8],
         liquidity_pool_key.as_ref(),
         protocol_key.as_ref(),
-        &[ctx.bumps.pool_authority]
+        &[ctx.bumps.pool_authority],
     ];
     let signer = &[&signer_seeds[..]];
 
@@ -366,7 +386,7 @@ pub fn add_liquidity(
             b"pool_authority" as &[u8],
             liquidity_pool_key.as_ref(),
             protocol_key.as_ref(),
-            &[ctx.bumps.pool_authority]
+            &[ctx.bumps.pool_authority],
         ];
         let signer = &[&signer_seeds[..]];
 
@@ -400,7 +420,7 @@ pub fn add_liquidity(
         shares_minted: shares_to_mint,
         timestamp: Clock::get()?.unix_timestamp,
     });
-    
+
     Ok(())
 }
 
@@ -420,23 +440,27 @@ pub fn remove_liquidity(
 ) -> Result<()> {
     // Validate inputs
     require!(lp_amount > 0, PerpetualsError::InvalidLpTokenAmount);
-    
+
     let liquidity_pool = &ctx.accounts.liquidity_pool;
-    
+
     // Calculate withdrawal amount
     let withdrawal_amount = liquidity_pool.calculate_withdrawal_amount(lp_amount)?;
-    
+
     // Calculate fee
-    let fee_amount = liquidity_pool.calculate_fee(withdrawal_amount, liquidity_pool.withdrawal_fee_bps)?;
-    
+    let fee_amount =
+        liquidity_pool.calculate_fee(withdrawal_amount, liquidity_pool.withdrawal_fee_bps)?;
+
     // Calculate net amount to return to user
     let net_amount = withdrawal_amount
         .checked_sub(fee_amount)
         .ok_or(PerpetualsError::MathOverflow)?;
-        
+
     // Check minimum tokens out safeguard
-    require!(net_amount >= min_tokens_out, PerpetualsError::InvalidLpTokenAmount);
-    
+    require!(
+        net_amount >= min_tokens_out,
+        PerpetualsError::InvalidLpTokenAmount
+    );
+
     // Burn LP tokens from provider
     token::burn(
         CpiContext::new(
@@ -449,7 +473,7 @@ pub fn remove_liquidity(
         ),
         lp_amount,
     )?;
-    
+
     // Transfer assets from vault to provider
     let liquidity_pool_key = ctx.accounts.liquidity_pool.key();
     let protocol_key = ctx.accounts.protocol.key();
@@ -457,10 +481,10 @@ pub fn remove_liquidity(
         b"pool_authority" as &[u8],
         liquidity_pool_key.as_ref(),
         protocol_key.as_ref(),
-        &[ctx.bumps.pool_authority]
+        &[ctx.bumps.pool_authority],
     ];
     let signer = &[&signer_seeds[..]];
-    
+
     // If there's a fee, transfer it from the vault to the treasury
     if fee_amount > 0 {
         // Reuse the already created signer
@@ -477,7 +501,7 @@ pub fn remove_liquidity(
             fee_amount,
         )?;
     }
-    
+
     // Transfer net amount to provider
     token::transfer(
         CpiContext::new_with_signer(
@@ -491,13 +515,13 @@ pub fn remove_liquidity(
         ),
         net_amount,
     )?;
-    
+
     // Update liquidity pool state AFTER all external CPIs have completed
     let liquidity_pool = &mut ctx.accounts.liquidity_pool;
 
     // Process withdrawal using the existing method on LiquidityPool
     liquidity_pool.process_withdrawal(lp_amount, withdrawal_amount)?;
-    
+
     // Emit event
     emit!(LiquidityRemovedEvent {
         provider: ctx.accounts.provider.key(),
@@ -508,6 +532,6 @@ pub fn remove_liquidity(
         net_amount_received: net_amount,
         timestamp: Clock::get()?.unix_timestamp,
     });
-    
+
     Ok(())
 }

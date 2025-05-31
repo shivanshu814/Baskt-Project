@@ -10,7 +10,8 @@
     "test": "anchor build && pnpm --filter @baskt/sdk build && anchor test",
     "test:file": "anchor build && pnpm --filter @baskt/sdk build && anchor test --run",
     "lint": "eslint tests --ext test.ts",
-    "deploy:local": "npx tsx scripts/deploy-local.ts"
+    "deploy:local": "npx tsx scripts/deploy-local.ts",
+    "create:lp": "npx tsx scripts/create-lp-token.ts"
   },
   "dependencies": {
     "@baskt/sdk": "workspace:*",

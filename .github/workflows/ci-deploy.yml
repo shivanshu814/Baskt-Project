@@ -3,7 +3,7 @@ name: Baskt CI + Deploy
 on:
   pull_request:
   push:
-    branches: ['**']
+    branches: ['dev', 'staging', 'main']
 
 jobs:
   test-and-build:
@@ -31,10 +31,11 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Install dependencies
+      - name: Install dependencies and set environment variables
         run: |
           pnpm install --no-frozen-lockfile
           pnpm install --frozen-lockfile
+          echo "NEXT_PUBLIC_USDC_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" >> $GITHUB_ENV
 
       - name: Build project
         run: pnpm build
