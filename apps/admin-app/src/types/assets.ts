@@ -1,0 +1,109 @@
+/**
+ * Types for asset-related components and data
+ */
+
+import { z } from 'zod';
+
+export interface Asset {
+  _id: string;
+  ticker: string;
+  name?: string;
+  logo?: string;
+  price: number;
+  account: {
+    address: string;
+    listingTime: number;
+    permissions: {
+      allowLongs: boolean;
+      allowShorts: boolean;
+    };
+    isActive: boolean;
+  };
+}
+
+export interface AssetTableProps {
+  assets: Asset[];
+  isLoading: boolean;
+  onViewPrices: (asset: Asset) => void;
+}
+
+export interface AssetTableCellProps {
+  asset: Asset;
+  id: string;
+}
+
+export interface DialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export interface MutationError {
+  message: string;
+}
+
+export interface MutationResponse<T> {
+  data?: T;
+  error?: MutationError;
+}
+
+export interface AssetMutationInput {
+  assetAddress: string;
+  ticker: string;
+  name: string;
+  logo: string;
+  priceConfig: {
+    provider: {
+      id: string;
+      chain: string;
+      name: string;
+    };
+    twp: {
+      seconds: number;
+    };
+    updateFrequencySeconds: number;
+  };
+}
+
+export interface AssetPriceHistoryPageProps {
+  assetAddress: string;
+  assetName: string;
+  assetLogo?: string;
+  ticker?: string;
+  onBack?: () => void;
+}
+
+export interface FetchParams {
+  assetId: string;
+  startDate: number;
+  endDate: number;
+}
+
+export const providerOptions = ['Binance', 'Dexscreener', 'Coingecko'] as const;
+
+export const assetFormSchema = z.object({
+  ticker: z.string().min(1, { message: 'Ticker is required' }),
+  name: z.string().min(1, { message: 'Asset name is required' }),
+  priceConfig: z.object({
+    provider: z.object({
+      name: z.enum(providerOptions.map((option) => option.toLowerCase()) as [string, ...string[]], {
+        required_error: 'Provider name is required',
+      }),
+      id: z.string().min(1, { message: 'Provider ID is required' }),
+      chain: z.string().optional(),
+    }),
+    twp: z.object({
+      seconds: z.coerce.number().int().min(1, { message: 'TWP seconds required' }),
+    }),
+    updateFrequencySeconds: z.coerce
+      .number()
+      .int()
+      .min(1, { message: 'Update frequency required' }),
+  }),
+  logo: z.string().url({ message: 'Please enter a valid logo URL' }),
+  permissions: z.object({
+    allowLong: z.boolean().default(true),
+    allowShort: z.boolean().default(true),
+  }),
+});
+
+export type AssetFormValues = z.infer<typeof assetFormSchema>;

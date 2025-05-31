@@ -377,7 +377,7 @@ export abstract class BaseClient {
         allowLongs: newAccount.permissions.allowLongs,
         allowShorts: newAccount.permissions.allowShorts,
       } as OnchainAssetPermissions,
-      isActive: newAccount.isActive,
+      isActive: Boolean(newAccount.isActive),
       listingTime: new Date(newAccount.listingTime.toNumber() * 1000),
     } as OnchainAsset;
   }

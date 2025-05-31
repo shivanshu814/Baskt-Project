@@ -1,0 +1,49 @@
+import { TableCell } from '../ui/table';
+import { getSolscanAddressUrl } from '@baskt/ui';
+import { DATE_FORMAT_OPTIONS } from '../../constants/assets';
+import { ASSET_TABLE_IDS } from '../../constants/assets';
+import { AssetTableCellProps } from '../../types/assets';
+
+export function AssetTableCell({ asset, id }: AssetTableCellProps) {
+  switch (id) {
+    case ASSET_TABLE_IDS.TICKER:
+      return <TableCell className="font-medium">{asset.ticker}</TableCell>;
+
+    case ASSET_TABLE_IDS.ADDRESS:
+      return (
+        <TableCell className="font-mono text-xs">
+          <a
+            href={getSolscanAddressUrl(asset.account.address.toString())}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline"
+          >
+            {asset.account.address.toString().slice(0, 8)}...
+            {asset.account.address.toString().slice(-8)}
+          </a>
+        </TableCell>
+      );
+
+    case ASSET_TABLE_IDS.LISTING_TIME:
+      return (
+        <TableCell>
+          {new Date(asset.account.listingTime).toLocaleString('en-US', DATE_FORMAT_OPTIONS)}
+        </TableCell>
+      );
+
+    case ASSET_TABLE_IDS.PRICE:
+      return <TableCell>{asset.price}</TableCell>;
+
+    case ASSET_TABLE_IDS.ALLOW_LONG:
+      return <TableCell>{asset.account.permissions.allowLongs ? 'Yes' : 'No'}</TableCell>;
+
+    case ASSET_TABLE_IDS.ALLOW_SHORT:
+      return <TableCell>{asset.account.permissions.allowShorts ? 'Yes' : 'No'}</TableCell>;
+
+    case ASSET_TABLE_IDS.STATUS:
+      return <TableCell>{asset.account.isActive ? 'Active' : 'Inactive'}</TableCell>;
+
+    default:
+      return <TableCell />;
+  }
+}

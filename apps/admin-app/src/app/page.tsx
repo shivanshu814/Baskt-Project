@@ -1,142 +1,93 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { usePrivy } from '@privy-io/react-auth';
-import { useBasktClient } from '@baskt/ui';
+/**
+ * AdminDashboard page - renders the admin dashboard UI, uses useAdminDashboard for logic.
+ */
+import { useMemo, useCallback } from 'react';
+import { useAdminDashboard } from '../hooks/dashboard/useDashboard';
 import { Layout } from '../components/Layout';
-
-import { AdminAssetsList } from '../components/admin/AdminAssetsList';
-import { AdminBasktsList } from '../components/admin/AdminBasktsList';
-import { ListNewAssetButton } from '../components/admin/ListNewAssetButton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { ProtocolDetails } from '../components/admin/ProtocolDetails';
-import { RolesManagement } from '../components/admin/RolesManagement';
 import { Button } from '../components/ui/button';
 import { Plus } from 'lucide-react';
-import { LiquidityPoolManagement } from '../components/admin/LiquidityPoolManagement';
+import { TAB_CONFIG } from '../config/tabs';
+import { TAB_IDS, TabId } from '../constants/tabs';
+import { AdminTabs } from '../components/dashboard/DashboardTabs';
 
 export default function AdminDashboard() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { authenticated, ready } = usePrivy();
-  const { client } = useBasktClient();
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'assets');
-  const [showRoleModal, setShowRoleModal] = useState(false);
-  const [isOwner, setIsOwner] = useState(false);
+  const {
+    activeTab,
+    handleTabChange,
+    showRoleModal,
+    setShowRoleModal,
+    openRoleModal,
+    isOwner,
+    hasPermission,
+    loading,
+    error,
+  } = useAdminDashboard();
 
-  useEffect(() => {
-    const initializeDashboard = async () => {
-      if (ready && !authenticated) {
-        router.push('/');
-        return;
+  const renderActionButton = useCallback(
+    (tabId: TabId) => {
+      const tab = TAB_CONFIG.find((t) => t.id === tabId);
+      if (!tab?.actionButton) return null;
+
+      // checks the permissions for action button
+      if (tab.requiresOwner && !isOwner) return null;
+      if (tab.requiresPermission && tab.permissionKey && !hasPermission(tab.permissionKey))
+        return null;
+
+      if (tabId === TAB_IDS.ROLES) {
+        return (
+          <Button onClick={openRoleModal}>
+            <Plus className="h-4 w-4 mr-2" /> Add New Role
+          </Button>
+        );
       }
+      return <tab.actionButton />;
+    },
+    [isOwner, hasPermission, openRoleModal],
+  );
 
-      if (client) {
-        try {
-          const protocol = await client.getProtocolAccount();
-          const userAddress = client.getPublicKey().toString();
-          const isProtocolOwner = protocol.owner === userAddress;
-          const hasOwnerRole = protocol.accessControl.entries.some(
-            (entry) => entry.account === userAddress && entry.role.toLowerCase() === 'owner',
-          );
-          const hasPermission = isProtocolOwner || hasOwnerRole;
-          setIsOwner(hasPermission);
-        } catch (error) {
-          setIsOwner(false);
-        }
-      }
-    };
+  const loadingState = useMemo(() => {
+    if (loading) {
+      return (
+        <Layout>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <span className="text-white/80 text-lg">Loading...</span>
+          </div>
+        </Layout>
+      );
+    }
+    return null;
+  }, [loading]);
 
-    initializeDashboard();
-  }, [ready, authenticated, router, client]);
+  const errorState = useMemo(() => {
+    if (error) {
+      return (
+        <Layout>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <span className="text-red-400 text-lg">{error}</span>
+          </div>
+        </Layout>
+      );
+    }
+    return null;
+  }, [error]);
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    router.push(`?tab=${value}`);
-  };
+  if (loadingState) return loadingState;
+  if (errorState) return errorState;
 
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
-        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-          <h1 className="text-3xl font-bold tracking-tight text-white">Admin Dashboard</h1>
-          {activeTab === 'assets' && <ListNewAssetButton />}
-          {activeTab === 'roles' && isOwner && (
-            <Button onClick={() => setShowRoleModal(true)}>
-              <Plus className="h-4 w-4 mr-2" /> Add New Role
-            </Button>
-          )}
-        </div>
-
-        <Tabs value={activeTab} className="w-full" onValueChange={handleTabChange}>
-          <TabsList className="bg-[#1a1f2e] p-1 rounded-lg border border-white/10">
-            <TabsTrigger
-              value="assets"
-              className="rounded-md px-4 py-2 text-sm font-medium text-white/60 data-[state=active]:bg-[#0d1117] data-[state=active]:text-white hover:text-white transition-colors"
-            >
-              Assets
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="baskts"
-              className="rounded-md px-4 py-2 text-sm font-medium text-white/60 data-[state=active]:bg-[#0d1117] data-[state=active]:text-white hover:text-white transition-colors"
-            >
-              Baskts
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="protocol"
-              className="rounded-md px-4 py-2 text-sm font-medium text-white/60 data-[state=active]:bg-[#0d1117] data-[state=active]:text-white hover:text-white transition-colors"
-            >
-              Protocol
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="roles"
-              className="rounded-md px-4 py-2 text-sm font-medium text-white/60 data-[state=active]:bg-[#0d1117] data-[state=active]:text-white hover:text-white transition-colors"
-            >
-              Roles
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="liquidity"
-              className="rounded-md px-4 py-2 text-sm font-medium text-white/60 data-[state=active]:bg-[#0d1117] data-[state=active]:text-white hover:text-white transition-colors"
-            >
-              BLP
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="assets" className="space-y-4">
-            <div className="glass-modal rounded-3xl">
-              <AdminAssetsList />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="baskts" className="space-y-4">
-            <div className="glass-modal rounded-3xl">
-              <AdminBasktsList />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="protocol" className="space-y-4">
-            <div className="glass-modal rounded-3xl">
-              <ProtocolDetails />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="roles" className="space-y-4">
-            <div className="glass-modal rounded-3xl">
-              <RolesManagement showModal={showRoleModal} setShowModal={setShowRoleModal} />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="liquidity" className="space-y-4">
-            <div className="glass-modal rounded-3xl">
-              <LiquidityPoolManagement />
-            </div>
-          </TabsContent>
-        </Tabs>
+        <AdminTabs
+          activeTab={activeTab as TabId}
+          handleTabChange={handleTabChange}
+          showRoleModal={showRoleModal}
+          setShowRoleModal={setShowRoleModal}
+          isOwner={isOwner}
+          hasPermission={hasPermission}
+          renderActionButton={renderActionButton}
+        />
       </div>
     </Layout>
   );
