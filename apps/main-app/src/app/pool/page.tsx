@@ -1,6 +1,5 @@
 'use client';
 
-import { usePrivy } from '@privy-io/react-auth';
 import { Button } from '../../components/ui/button';
 import {
   Card,
@@ -11,7 +10,8 @@ import {
 } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useUSDCBalance } from "../../hooks/useUSDCBalance";
+import { useTokenBalance } from "../../hooks/useTokenBalance";
 import { ArrowUpRight, ArrowDownRight, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import React from 'react';
 import BN from 'bn.js';
@@ -24,7 +24,6 @@ import { Transaction } from '@solana/web3.js';
 import { AccessControlRole } from '@baskt/types';
 import { useToast } from '../../components/ui/use-toast';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
-import { Slider } from '../../components/ui/slider';
 import {
   Tooltip,
   TooltipContent,
@@ -154,9 +153,8 @@ const ActionCard = React.memo(
     fee,
     onMaxClick,
     expectedOutput,
-    sliderSection,
     unit,
-    userBalance,
+    tokenBalance,
   }: {
     title: string;
     description: string;
@@ -169,12 +167,10 @@ const ActionCard = React.memo(
     color: 'green' | 'red';
     disabled: boolean;
     fee?: string;
-    maxAmount?: string;
     onMaxClick?: () => void;
     expectedOutput?: string;
-    sliderSection?: React.ReactNode;
-    unit?: string;
-    userBalance?: BN;
+    unit: string;
+    tokenBalance: string;
   }) => {
     const handleInputChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -197,12 +193,18 @@ const ActionCard = React.memo(
             <div className="relative">
               <Input
                 type="number"
+                inputMode="decimal"
+                step="0.01"
                 min={0}
-                step="any"
                 placeholder={`Enter amount to ${actionLabel.toLowerCase()}`}
                 value={inputValue}
                 onChange={handleInputChange}
-                className="pr-20 text-lg font-semibold bg-[#181c27] border border-[#23263a] focus:border-primary rounded-xl"
+                onKeyPress={(e) => {
+                  if (!/[0-9.]/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                className="pr-20 text-lg font-semibold bg-[#181c27] border border-[#23263a] focus:border-primary rounded-xl [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 disabled={loading}
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -216,13 +218,11 @@ const ActionCard = React.memo(
                 <span className="text-white/60 font-medium">{unit || 'USDC'}</span>
               </div>
             </div>
-            {userBalance !== undefined && unit === 'USDC' && (
+            {tokenBalance && (
               <div className="text-xs text-white/60 mt-1">
-                Your USDC:{' '}
-                {(userBalance ? Number(userBalance.toString()) / 1_000_000 : 0).toFixed(2)} USDC
+                Your {unit}: {tokenBalance}
               </div>
             )}
-            {sliderSection && <div>{sliderSection}</div>}
             <div className="space-y-2 text-sm bg-white/5 p-3 rounded-lg">
               {expectedOutput && (
                 <div className="flex justify-between text-white/80">
@@ -264,12 +264,7 @@ const ActionCard = React.memo(
 ActionCard.displayName = 'ActionCard';
 
 export default function PoolPage() {
-  // ...
-  // Render Faucet at the top
-  // ...
-  const { authenticated } = usePrivy();
   const { client, wallet } = useBasktClient();
-  const router = useRouter();
   const { toast } = useToast();
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -277,10 +272,11 @@ export default function PoolPage() {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [isLoading, setIsLoading] = useState(false); //eslint-disable-line
   const [poolData, setPoolData] = useState<PoolData | null>(null);
-  const [userBalance, setUserBalance] = useState<BN | null>(null);
   const [liquidityPool, setLiquidityPool] = useState<PublicKey | null>(null);
-  const [userLpBalance, setUserLpBalance] = useState<BN | null>(null);
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
+
+  const { balance: userUSDCBalance } = useUSDCBalance();
+  const { balance: userLpBalance } = useTokenBalance(poolData?.lpMint ?? '', wallet?.address ?? '');
 
   const { data: poolDataResponse } = trpc.pool.getLiquidityPool.useQuery<PoolResponse>();
 
@@ -298,41 +294,9 @@ export default function PoolPage() {
     setIsLoading(true);
     try {
       if (!client) return;
-      const [liquidityPoolPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('liquidity_pool'), client.protocolPDA.toBuffer()],
-        client.program.programId,
-      );
+      const liquidityPoolPDA = await client.findLiquidityPoolPDA();
 
       setLiquidityPool(liquidityPoolPDA);
-
-      if (wallet?.address) {
-        try {
-          const userTokenAccount = await client.getUSDCAccount(new PublicKey(wallet.address));
-          const balance = new BN(userTokenAccount.amount.toString());
-
-          setUserBalance(balance);
-        } catch (error) {
-          setUserBalance(new BN(0));
-        }
-
-        setUserLpBalance(new BN(0));
-
-        if (poolDataResponse?.success) {
-          try {
-            const userLpAccount = await client.getUserTokenAccount(
-              new PublicKey(wallet.address),
-              new PublicKey(poolDataResponse.data.lpMint),
-            );
-            const lpBalance = new BN(userLpAccount.amount.toString());
-            setUserLpBalance(lpBalance);
-          } catch (error) {
-            toast({
-              title: 'Failed to fetch pool data',
-              variant: 'destructive',
-            });
-          }
-        }
-      }
     } catch (error) {
       toast({
         title: 'Failed to fetch pool data',
@@ -362,36 +326,54 @@ export default function PoolPage() {
     fetchPoolData();
   }, [fetchPoolData]);
 
-  const calculateFee = useCallback(
-    (amount: string, isDeposit: boolean) => {
-      if (!poolData || !amount) return isDeposit ? '0 USDC' : '0 BLP';
-      const amt = Number(amount);
-      if (isDeposit) {
-        const fee = (amt * poolData.depositFeeBps) / 10000;
-        return `${fee.toFixed(2)} USDC`;
-      } else {
-        const fee = (amt * poolData.withdrawalFeeBps) / 10000;
-        return `${fee.toFixed(2)} BLP`;
-      }
-    },
-    [poolData],
-  );
+  // --- Utility Functions ---
+const getFeeInUSDC = (amount: string, bps: number) => {
+  const amt = Number(amount);
+  if (!amount || isNaN(amt) || !bps) return '0.00 USDC';
+  const fee = (amt * bps) / 10000;
+  return `${fee.toFixed(2)} USDC`;
+};
 
-  const calculateExpectedOutput = useCallback(
-    (amount: string, isDeposit: boolean) => {
-      if (!poolData || !amount) return isDeposit ? '0 LP' : '0 BLP';
-      const depositAmount = Number(amount);
-      const totalLiquidity = Number(poolData.totalLiquidity) / 1_000_000;
-      if (isDeposit) {
-        const impact = (depositAmount / (totalLiquidity + depositAmount)) * 100;
-        const expectedOutput = (depositAmount * (100 - impact)) / 100;
-        return `${expectedOutput.toFixed(2)} LP`;
-      } else {
-        return `${Number(amount).toFixed(2)} BLP`;
-      }
-    },
-    [poolData],
-  );
+const getDepositOutputBLP = (amount: string, poolData: PoolData | null) => {
+  if (!poolData || !amount) return '0.00 BLP';
+  const amt = Number(amount);
+  const totalLiquidity = Number(poolData.totalLiquidity) / 1_000_000;
+  if (isNaN(amt) || totalLiquidity <= 0) return '0.00 BLP';
+  // Simplified: 1:1 for demo, real logic should use pool share math
+  return `${amt.toFixed(2)} BLP`;
+};
+
+const getWithdrawOutputUSDC = (amount: string, poolData: PoolData | null) => {
+  if (!poolData || !amount) return '0.00 USDC';
+  const amt = Number(amount);
+  const totalShares = Number(poolData.totalShares) / 1_000_000;
+  const totalLiquidity = Number(poolData.totalLiquidity) / 1_000_000;
+  if (isNaN(amt) || totalShares <= 0) return '0.00 USDC';
+  const usdcOut = (amt / totalShares) * totalLiquidity;
+  return `${usdcOut.toFixed(2)} USDC`;
+};
+
+// --- Inside PoolPage ---
+const calculateFee = useCallback(
+  (amount: string, isDeposit: boolean) => {
+    if (!poolData) return '0.00 USDC';
+    return isDeposit
+      ? getFeeInUSDC(amount, poolData.depositFeeBps)
+      : getFeeInUSDC(getWithdrawOutputUSDC(amount, poolData).split(' ')[0], poolData.withdrawalFeeBps);
+  },
+  [poolData],
+);
+
+const calculateExpectedOutput = useCallback(
+  (amount: string, isDeposit: boolean) => {
+    if (!poolData) return isDeposit ? '0.00 BLP' : '0.00 USDC';
+    return isDeposit
+      ? getDepositOutputBLP(amount, poolData)
+      : getWithdrawOutputUSDC(amount, poolData);
+  },
+  [poolData],
+);
+
 
   const handleDeposit = useCallback(async () => {
     if (!isDepositValid || !client || !wallet?.address || !liquidityPool || !poolData) {
@@ -610,21 +592,10 @@ export default function PoolPage() {
     }
   }, [isWithdrawValid, client, wallet, liquidityPool, poolData, withdrawAmount, fetchPoolData]);
 
-  const getDepositAmountFromPercent = (percent: number) => {
-    if (!userBalance) return '';
-    return ((Number(userBalance.toString()) / 1_000_000) * (percent / 100)).toFixed(2);
-  };
-  const getWithdrawAmountFromPercent = (percent: number) => {
-    if (!userLpBalance) return '';
-    return ((Number(userLpBalance.toString()) / 1_000_000) * (percent / 100)).toFixed(2);
-  };
 
   const randomAPY = '15.08%';
 
-  if (!authenticated) {
-    router.push('/');
-    return null;
-  }
+
 
   return (
     <div className="min-h-screen w-full bg-[#010b1d]/80 flex flex-col items-center justify-center px-4 py-8">
@@ -834,10 +805,7 @@ export default function PoolPage() {
                     <div>
                       <div className="text-white/60 text-sm mb-1">Your LP</div>
                       <div className="text-2xl font-bold text-white">
-                        {userLpBalance
-                          ? (Number(userLpBalance.toString()) / 1_000_000).toFixed(2)
-                          : '0.00'}{' '}
-                        BLP
+                        {userLpBalance} BLP
                       </div>
                       <div className="text-xs text-white/50 mt-1">~ $0</div>
                     </div>
@@ -851,158 +819,45 @@ export default function PoolPage() {
                       <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
                     </TabsList>
                     <TabsContent value="deposit">
-                      <ActionCard
-                        title="Deposit"
-                        description="Add liquidity to the pool"
-                        icon={<ArrowUpRight className="h-5 w-5 text-green-400" />}
-                        inputValue={depositAmount}
-                        setInputValue={setDepositAmount}
-                        onAction={handleDeposit}
-                        actionLabel="Deposit"
-                        loading={isDepositing}
-                        color="green"
-                        disabled={!isDepositValid}
-                        fee={calculateFee(depositAmount, true)}
-                        maxAmount={undefined}
-                        expectedOutput={calculateExpectedOutput(depositAmount, true)}
-                        onMaxClick={() =>
-                          setDepositAmount(
-                            userBalance
-                              ? (Number(userBalance.toString()) / 1_000_000).toString()
-                              : '',
-                          )
-                        }
-                        sliderSection={
-                          <>
-                            <div className="flex items-center justify-between gap-2 mb-4 flex-wrap mt-4">
-                              {[0, 25, 50, 100].map((percent) => (
-                                <Button
-                                  key={percent}
-                                  variant={
-                                    Number(depositAmount) ===
-                                      Number(getDepositAmountFromPercent(percent))
-                                      ? 'default'
-                                      : 'outline'
-                                  }
-                                  size="sm"
-                                  onClick={() =>
-                                    setDepositAmount(getDepositAmountFromPercent(percent))
-                                  }
-                                  type="button"
-                                  className={`rounded-full border font-semibold transition-colors px-4 py-1 ${Number(depositAmount) ===
-                                    Number(getDepositAmountFromPercent(percent))
-                                    ? 'bg-primary text-white'
-                                    : 'bg-transparent text-primary border-primary hover:bg-primary/10'
-                                    }`}
-                                >
-                                  {percent}%
-                                </Button>
-                              ))}
-                            </div>
-                            <div className="flex items-center gap-2 w-full">
-                              <span className="text-xs text-white/50 w-8 text-left">0%</span>
-                              <Slider
-                                min={0}
-                                max={100}
-                                step={1}
-                                value={[
-                                  userBalance
-                                    ? Math.round(
-                                      (Number(depositAmount) /
-                                        (Number(userBalance.toString()) / 1_000_000)) *
-                                      100,
-                                    )
-                                    : 0,
-                                ]}
-                                onValueChange={([val]) =>
-                                  setDepositAmount(getDepositAmountFromPercent(val))
-                                }
-                                className="w-full"
-                              />
-                              <span className="text-xs text-white/50 w-8 text-right">100%</span>
-                            </div>
-                          </>
-                        }
-                        unit="USDC"
-                        userBalance={userBalance ?? undefined}
-                      />
-                    </TabsContent>
-                    <TabsContent value="withdraw">
-                      <ActionCard
-                        title="Withdraw"
-                        description="Remove liquidity from the pool"
-                        icon={<ArrowDownRight className="h-5 w-5 text-red-400" />}
-                        inputValue={withdrawAmount}
-                        setInputValue={setWithdrawAmount}
-                        onAction={handleWithdraw}
-                        actionLabel="Withdraw"
-                        loading={isWithdrawing}
-                        color="red"
-                        disabled={!isWithdrawValid}
-                        fee={calculateFee(withdrawAmount, false)}
-                        maxAmount={undefined}
-                        expectedOutput={calculateExpectedOutput(withdrawAmount, false)}
-                        onMaxClick={() =>
-                          setWithdrawAmount(
-                            userLpBalance
-                              ? (Number(userLpBalance.toString()) / 1_000_000).toString()
-                              : '',
-                          )
-                        }
-                        sliderSection={
-                          <>
-                            <div className="flex items-center justify-between gap-2 mb-4 flex-wrap mt-4">
-                              {[0, 25, 50, 100].map((percent) => (
-                                <Button
-                                  key={percent}
-                                  variant={
-                                    Number(withdrawAmount) ===
-                                      Number(getWithdrawAmountFromPercent(percent))
-                                      ? 'default'
-                                      : 'outline'
-                                  }
-                                  size="sm"
-                                  onClick={() =>
-                                    setWithdrawAmount(getWithdrawAmountFromPercent(percent))
-                                  }
-                                  type="button"
-                                  className={`rounded-full border font-semibold transition-colors px-4 py-1 ${Number(withdrawAmount) ===
-                                    Number(getWithdrawAmountFromPercent(percent))
-                                    ? 'bg-primary text-white'
-                                    : 'bg-transparent text-primary border-primary hover:bg-primary/10'
-                                    }`}
-                                >
-                                  {percent}%
-                                </Button>
-                              ))}
-                            </div>
-                            <div className="flex items-center gap-2 w-full">
-                              <span className="text-xs text-white/50 w-8 text-left">0%</span>
-                              <Slider
-                                min={0}
-                                max={100}
-                                step={1}
-                                value={[
-                                  userLpBalance
-                                    ? Math.round(
-                                      (Number(withdrawAmount) /
-                                        (Number(userLpBalance.toString()) / 1_000_000)) *
-                                      100,
-                                    )
-                                    : 0,
-                                ]}
-                                onValueChange={([val]) =>
-                                  setWithdrawAmount(getWithdrawAmountFromPercent(val))
-                                }
-                                className="w-full"
-                              />
-                              <span className="text-xs text-white/50 w-8 text-right">100%</span>
-                            </div>
-                          </>
-                        }
-                        unit="BLP"
-                      />
-                    </TabsContent>
+  <ActionCard
+    title="Deposit"
+    description="Add liquidity to the pool"
+    icon={<ArrowUpRight className="h-5 w-5 text-green-400" />}
+    inputValue={depositAmount}
+    setInputValue={setDepositAmount}
+    onAction={handleDeposit}
+    actionLabel="Deposit"
+    loading={isDepositing}
+    color="green"
+    disabled={!isDepositValid}
+    fee={calculateFee(depositAmount, true)}
+    expectedOutput={calculateExpectedOutput(depositAmount, true)}
+    onMaxClick={() => setDepositAmount(userUSDCBalance)}
+    unit="USDC"
+    outUnit="BLP"
+    tokenBalance={userUSDCBalance}
+  />
+</TabsContent>
+<TabsContent value="withdraw">
+  <ActionCard
+    title="Withdraw"
+    description="Remove liquidity from the pool"
+    icon={<ArrowDownRight className="h-5 w-5 text-red-400" />}
+    inputValue={withdrawAmount}
+    setInputValue={setWithdrawAmount}
+    onAction={handleWithdraw}
+    actionLabel="Withdraw"
+    loading={isWithdrawing}
+    color="red"
+    disabled={!isWithdrawValid}
+    fee={calculateFee(withdrawAmount, false)}
+    expectedOutput={calculateExpectedOutput(withdrawAmount, false)}
+    onMaxClick={() => setWithdrawAmount(userLpBalance)}
+    unit="BLP"
+    outUnit="USDC"
+    tokenBalance={userLpBalance}
+  />
+</TabsContent>
                   </Tabs>
                 </div>
               </Card>
