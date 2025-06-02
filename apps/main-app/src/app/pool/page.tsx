@@ -818,46 +818,46 @@ const calculateExpectedOutput = useCallback(
                       <TabsTrigger value="deposit">Deposit</TabsTrigger>
                       <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="deposit">
-  <ActionCard
-    title="Deposit"
-    description="Add liquidity to the pool"
-    icon={<ArrowUpRight className="h-5 w-5 text-green-400" />}
-    inputValue={depositAmount}
-    setInputValue={setDepositAmount}
-    onAction={handleDeposit}
-    actionLabel="Deposit"
-    loading={isDepositing}
-    color="green"
-    disabled={!isDepositValid}
-    fee={calculateFee(depositAmount, true)}
-    expectedOutput={calculateExpectedOutput(depositAmount, true)}
-    onMaxClick={() => setDepositAmount(userUSDCBalance)}
-    unit="USDC"
-    outUnit="BLP"
-    tokenBalance={userUSDCBalance}
-  />
-</TabsContent>
-<TabsContent value="withdraw">
-  <ActionCard
-    title="Withdraw"
-    description="Remove liquidity from the pool"
-    icon={<ArrowDownRight className="h-5 w-5 text-red-400" />}
-    inputValue={withdrawAmount}
-    setInputValue={setWithdrawAmount}
-    onAction={handleWithdraw}
-    actionLabel="Withdraw"
-    loading={isWithdrawing}
-    color="red"
-    disabled={!isWithdrawValid}
-    fee={calculateFee(withdrawAmount, false)}
-    expectedOutput={calculateExpectedOutput(withdrawAmount, false)}
-    onMaxClick={() => setWithdrawAmount(userLpBalance)}
-    unit="BLP"
-    outUnit="USDC"
-    tokenBalance={userLpBalance}
-  />
-</TabsContent>
+                    <>
+  <TabsContent value="deposit">
+    <ActionCard
+      title="Deposit"
+      description="Add liquidity to the pool"
+      icon={<ArrowUpRight className="h-5 w-5 text-green-400" />}
+      inputValue={depositAmount}
+      setInputValue={setDepositAmount}
+      onAction={handleDeposit}
+      actionLabel="Deposit"
+      loading={isDepositing}
+      color="green"
+      disabled={!isDepositValid}
+      fee={calculateFee(depositAmount, true)}
+      expectedOutput={calculateExpectedOutput(depositAmount, true)}
+      onMaxClick={() => setDepositAmount(userUSDCBalance)}
+      unit="USDC"
+      tokenBalance={userUSDCBalance}
+    />
+  </TabsContent>
+  <TabsContent value="withdraw">
+    <ActionCard
+      title="Withdraw"
+      description="Remove liquidity from the pool"
+      icon={<ArrowDownRight className="h-5 w-5 text-red-400" />}
+      inputValue={withdrawAmount}
+      setInputValue={setWithdrawAmount}
+      onAction={handleWithdraw}
+      actionLabel="Withdraw"
+      loading={isWithdrawing}
+      color="red"
+      disabled={!isWithdrawValid}
+      fee={calculateFee(withdrawAmount, false)}
+      expectedOutput={calculateExpectedOutput(withdrawAmount, false)}
+      onMaxClick={() => setWithdrawAmount(userLpBalance)}
+      unit="BLP"
+      tokenBalance={userLpBalance}
+    />
+  </TabsContent>
+</>
                   </Tabs>
                 </div>
               </Card>
