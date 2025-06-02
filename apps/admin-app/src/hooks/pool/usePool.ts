@@ -172,6 +172,11 @@ export function usePool({
         const lpMintKeypair = Keypair.generate();
         const lpMint = lpMintKeypair.publicKey;
 
+        console.log('Using RPC', lpMintKeypair.publicKey.toBase58());
+        console.log('Using RPC', lpMint.toBase58());
+        console.log('Using RPC', USDC_MINT.toBase58());
+        console.log('Using RPC', (await client.getTokenVaultPda())[0].toBase58());
+
         await client.initializeLiquidityPool(
           depositFeeBps,
           withdrawalFeeBps,

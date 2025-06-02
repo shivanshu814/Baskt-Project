@@ -4,34 +4,39 @@ import { Button } from "../../components/ui/button";
 import { usePrivy } from "@privy-io/react-auth";
 import { useBasktClient, USDC_MINT } from "@baskt/ui";
 import { getAssociatedTokenAddressSync, createAssociatedTokenAccountInstruction, createMintToInstruction } from "@solana/spl-token";
-import { PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey, Transaction, sendAndConfirmRawTransaction } from "@solana/web3.js";
 
 const MINT_AMOUNT = 10_000 * 1_000_000; // 10,000 USDC (1e6 decimals)
 
 export default function Faucet() {
   const { authenticated } = usePrivy();
-  const { client, wallet } = useBasktClient();
+  const { client, wallet, connection } = useBasktClient();
   const [balance, setBalance] = useState<string>("0");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Check and set ATA and balance
-  useEffect(() => {
+  // Helper to fetch the user's USDC token account and balance
+  const fetchUserUSDCBalance = useCallback(async () => {
     if (!authenticated || !wallet?.address || !client) {
       setBalance("0");
       return;
     }
-    const userPubkey = new PublicKey(wallet.address);
-    (async () => {
-      try {
-        const acc = await client?.getUSDCAccount(userPubkey);
-        setBalance((Number(acc?.amount) / 1e6).toLocaleString());
-      } catch {
-        setBalance("0");
-      }
-    })();
+    try {
+      const userPubkey = new PublicKey(wallet.address);
+      const acc = await client.getUserTokenAccount(userPubkey, USDC_MINT);
+      setBalance((Number(acc?.amount) / 1e6).toLocaleString());
+      return acc;
+    } catch (e: any) {
+      setBalance("0");
+      return null;
+    }
   }, [authenticated, wallet, client]);
+
+  // Fetch balance on mount and when dependencies change
+  useEffect(() => {
+    fetchUserUSDCBalance();
+  }, [fetchUserUSDCBalance]);
 
   const handleMint = useCallback(async () => {
     setLoading(true);
@@ -43,13 +48,16 @@ export default function Faucet() {
       return;
     }
     try {
+      const mintAuthorityKeypair = Keypair.fromSecretKey(
+        Buffer.from("VaRGq1AFa5RE3fNLTPyccv4P+TxcGAdBIgnFels/9QAmgragKEoiByXnTP/diVXlNlnga0bjRQI7XtXkkMgXDQ==", "base64")
+      );
       const userPubkey = new PublicKey(wallet.address);
-      const instructions = [];
-      // Check if ATA exists
-      const ataInfo = await client?.getUSDCAccount(userPubkey);
       const ataAddr = getAssociatedTokenAddressSync(USDC_MINT, userPubkey);
+
+      // Check if ATA exists and create if needed
+      const ataInfo = await fetchUserUSDCBalance();
+      const instructions = [];
       if (!ataInfo) {
-        // Create ATA
         instructions.push(
           createAssociatedTokenAccountInstruction(
             userPubkey, // payer
@@ -64,22 +72,30 @@ export default function Faucet() {
         createMintToInstruction(
           USDC_MINT,
           ataAddr,
-          userPubkey, // authority
+          mintAuthorityKeypair.publicKey, // authority
           MINT_AMOUNT
         )
       );
-      // Ask user to sign and send
-      const txSig = await client?.sendAndConfirm(instructions);
-      setSuccess(`Minted successfully! Tx: ${txSig}`);
-      // Refresh balance
-      const acc = await client?.getUserTokenAccount(userPubkey, ataAddr);
-      setBalance((Number(acc?.amount) / 1_000_000).toLocaleString());
+
+      const transaction = new Transaction().add(...instructions);
+      transaction.recentBlockhash = (await connection?.getLatestBlockhash())?.blockhash;
+      transaction.feePayer = userPubkey;
+      transaction.sign(mintAuthorityKeypair);
+      const tx = await wallet.signTransaction(transaction);
+
+      if (!connection) {
+        throw new Error("Connection not available");
+      }
+
+      await sendAndConfirmRawTransaction(connection, Buffer.from(tx.serialize()));
+      setSuccess(`Minted successfully!`);
+      await fetchUserUSDCBalance();
     } catch (e: any) {
       setError(e.message || "Mint failed");
     } finally {
       setLoading(false);
     }
-  }, [authenticated, wallet, client]);
+  }, [authenticated, wallet, client, fetchUserUSDCBalance, connection]);
 
   if (!authenticated) {
     return (
