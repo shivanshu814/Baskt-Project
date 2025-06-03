@@ -5,6 +5,7 @@ import { BN } from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { AccessControlRole } from '@baskt/types';
+import { initializeProtocolWithRegistry } from '../utils/protocol_setup';
 
 describe('Order Creation', () => { 
   // Get the test client instance
@@ -33,19 +34,12 @@ describe('Order Creation', () => {
   const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
   
   before(async () => {
-    try {
-      // Check if protocol is already initialized
-      await client.getProtocolAccount();
-    } catch (error) {
-      try {
-        await client.initializeProtocol();
-      } catch (initError) {
-        throw initError; // Fail the test if we can't initialize the protocol
-      }
-    }
-    
-    // Set up test roles
-    await client.initializeRoles();
+    // Initialize protocol with registry
+    await initializeProtocolWithRegistry(client, {
+      depositFeeBps: 50,
+      withdrawalFeeBps: 50,
+      minDeposit: new BN(1 * 10 ** 6),
+    });
     
     // Create test keypairs
     user = Keypair.generate();

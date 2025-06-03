@@ -4,8 +4,8 @@ import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
 import BN from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
-import { AccessControlRole } from '@baskt/types';
-import { initializeProtocolAndRoles, getGlobalTestAccounts } from '../utils/test-setup';
+import { initializeProtocolAndRoles } from '../utils/test-setup';
+import { initializeProtocolRegistry } from '../utils/protocol_setup';
 
 describe('Close Position', () => {
   // Get the test client instance
@@ -175,6 +175,10 @@ describe('Close Position', () => {
       minDeposit: new BN(0),
       collateralMint,
     }));
+
+    // Initialize the protocol registry after liquidity pool setup
+    await initializeProtocolRegistry(client);
+
     // Create a separate provider for liquidity to avoid role conflicts
     const liquidityProvider = Keypair.generate();
     await requestAirdrop(liquidityProvider.publicKey, client.connection);

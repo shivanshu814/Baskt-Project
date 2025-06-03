@@ -1,7 +1,8 @@
-use anchor_lang::prelude::*;
-use crate::state::baskt::{Baskt, RebalanceHistory, AssetConfig};
-use crate::state::protocol::{Protocol, Role};
+use crate::constants::BPS_DIVISOR;
 use crate::error::PerpetualsError;
+use crate::state::baskt::{AssetConfig, Baskt, RebalanceHistory};
+use crate::state::protocol::{Protocol, Role};
+use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct Rebalance<'info> {
@@ -24,27 +25,21 @@ pub struct Rebalance<'info> {
     /// @dev Requires either baskt creator or Rebalancer role to rebalance
     #[account(
         mut,
-        constraint = 
+        constraint =
             baskt.creator == payer.key() ||
             protocol.has_permission(payer.key(), Role::Rebalancer) @ PerpetualsError::Unauthorized
     )]
     pub payer: Signer<'info>,
-    
+
     #[account(seeds = [b"protocol"], bump)]
     pub protocol: Account<'info, Protocol>,
 
     pub system_program: Program<'info, System>,
 }
 
-pub fn rebalance(
-    ctx: Context<Rebalance>,
-    asset_params: Vec<AssetConfig>,
-) -> Result<()> {
+pub fn rebalance(ctx: Context<Rebalance>, asset_params: Vec<AssetConfig>) -> Result<()> {
     // Verify baskt is active
-    require!(
-        ctx.accounts.baskt.is_active,
-        PerpetualsError::BasktInactive
-    );
+    require!(ctx.accounts.baskt.is_active, PerpetualsError::BasktInactive);
 
     // Verify new asset configs are valid
     require!(
@@ -60,8 +55,7 @@ pub fn rebalance(
         PerpetualsError::InvalidAssetConfig
     );
 
-
-    // Verify that assets are correct with the same index 
+    // Verify that assets are correct with the same index
     for (index, config) in asset_params.iter().enumerate() {
         require!(
             config.asset_id == baskt.current_asset_configs[index].asset_id,
@@ -69,17 +63,12 @@ pub fn rebalance(
         );
     }
 
-    // Verify total weight is 10000
+    // Verify total weight is 100%
     let total_weight: u64 = asset_params.iter().map(|config| config.weight).sum();
-    require!(
-        total_weight == 10000,
-        PerpetualsError::InvalidAssetConfig
-    );
-
+    require!(total_weight == BPS_DIVISOR, PerpetualsError::InvalidAssetConfig);
 
     let current_nav = baskt.get_nav()?;
     let current_timestamp = Clock::get()?.unix_timestamp;
-
 
     ctx.accounts.rebalance_history.initialize(
         ctx.accounts.baskt.baskt_id,
@@ -90,11 +79,9 @@ pub fn rebalance(
     )?;
 
     // Perform rebalance
-    ctx.accounts.baskt.rebalance(
-        asset_params,
-        current_timestamp,
-        current_nav,
-    )?;
+    ctx.accounts
+        .baskt
+        .rebalance(asset_params, current_timestamp, current_nav)?;
 
     Ok(())
-} 
+}

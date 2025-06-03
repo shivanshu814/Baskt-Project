@@ -5,6 +5,7 @@ import BN from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { AccessControlRole } from '@baskt/types';
+import { initializeProtocolWithRegistry } from '../utils/protocol_setup';
 
 describe('Order Cancellation', () => {
   // Get the test client instance
@@ -40,8 +41,12 @@ describe('Order Cancellation', () => {
   let shortOrderPDA: PublicKey;
 
   before(async () => {
-    // Set up test roles
-    await client.initializeRoles();
+    // Initialize protocol with registry
+    await initializeProtocolWithRegistry(client, {
+      depositFeeBps: 50,
+      withdrawalFeeBps: 50,
+      minDeposit: new BN(1 * 10 ** 6),
+    });
 
     // Create test keypairs
     user = Keypair.generate();

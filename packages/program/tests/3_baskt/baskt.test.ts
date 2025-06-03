@@ -171,6 +171,7 @@ describe('baskt', () => {
       allowClosePosition: true,
       allowPnlWithdrawal: true,
       allowCollateralWithdrawal: true,
+      allowAddCollateral: true,
       allowBasktCreation: false, // Disable baskt creation
       allowBasktUpdate: true,
       allowTrading: true,
@@ -192,7 +193,7 @@ describe('baskt', () => {
       await client.createBaskt('DisabledBaskt', assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
-      expect((error as Error).message).to.include('FeatureDisabled');
+      expect((error as Error).message).to.include('BasktOperationsDisabled');
     }
 
     // Re-enable baskt creation for subsequent tests
@@ -203,6 +204,7 @@ describe('baskt', () => {
       allowClosePosition: true,
       allowPnlWithdrawal: true,
       allowCollateralWithdrawal: true,
+      allowAddCollateral: true,
       allowBasktCreation: true, // Re-enable baskt creation
       allowBasktUpdate: true,
       allowTrading: true,

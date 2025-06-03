@@ -2,6 +2,7 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import { TestClient, requestAirdrop } from './test-client';
 import { AccessControlRole } from '@baskt/types';
 import BN from 'bn.js';
+import { initializeProtocolRegistry } from './protocol_setup';
 
 // Global test accounts that persist across test files
 let globalTestAccounts: {
@@ -175,6 +176,9 @@ export async function setupLiquidityPoolTest(params: {
     collateralMint: USDC_MINT
   });
 
+  // Initialize protocol registry after liquidity pool
+  const registry = await initializeProtocolRegistry(client);
+
   return {
     ...poolSetup,
     provider,
@@ -182,6 +186,7 @@ export async function setupLiquidityPoolTest(params: {
     providerTokenAccount,
     treasury,
     treasuryTokenAccount,
-    collateralMint: USDC_MINT
+    collateralMint: USDC_MINT,
+    registry
   };
 }

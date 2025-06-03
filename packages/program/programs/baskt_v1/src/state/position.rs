@@ -1,4 +1,10 @@
-use crate::{constants::*, error::PerpetualsError};
+use crate::{
+    constants::{
+        BPS_DIVISOR, FUNDING_PRECISION, LIQUIDATION_THRESHOLD_BPS, MIN_COLLATERAL_RATIO_BPS,
+        PRICE_PRECISION,
+    },
+    error::PerpetualsError,
+};
 use anchor_lang::prelude::*;
 
 //----------------------------------------------------------------------------
@@ -24,9 +30,9 @@ pub struct Position {
     pub is_long: bool,
     pub entry_price: u64,
     pub exit_price: Option<u64>,
-    pub entry_funding_index: i128,        // Index at position open (scaled by FUNDING_PRECISION)
-    pub last_funding_index: i128,         // Last updated index (scaled by FUNDING_PRECISION)
-    pub funding_accumulated: i128,        // Total funding paid/received (scaled by token decimals, NOT funding precision)
+    pub entry_funding_index: i128, // Index at position open (scaled by FUNDING_PRECISION)
+    pub last_funding_index: i128,  // Last updated index (scaled by FUNDING_PRECISION)
+    pub funding_accumulated: i128, // Total funding paid/received (scaled by token decimals, NOT funding precision)
     pub status: PositionStatus,
     pub timestamp_open: i64,
     pub timestamp_close: Option<i64>,
@@ -57,12 +63,15 @@ impl Position {
 
         // Check minimum collateral ratio
         let min_collateral = (size as u128)
-            .checked_mul(Constants::MIN_COLLATERAL_RATIO_BPS as u128)
+            .checked_mul(MIN_COLLATERAL_RATIO_BPS as u128)
             .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(Constants::BPS_DIVISOR as u128)
+            .checked_div(BPS_DIVISOR as u128)
             .ok_or(PerpetualsError::MathOverflow)? as u64;
 
-        require!(collateral >= min_collateral, PerpetualsError::InsufficientCollateral);
+        require!(
+            collateral >= min_collateral,
+            PerpetualsError::InsufficientCollateral
+        );
 
         self.owner = owner;
         self.position_id = position_id;
@@ -84,12 +93,19 @@ impl Position {
 
     /// Add collateral to an existing position
     pub fn add_collateral(&mut self, additional_collateral: u64) -> Result<()> {
-        require!(self.status == PositionStatus::Open, PerpetualsError::PositionAlreadyClosed);
-        require!(additional_collateral > 0, PerpetualsError::InsufficientCollateral);
+        require!(
+            self.status == PositionStatus::Open,
+            PerpetualsError::PositionAlreadyClosed
+        );
+        require!(
+            additional_collateral > 0,
+            PerpetualsError::InsufficientCollateral
+        );
 
         // Check for overflow before adding collateral
         // This provides a specific error for collateral overflow vs. general math overflow
-        let new_collateral = self.collateral
+        let new_collateral = self
+            .collateral
             .checked_add(additional_collateral)
             .ok_or(PerpetualsError::CollateralOverflow)?;
 
@@ -100,8 +116,16 @@ impl Position {
     }
 
     /// Close the position with given exit price and funding index
-    pub fn settle_close(&mut self, exit_price: u64, current_funding_index: i128, timestamp_close: i64) -> Result<()> {
-        require!(self.status == PositionStatus::Open, PerpetualsError::PositionAlreadyClosed);
+    pub fn settle_close(
+        &mut self,
+        exit_price: u64,
+        current_funding_index: i128,
+        timestamp_close: i64,
+    ) -> Result<()> {
+        require!(
+            self.status == PositionStatus::Open,
+            PerpetualsError::PositionAlreadyClosed
+        );
 
         // Update funding accumulated
         self.update_funding(current_funding_index)?;
@@ -116,12 +140,23 @@ impl Position {
 
     /// Liquidate the position with given exit price and funding index
     /// Note: This assumes update_funding has already been called before this method
-    pub fn liquidate(&mut self, exit_price: u64, current_funding_index: i128, timestamp_close: i64) -> Result<()> {
-        require!(self.status == PositionStatus::Open, PerpetualsError::PositionAlreadyClosed);
+    pub fn liquidate(
+        &mut self,
+        exit_price: u64,
+        current_funding_index: i128,
+        timestamp_close: i64,
+    ) -> Result<()> {
+        require!(
+            self.status == PositionStatus::Open,
+            PerpetualsError::PositionAlreadyClosed
+        );
 
         // We don't need to update funding here as it should be done before calling this method
         // Just verify that the funding index is up to date
-        require!(self.last_funding_index == current_funding_index, PerpetualsError::FundingNotUpToDate);
+        require!(
+            self.last_funding_index == current_funding_index,
+            PerpetualsError::FundingNotUpToDate
+        );
 
         // Liquidate the position
         self.exit_price = Some(exit_price);
@@ -139,7 +174,8 @@ impl Position {
     /// Resulting payment is scaled by token decimals.
     pub fn update_funding(&mut self, current_funding_index: i128) -> Result<()> {
         // Calculate index delta (scaled by FUNDING_PRECISION)
-        let index_delta = current_funding_index.checked_sub(self.last_funding_index)
+        let index_delta = current_funding_index
+            .checked_sub(self.last_funding_index)
             .ok_or(PerpetualsError::MathOverflow)?;
 
         if index_delta == 0 {
@@ -158,11 +194,12 @@ impl Position {
             .ok_or(PerpetualsError::MathOverflow)?
             .checked_mul(direction_multiplier)
             .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(Constants::FUNDING_PRECISION as i128)
+            .checked_div(FUNDING_PRECISION as i128)
             .ok_or(PerpetualsError::MathOverflow)?;
 
         // Update accumulated funding and last index
-        self.funding_accumulated = self.funding_accumulated
+        self.funding_accumulated = self
+            .funding_accumulated
             .checked_add(funding_payment)
             .ok_or(PerpetualsError::MathOverflow)?;
 
@@ -180,17 +217,18 @@ impl Position {
         // Calculate price difference based on direction
         // PnL = direction * (exit_price - entry_price) * size / PRICE_PRECISION
         let price_delta = if self.is_long {
-             // For longs: profit if exit_price > entry_price
+            // For longs: profit if exit_price > entry_price
             (exit_price as i128).checked_sub(self.entry_price as i128)
         } else {
             // For shorts: profit if entry_price > exit_price
-           (self.entry_price as i128).checked_sub(exit_price as i128)
-        }.ok_or(PerpetualsError::MathOverflow)?;
+            (self.entry_price as i128).checked_sub(exit_price as i128)
+        }
+        .ok_or(PerpetualsError::MathOverflow)?;
 
         let pnl = (price_delta)
             .checked_mul(self.size as i128)
             .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(Constants::PRICE_PRECISION as i128)
+            .checked_div(PRICE_PRECISION as i128)
             .ok_or(PerpetualsError::MathOverflow)?
             .try_into()
             .map_err(|_| PerpetualsError::MathOverflow)?;
@@ -212,9 +250,9 @@ impl Position {
 
         // Calculate minimum required collateral based on threshold
         let min_collateral = (self.size as u128)
-            .checked_mul(Constants::LIQUIDATION_THRESHOLD_BPS as u128)
+            .checked_mul(LIQUIDATION_THRESHOLD_BPS as u128)
             .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(Constants::BPS_DIVISOR as u128)
+            .checked_div(BPS_DIVISOR as u128)
             .ok_or(PerpetualsError::MathOverflow)?;
 
         // Liquidatable if total equity falls below the maintenance margin
@@ -226,18 +264,19 @@ impl Position {
     pub fn calculate_unrealized_pnl(&self, current_price: u64) -> Result<i64> {
         // Calculate price difference based on direction
         // PnL = direction * (current_price - entry_price) * size / PRICE_PRECISION
-         let price_delta = if self.is_long {
-             // For longs: profit if current_price > entry_price
+        let price_delta = if self.is_long {
+            // For longs: profit if current_price > entry_price
             (current_price as i128).checked_sub(self.entry_price as i128)
         } else {
             // For shorts: profit if entry_price > current_price
-           (self.entry_price as i128).checked_sub(current_price as i128)
-        }.ok_or(PerpetualsError::MathOverflow)?;
+            (self.entry_price as i128).checked_sub(current_price as i128)
+        }
+        .ok_or(PerpetualsError::MathOverflow)?;
 
         let pnl = (price_delta)
             .checked_mul(self.size as i128)
             .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(Constants::PRICE_PRECISION as i128)
+            .checked_div(PRICE_PRECISION as i128)
             .ok_or(PerpetualsError::MathOverflow)?
             .try_into()
             .map_err(|_| PerpetualsError::MathOverflow)?;

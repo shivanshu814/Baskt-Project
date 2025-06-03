@@ -16,7 +16,7 @@ pub struct AddAssetParams {
 pub struct AddAsset<'info> {
     /// @dev Requires AssetManager role to add new assets
     #[account(mut,
-        constraint = protocol.has_permission(admin.key(), Role::AssetManager) @ PerpetualsError::Unauthorized
+        constraint = protocol.has_permission(admin.key(), Role::AssetManager) @ PerpetualsError::UnauthorizedRole
     )]
     pub admin: Signer<'info>,
 
@@ -33,7 +33,7 @@ pub struct AddAsset<'info> {
     #[account(seeds = [b"protocol"], bump)]
     pub protocol: Account<'info, Protocol>,
 
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
 }
 
 pub fn add_asset(ctx: Context<AddAsset>, params: AddAssetParams) -> Result<()> {
@@ -43,7 +43,12 @@ pub fn add_asset(ctx: Context<AddAsset>, params: AddAssetParams) -> Result<()> {
     let clock = Clock::get()?;
 
     // Use the asset account's key as the asset_id
-    asset.initialize(asset_key, params.ticker, params.permissions, clock.unix_timestamp)?;
+    asset.initialize(
+        asset_key,
+        params.ticker,
+        params.permissions,
+        clock.unix_timestamp,
+    )?;
 
     Ok(())
 }

@@ -5,6 +5,7 @@ import { getAccount } from '@solana/spl-token';
 import { BN } from 'bn.js';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { AccessControlRole } from '@baskt/types';
+import { initializeProtocolWithRegistry } from '../utils/protocol_setup';
 
 describe('Liquidity Pool', () => {
   // Get the test client instance
@@ -30,23 +31,12 @@ describe('Liquidity Pool', () => {
   let lpClient: TestClient;
 
   before(async () => {
-    // Check if protocol is already initialized
-    try {
-      // Protocol account retrieved just to check if it exists
-      await client.getProtocolAccount();
-      // Protocol is already initialized
-    } catch (error) {
-      // Only try to initialize if getting the account failed
-      try {
-        await client.initializeProtocol();
-        // Protocol successfully initialized
-      } catch (initError) {
-        // Failed to initialize protocol
-      }
-    }
-
-    // Set up test roles
-    await client.initializeRoles();
+    // Initialize protocol with registry
+    await initializeProtocolWithRegistry(client, {
+      depositFeeBps: DEPOSIT_FEE_BPS,
+      withdrawalFeeBps: WITHDRAWAL_FEE_BPS,
+      minDeposit: MIN_DEPOSIT,
+    });
 
     // Create test keypairs
     liquidityProvider = Keypair.generate();

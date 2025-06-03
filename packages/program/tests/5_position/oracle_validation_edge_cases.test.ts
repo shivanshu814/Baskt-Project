@@ -4,7 +4,8 @@ import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
 import BN from 'bn.js';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { AccessControlRole } from '@baskt/types';
-import { initializeProtocolAndRoles, getGlobalTestAccounts } from '../utils/test-setup';
+import { initializeProtocolAndRoles } from '../utils/test-setup';
+import { initializeProtocolRegistry } from '../utils/protocol_setup';
 
 describe('Oracle Price Validation Edge Cases', () => {
   // Get the test client instance
@@ -168,6 +169,9 @@ describe('Oracle Price Validation Edge Cases', () => {
       minDeposit: new BN(0),
       collateralMint,
     }));
+
+    // Initialize the protocol registry after liquidity pool setup
+    await initializeProtocolRegistry(client);
 
     providerLpAccount = await userClient.createTokenAccount(lpMint, user.publicKey);
 

@@ -4,8 +4,8 @@ import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
 import BN from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
-import { AccessControlRole } from '@baskt/types';
-import { initializeProtocolAndRoles, getGlobalTestAccounts } from '../utils/test-setup';
+import { initializeProtocolAndRoles } from '../utils/test-setup';
+import { initializeProtocolRegistry } from '../utils/protocol_setup';
 
 describe('Add Collateral to Position', () => {
   // Get the test client instance
@@ -140,6 +140,17 @@ describe('Add Collateral to Position', () => {
       userTokenAccount,
       INITIAL_COLLATERAL.add(ADDITIONAL_COLLATERAL).muln(5).toNumber() // 5x for multiple tests
     );
+
+    // Set up a minimal liquidity pool (required for registry initialization)
+    await client.setupLiquidityPool({
+      depositFeeBps: 0,
+      withdrawalFeeBps: 0,
+      minDeposit: new BN(0),
+      collateralMint,
+    });
+
+    // Initialize the protocol registry after liquidity pool setup
+    await initializeProtocolRegistry(client);
 
     // Generate unique IDs for order and position
     orderId = new BN(Date.now());
@@ -277,7 +288,7 @@ describe('Add Collateral to Position', () => {
 
       expect.fail("Transaction should have failed due to disabled feature");
     } catch (error: unknown) {
-      expect((error as Error).message).to.include('FeatureDisabled');
+      expect((error as Error).message).to.include('PositionOperationsDisabled');
     }
 
     // Re-enable the feature for subsequent tests

@@ -1,9 +1,25 @@
-use anchor_lang::prelude::*;
 use crate::state::order::OrderAction;
+use anchor_lang::prelude::*;
 
 //----------------------------------------------------------------------------
 // EVENTS
 //----------------------------------------------------------------------------
+
+#[event]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct RegistryInitializedEvent {
+    pub registry: Pubkey,
+    pub protocol: Pubkey,
+    pub treasury: Pubkey,
+    pub treasury_token: Pubkey,
+    pub liquidity_pool: Pubkey,
+    pub token_vault: Pubkey,
+    pub pool_authority: Pubkey,
+    pub program_authority: Pubkey,
+    pub escrow_mint: Pubkey,
+    pub initializer: Pubkey,
+    pub timestamp: i64,
+}
 
 #[event]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

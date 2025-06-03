@@ -1,9 +1,6 @@
+use crate::constants::BPS_DIVISOR;
 use crate::error::PerpetualsError;
 use anchor_lang::prelude::*;
-
-// Constants for fee calculations
-pub const MAX_FEE_BPS: u16 = 500; // 5%
-pub const BPS_DIVISOR: u16 = 10_000;
 
 /// LiquidityPool represents the shared liquidity pool for the entire protocol
 /// This is a single pool that acts as the counterparty to all user positions
@@ -100,7 +97,7 @@ impl LiquidityPool {
     /// Calculate fee amount based on the specified fee rate
     pub fn calculate_fee(&self, amount: u64, fee_bps: u16) -> Result<u64> {
         // Ensure fee_bps is within the acceptable range (0-BPS_DIVISOR)
-        require!(fee_bps <= BPS_DIVISOR, PerpetualsError::InvalidFeeBps);
+        require!(fee_bps as u64 <= BPS_DIVISOR, PerpetualsError::InvalidFeeBps);
 
         let fee = (amount as u128)
             .checked_mul(fee_bps as u128)

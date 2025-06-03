@@ -222,6 +222,38 @@
           }
         },
         {
+          "name": "registry",
+          "docs": [
+            "Protocol registry containing common addresses"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "program_authority",
           "docs": [
             "PDA used for token authority over escrow"
@@ -249,24 +281,7 @@
           "name": "protocol",
           "docs": [
             "Protocol account - required for validating the feature flag"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
+          ]
         },
         {
           "name": "token_program",
@@ -736,6 +751,9 @@
           }
         },
         {
+          "name": "position_owner"
+        },
+        {
           "name": "funding_index",
           "writable": true,
           "pda": {
@@ -767,55 +785,12 @@
           }
         },
         {
-          "name": "baskt",
+          "name": "baskt"
+        },
+        {
+          "name": "registry",
           "docs": [
-            "Baskt account that contains the embedded oracle for price validation"
-          ]
-        },
-        {
-          "name": "owner_token",
-          "writable": true
-        },
-        {
-          "name": "escrow_token",
-          "writable": true
-        },
-        {
-          "name": "treasury_token",
-          "writable": true
-        },
-        {
-          "name": "treasury"
-        },
-        {
-          "name": "program_authority",
-          "docs": [
-            "PDA used for token authority over escrow"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "protocol",
-          "docs": [
-            "Protocol account for checking permissions",
-            "@dev Requires Matcher role to close positions"
+            "Protocol registry containing common addresses"
           ],
           "pda": {
             "seeds": [
@@ -829,16 +804,44 @@
                   111,
                   99,
                   111,
-                  108
+                  108,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
                 ]
               }
             ]
           }
         },
         {
+          "name": "protocol",
+          "docs": [
+            "Protocol for permission checks"
+          ]
+        },
+        {
           "name": "liquidity_pool",
           "docs": [
-            "Shared liquidity pool (counter-party)"
+            "Liquidity pool (loaded from registry)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "docs": [
+            "Treasury account (loaded from registry)"
+          ]
+        },
+        {
+          "name": "escrow_token",
+          "docs": [
+            "Position escrow token account"
           ],
           "writable": true,
           "pda": {
@@ -846,48 +849,31 @@
               {
                 "kind": "const",
                 "value": [
-                  108,
-                  105,
-                  113,
-                  117,
-                  105,
-                  100,
-                  105,
-                  116,
-                  121,
-                  95,
-                  112,
+                  101,
+                  115,
+                  99,
+                  114,
                   111,
-                  111,
-                  108
+                  119
                 ]
               },
               {
                 "kind": "account",
-                "path": "protocol"
+                "path": "position"
               }
             ]
           }
         },
         {
-          "name": "token_vault",
+          "name": "program_authority",
           "docs": [
-            "SPL-token vault that holds pooled collateral"
+            "PDA used for token authority over escrow - still needed for CPI signing"
           ],
-          "writable": true
-        },
-        {
-          "name": "pool_authority",
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
                   97,
                   117,
                   116,
@@ -898,17 +884,12 @@
                   116,
                   121
                 ]
-              },
-              {
-                "kind": "account",
-                "path": "liquidity_pool"
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
               }
             ]
           }
+        },
+        {
+          "name": "pool_authority"
         },
         {
           "name": "token_program",
@@ -1479,6 +1460,257 @@
           }
         },
         {
+          "name": "program_authority",
+          "docs": [
+            "Program authority PDA - created during protocol initialization"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_registry",
+      "discriminator": [
+        189,
+        181,
+        20,
+        17,
+        174,
+        57,
+        249,
+        59
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "docs": [
+            "Protocol owner who can initialize the registry"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol account"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "registry",
+          "docs": [
+            "Registry PDA to initialize"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "docs": [
+            "Treasury account that receives fees"
+          ]
+        },
+        {
+          "name": "treasury_token",
+          "docs": [
+            "Treasury token account for USDC"
+          ]
+        },
+        {
+          "name": "liquidity_pool",
+          "docs": [
+            "Liquidity pool account"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_vault",
+          "docs": [
+            "Token vault for the liquidity pool"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_authority",
+          "docs": [
+            "Pool authority PDA"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "program_authority",
+          "docs": [
+            "Program authority PDA"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_mint",
+          "docs": [
+            "Escrow mint (USDC)"
+          ]
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -1535,6 +1767,9 @@
           }
         },
         {
+          "name": "position_owner"
+        },
+        {
           "name": "funding_index",
           "writable": true,
           "pda": {
@@ -1566,25 +1801,84 @@
           }
         },
         {
-          "name": "baskt",
+          "name": "baskt"
+        },
+        {
+          "name": "registry",
           "docs": [
-            "Baskt account that contains the embedded oracle for price validation"
+            "Protocol registry containing common addresses"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol for permission checks"
           ]
         },
         {
-          "name": "owner_token",
+          "name": "liquidity_pool",
+          "docs": [
+            "Liquidity pool (loaded from registry)"
+          ],
           "writable": true
+        },
+        {
+          "name": "treasury",
+          "docs": [
+            "Treasury account (loaded from registry)"
+          ]
         },
         {
           "name": "escrow_token",
-          "writable": true
-        },
-        {
-          "name": "treasury_token",
-          "writable": true
-        },
-        {
-          "name": "treasury"
+          "docs": [
+            "Position escrow token account"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position"
+              }
+            ]
+          }
         },
         {
           "name": "program_authority",
@@ -1611,103 +1905,7 @@
           }
         },
         {
-          "name": "protocol",
-          "docs": [
-            "Protocol account for checking permissions",
-            "@dev Requires Liquidator role to liquidate positions"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "liquidity_pool",
-          "docs": [
-            "Shared liquidity pool (counter-party)"
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  105,
-                  113,
-                  117,
-                  105,
-                  100,
-                  105,
-                  116,
-                  121,
-                  95,
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
-              }
-            ]
-          }
-        },
-        {
-          "name": "token_vault",
-          "docs": [
-            "SPL-token vault that holds pooled collateral"
-          ],
-          "writable": true
-        },
-        {
-          "name": "pool_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "liquidity_pool"
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
-              }
-            ]
-          }
+          "name": "pool_authority"
         },
         {
           "name": "token_program",
@@ -1839,10 +2037,9 @@
           ]
         },
         {
-          "name": "protocol",
+          "name": "registry",
           "docs": [
-            "Protocol account for checking permissions",
-            "@dev Requires Matcher role to open positions"
+            "Protocol registry containing common addresses"
           ],
           "pda": {
             "seeds": [
@@ -1856,22 +2053,27 @@
                   111,
                   99,
                   111,
-                  108
+                  108,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
                 ]
               }
             ]
           }
         },
         {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "escrow_mint"
+          "name": "protocol",
+          "docs": [
+            "Protocol account for checking permissions",
+            "@dev Requires Matcher role to open positions"
+          ]
         },
         {
           "name": "order_escrow",
@@ -1930,7 +2132,6 @@
           "docs": [
             "PDA used for token authority over escrow"
           ],
-          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1949,6 +2150,20 @@
               }
             ]
           }
+        },
+        {
+          "name": "escrow_mint",
+          "docs": [
+            "Escrow mint (USDC) - validated via registry"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "rent",
@@ -2625,6 +2840,19 @@
       ]
     },
     {
+      "name": "ProtocolRegistry",
+      "discriminator": [
+        54,
+        93,
+        199,
+        192,
+        39,
+        46,
+        204,
+        190
+      ]
+    },
+    {
       "name": "RebalanceHistory",
       "discriminator": [
         99,
@@ -2833,6 +3061,19 @@
         177,
         23
       ]
+    },
+    {
+      "name": "RegistryInitializedEvent",
+      "discriminator": [
+        25,
+        72,
+        229,
+        103,
+        34,
+        177,
+        247,
+        255
+      ]
     }
   ],
   "errors": [
@@ -2893,243 +3134,278 @@
     },
     {
       "code": 6011,
+      "name": "UnauthorizedRole",
+      "msg": "Unauthorized: Missing required role for this operation"
+    },
+    {
+      "code": 6012,
+      "name": "UnauthorizedTokenOwner",
+      "msg": "Unauthorized: Token account owner mismatch"
+    },
+    {
+      "code": 6013,
       "name": "InvalidLpTokenAmount",
       "msg": "Invalid LP token amount"
     },
     {
-      "code": 6012,
+      "code": 6014,
       "name": "UnsupportedOracle",
       "msg": "Unsupported oracle type"
     },
     {
-      "code": 6013,
+      "code": 6015,
       "name": "StaleOraclePrice",
       "msg": "Stale oracle price"
     },
     {
-      "code": 6014,
+      "code": 6016,
       "name": "InvalidOraclePrice",
       "msg": "Invalid oracle price"
     },
     {
-      "code": 6015,
+      "code": 6017,
       "name": "PriceOutOfBounds",
       "msg": "Submitted price is outside acceptable deviation bounds from oracle price"
     },
     {
-      "code": 6016,
+      "code": 6018,
       "name": "InsufficientFunds",
       "msg": "Insufficient funds for operation"
     },
     {
-      "code": 6017,
+      "code": 6019,
       "name": "InvalidBasktName",
       "msg": "Invalid baskt name"
     },
     {
-      "code": 6018,
+      "code": 6020,
       "name": "BasktInactive",
       "msg": "Baskt is inactive"
     },
     {
-      "code": 6019,
+      "code": 6021,
       "name": "RoleNotFound",
       "msg": "Role not found for the account"
     },
     {
-      "code": 6020,
+      "code": 6022,
       "name": "MissingRequiredRole",
       "msg": "Missing required role for this operation"
     },
     {
-      "code": 6021,
+      "code": 6023,
       "name": "UnauthorizedSigner",
       "msg": "Unauthorized signer for this operation"
     },
     {
-      "code": 6022,
+      "code": 6024,
       "name": "InvalidRoleType",
       "msg": "Invalid role type"
     },
     {
-      "code": 6023,
+      "code": 6025,
       "name": "InvalidRemainingAccounts",
       "msg": "Invalid remaining accounts"
     },
     {
-      "code": 6024,
+      "code": 6026,
       "name": "InvalidAssetAccount",
       "msg": "Invalid asset account"
     },
     {
-      "code": 6025,
+      "code": 6027,
       "name": "LongPositionsDisabled",
       "msg": "Long positions are disabled for this asset"
     },
     {
-      "code": 6026,
+      "code": 6028,
       "name": "ShortPositionsDisabled",
       "msg": "Short positions are disabled for this asset"
     },
     {
-      "code": 6027,
+      "code": 6029,
       "name": "InvalidOrStaleOraclePrice",
       "msg": "Invalid or stale oracle price"
     },
     {
-      "code": 6028,
+      "code": 6030,
       "name": "AssetNotInBaskt",
       "msg": "Asset not in baskt"
     },
     {
-      "code": 6029,
+      "code": 6031,
       "name": "InvalidAssetConfig",
       "msg": "Invalid asset config"
     },
     {
-      "code": 6030,
+      "code": 6032,
       "name": "FeatureDisabled",
       "msg": "Feature is currently disabled"
     },
     {
-      "code": 6031,
-      "name": "PriceNotFound",
-      "msg": "Price not found"
+      "code": 6033,
+      "name": "TradingDisabled",
+      "msg": "Trading operations are currently disabled"
     },
     {
-      "code": 6032,
+      "code": 6034,
+      "name": "LiquidityOperationsDisabled",
+      "msg": "Liquidity pool operations are currently disabled"
+    },
+    {
+      "code": 6035,
+      "name": "PositionOperationsDisabled",
+      "msg": "Position operations are currently disabled"
+    },
+    {
+      "code": 6036,
+      "name": "BasktOperationsDisabled",
+      "msg": "Baskt management operations are currently disabled"
+    },
+    {
+      "code": 6037,
       "name": "InactiveAsset",
       "msg": "Asset Not Active"
     },
     {
-      "code": 6033,
+      "code": 6038,
       "name": "BasktAlreadyActive",
       "msg": "Baskt Already Active"
     },
     {
-      "code": 6034,
+      "code": 6039,
       "name": "InvalidAssetWeights",
       "msg": "Invalid asset weights"
     },
     {
-      "code": 6035,
+      "code": 6040,
       "name": "InvalidOracleParameter",
       "msg": "Invalid oracle parameter"
     },
     {
-      "code": 6036,
+      "code": 6041,
       "name": "OrderAlreadyProcessed",
       "msg": "Order already processed"
     },
     {
-      "code": 6037,
+      "code": 6042,
       "name": "InvalidEscrowAccount",
       "msg": "Invalid escrow account"
     },
     {
-      "code": 6038,
+      "code": 6043,
       "name": "InvalidProgramAuthority",
       "msg": "Invalid program authority"
     },
     {
-      "code": 6039,
+      "code": 6044,
       "name": "TokenHasDelegate",
       "msg": "Token has delegate"
     },
     {
-      "code": 6040,
+      "code": 6045,
       "name": "TokenHasCloseAuthority",
       "msg": "Token has close authority"
     },
     {
-      "code": 6041,
+      "code": 6046,
       "name": "InvalidMint",
       "msg": "Invalid mint"
     },
     {
-      "code": 6042,
+      "code": 6047,
       "name": "ZeroSizedPosition",
       "msg": "Zero sized position"
     },
     {
-      "code": 6043,
+      "code": 6048,
       "name": "InvalidTargetPosition",
       "msg": "Invalid target position"
     },
     {
-      "code": 6044,
+      "code": 6049,
       "name": "InvalidBaskt",
       "msg": "Invalid baskt"
     },
     {
-      "code": 6045,
+      "code": 6050,
       "name": "InvalidOrderAction",
       "msg": "Invalid order action"
     },
     {
-      "code": 6046,
+      "code": 6051,
       "name": "FundingNotUpToDate",
       "msg": "Funding not up to date"
     },
     {
-      "code": 6047,
+      "code": 6052,
       "name": "PositionStillOpen",
       "msg": "Position still open"
     },
     {
-      "code": 6048,
+      "code": 6053,
       "name": "InvalidTreasuryAccount",
       "msg": "Invalid treasury account"
     },
     {
-      "code": 6049,
+      "code": 6054,
       "name": "CollateralOverflow",
       "msg": "Collateral amount would overflow maximum value"
     },
     {
-      "code": 6050,
+      "code": 6055,
       "name": "DepositsDisabled",
       "msg": "Liquidity pool deposits are currently disabled"
     },
     {
-      "code": 6051,
+      "code": 6056,
       "name": "WithdrawalsDisabled",
       "msg": "Liquidity pool withdrawals are currently disabled"
     },
     {
-      "code": 6052,
+      "code": 6057,
       "name": "BelowMinimumDeposit",
       "msg": "Deposit amount is below the minimum"
     },
     {
-      "code": 6053,
+      "code": 6058,
       "name": "DivisionByZero",
       "msg": "Division by zero"
     },
     {
-      "code": 6054,
+      "code": 6059,
       "name": "InvalidLiquidityPool",
       "msg": "Invalid liquidity pool account"
     },
     {
-      "code": 6055,
+      "code": 6060,
       "name": "InvalidTokenVault",
       "msg": "Invalid token vault account"
     },
     {
-      "code": 6056,
+      "code": 6061,
       "name": "SlippageExceeded",
       "msg": "Slippage tolerance exceeded"
     },
     {
-      "code": 6057,
+      "code": 6062,
       "name": "InvalidFeeBps",
       "msg": "Invalid fee basis points"
     },
     {
-      "code": 6058,
+      "code": 6063,
       "name": "FundingRateExceedsMaximum",
       "msg": "Funding rate exceeds maximum allowed"
+    },
+    {
+      "code": 6064,
+      "name": "InvalidPoolAuthority",
+      "msg": "Invalid pool authority account"
+    },
+    {
+      "code": 6065,
+      "name": "InvalidAccountInput",
+      "msg": "Invalid account input"
     }
   ],
   "types": [
@@ -3226,6 +3502,9 @@
     },
     {
       "name": "AddCollateralParams",
+      "docs": [
+        "Parameters for adding collateral to a position"
+      ],
       "type": {
         "kind": "struct",
         "fields": [
@@ -3423,6 +3702,9 @@
     },
     {
       "name": "ClosePositionParams",
+      "docs": [
+        "Parameters for closing a position"
+      ],
       "type": {
         "kind": "struct",
         "fields": [
@@ -3669,6 +3951,9 @@
     },
     {
       "name": "LiquidatePositionParams",
+      "docs": [
+        "Parameters for liquidating a position"
+      ],
       "type": {
         "kind": "struct",
         "fields": [
@@ -3864,6 +4149,9 @@
     },
     {
       "name": "OpenPositionParams",
+      "docs": [
+        "Parameters for opening a position"
+      ],
       "type": {
         "kind": "struct",
         "fields": [
@@ -4349,6 +4637,94 @@
       }
     },
     {
+      "name": "ProtocolRegistry",
+      "docs": [
+        "Central registry for commonly used protocol addresses"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "protocol",
+            "docs": [
+              "Protocol account reference"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "docs": [
+              "Treasury account that receives fees"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury_token",
+            "docs": [
+              "Treasury token account for USDC"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "liquidity_pool",
+            "docs": [
+              "Main liquidity pool"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "token_vault",
+            "docs": [
+              "Token vault for the liquidity pool"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pool_authority",
+            "docs": [
+              "Pool authority PDA"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pool_authority_bump",
+            "docs": [
+              "Pool authority bump"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "program_authority",
+            "docs": [
+              "Program authority PDA"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "program_authority_bump",
+            "docs": [
+              "Program authority bump"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "escrow_mint",
+            "docs": [
+              "Escrow mint (USDC)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Registry bump"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "RebalanceHistory",
       "type": {
         "kind": "struct",
@@ -4374,6 +4750,58 @@
           {
             "name": "baseline_nav",
             "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RegistryInitializedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "protocol",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury_token",
+            "type": "pubkey"
+          },
+          {
+            "name": "liquidity_pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "program_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "escrow_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "initializer",
+            "type": "pubkey"
           },
           {
             "name": "timestamp",

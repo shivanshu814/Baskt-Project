@@ -1,6 +1,10 @@
 //! Oracle price service handling
 
-use {crate::error::PerpetualsError, crate::constants::Constants, anchor_lang::prelude::*};
+use {
+    crate::constants::{BPS_DIVISOR, MAX_PRICE_DEVIATION_BPS, LIQUIDATION_PRICE_DEVIATION_BPS},
+    crate::error::PerpetualsError,
+    anchor_lang::prelude::*,
+};
 
 #[derive(Clone, PartialEq, InitSpace, AnchorSerialize, AnchorDeserialize, Default, Debug)]
 pub struct OracleParams {
@@ -12,12 +16,15 @@ pub struct OracleParams {
 impl OracleParams {
     pub fn set(&mut self, price: u64, publish_time: i64, max_price_age_sec: u32) -> Result<()> {
         // Validate max_price_age_sec is not zero to ensure staleness checks always work
-        require!(max_price_age_sec > 0, PerpetualsError::InvalidOracleParameter);
-        
+        require!(
+            max_price_age_sec > 0,
+            PerpetualsError::InvalidOracleParameter
+        );
+
         self.price = price;
         self.publish_time = publish_time;
         self.max_price_age_sec = max_price_age_sec;
-        
+
         Ok(())
     }
     pub fn update(&mut self, price: u64, publish_time: i64) {
@@ -50,22 +57,22 @@ impl OracleParams {
     ) -> Result<()> {
         // First ensure oracle price is fresh and valid
         let oracle_price = self.get_price(current_time)?;
-        
+
         // Validate submitted price is not zero
         require!(submitted_price > 0, PerpetualsError::InvalidOraclePrice);
-        
+
         // Calculate maximum allowed deviation
         let max_deviation = (oracle_price as u128)
             .checked_mul(max_deviation_bps as u128)
             .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(Constants::BPS_DIVISOR as u128)
+            .checked_div(BPS_DIVISOR as u128)
             .ok_or(PerpetualsError::MathOverflow)? as u64;
-        
+
         let lower_bound = oracle_price.saturating_sub(max_deviation);
         let upper_bound = oracle_price
             .checked_add(max_deviation)
             .ok_or(PerpetualsError::MathOverflow)?;
-        
+
         // Check if submitted price is within acceptable bounds
         if submitted_price < lower_bound || submitted_price > upper_bound {
             return err!(PerpetualsError::PriceOutOfBounds);
@@ -80,25 +87,21 @@ impl OracleParams {
         submitted_price: u64,
         current_time: i64,
     ) -> Result<()> {
-        // Use stricter deviation bounds for liquidations (1% instead of standard 2.5%)
+        // Use stricter deviation bounds for liquidations (20% instead of standard 25%)
         self.validate_submitted_price(
             submitted_price,
-            Constants::LIQUIDATION_PRICE_DEVIATION_BPS,
-            current_time
+            LIQUIDATION_PRICE_DEVIATION_BPS,
+            current_time,
         )
     }
 
     /// Validate price for position opening/closing
-    pub fn validate_execution_price(
-        &self,
-        submitted_price: u64,
-        current_time: i64,
-    ) -> Result<()> {
+    pub fn validate_execution_price(&self, submitted_price: u64, current_time: i64) -> Result<()> {
         // Use standard deviation bounds for regular operations
         self.validate_submitted_price(
             submitted_price,
-            Constants::MAX_PRICE_DEVIATION_BPS,
-            current_time
+            MAX_PRICE_DEVIATION_BPS,
+            current_time,
         )
     }
 }

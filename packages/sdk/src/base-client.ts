@@ -119,10 +119,17 @@ export abstract class BaseClient {
     initializeProtocolSignature: string;
     initializeLookupTableSignature: string | undefined;
   }> {
+    // Derive program authority PDA
+    const [programAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from('authority')],
+      this.program.programId
+    );
+
     const tx = await this.program.methods
       .initializeProtocol()
-      .accounts({
+      .accountsPartial({
         authority: this.getPublicKey(),
+        programAuthority: programAuthority,
       })
       .transaction();
 
