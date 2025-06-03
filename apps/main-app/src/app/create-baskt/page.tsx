@@ -248,12 +248,12 @@ const CreateBasktPage = () => {
         basktData.name,
         basktData.assets.map(
           (asset) =>
-            ({
-              assetId: new PublicKey(asset.assetAddress),
-              baselinePrice: new anchor.BN(0),
-              direction: asset.direction,
-              weight: new anchor.BN((asset.weight / 100) * 10_000),
-            } as OnchainAssetConfig),
+          ({
+            assetId: new PublicKey(asset.assetAddress),
+            baselinePrice: new anchor.BN(0),
+            direction: asset.direction,
+            weight: new anchor.BN((asset.weight / 100) * 10_000),
+          } as OnchainAssetConfig),
         ),
         basktData.isPublic,
       );
@@ -541,21 +541,19 @@ const CreateBasktPage = () => {
                     <div className="flex items-center gap-2">
                       <div className="flex items-center bg-muted rounded-full p-0.5">
                         <div
-                          className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${
-                            formData.isPublic
-                              ? 'bg-background text-foreground font-medium'
-                              : 'text-muted-foreground'
-                          }`}
+                          className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${formData.isPublic
+                            ? 'bg-background text-foreground font-medium'
+                            : 'text-muted-foreground'
+                            }`}
                           onClick={() => handleChange('isPublic', true)}
                         >
                           Public
                         </div>
                         <div
-                          className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${
-                            !formData.isPublic
-                              ? 'bg-background text-foreground font-medium'
-                              : 'text-muted-foreground'
-                          }`}
+                          className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${!formData.isPublic
+                            ? 'bg-background text-foreground font-medium'
+                            : 'text-muted-foreground'
+                            }`}
                           onClick={() => handleChange('isPublic', false)}
                         >
                           Private

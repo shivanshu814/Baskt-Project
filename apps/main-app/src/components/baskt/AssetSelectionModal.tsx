@@ -107,13 +107,13 @@ export function AssetSelectionModal({
                   </div>
 
                   <div className="flex flex-col items-end">
-                    <span>{asset.price.toFixed(2)}</span>
+                    <span>{asset.price < 0.0001 ? asset.price.toFixed(8) : asset.price.toFixed(4)}</span>
                     <span
                       className={
                         asset.change24h >= 0 ? 'text-success text-xs' : 'text-destructive text-xs'
                       }
                     >
-                      {asset.change24h}%
+                      {(asset.change24h / 1e9).toFixed(2)}%
                     </span>
                   </div>
                 </div>
