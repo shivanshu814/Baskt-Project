@@ -4085,15 +4085,6 @@
               "Bump for this PDA"
             ],
             "type": "u8"
-          },
-          {
-            "name": "extra_space",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
-            }
           }
         ]
       }
@@ -4677,15 +4668,6 @@
                 "name": "FeatureFlags"
               }
             }
-          },
-          {
-            "name": "extra_space",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
-            }
           }
         ]
       }
@@ -4936,15 +4918,6 @@
           {
             "name": "listing_time",
             "type": "i64"
-          },
-          {
-            "name": "extra_space",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
-            }
           }
         ]
       }

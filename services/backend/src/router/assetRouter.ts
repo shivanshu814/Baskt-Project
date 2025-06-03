@@ -56,6 +56,7 @@ export const assetRouter = router({
 async function getAllAssetsInternal(config: boolean) {
   try {
     const assetConfigs = await AssetMetadataModel.find().sort({ createdAt: -1 });
+    console.log(sdkClientInstance.program.provider.connection.rpcEndpoint);
     const assets = await sdkClientInstance.getAllAssets();
 
     assetConfigs.forEach((assetConfig) => {

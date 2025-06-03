@@ -210,7 +210,6 @@ mod tests {
             owner: Pubkey::default(),
             access_control: AccessControl::default(),
             feature_flags: FeatureFlags::default(),
-            extra_space: [0; 128],
         };
         let owner = Pubkey::new_unique();
 
@@ -227,7 +226,6 @@ mod tests {
             owner: Pubkey::default(),
             access_control: AccessControl::default(),
             feature_flags: FeatureFlags::default(),
-            extra_space: [0; 128],
         };
         let owner = Pubkey::new_unique();
         let asset_manager = Pubkey::new_unique();
@@ -269,7 +267,6 @@ mod tests {
             owner: Pubkey::default(),
             access_control: AccessControl::default(),
             feature_flags: FeatureFlags::default(),
-            extra_space: [0; 128],
         };
         let user = Pubkey::new_unique();
 

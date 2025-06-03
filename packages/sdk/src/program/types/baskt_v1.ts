@@ -4091,15 +4091,6 @@ export type BasktV1 = {
               "Bump for this PDA"
             ],
             "type": "u8"
-          },
-          {
-            "name": "extraSpace",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
-            }
           }
         ]
       }
@@ -4683,15 +4674,6 @@ export type BasktV1 = {
                 "name": "featureFlags"
               }
             }
-          },
-          {
-            "name": "extraSpace",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
-            }
           }
         ]
       }
@@ -4942,15 +4924,6 @@ export type BasktV1 = {
           {
             "name": "listingTime",
             "type": "i64"
-          },
-          {
-            "name": "extraSpace",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
-            }
           }
         ]
       }
