@@ -48,13 +48,10 @@ import { AssetInfo, BasktAssetInfo, OnchainAssetConfig } from '@baskt/types';
 // Zod schema for form validation
 const BasktFormSchema = z.object({
   name: z.string().min(1, 'Name is required').max(30, 'Name must be 30 characters or less'),
-  description: z.string().min(1, 'Description is required'),
-  categories: z.array(z.string()).min(1, 'At least one tag is required'),
   rebalancePeriod: z.object({
     value: z.number().min(1),
     unit: z.enum(['day', 'hour']),
   }),
-  risk: z.enum(['low', 'medium', 'high']),
   assets: z
     .array(
       z.object({
@@ -99,13 +96,10 @@ const CreateBasktPage = () => {
   // Form state
   const [formData, setFormData] = useState<BasktFormData>({
     name: '',
-    description: '',
-    categories: [],
     rebalancePeriod: {
       value: 1,
       unit: 'day',
     },
-    risk: 'medium',
     assets: [],
     isPublic: true,
     image: '',
@@ -115,7 +109,6 @@ const CreateBasktPage = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // UI state
-  const [categoryInput, setCategoryInput] = useState('');
   const [isGuideDialogOpen, setIsGuideDialogOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -139,31 +132,6 @@ const CreateBasktPage = () => {
         value,
         unit,
       },
-    }));
-  };
-
-  const handleAddCategory = () => {
-    if (categoryInput.trim() && !formData.categories.includes(categoryInput.trim())) {
-      if (leoProfanity.check(categoryInput.trim())) {
-        toast({
-          title: 'Inappropriate content',
-          description: 'The category contains inappropriate words. Please use different words.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      setFormData((prev) => ({
-        ...prev,
-        categories: [...prev.categories, categoryInput.trim()],
-      }));
-      setCategoryInput('');
-    }
-  };
-
-  const handleRemoveCategory = (categoryToRemove: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      categories: prev.categories.filter((category) => category !== categoryToRemove),
     }));
   };
 
@@ -287,7 +255,7 @@ const CreateBasktPage = () => {
               baselinePrice: new anchor.BN(0),
               direction: asset.direction,
               weight: new anchor.BN((asset.weight / 100) * 10_000),
-            }) as OnchainAssetConfig,
+            } as OnchainAssetConfig),
         ),
         basktData.isPublic,
       );
@@ -310,10 +278,7 @@ const CreateBasktPage = () => {
         const createBasktMetadataResult = await createBasktMutation.mutateAsync({
           basktId: basktId.toString(),
           name: basktData.name,
-          description: basktData.description,
           creator: wallet?.address.toString() || '',
-          categories: basktData.categories,
-          risk: basktData.risk,
           assets: basktData.assets.map((asset) => asset.assetAddress.toString()),
           image: basktData.image || 'https://placehold.co/640x480/',
           rebalancePeriod: basktData.rebalancePeriod,
@@ -409,11 +374,6 @@ const CreateBasktPage = () => {
       return;
     }
 
-    if (leoProfanity.check(formData.description)) {
-      setError(`Your Baskt description contains inappropriate word. Please remove these words.`);
-      return;
-    }
-
     if (!formData.name.trim()) {
       setError('Please provide a name for your Baskt.');
       return;
@@ -487,26 +447,6 @@ const CreateBasktPage = () => {
                 <CardTitle>Basic Information</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 gap-4">
-                <div>
-                  <Label htmlFor="name" className="mb-2 block">
-                    Baskt Name{' '}
-                    <span className="text-xs text-muted-foreground">(max 10 characters)</span>
-                  </Label>
-                  <Input
-                    id="name"
-                    placeholder="e.g. DeFi Index"
-                    value={formData.name}
-                    onChange={(e) => handleChange('name', e.target.value)}
-                    maxLength={10}
-                  />
-                  {errors['name'] && (
-                    <p className="text-xs text-destructive mt-1">{errors['name']}</p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formData.name.length}/10 characters
-                  </p>
-                </div>
-
                 <div className="grid grid-cols-[auto_1fr] gap-4 items-start">
                   <div>
                     <Label htmlFor="image" className="sr-only">
@@ -536,133 +476,91 @@ const CreateBasktPage = () => {
                     </div>
                   </div>
 
-                  <div className="flex-1">
-                    <Textarea
-                      id="description"
-                      placeholder="Describe what this Baskt represents and its investment thesis..."
-                      value={formData.description}
-                      onChange={(e) => handleChange('description', e.target.value)}
-                      rows={3}
+                  <div>
+                    <Label htmlFor="name" className="mb-2 block">
+                      Baskt Name{' '}
+                      <span className="text-xs text-muted-foreground">(max 10 characters)</span>
+                    </Label>
+                    <Input
+                      id="name"
+                      placeholder="e.g. DeFi Index"
+                      value={formData.name}
+                      onChange={(e) => handleChange('name', e.target.value)}
+                      maxLength={10}
                     />
-                    {errors['description'] && (
-                      <p className="text-xs text-destructive mt-1">{errors['description']}</p>
+                    {errors['name'] && (
+                      <p className="text-xs text-destructive mt-1">{errors['name']}</p>
                     )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formData.name.length}/10 characters
+                    </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-                    <div className="grid grid-cols-1 gap-2">
-                      <Label htmlFor="risk">Risk Level</Label>
+                <div className="flex flex-row items-end gap-6">
+                  <div className="grid grid-cols-1 gap-2">
+                    <Label className="flex items-center" htmlFor="rebalancing">
+                      Rebalancing Period
+                      <Clock className="ml-1 h-4 w-4 text-muted-foreground" />
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="rebalance-value"
+                        type="number"
+                        min={1}
+                        max={formData.rebalancePeriod.unit === 'day' ? 30 : 24}
+                        value={formData.rebalancePeriod.value}
+                        onChange={(e) => {
+                          const value = Math.min(
+                            parseInt(e.target.value) || 1,
+                            formData.rebalancePeriod.unit === 'day' ? 30 : 24,
+                          );
+                          handleRebalancePeriodChange(value, formData.rebalancePeriod.unit);
+                        }}
+                        className="w-16"
+                      />
                       <Select
-                        value={formData.risk}
-                        onValueChange={(value) => handleChange('risk', value)}
+                        value={formData.rebalancePeriod.unit}
+                        onValueChange={(value: 'day' | 'hour') => {
+                          handleRebalancePeriodChange(formData.rebalancePeriod.value, value);
+                        }}
                       >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select risk level" />
+                        <SelectTrigger className="w-20">
+                          <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="day">Days</SelectItem>
+                          <SelectItem value="hour">Hours</SelectItem>
                         </SelectContent>
                       </Select>
-                      {errors['risk'] && (
-                        <p className="text-xs text-destructive">{errors['risk']}</p>
-                      )}
                     </div>
+                  </div>
 
-                    <div className="grid grid-cols-1 gap-2">
-                      <Label className="flex items-center" htmlFor="rebalancing">
-                        Rebalancing Period
-                        <Clock className="ml-1 h-4 w-4 text-muted-foreground" />
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          id="rebalance-value"
-                          type="number"
-                          min={1}
-                          max={formData.rebalancePeriod.unit === 'day' ? 30 : 24}
-                          value={formData.rebalancePeriod.value}
-                          onChange={(e) => {
-                            const value = Math.min(
-                              parseInt(e.target.value) || 1,
-                              formData.rebalancePeriod.unit === 'day' ? 30 : 24,
-                            );
-                            handleRebalancePeriodChange(value, formData.rebalancePeriod.unit);
-                          }}
-                          className="w-16"
-                        />
-                        <Select
-                          value={formData.rebalancePeriod.unit}
-                          onValueChange={(value: 'day' | 'hour') => {
-                            handleRebalancePeriodChange(formData.rebalancePeriod.value, value);
-                          }}
+                  <div className="grid grid-cols-1 gap-2">
+                    <Label htmlFor="public" className="mb-2">
+                      Visibility
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center bg-muted rounded-full p-0.5">
+                        <div
+                          className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${
+                            formData.isPublic
+                              ? 'bg-background text-foreground font-medium'
+                              : 'text-muted-foreground'
+                          }`}
+                          onClick={() => handleChange('isPublic', true)}
                         >
-                          <SelectTrigger className="w-20">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="day">Days</SelectItem>
-                            <SelectItem value="hour">Hours</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2">
-                      <Label htmlFor="categories">Categories</Label>
-                      <div className="flex flex-wrap items-center gap-1 p-2 border rounded-md focus-within:ring-1 focus-within:ring-ring focus-within:border-input">
-                        {formData.categories.map((category) => (
-                          <Badge key={category} variant="secondary" className="gap-1 mb-1 mr-1">
-                            {category}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveCategory(category)}
-                              className="ml-1 hover:text-destructive"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ))}
-                        <input
-                          id="categories"
-                          placeholder={
-                            formData.categories.length > 0
-                              ? 'Add more categories...'
-                              : 'Add categories and press Enter'
-                          }
-                          value={categoryInput}
-                          onChange={(e) => setCategoryInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAddCategory();
-                            }
-                          }}
-                          className="flex-1 min-w-[120px] bg-transparent border-none outline-none focus:outline-none focus:ring-0 p-0 text-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2">
-                      <Label htmlFor="public" className="mb-2">
-                        Visibility
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center bg-muted rounded-full p-0.5">
-                          <div
-                            className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${formData.isPublic ? 'bg-background text-foreground font-medium' : 'text-muted-foreground'}`}
-                            onClick={() => handleChange('isPublic', true)}
-                          >
-                            Public
-                          </div>
-                          <div
-                            className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${!formData.isPublic ? 'bg-background text-foreground font-medium' : 'text-muted-foreground'}`}
-                            onClick={() => handleChange('isPublic', false)}
-                          >
-                            Private
-                          </div>
+                          Public
+                        </div>
+                        <div
+                          className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${
+                            !formData.isPublic
+                              ? 'bg-background text-foreground font-medium'
+                              : 'text-muted-foreground'
+                          }`}
+                          onClick={() => handleChange('isPublic', false)}
+                        >
+                          Private
                         </div>
                       </div>
                     </div>

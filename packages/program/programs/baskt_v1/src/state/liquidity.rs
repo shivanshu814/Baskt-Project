@@ -33,6 +33,9 @@ pub struct LiquidityPool {
 
     /// Bump for this PDA
     pub bump: u8,
+
+    // Extra Space
+    pub extra_space: [u8; 128],
 }
 
 impl LiquidityPool {
@@ -97,7 +100,10 @@ impl LiquidityPool {
     /// Calculate fee amount based on the specified fee rate
     pub fn calculate_fee(&self, amount: u64, fee_bps: u16) -> Result<u64> {
         // Ensure fee_bps is within the acceptable range (0-BPS_DIVISOR)
-        require!(fee_bps as u64 <= BPS_DIVISOR, PerpetualsError::InvalidFeeBps);
+        require!(
+            fee_bps as u64 <= BPS_DIVISOR,
+            PerpetualsError::InvalidFeeBps
+        );
 
         let fee = (amount as u128)
             .checked_mul(fee_bps as u128)

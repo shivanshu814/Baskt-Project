@@ -13,10 +13,7 @@ import { generateNavHistory } from '../fakers/price';
 const createBasktSchema = z.object({
   basktId: z.string(),
   name: z.string().min(1).max(30),
-  description: z.string().min(1),
   creator: z.string(),
-  categories: z.array(z.string()).min(1),
-  risk: z.enum(['low', 'medium', 'high']),
   assets: z.array(z.string()),
   image: z.string().optional(),
   rebalancePeriod: z.object({
@@ -240,7 +237,7 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
               direction: asset.direction,
               weight: new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100),
               baselinePrice: new BN(asset.price),
-            }) as OnchainAssetConfig,
+            } as OnchainAssetConfig),
         ),
         new BN(onchainBaskt.baselineNav || 0),
       );
@@ -254,11 +251,8 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     id: basktId,
     basktId: basktId,
     name: basktMetadata?.name || '',
-    description: basktMetadata?.description || '',
     creator: basktMetadata?.creator || '',
     image: basktMetadata?.image || '',
-    risk: basktMetadata?.risk || 'medium',
-    categories: basktMetadata?.categories || [],
     rebalancePeriod: basktMetadata?.rebalancePeriod,
     txSignature: basktMetadata?.txSignature,
     assets,
@@ -270,7 +264,6 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     account: onchainBaskt.account || onchainBaskt,
     creationDate: basktMetadata?.creationDate || new Date().toISOString(),
     priceHistory: generateNavHistory(onchainBaskt.currentAssetConfigs, new BN(1e9)),
-    category: basktMetadata.categories,
     performance: {
       daily: 2.5,
       weekly: 5.2,

@@ -2234,12 +2234,12 @@ export type BasktV1 = {
               {
                 "kind": "account",
                 "path": "baskt.baskt_id",
-                "account": "baskt"
+                "account": "basktV1"
               },
               {
                 "kind": "account",
                 "path": "baskt.last_rebalance_index",
-                "account": "baskt"
+                "account": "basktV1"
               }
             ]
           }
@@ -2719,7 +2719,7 @@ export type BasktV1 = {
               {
                 "kind": "account",
                 "path": "baskt.baskt_id",
-                "account": "baskt"
+                "account": "basktV1"
               }
             ]
           }
@@ -2755,16 +2755,16 @@ export type BasktV1 = {
   ],
   "accounts": [
     {
-      "name": "baskt",
+      "name": "basktV1",
       "discriminator": [
-        105,
-        38,
-        119,
-        212,
-        185,
-        63,
-        190,
-        248
+        115,
+        252,
+        189,
+        242,
+        180,
+        200,
+        87,
+        199
       ]
     },
     {
@@ -3565,72 +3565,6 @@ export type BasktV1 = {
       }
     },
     {
-      "name": "baskt",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "basktId",
-            "type": "pubkey"
-          },
-          {
-            "name": "basktName",
-            "type": "string"
-          },
-          {
-            "name": "currentAssetConfigs",
-            "type": {
-              "vec": {
-                "defined": {
-                  "name": "assetConfig"
-                }
-              }
-            }
-          },
-          {
-            "name": "isPublic",
-            "type": "bool"
-          },
-          {
-            "name": "creator",
-            "type": "pubkey"
-          },
-          {
-            "name": "creationTime",
-            "type": "i64"
-          },
-          {
-            "name": "lastRebalanceIndex",
-            "type": "u64"
-          },
-          {
-            "name": "isActive",
-            "type": "bool"
-          },
-          {
-            "name": "lastRebalanceTime",
-            "type": "i64"
-          },
-          {
-            "name": "oracle",
-            "type": {
-              "defined": {
-                "name": "oracleParams"
-              }
-            }
-          },
-          {
-            "name": "baselineNav",
-            "type": "u64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
       "name": "basktActivatedEvent",
       "type": {
         "kind": "struct",
@@ -3702,6 +3636,81 @@ export type BasktV1 = {
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "basktV1",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "basktName",
+            "type": "string"
+          },
+          {
+            "name": "currentAssetConfigs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "assetConfig"
+                }
+              }
+            }
+          },
+          {
+            "name": "isPublic",
+            "type": "bool"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "creationTime",
+            "type": "i64"
+          },
+          {
+            "name": "lastRebalanceIndex",
+            "type": "u64"
+          },
+          {
+            "name": "isActive",
+            "type": "bool"
+          },
+          {
+            "name": "lastRebalanceTime",
+            "type": "i64"
+          },
+          {
+            "name": "oracle",
+            "type": {
+              "defined": {
+                "name": "oracleParams"
+              }
+            }
+          },
+          {
+            "name": "baselineNav",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "extraSpace",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -3907,6 +3916,15 @@ export type BasktV1 = {
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "extraSpace",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -4073,6 +4091,15 @@ export type BasktV1 = {
               "Bump for this PDA"
             ],
             "type": "u8"
+          },
+          {
+            "name": "extraSpace",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -4250,6 +4277,15 @@ export type BasktV1 = {
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "extraSpace",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -4431,6 +4467,15 @@ export type BasktV1 = {
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "extraSpace",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -4638,6 +4683,15 @@ export type BasktV1 = {
                 "name": "featureFlags"
               }
             }
+          },
+          {
+            "name": "extraSpace",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -4726,6 +4780,15 @@ export type BasktV1 = {
               "Registry bump"
             ],
             "type": "u8"
+          },
+          {
+            "name": "extraSpace",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -4879,6 +4942,15 @@ export type BasktV1 = {
           {
             "name": "listingTime",
             "type": "i64"
+          },
+          {
+            "name": "extraSpace",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }

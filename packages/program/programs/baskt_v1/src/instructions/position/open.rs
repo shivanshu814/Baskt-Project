@@ -2,7 +2,7 @@ use {
     crate::error::PerpetualsError,
     crate::events::*,
     crate::state::{
-        baskt::Baskt,
+        baskt::BasktV1,
         funding_index::FundingIndex,
         order::{Order, OrderAction, OrderStatus},
         position::{Position, ProgramAuthority},
@@ -44,7 +44,7 @@ pub struct OpenPosition<'info> {
         seeds = [b"position", order.owner.as_ref(), &params.position_id.to_le_bytes()],
         bump
     )]
-    pub position: Account<'info, Position>,
+    pub position: Box<Account<'info, Position>>,
 
     #[account(
         mut,
@@ -58,7 +58,7 @@ pub struct OpenPosition<'info> {
         constraint = baskt.key() == order.baskt_id.key() @ PerpetualsError::InvalidBaskt,
         constraint = baskt.is_active @ PerpetualsError::BasktInactive
     )]
-    pub baskt: Account<'info, Baskt>,
+    pub baskt: Box<Account<'info, BasktV1>>,
 
     /// Protocol registry containing common addresses
     #[account(
@@ -74,7 +74,7 @@ pub struct OpenPosition<'info> {
         constraint = protocol.feature_flags.allow_open_position && protocol.feature_flags.allow_trading @ PerpetualsError::PositionOperationsDisabled,
         constraint = protocol.has_permission(matcher.key(), Role::Matcher) @ PerpetualsError::Unauthorized
     )]
-    pub protocol: Account<'info, Protocol>,
+    pub protocol: Box<Account<'info, Protocol>>,
 
     #[account(
         mut,

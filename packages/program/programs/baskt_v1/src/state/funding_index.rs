@@ -16,6 +16,9 @@ pub struct FundingIndex {
     pub last_update_timestamp: i64,
     pub current_rate: i64, // Current hourly rate (BPS, can be positive or negative)
     pub bump: u8,
+
+    // Extra Space
+    pub extra_space: [u8; 128],
 }
 
 impl FundingIndex {
