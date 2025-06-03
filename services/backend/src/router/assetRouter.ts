@@ -80,7 +80,7 @@ async function getAllAssetsInternal(config: boolean) {
     });
     return {
       success: true,
-      data: combinedAssets,
+      data: combinedAssets.filter((asset) => asset),
     };
   } catch (error) {
     console.error('Error fetching assets:', error);
@@ -116,6 +116,10 @@ export function combineAsset(
   config: any,
   shouldPassConfig: boolean = false,
 ) {
+  if (!onchainAsset) {
+    return undefined;
+  }
+
   if (!config) {
     return {
       ticker: onchainAsset.ticker,

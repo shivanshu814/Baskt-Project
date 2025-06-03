@@ -73,4 +73,7 @@ export interface BasktInfo extends Omit<BasktMetadataModel, 'assets'> {
   };
   sparkline: number[];
   priceHistory?: PriceHistory;
+  categories: string[];
+  description?: string;
+  risk?: 'low' | 'medium' | 'high';
 }
