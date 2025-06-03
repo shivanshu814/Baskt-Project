@@ -2,7 +2,7 @@ use crate::constants::{BPS_DIVISOR, ESCROW_MINT, MIN_COLLATERAL_RATIO_BPS};
 use crate::error::PerpetualsError;
 use crate::events::*;
 use crate::state::{
-    baskt::Baskt,
+    baskt::BasktV1,
     order::{Order, OrderAction, OrderStatus},
     protocol::Protocol,
 };
@@ -38,7 +38,7 @@ pub struct CreateOrder<'info> {
     #[account(
         constraint = baskt.is_active @ PerpetualsError::BasktInactive
     )]
-    pub baskt: Account<'info, Baskt>,
+    pub baskt: Account<'info, BasktV1>,
 
     #[account(
         mut,

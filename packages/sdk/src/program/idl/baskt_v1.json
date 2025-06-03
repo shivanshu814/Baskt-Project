@@ -2228,12 +2228,12 @@
               {
                 "kind": "account",
                 "path": "baskt.baskt_id",
-                "account": "Baskt"
+                "account": "BasktV1"
               },
               {
                 "kind": "account",
                 "path": "baskt.last_rebalance_index",
-                "account": "Baskt"
+                "account": "BasktV1"
               }
             ]
           }
@@ -2713,7 +2713,7 @@
               {
                 "kind": "account",
                 "path": "baskt.baskt_id",
-                "account": "Baskt"
+                "account": "BasktV1"
               }
             ]
           }
@@ -2749,16 +2749,16 @@
   ],
   "accounts": [
     {
-      "name": "Baskt",
+      "name": "BasktV1",
       "discriminator": [
-        105,
-        38,
-        119,
-        212,
-        185,
-        63,
-        190,
-        248
+        115,
+        252,
+        189,
+        242,
+        180,
+        200,
+        87,
+        199
       ]
     },
     {
@@ -3559,72 +3559,6 @@
       }
     },
     {
-      "name": "Baskt",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "baskt_id",
-            "type": "pubkey"
-          },
-          {
-            "name": "baskt_name",
-            "type": "string"
-          },
-          {
-            "name": "current_asset_configs",
-            "type": {
-              "vec": {
-                "defined": {
-                  "name": "AssetConfig"
-                }
-              }
-            }
-          },
-          {
-            "name": "is_public",
-            "type": "bool"
-          },
-          {
-            "name": "creator",
-            "type": "pubkey"
-          },
-          {
-            "name": "creation_time",
-            "type": "i64"
-          },
-          {
-            "name": "last_rebalance_index",
-            "type": "u64"
-          },
-          {
-            "name": "is_active",
-            "type": "bool"
-          },
-          {
-            "name": "last_rebalance_time",
-            "type": "i64"
-          },
-          {
-            "name": "oracle",
-            "type": {
-              "defined": {
-                "name": "OracleParams"
-              }
-            }
-          },
-          {
-            "name": "baseline_nav",
-            "type": "u64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
       "name": "BasktActivatedEvent",
       "type": {
         "kind": "struct",
@@ -3696,6 +3630,81 @@
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BasktV1",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "baskt_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "baskt_name",
+            "type": "string"
+          },
+          {
+            "name": "current_asset_configs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "AssetConfig"
+                }
+              }
+            }
+          },
+          {
+            "name": "is_public",
+            "type": "bool"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "creation_time",
+            "type": "i64"
+          },
+          {
+            "name": "last_rebalance_index",
+            "type": "u64"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "last_rebalance_time",
+            "type": "i64"
+          },
+          {
+            "name": "oracle",
+            "type": {
+              "defined": {
+                "name": "OracleParams"
+              }
+            }
+          },
+          {
+            "name": "baseline_nav",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "extra_space",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -3901,6 +3910,15 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "extra_space",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -4067,6 +4085,15 @@
               "Bump for this PDA"
             ],
             "type": "u8"
+          },
+          {
+            "name": "extra_space",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -4244,6 +4271,15 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "extra_space",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -4425,6 +4461,15 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "extra_space",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -4632,6 +4677,15 @@
                 "name": "FeatureFlags"
               }
             }
+          },
+          {
+            "name": "extra_space",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -4720,6 +4774,15 @@
               "Registry bump"
             ],
             "type": "u8"
+          },
+          {
+            "name": "extra_space",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }
@@ -4873,6 +4936,15 @@
           {
             "name": "listing_time",
             "type": "i64"
+          },
+          {
+            "name": "extra_space",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
           }
         ]
       }

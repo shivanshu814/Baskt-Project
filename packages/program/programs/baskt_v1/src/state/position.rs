@@ -37,6 +37,9 @@ pub struct Position {
     pub timestamp_open: i64,
     pub timestamp_close: Option<i64>,
     pub bump: u8,
+
+    // Extra Space
+    pub extra_space: [u8; 128],
 }
 
 #[account]

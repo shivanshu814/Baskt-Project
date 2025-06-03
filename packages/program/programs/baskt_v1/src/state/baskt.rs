@@ -45,7 +45,7 @@ pub struct AssetConfig {
 
 #[account]
 #[derive(InitSpace)]
-pub struct Baskt {
+pub struct BasktV1 {
     pub baskt_id: Pubkey, // Unique identifier
     #[max_len(32)]
     pub baskt_name: String, // Store baskt name for future use
@@ -60,9 +60,12 @@ pub struct Baskt {
     pub oracle: OracleParams, // Oracle for the baskt
     pub baseline_nav: u64, // Baseline NAV of the baskt at last rebalance/activation
     pub bump: u8,         // Added bump field
+
+    // Extra Space
+    pub extra_space: [u8; 128],
 }
 
-impl Baskt {
+impl BasktV1 {
     /// Initialize a new baskt
     pub fn initialize(
         &mut self,
@@ -133,7 +136,7 @@ impl Baskt {
 
     pub fn validate_assets(
         remaining_accounts: &[AccountInfo],
-        baskt_option: Option<&Baskt>, // Optional baskt to validate against
+        baskt_option: Option<&BasktV1>, // Optional baskt to validate against
     ) -> Result<()> {
         let pair_count = remaining_accounts.len(); // Assuming one account per asset
 

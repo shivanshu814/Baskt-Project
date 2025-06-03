@@ -1,6 +1,6 @@
 use {
     crate::error::PerpetualsError,
-    crate::state::baskt::Baskt,
+    crate::state::baskt::BasktV1,
     crate::state::protocol::{Protocol, Role},
     anchor_lang::prelude::*,
 };
@@ -8,7 +8,7 @@ use {
 #[derive(Accounts)]
 pub struct UpdateCustomOracle<'info> {
     #[account(mut)]
-    pub baskt: Account<'info, Baskt>,
+    pub baskt: Account<'info, BasktV1>,
 
     /// @dev Requires OracleManager role to update oracle prices
     #[account(mut, constraint = protocol.has_permission(authority.key(), Role::OracleManager) @ PerpetualsError::Unauthorized)]

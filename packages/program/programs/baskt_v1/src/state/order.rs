@@ -34,6 +34,9 @@ pub struct Order {
     pub timestamp: i64,                  // Creation timestamp
     pub target_position: Option<Pubkey>, // For close orders
     pub bump: u8,
+
+    // Extra Space
+    pub extra_space: [u8; 128],
 }
 
 impl Order {

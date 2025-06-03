@@ -1,13 +1,13 @@
 use crate::constants::BPS_DIVISOR;
 use crate::error::PerpetualsError;
-use crate::state::baskt::{AssetConfig, Baskt, RebalanceHistory};
+use crate::state::baskt::{AssetConfig, BasktV1, RebalanceHistory};
 use crate::state::protocol::{Protocol, Role};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct Rebalance<'info> {
     #[account(mut)]
-    pub baskt: Account<'info, Baskt>,
+    pub baskt: Account<'info, BasktV1>,
 
     #[account(
         init,

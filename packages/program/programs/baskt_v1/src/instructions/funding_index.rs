@@ -3,7 +3,7 @@ use {
     crate::constants::MAX_FUNDING_RATE_BPS,
     crate::error::PerpetualsError,
     crate::state::{
-        baskt::Baskt,
+        baskt::BasktV1,
         funding_index::FundingIndex,
         protocol::{Protocol, Role},
     },
@@ -39,7 +39,7 @@ pub struct InitializeFundingIndex<'info> {
         seeds = [b"baskt", &get_baskt_name_seed(&baskt.baskt_name)[..]],
         bump = baskt.bump
     )]
-    pub baskt: Account<'info, Baskt>,
+    pub baskt: Account<'info, BasktV1>,
 
     #[account(seeds = [b"protocol"], bump)]
     pub protocol: Account<'info, Protocol>,
@@ -88,7 +88,7 @@ pub struct UpdateFundingIndex<'info> {
         seeds = [b"baskt", baskt.baskt_id.as_ref()],
         bump = baskt.bump
     )]
-    pub baskt: Account<'info, Baskt>, // Read-only access needed for seeds
+    pub baskt: Account<'info, BasktV1>, // Read-only access needed for seeds
 
     #[account(seeds = [b"protocol"], bump)]
     pub protocol: Account<'info, Protocol>,

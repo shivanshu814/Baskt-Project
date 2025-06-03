@@ -3,7 +3,7 @@ use {
     crate::error::PerpetualsError,
     crate::events::*,
     crate::state::{
-        baskt::Baskt,
+        baskt::BasktV1,
         funding_index::FundingIndex,
         liquidity::LiquidityPool,
         order::{Order, OrderAction, OrderStatus},
@@ -89,7 +89,7 @@ pub struct ClosePosition<'info> {
         constraint = baskt.key() == position.baskt_id @ PerpetualsError::InvalidBaskt,
         constraint = baskt.is_active @ PerpetualsError::BasktInactive
     )]
-    pub baskt: Box<Account<'info, Baskt>>,
+    pub baskt: Box<Account<'info, BasktV1>>,
 
     /// Protocol registry containing common addresses
     #[account(

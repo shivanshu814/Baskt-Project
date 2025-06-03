@@ -10,11 +10,8 @@ type RiskLevel = 'low' | 'medium' | 'high';
 export interface BasktMetadataModel {
   basktId: string | ObjectId;
   name: string;
-  description: string;
   creator: string;
   creationDate: Date;
-  categories: string[];
-  risk: RiskLevel;
   assets: string[];
   image?: string;
   rebalancePeriod: {
@@ -43,11 +40,6 @@ export const BasktMetadataSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    description: {
-      type: String,
-      required: true,
-      trim: true,
-    },
     creator: {
       type: String,
       required: true,
@@ -56,15 +48,6 @@ export const BasktMetadataSchema = new mongoose.Schema(
     creationDate: {
       type: Date,
       default: Date.now,
-    },
-    categories: {
-      type: [String],
-      required: true,
-    },
-    risk: {
-      type: String,
-      enum: ['low', 'medium', 'high'],
-      required: true,
     },
     assets: {
       type: [mongoose.Schema.Types.ObjectId],

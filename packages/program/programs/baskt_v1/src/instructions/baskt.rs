@@ -2,7 +2,7 @@ use crate::constants::{BPS_DIVISOR, PRICE_PRECISION, BASE_NAV};
 use crate::error::PerpetualsError;
 use crate::events::BasktCreatedEvent;
 use crate::state::asset::SyntheticAsset;
-use crate::state::baskt::{AssetConfig, Baskt};
+use crate::state::baskt::{AssetConfig, BasktV1};
 use crate::state::protocol::{Protocol, Role};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::keccak;
@@ -13,7 +13,7 @@ fn get_baskt_name_seed(baskt_name: &str) -> [u8; 32] {
 }
 
 // Helper function to check if an authority can activate a baskt
-fn can_activate_baskt(baskt: &Baskt, authority: Pubkey, protocol: &Protocol) -> bool {
+fn can_activate_baskt(baskt: &BasktV1, authority: Pubkey, protocol: &Protocol) -> bool {
     baskt.creator == authority || protocol.has_permission(authority, Role::OracleManager)
 }
 
@@ -23,11 +23,11 @@ pub struct CreateBaskt<'info> {
     #[account(
         init,
         payer = creator,
-        space = 8 + Baskt::INIT_SPACE,
+        space = 8 + BasktV1::INIT_SPACE,
         seeds = [b"baskt", &get_baskt_name_seed(&params.baskt_name)[..]], 
         bump
     )]
-    pub baskt: Account<'info, Baskt>,
+    pub baskt: Account<'info, BasktV1>,
 
     #[account(mut)]
     pub creator: Signer<'info>,
@@ -136,7 +136,7 @@ pub struct ActivateBaskt<'info> {
         seeds = [b"baskt", &get_baskt_name_seed(&baskt.baskt_name)[..]], 
         bump = baskt.bump
     )]
-    pub baskt: Account<'info, Baskt>,
+    pub baskt: Account<'info, BasktV1>,
 
     /// @dev Requires either baskt creator or OracleManager role to activate baskts
     #[account(seeds = [b"protocol"], bump)]

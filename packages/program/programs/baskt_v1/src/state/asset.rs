@@ -15,6 +15,9 @@ pub struct SyntheticAsset {
     pub permissions: AssetPermissions, // Permissions for the asset
     pub is_active: bool,  // Whether the asset is active
     pub listing_time: i64, // Time when the asset was listed
+
+    // Extra Space
+    pub extra_space: [u8; 128],
 }
 
 impl SyntheticAsset {

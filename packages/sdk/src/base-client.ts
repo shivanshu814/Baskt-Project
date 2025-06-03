@@ -122,7 +122,7 @@ export abstract class BaseClient {
     // Derive program authority PDA
     const [programAuthority] = PublicKey.findProgramAddressSync(
       [Buffer.from('authority')],
-      this.program.programId
+      this.program.programId,
     );
 
     const tx = await this.program.methods
@@ -372,8 +372,8 @@ export abstract class BaseClient {
       address: newAccount.publicKey || account.publicKey || account.assetId,
       ticker: newAccount.ticker,
       permissions: {
-        allowLongs: newAccount.permissions.allowLongs,
-        allowShorts: newAccount.permissions.allowShorts,
+        allowLongs: Boolean(newAccount.permissions.allowLongs),
+        allowShorts: Boolean(newAccount.permissions.allowShorts),
       } as OnchainAssetPermissions,
       isActive: Boolean(newAccount.isActive),
       listingTime: new Date(newAccount.listingTime.toNumber() * 1000),
@@ -514,7 +514,7 @@ export abstract class BaseClient {
    * @returns The baskt account data
    */
   public async getBaskt(basktPubkey: PublicKey) {
-    return await this.program.account.baskt.fetch(basktPubkey);
+    return await this.program.account.basktV1.fetch(basktPubkey);
   }
 
   /**
@@ -522,7 +522,7 @@ export abstract class BaseClient {
    * @returns Array of baskt accounts with their public keys
    */
   public async getAllBaskts() {
-    return await this.program.account.baskt.all();
+    return await this.program.account.basktV1.all();
   }
 
   /**
