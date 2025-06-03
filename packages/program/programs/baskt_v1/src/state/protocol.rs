@@ -123,9 +123,6 @@ pub struct Protocol {
     pub owner: Pubkey,
     pub access_control: AccessControl,
     pub feature_flags: FeatureFlags,
-
-    // Extra Space
-    pub extra_space: [u8; 128],
 }
 
 impl Protocol {

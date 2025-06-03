@@ -33,9 +33,6 @@ pub struct LiquidityPool {
 
     /// Bump for this PDA
     pub bump: u8,
-
-    // Extra Space
-    pub extra_space: [u8; 128],
 }
 
 impl LiquidityPool {
