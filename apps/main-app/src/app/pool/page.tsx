@@ -327,52 +327,52 @@ export default function PoolPage() {
   }, [fetchPoolData]);
 
   // --- Utility Functions ---
-const getFeeInUSDC = (amount: string, bps: number) => {
-  const amt = Number(amount);
-  if (!amount || isNaN(amt) || !bps) return '0.00 USDC';
-  const fee = (amt * bps) / 10000;
-  return `${fee.toFixed(2)} USDC`;
-};
+  const getFeeInUSDC = (amount: string, bps: number) => {
+    const amt = Number(amount);
+    if (!amount || isNaN(amt) || !bps) return '0.00 USDC';
+    const fee = (amt * bps) / 10000;
+    return `${fee.toFixed(2)} USDC`;
+  };
 
-const getDepositOutputBLP = (amount: string, poolData: PoolData | null) => {
-  if (!poolData || !amount) return '0.00 BLP';
-  const amt = Number(amount);
-  const totalLiquidity = Number(poolData.totalLiquidity) / 1_000_000;
-  if (isNaN(amt) || totalLiquidity <= 0) return '0.00 BLP';
-  // Simplified: 1:1 for demo, real logic should use pool share math
-  return `${amt.toFixed(2)} BLP`;
-};
+  const getDepositOutputBLP = (amount: string, poolData: PoolData | null) => {
+    if (!poolData || !amount) return '0.00 BLP';
+    const amt = Number(amount);
+    const totalLiquidity = Number(poolData.totalLiquidity) / 1_000_000;
+    if (isNaN(amt) || totalLiquidity <= 0) return '0.00 BLP';
+    // Simplified: 1:1 for demo, real logic should use pool share math
+    return `${amt.toFixed(2)} BLP`;
+  };
 
-const getWithdrawOutputUSDC = (amount: string, poolData: PoolData | null) => {
-  if (!poolData || !amount) return '0.00 USDC';
-  const amt = Number(amount);
-  const totalShares = Number(poolData.totalShares) / 1_000_000;
-  const totalLiquidity = Number(poolData.totalLiquidity) / 1_000_000;
-  if (isNaN(amt) || totalShares <= 0) return '0.00 USDC';
-  const usdcOut = (amt / totalShares) * totalLiquidity;
-  return `${usdcOut.toFixed(2)} USDC`;
-};
+  const getWithdrawOutputUSDC = (amount: string, poolData: PoolData | null) => {
+    if (!poolData || !amount) return '0.00 USDC';
+    const amt = Number(amount);
+    const totalShares = Number(poolData.totalShares) / 1_000_000;
+    const totalLiquidity = Number(poolData.totalLiquidity) / 1_000_000;
+    if (isNaN(amt) || totalShares <= 0) return '0.00 USDC';
+    const usdcOut = (amt / totalShares) * totalLiquidity;
+    return `${usdcOut.toFixed(2)} USDC`;
+  };
 
-// --- Inside PoolPage ---
-const calculateFee = useCallback(
-  (amount: string, isDeposit: boolean) => {
-    if (!poolData) return '0.00 USDC';
-    return isDeposit
-      ? getFeeInUSDC(amount, poolData.depositFeeBps)
-      : getFeeInUSDC(getWithdrawOutputUSDC(amount, poolData).split(' ')[0], poolData.withdrawalFeeBps);
-  },
-  [poolData],
-);
+  // --- Inside PoolPage ---
+  const calculateFee = useCallback(
+    (amount: string, isDeposit: boolean) => {
+      if (!poolData) return '0.00 USDC';
+      return isDeposit
+        ? getFeeInUSDC(amount, poolData.depositFeeBps)
+        : getFeeInUSDC(getWithdrawOutputUSDC(amount, poolData).split(' ')[0], poolData.withdrawalFeeBps);
+    },
+    [poolData],
+  );
 
-const calculateExpectedOutput = useCallback(
-  (amount: string, isDeposit: boolean) => {
-    if (!poolData) return isDeposit ? '0.00 BLP' : '0.00 USDC';
-    return isDeposit
-      ? getDepositOutputBLP(amount, poolData)
-      : getWithdrawOutputUSDC(amount, poolData);
-  },
-  [poolData],
-);
+  const calculateExpectedOutput = useCallback(
+    (amount: string, isDeposit: boolean) => {
+      if (!poolData) return isDeposit ? '0.00 BLP' : '0.00 USDC';
+      return isDeposit
+        ? getDepositOutputBLP(amount, poolData)
+        : getWithdrawOutputUSDC(amount, poolData);
+    },
+    [poolData],
+  );
 
 
   const handleDeposit = useCallback(async () => {
@@ -528,7 +528,7 @@ const calculateExpectedOutput = useCallback(
     setIsWithdrawing(true);
     try {
       const withdrawAmountBN = new BN(Number(withdrawAmount) * 1_000_000);
-      const userTokenAccount = await client.getUSDCAccount(new PublicKey(wallet.address));
+      const userTokenAccount = await client.getUserTokenAccount(new PublicKey(wallet.address), USDC_MINT);
 
       let userLpAccount;
       try {
@@ -569,6 +569,7 @@ const calculateExpectedOutput = useCallback(
       setWithdrawAmount('');
       await fetchPoolData();
     } catch (error) {
+      console.error(error);
       if (error instanceof Error) {
         if (error.message.includes('insufficient funds')) {
           toast({
@@ -819,45 +820,45 @@ const calculateExpectedOutput = useCallback(
                       <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
                     </TabsList>
                     <>
-  <TabsContent value="deposit">
-    <ActionCard
-      title="Deposit"
-      description="Add liquidity to the pool"
-      icon={<ArrowUpRight className="h-5 w-5 text-green-400" />}
-      inputValue={depositAmount}
-      setInputValue={setDepositAmount}
-      onAction={handleDeposit}
-      actionLabel="Deposit"
-      loading={isDepositing}
-      color="green"
-      disabled={!isDepositValid}
-      fee={calculateFee(depositAmount, true)}
-      expectedOutput={calculateExpectedOutput(depositAmount, true)}
-      onMaxClick={() => setDepositAmount(userUSDCBalance)}
-      unit="USDC"
-      tokenBalance={userUSDCBalance}
-    />
-  </TabsContent>
-  <TabsContent value="withdraw">
-    <ActionCard
-      title="Withdraw"
-      description="Remove liquidity from the pool"
-      icon={<ArrowDownRight className="h-5 w-5 text-red-400" />}
-      inputValue={withdrawAmount}
-      setInputValue={setWithdrawAmount}
-      onAction={handleWithdraw}
-      actionLabel="Withdraw"
-      loading={isWithdrawing}
-      color="red"
-      disabled={!isWithdrawValid}
-      fee={calculateFee(withdrawAmount, false)}
-      expectedOutput={calculateExpectedOutput(withdrawAmount, false)}
-      onMaxClick={() => setWithdrawAmount(userLpBalance)}
-      unit="BLP"
-      tokenBalance={userLpBalance}
-    />
-  </TabsContent>
-</>
+                      <TabsContent value="deposit">
+                        <ActionCard
+                          title="Deposit"
+                          description="Add liquidity to the pool"
+                          icon={<ArrowUpRight className="h-5 w-5 text-green-400" />}
+                          inputValue={depositAmount}
+                          setInputValue={setDepositAmount}
+                          onAction={handleDeposit}
+                          actionLabel="Deposit"
+                          loading={isDepositing}
+                          color="green"
+                          disabled={!isDepositValid}
+                          fee={calculateFee(depositAmount, true)}
+                          expectedOutput={calculateExpectedOutput(depositAmount, true)}
+                          onMaxClick={() => setDepositAmount(userUSDCBalance)}
+                          unit="USDC"
+                          tokenBalance={userUSDCBalance}
+                        />
+                      </TabsContent>
+                      <TabsContent value="withdraw">
+                        <ActionCard
+                          title="Withdraw"
+                          description="Remove liquidity from the pool"
+                          icon={<ArrowDownRight className="h-5 w-5 text-red-400" />}
+                          inputValue={withdrawAmount}
+                          setInputValue={setWithdrawAmount}
+                          onAction={handleWithdraw}
+                          actionLabel="Withdraw"
+                          loading={isWithdrawing}
+                          color="red"
+                          disabled={!isWithdrawValid}
+                          fee={calculateFee(withdrawAmount, false)}
+                          expectedOutput={calculateExpectedOutput(withdrawAmount, false)}
+                          onMaxClick={() => setWithdrawAmount(userLpBalance)}
+                          unit="BLP"
+                          tokenBalance={userLpBalance}
+                        />
+                      </TabsContent>
+                    </>
                   </Tabs>
                 </div>
               </Card>
