@@ -161,7 +161,7 @@ const Baskts = () => {
             logo: asset.logo,
           }),
         ),
-        category: baskt.categories || [],
+        categories: [],
         priceHistory: {
           daily: baskt.priceHistory?.daily?.map(entry => ({
             ...entry,

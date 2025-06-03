@@ -5,7 +5,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import leoProfanity from 'leo-profanity';
 import { cn, useBasktClient } from '@baskt/ui';
 import { trpc } from '../../utils/trpc';
-import { X, Plus, Search, AlertCircle, Trash2, Clock, Image } from 'lucide-react';
+import { Plus, Search, AlertCircle, Trash2, Clock, Image } from 'lucide-react';
 import { z } from 'zod';
 import * as anchor from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
@@ -19,10 +19,8 @@ import { TransactionStatusModal } from '../../components/baskt/TransactionStatus
 // UI Components
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Textarea } from '../../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
-import { Badge } from '../../components/ui/badge';
 
 import {
   Select,
