@@ -4,6 +4,7 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import { TestClient } from '../utils/test-client';
 import { BN } from 'bn.js';
 import { AccessControlRole, OnchainAssetConfig } from '@baskt/types';
+import { initializeProtocolWithRegistry } from '../utils/protocol_setup';
 
 type AssetId = {
   assetAddress: PublicKey;
@@ -34,6 +35,13 @@ describe('activate baskt', () => {
   const DEFAULT_MAX_PRICE_AGE_SEC = 60;
   // Set up test roles and assets before running tests
   before(async () => {
+    // Initialize protocol with registry
+    await initializeProtocolWithRegistry(client, {
+      depositFeeBps: 50,
+      withdrawalFeeBps: 50,
+      minDeposit: new BN(1 * 10 ** 6),
+    });
+
     // Create assets that will be used across tests
     btcAssetId = await client.addAsset('BTC');
     ethAssetId = await client.addAsset('ETH');

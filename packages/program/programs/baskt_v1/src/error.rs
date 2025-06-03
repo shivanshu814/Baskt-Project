@@ -24,6 +24,10 @@ pub enum PerpetualsError {
     InvalidPositionSize,
     #[msg("Unauthorized access")]
     Unauthorized,
+    #[msg("Unauthorized: Missing required role for this operation")]
+    UnauthorizedRole,
+    #[msg("Unauthorized: Token account owner mismatch")]
+    UnauthorizedTokenOwner,
     #[msg("Invalid LP token amount")]
     InvalidLpTokenAmount,
     #[msg("Unsupported oracle type")]
@@ -64,8 +68,14 @@ pub enum PerpetualsError {
     InvalidAssetConfig,
     #[msg("Feature is currently disabled")]
     FeatureDisabled,
-    #[msg("Price not found")]
-    PriceNotFound,
+    #[msg("Trading operations are currently disabled")]
+    TradingDisabled,
+    #[msg("Liquidity pool operations are currently disabled")]
+    LiquidityOperationsDisabled,
+    #[msg("Position operations are currently disabled")]  
+    PositionOperationsDisabled,
+    #[msg("Baskt management operations are currently disabled")]
+    BasktOperationsDisabled,
     #[msg("Asset Not Active")]
     InactiveAsset,
     #[msg("Baskt Already Active")]
@@ -119,7 +129,13 @@ pub enum PerpetualsError {
 
     #[msg("Invalid fee basis points")]
     InvalidFeeBps,
-    
+
     #[msg("Funding rate exceeds maximum allowed")]
     FundingRateExceedsMaximum,
+    
+    #[msg("Invalid pool authority account")]
+    InvalidPoolAuthority,
+    
+    #[msg("Invalid account input")]
+    InvalidAccountInput,
 }

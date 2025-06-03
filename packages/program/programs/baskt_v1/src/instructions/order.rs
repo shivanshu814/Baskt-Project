@@ -1,13 +1,13 @@
-use crate::constants::*;
+use crate::constants::{BPS_DIVISOR, ESCROW_MINT, MIN_COLLATERAL_RATIO_BPS};
 use crate::error::PerpetualsError;
+use crate::events::*;
 use crate::state::{
     baskt::Baskt,
     order::{Order, OrderAction, OrderStatus},
     protocol::Protocol,
 };
-use crate::events::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer, Mint};
+use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 //----------------------------------------------------------------------------
 // INSTRUCTION HANDLERS: ORDER
 //----------------------------------------------------------------------------
@@ -42,7 +42,7 @@ pub struct CreateOrder<'info> {
 
     #[account(
         mut,
-        constraint = owner_token.owner == owner.key() @ PerpetualsError::Unauthorized,
+        constraint = owner_token.owner == owner.key() @ PerpetualsError::UnauthorizedTokenOwner,
         constraint = owner_token.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
         constraint = owner_token.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority,
         constraint = owner_token.mint == escrow_mint.key() @ PerpetualsError::InvalidMint
@@ -50,7 +50,7 @@ pub struct CreateOrder<'info> {
     pub owner_token: Account<'info, TokenAccount>,
 
     #[account(
-        constraint = escrow_mint.key() == Constants::ESCROW_MINT @ PerpetualsError::InvalidMint
+        constraint = escrow_mint.key() == ESCROW_MINT @ PerpetualsError::InvalidMint
     )]
     pub escrow_mint: Account<'info, Mint>,
 
@@ -75,7 +75,7 @@ pub struct CreateOrder<'info> {
     #[account(
         seeds = [b"protocol"],
         bump,
-        constraint = protocol.feature_flags.allow_trading @ PerpetualsError::FeatureDisabled
+        constraint = protocol.feature_flags.allow_trading @ PerpetualsError::TradingDisabled
     )]
     pub protocol: Account<'info, Protocol>,
 
@@ -103,9 +103,9 @@ pub fn create_order(
 
         // Check minimum collateral ratio using existing Constants
         let min_collateral = (size as u128)
-            .checked_mul(Constants::MIN_COLLATERAL_RATIO_BPS as u128)
+            .checked_mul(MIN_COLLATERAL_RATIO_BPS as u128)
             .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(Constants::BPS_DIVISOR as u128)
+            .checked_div(BPS_DIVISOR as u128)
             .ok_or(PerpetualsError::MathOverflow)? as u64;
 
         require!(
@@ -191,10 +191,10 @@ pub struct CancelOrder<'info> {
 
     #[account(
         mut,
-        constraint = owner_token.owner == owner.key() @ PerpetualsError::Unauthorized,
+        constraint = owner_token.owner == owner.key() @ PerpetualsError::UnauthorizedTokenOwner,
         constraint = owner_token.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
         constraint = owner_token.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority,
-        constraint = owner_token.mint == Constants::ESCROW_MINT @ PerpetualsError::InvalidMint
+        constraint = owner_token.mint == ESCROW_MINT @ PerpetualsError::InvalidMint
     )]
     pub owner_token: Account<'info, TokenAccount>,
 
@@ -203,7 +203,7 @@ pub struct CancelOrder<'info> {
         seeds = [b"user_escrow", owner.key().as_ref()],
         bump,
         constraint = escrow_token.owner == program_authority.key() @ PerpetualsError::InvalidProgramAuthority,
-        constraint = escrow_token.mint == Constants::ESCROW_MINT @ PerpetualsError::InvalidMint,
+        constraint = escrow_token.mint == ESCROW_MINT @ PerpetualsError::InvalidMint,
         constraint = escrow_token.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
         constraint = escrow_token.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
     )]
@@ -220,7 +220,7 @@ pub struct CancelOrder<'info> {
     #[account(
         seeds = [b"protocol"],
         bump,
-        constraint = protocol.feature_flags.allow_trading @ PerpetualsError::FeatureDisabled
+        constraint = protocol.feature_flags.allow_trading @ PerpetualsError::TradingDisabled
     )]
     pub protocol: Account<'info, Protocol>,
 

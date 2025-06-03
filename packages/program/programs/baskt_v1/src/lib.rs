@@ -3,19 +3,24 @@ use anchor_lang::prelude::*;
 
 pub mod constants;
 pub mod error;
+pub mod events;
 pub mod instructions;
 pub mod math;
 pub mod state;
-pub mod utils;
-pub mod events;
 
 declare_id!("GK52S4WZPVEAMAgjRf8XsBd7upmG862AjMF89HavDpkm");
 
-use instructions::*;
-use crate::state::order::OrderAction;
 use crate::instructions::baskt::ActivateBasktParams;
-use crate::instructions::position::{OpenPositionParams, AddCollateralParams, ClosePositionParams, LiquidatePositionParams};
 use crate::instructions::protocol::UpdateFeatureFlagsParams;
+use crate::state::order::OrderAction;
+use instructions::*;
+// Import position instruction structs and params
+use crate::instructions::position::{
+    open::{OpenPosition, OpenPositionParams},
+    add_collateral::{AddCollateral, AddCollateralParams},
+    close::{ClosePosition, ClosePositionParams},
+    liquidate::{LiquidatePosition, LiquidatePositionParams},
+};
 
 #[program]
 pub mod baskt_v1 {
@@ -41,15 +46,16 @@ pub mod baskt_v1 {
         instructions::protocol::update_feature_flags(ctx, params)
     }
 
+    pub fn initialize_registry(ctx: Context<InitializeRegistry>) -> Result<()> {
+        instructions::protocol::initialize_registry(ctx)
+    }
+
     // Baskt Management
     pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Result<()> {
         instructions::baskt::create_baskt(ctx, params)
     }
 
-    pub fn activate_baskt(
-        ctx: Context<ActivateBaskt>,
-        params: ActivateBasktParams,
-    ) -> Result<()> {
+    pub fn activate_baskt(ctx: Context<ActivateBaskt>, params: ActivateBasktParams) -> Result<()> {
         instructions::baskt::activate_baskt(ctx, params)
     }
 
@@ -65,8 +71,24 @@ pub mod baskt_v1 {
         instructions::oracle::update_custom_oracle(ctx, price)
     }
 
-    pub fn create_order(ctx: Context<CreateOrder>, order_id: u64, size: u64, collateral: u64, is_long: bool, action: OrderAction, target_position: Option<Pubkey>) -> Result<()> {
-        instructions::order::create_order(ctx, order_id, size, collateral, is_long, action, target_position)
+    pub fn create_order(
+        ctx: Context<CreateOrder>,
+        order_id: u64,
+        size: u64,
+        collateral: u64,
+        is_long: bool,
+        action: OrderAction,
+        target_position: Option<Pubkey>,
+    ) -> Result<()> {
+        instructions::order::create_order(
+            ctx,
+            order_id,
+            size,
+            collateral,
+            is_long,
+            action,
+            target_position,
+        )
     }
 
     pub fn cancel_order(ctx: Context<CancelOrder>) -> Result<()> {
@@ -74,19 +96,25 @@ pub mod baskt_v1 {
     }
 
     pub fn open_position(ctx: Context<OpenPosition>, params: OpenPositionParams) -> Result<()> {
-        instructions::position::open_position(ctx, params)
+        instructions::position::open::open_position(ctx, params)
     }
 
     pub fn add_collateral(ctx: Context<AddCollateral>, params: AddCollateralParams) -> Result<()> {
-        instructions::position::add_collateral(ctx, params)
+        instructions::position::add_collateral::add_collateral(ctx, params)
     }
 
-    pub fn close_position(ctx: Context<ClosePosition>, params: ClosePositionParams) -> Result<()> {
-        instructions::position::close_position(ctx, params)
+    pub fn close_position<'info>(
+        ctx: Context<'_, '_, 'info, 'info, ClosePosition<'info>>, 
+        params: ClosePositionParams
+    ) -> Result<()> {
+        instructions::position::close::close_position(ctx, params)
     }
 
-    pub fn liquidate_position(ctx: Context<LiquidatePosition>, params: LiquidatePositionParams) -> Result<()> {
-        instructions::position::liquidate_position(ctx, params)
+    pub fn liquidate_position<'info>(
+        ctx: Context<'_, '_, 'info, 'info, LiquidatePosition<'info>>,
+        params: LiquidatePositionParams,
+    ) -> Result<()> {
+        instructions::position::liquidate::liquidate_position(ctx, params)
     }
 
     // Liquidity Pool Management
@@ -96,7 +124,12 @@ pub mod baskt_v1 {
         withdrawal_fee_bps: u16,
         min_deposit: u64,
     ) -> Result<()> {
-        instructions::liquidity::initialize_liquidity_pool(ctx, deposit_fee_bps, withdrawal_fee_bps, min_deposit)
+        instructions::liquidity::initialize_liquidity_pool(
+            ctx,
+            deposit_fee_bps,
+            withdrawal_fee_bps,
+            min_deposit,
+        )
     }
 
     pub fn add_liquidity(
@@ -116,16 +149,11 @@ pub mod baskt_v1 {
     }
 
     // Funding Index Management
-    pub fn initialize_funding_index(
-        ctx: Context<InitializeFundingIndex>,
-    ) -> Result<()> {
+    pub fn initialize_funding_index(ctx: Context<InitializeFundingIndex>) -> Result<()> {
         instructions::funding_index::initialize_funding_index(ctx)
     }
 
-    pub fn update_funding_index(
-        ctx: Context<UpdateFundingIndex>,
-        new_rate: i64,
-    ) -> Result<()> {
+    pub fn update_funding_index(ctx: Context<UpdateFundingIndex>, new_rate: i64) -> Result<()> {
         instructions::funding_index::update_funding_index(ctx, new_rate)
     }
 }

@@ -1,8 +1,9 @@
 use {
+    crate::constants::MAX_FEE_BPS,
     crate::error::PerpetualsError,
     crate::events::*,
     crate::state::{
-        liquidity::{LiquidityPool, MAX_FEE_BPS},
+        liquidity::LiquidityPool,
         protocol::{Protocol, Role},
     },
     anchor_lang::prelude::*,
@@ -26,7 +27,7 @@ pub struct InitializeLiquidityPool<'info> {
     #[account(
         seeds = [b"protocol"],
         bump,
-        constraint = protocol.has_permission(admin.key(), Role::Owner) @ PerpetualsError::Unauthorized
+        constraint = protocol.has_permission(admin.key(), Role::Owner) @ PerpetualsError::UnauthorizedRole
     )]
     pub protocol: Account<'info, Protocol>,
 
@@ -96,7 +97,7 @@ pub struct AddLiquidity<'info> {
     #[account(
         seeds = [b"protocol"],
         bump,
-        constraint = protocol.feature_flags.allow_add_liquidity @ PerpetualsError::FeatureDisabled
+        constraint = protocol.feature_flags.allow_add_liquidity @ PerpetualsError::LiquidityOperationsDisabled
     )]
     pub protocol: Account<'info, Protocol>,
 
@@ -188,7 +189,7 @@ pub struct RemoveLiquidity<'info> {
     #[account(
         seeds = [b"protocol"],
         bump,
-        constraint = protocol.feature_flags.allow_remove_liquidity @ PerpetualsError::FeatureDisabled
+        constraint = protocol.feature_flags.allow_remove_liquidity @ PerpetualsError::LiquidityOperationsDisabled
     )]
     pub protocol: Account<'info, Protocol>,
 
@@ -271,11 +272,11 @@ pub fn initialize_liquidity_pool(
 ) -> Result<()> {
     // Validate inputs
     require!(
-        deposit_fee_bps <= MAX_FEE_BPS,
+        deposit_fee_bps as u64 <= MAX_FEE_BPS,
         PerpetualsError::InvalidFeeBps
     ); // Max 5%
     require!(
-        withdrawal_fee_bps <= MAX_FEE_BPS,
+        withdrawal_fee_bps as u64 <= MAX_FEE_BPS,
         PerpetualsError::InvalidFeeBps
     ); // Max 5%
 

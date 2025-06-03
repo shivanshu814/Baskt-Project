@@ -273,6 +273,18 @@ export class TestClient extends BaseClient {
   }
 
   /**
+   * Find the protocol registry PDA
+   * @returns The protocol registry PDA
+   */
+  public async findProtocolRegistryPDA(): Promise<PublicKey> {
+    const [registry] = PublicKey.findProgramAddressSync(
+      [Buffer.from('protocol_registry')],
+      this.program.programId,
+    );
+    return registry;
+  }
+
+  /**
    * Find the pool authority PDA
    * @param liquidityPool The liquidity pool PDA
    * @returns The pool authority PDA
@@ -283,6 +295,30 @@ export class TestClient extends BaseClient {
       this.program.programId,
     );
     return poolAuthority;
+  }
+
+  /**
+   * Get the protocol registry account
+   * @returns Protocol registry account data or null if not initialized
+   */
+  public async getProtocolRegistry(): Promise<any | null> {
+    const registry = await this.findProtocolRegistryPDA();
+    try {
+      return await this.program.account.protocolRegistry.fetch(registry);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Initialize the protocol registry
+   * This must be called after the protocol and liquidity pool are initialized
+   * @returns Registry public key
+   */
+  public async initializeProtocolRegistry(): Promise<PublicKey> {
+    // Import the function from protocol_setup to avoid circular dependencies
+    const { initializeProtocolRegistry } = await import('./protocol_setup');
+    return await initializeProtocolRegistry(this);
   }
 
   /**
@@ -536,7 +572,7 @@ export class TestClient extends BaseClient {
   }
 
   /**
-   * Open a position; wraps the program openPosition with all required account PDAs
+   * Open a position using the registry pattern
    */
   public async openPosition(params: {
     positionId: BN;
@@ -546,27 +582,33 @@ export class TestClient extends BaseClient {
     fundingIndex: PublicKey;
     baskt: PublicKey;
   }): Promise<string> {
+    // Ensure registry is initialized
+    const registry = await this.getProtocolRegistry();
+    if (!registry) {
+      throw new Error('ProtocolRegistry not initialized. Please initialize the registry before opening positions.');
+    }
+
     // Fetch the order account to get the owner
     const orderAccount = await this.program.account.order.fetch(params.order);
 
-    // Derive program authority PDA
+    // Find registry PDA
+    const registryPDA = await this.findProtocolRegistryPDA();
+
+    // Derive PDAs
     const [programAuthority] = PublicKey.findProgramAddressSync(
       [Buffer.from('authority')],
       this.program.programId,
     );
-    // Use USDC escrow mint
-    const escrowMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
-    // Derive user escrow account PDA using the order owner's key
     const [orderEscrow] = PublicKey.findProgramAddressSync(
       [Buffer.from('user_escrow'), orderAccount.owner.toBuffer()],
       this.program.programId,
     );
-    // Derive position escrow PDA
     const [escrowToken] = PublicKey.findProgramAddressSync(
       [Buffer.from('escrow'), params.position.toBuffer()],
       this.program.programId,
     );
-    // Call openPosition with full account context
+
+    // Call openPosition with registry
     return await this.program.methods
       .openPosition({ positionId: params.positionId, entryPrice: params.entryPrice })
       .accounts({
@@ -575,26 +617,36 @@ export class TestClient extends BaseClient {
         position: params.position,
         fundingIndex: params.fundingIndex,
         baskt: params.baskt,
+        registry: registryPDA,
         protocol: this.protocolPDA,
-        systemProgram: SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        escrowMint: escrowMint,
         orderEscrow: orderEscrow,
         escrowToken: escrowToken,
+        escrowMint: registry.escrowMint,
         programAuthority: programAuthority,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
       } as any)
       .rpc();
   }
 
   /**
-   * Add collateral to a position using the on-chain instruction
+   * Add collateral to a position using the registry pattern
    */
   public async addCollateral(params: {
     position: PublicKey;
     additionalCollateral: BN;
     ownerTokenAccount: PublicKey;
   }): Promise<string> {
+    // Ensure registry is initialized
+    const registry = await this.getProtocolRegistry();
+    if (!registry) {
+      throw new Error('ProtocolRegistry not initialized. Please initialize the registry before adding collateral.');
+    }
+
+    // Find registry PDA
+    const registryPDA = await this.findProtocolRegistryPDA();
+
     // Derive PDAs
     const [programAuthority] = PublicKey.findProgramAddressSync(
       [Buffer.from('authority')],
@@ -604,6 +656,7 @@ export class TestClient extends BaseClient {
       [Buffer.from('escrow'), params.position.toBuffer()],
       this.program.programId,
     );
+
     return await this.program.methods
       .addCollateral({ additionalCollateral: params.additionalCollateral })
       .accounts({
@@ -611,6 +664,7 @@ export class TestClient extends BaseClient {
         position: params.position,
         ownerToken: params.ownerTokenAccount,
         escrowToken: escrowToken,
+        registry: registryPDA,
         programAuthority: programAuthority,
         protocol: this.protocolPDA,
         tokenProgram: TOKEN_PROGRAM_ID,
@@ -619,7 +673,7 @@ export class TestClient extends BaseClient {
   }
 
   /**
-   * Close a position using the on-chain instruction
+   * Close a position using the registry pattern with remaining accounts
    */
   public async closePosition(params: {
     orderPDA: PublicKey;
@@ -631,33 +685,76 @@ export class TestClient extends BaseClient {
     treasury: PublicKey;
     treasuryTokenAccount: PublicKey;
   }): Promise<string> {
+    // Ensure registry is initialized
+    const registry = await this.getProtocolRegistry();
+    if (!registry) {
+      throw new Error('ProtocolRegistry not initialized. Please initialize the registry before closing positions.');
+    }
+
+    // Fetch the position to get the owner
+    const positionAccount = await this.program.account.position.fetch(params.position);
+
+    // Find registry PDA
+    const registryPDA = await this.findProtocolRegistryPDA();
+
+    // Derive PDAs
     const [escrowToken] = PublicKey.findProgramAddressSync(
       [Buffer.from('escrow'), params.position.toBuffer()],
       this.program.programId,
     );
-    // Derive liquidity pool PDAs and fetch token vault
-    const liquidityPool = await this.findLiquidityPoolPDA();
-    const poolAccount = await this.program.account.liquidityPool.fetch(liquidityPool);
-    const tokenVault = poolAccount.tokenVault;
+    const [programAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from('authority')],
+      this.program.programId,
+    );
+
+    // Find liquidity pool and get token vault
+    const liquidityPoolPDA = await this.findLiquidityPoolPDA();
+    const liquidityPool = await this.program.account.liquidityPool.fetch(liquidityPoolPDA);
+    const tokenVault = liquidityPool.tokenVault;
+
+    // Prepare remaining accounts in the correct order
+    const remainingAccounts = [
+      {
+        pubkey: params.ownerTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: params.treasuryTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: tokenVault,
+        isSigner: false,
+        isWritable: true,
+      },
+    ];
+
     return await this.program.methods
       .closePosition({ exitPrice: params.exitPrice })
-      .accountsPartial({
+      .accounts({
         matcher: this.getPublicKey(),
-        baskt: params.baskt,
-        escrowToken: escrowToken,
-        ownerToken: params.ownerTokenAccount,
-        tokenVault: tokenVault,
-        treasury: params.treasury,
-        treasuryToken: params.treasuryTokenAccount,
         order: params.orderPDA,
         position: params.position,
+        positionOwner: positionAccount.owner,
         fundingIndex: params.fundingIndex,
-      })
+        baskt: params.baskt,
+        registry: registryPDA,
+        protocol: this.protocolPDA,
+        liquidityPool: liquidityPoolPDA,
+        escrowToken: escrowToken,
+        programAuthority: programAuthority,
+        poolAuthority: registry.poolAuthority,
+        treasury: params.treasury,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      } as any)
+      .remainingAccounts(remainingAccounts)
       .rpc();
   }
 
   /**
-   * Liquidate a position using the on-chain instruction
+   * Liquidate a position using the registry pattern with remaining accounts
    */
   public async liquidatePosition(params: {
     position: PublicKey;
@@ -668,7 +765,19 @@ export class TestClient extends BaseClient {
     treasury: PublicKey;
     treasuryTokenAccount: PublicKey;
   }): Promise<string> {
-    // Derive program authority and escrow token PDAs
+    // Ensure registry is initialized
+    const registry = await this.getProtocolRegistry();
+    if (!registry) {
+      throw new Error('ProtocolRegistry not initialized. Please initialize the registry before liquidating positions.');
+    }
+
+    // Fetch the position to get the owner
+    const positionAccount = await this.program.account.position.fetch(params.position);
+
+    // Find registry PDA
+    const registryPDA = await this.findProtocolRegistryPDA();
+
+    // Derive PDAs
     const [programAuthority] = PublicKey.findProgramAddressSync(
       [Buffer.from('authority')],
       this.program.programId,
@@ -677,30 +786,49 @@ export class TestClient extends BaseClient {
       [Buffer.from('escrow'), params.position.toBuffer()],
       this.program.programId,
     );
-    // Derive liquidity pool PDAs and fetch token vault
-    const liquidityPool = await this.findLiquidityPoolPDA();
-    const poolAuthority = await this.findPoolAuthorityPDA(liquidityPool);
-    const poolAccount = await this.program.account.liquidityPool.fetch(liquidityPool);
-    const tokenVault = poolAccount.tokenVault;
+
+    // Find liquidity pool and get token vault
+    const liquidityPoolPDA = await this.findLiquidityPoolPDA();
+    const liquidityPool = await this.program.account.liquidityPool.fetch(liquidityPoolPDA);
+    const tokenVault = liquidityPool.tokenVault;
+
+    // Prepare remaining accounts in the correct order
+    const remainingAccounts = [
+      {
+        pubkey: params.ownerTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: params.treasuryTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: tokenVault,
+        isSigner: false,
+        isWritable: true,
+      },
+    ];
+
     return await this.program.methods
       .liquidatePosition({ exitPrice: params.exitPrice })
       .accounts({
         liquidator: this.getPublicKey(),
         position: params.position,
+        positionOwner: positionAccount.owner,
         fundingIndex: params.fundingIndex,
         baskt: params.baskt,
-        ownerToken: params.ownerTokenAccount,
-        escrowToken: escrowToken,
-        treasury: params.treasury,
-        treasuryToken: params.treasuryTokenAccount,
-        programAuthority: programAuthority,
+        registry: registryPDA,
         protocol: this.protocolPDA,
-        // liquidity pool accounts for settlement
-        liquidityPool: liquidityPool,
-        tokenVault: tokenVault,
-        poolAuthority: poolAuthority,
+        liquidityPool: liquidityPoolPDA,
+        treasury: registry.treasury,
+        escrowToken: escrowToken,
+        programAuthority: programAuthority,
+        poolAuthority: registry.poolAuthority,
         tokenProgram: TOKEN_PROGRAM_ID,
       } as any)
+      .remainingAccounts(remainingAccounts)
       .rpc();
   }
 }

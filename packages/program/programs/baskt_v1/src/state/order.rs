@@ -24,15 +24,15 @@ pub enum OrderStatus {
 #[derive(InitSpace)]
 pub struct Order {
     pub owner: Pubkey,
-    pub order_id: u64,                    // Unique identifier (timestamp-based)
-    pub baskt_id: Pubkey,                 // Reference to basket
-    pub size: u64,                        // Position size
-    pub collateral: u64,                  // Collateral amount
-    pub is_long: bool,                    // Direction
-    pub action: OrderAction,              // Open or Close
-    pub status: OrderStatus,              // Pending, Filled, Cancelled
-    pub timestamp: i64,                   // Creation timestamp
-    pub target_position: Option<Pubkey>,  // For close orders
+    pub order_id: u64,                   // Unique identifier (timestamp-based)
+    pub baskt_id: Pubkey,                // Reference to basket
+    pub size: u64,                       // Position size
+    pub collateral: u64,                 // Collateral amount
+    pub is_long: bool,                   // Direction
+    pub action: OrderAction,             // Open or Close
+    pub status: OrderStatus,             // Pending, Filled, Cancelled
+    pub timestamp: i64,                  // Creation timestamp
+    pub target_position: Option<Pubkey>, // For close orders
     pub bump: u8,
 }
 
@@ -65,14 +65,20 @@ impl Order {
     }
 
     pub fn fill(&mut self) -> Result<()> {
-        require!(self.status == OrderStatus::Pending, PerpetualsError::OrderAlreadyProcessed);
+        require!(
+            self.status == OrderStatus::Pending,
+            PerpetualsError::OrderAlreadyProcessed
+        );
         self.status = OrderStatus::Filled;
         Ok(())
     }
 
     pub fn cancel(&mut self) -> Result<()> {
-        require!(self.status == OrderStatus::Pending, PerpetualsError::OrderAlreadyProcessed);
+        require!(
+            self.status == OrderStatus::Pending,
+            PerpetualsError::OrderAlreadyProcessed
+        );
         self.status = OrderStatus::Cancelled;
         Ok(())
     }
-} 
+}

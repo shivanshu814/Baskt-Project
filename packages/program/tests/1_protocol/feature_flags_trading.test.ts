@@ -4,6 +4,7 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { BN } from '@coral-xyz/anchor';
 import { AccessControlRole } from '@baskt/types';
+import { initializeProtocolWithRegistry } from '../utils/protocol_setup';
 
 describe('protocol feature flags - trading operations', () => {
   // Get the test client instance
@@ -35,19 +36,12 @@ describe('protocol feature flags - trading operations', () => {
   let fundingIndexPDA: PublicKey;
 
   before(async () => {
-    // Check if protocol is already initialized
-    try {
-      await client.getProtocolAccount();
-    } catch (error) {
-      try {
-        await client.initializeProtocol();
-      } catch (initError) {
-        // Protocol might already be initialized
-      }
-    }
-
-    // Initialize roles
-    await client.initializeRoles();
+    // Initialize protocol with registry
+    await initializeProtocolWithRegistry(client, {
+      depositFeeBps: 50,
+      withdrawalFeeBps: 50,
+      minDeposit: new BN(1 * 10 ** 6),
+    });
 
     // Create test keypairs
     user = Keypair.generate();
@@ -141,29 +135,12 @@ describe('protocol feature flags - trading operations', () => {
       COLLATERAL_AMOUNT.muln(20).toNumber(), // 20x for multiple tests
     );
 
-    // Initialize liquidity pool for position closing tests
-    const depositFeeBps = 50; // 0.5%
-    const withdrawalFeeBps = 50; // 0.5%
-    const minDeposit = new BN(1 * 10 ** 6); // 1 USDC
+    // Add liquidity to the pool (already initialized by initializeProtocolWithRegistry)
+    const liquidityAmount = new BN(1_000_000_000); // 1000 USDC
+    const adminTokenAccount = await client.getOrCreateUSDCAccount(client.publicKey);
 
-    try {
-      await client.setupLiquidityPool({
-        depositFeeBps,
-        withdrawalFeeBps,
-        minDeposit,
-        collateralMint: USDC_MINT,
-      });
-
-      // Add liquidity to the pool
-      const liquidityAmount = new BN(1_000_000_000); // 1000 USDC
-      const adminTokenAccount = await client.getOrCreateUSDCAccount(client.publicKey);
-
-      // Mint USDC to admin for liquidity
-      await client.mintUSDC(adminTokenAccount, liquidityAmount.toNumber());
-    } catch (e) {
-      // Log the error for debugging - this is critical for tests
-      console.error('Failed to setup liquidity pool:', e);
-    }
+    // Mint USDC to admin for liquidity
+    await client.mintUSDC(adminTokenAccount, liquidityAmount.toNumber());
   });
 
   describe('create order feature flag', () => {
@@ -249,7 +226,7 @@ describe('protocol feature flags - trading operations', () => {
         });
         expect.fail('Should have failed due to disabled feature flag');
       } catch (error: any) {
-        expect(error.toString()).to.include('FeatureDisabled');
+        expect(error.toString()).to.include('TradingDisabled');
       }
     });
 
@@ -309,12 +286,11 @@ describe('protocol feature flags - trading operations', () => {
       try {
         await userClient.cancelOrder({
           orderPDA,
-          orderIdNum: orderId,
           ownerTokenAccount: userTokenAccount,
         });
         expect.fail('Should have failed due to disabled feature flag');
       } catch (error: any) {
-        expect(error.toString()).to.include('FeatureDisabled');
+        expect(error.toString()).to.include('TradingDisabled');
       }
     });
   });
@@ -406,7 +382,7 @@ describe('protocol feature flags - trading operations', () => {
         });
         expect.fail('Should have failed due to disabled feature flag');
       } catch (error: any) {
-        expect(error.toString()).to.include('FeatureDisabled');
+        expect(error.toString()).to.include('PositionOperationsDisabled');
       }
     });
 
@@ -456,7 +432,7 @@ describe('protocol feature flags - trading operations', () => {
         });
         expect.fail('Should have failed due to disabled feature flag');
       } catch (error: any) {
-        expect(error.toString()).to.include('FeatureDisabled');
+        expect(error.toString()).to.include('PositionOperationsDisabled');
       }
     });
   });
@@ -595,7 +571,7 @@ describe('protocol feature flags - trading operations', () => {
         });
         expect.fail('Should have failed due to disabled feature flag');
       } catch (error: any) {
-        expect(error.toString()).to.include('FeatureDisabled');
+        expect(error.toString()).to.include('PositionOperationsDisabled');
       }
     });
 
@@ -693,7 +669,7 @@ describe('protocol feature flags - trading operations', () => {
         });
         expect.fail('Should have failed due to disabled feature flag');
       } catch (error: any) {
-        expect(error.toString()).to.include('FeatureDisabled');
+        expect(error.toString()).to.include('PositionOperationsDisabled');
       }
     });
   });
@@ -809,7 +785,7 @@ describe('protocol feature flags - trading operations', () => {
         });
         expect.fail('Should have failed due to disabled feature flag');
       } catch (error: any) {
-        expect(error.toString()).to.include('FeatureDisabled');
+        expect(error.toString()).to.include('PositionOperationsDisabled');
       }
     });
   });

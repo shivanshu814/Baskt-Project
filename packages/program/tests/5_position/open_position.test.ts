@@ -3,10 +3,10 @@ import { describe, it, before } from 'mocha';
 import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
 import BN from 'bn.js';
 import { TestClient, requestAirdrop } from '../utils/test-client';
-import { AccessControlRole } from '@baskt/types';
-import { initializeProtocolAndRoles, getGlobalTestAccounts } from '../utils/test-setup';
+import { initializeProtocolAndRoles } from '../utils/test-setup';
+import { initializeProtocolRegistry } from '../utils/protocol_setup';
 
-xdescribe('Position Opening', () => {
+describe('Position Opening', () => {
   // Get the test client instance
   const client = TestClient.getInstance();
 
@@ -144,6 +144,17 @@ xdescribe('Position Opening', () => {
       userTokenAccount,
       COLLATERAL_AMOUNT.muln(10).toNumber() // 10x for multiple tests
     );
+
+    // Set up a minimal liquidity pool (required for registry initialization)
+    await client.setupLiquidityPool({
+      depositFeeBps: 0,
+      withdrawalFeeBps: 0,
+      minDeposit: new BN(0),
+      collateralMint,
+    });
+
+    // Initialize the protocol registry after liquidity pool setup
+    await initializeProtocolRegistry(client);
 
     // Generate unique IDs for order and position
     orderId = new BN(Date.now());

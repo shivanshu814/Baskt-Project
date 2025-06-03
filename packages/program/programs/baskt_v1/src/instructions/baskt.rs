@@ -1,4 +1,4 @@
-use crate::constants::Constants;
+use crate::constants::{BPS_DIVISOR, PRICE_PRECISION, BASE_NAV};
 use crate::error::PerpetualsError;
 use crate::events::BasktCreatedEvent;
 use crate::state::asset::SyntheticAsset;
@@ -14,17 +14,16 @@ fn get_baskt_name_seed(baskt_name: &str) -> [u8; 32] {
 
 // Helper function to check if an authority can activate a baskt
 fn can_activate_baskt(baskt: &Baskt, authority: Pubkey, protocol: &Protocol) -> bool {
-    baskt.creator == authority || 
-    protocol.has_permission(authority, Role::OracleManager)
+    baskt.creator == authority || protocol.has_permission(authority, Role::OracleManager)
 }
 
 #[derive(Accounts)]
 #[instruction(params: CreateBasktParams)]
 pub struct CreateBaskt<'info> {
     #[account(
-        init, 
-        payer = creator, 
-        space = 8 + Baskt::INIT_SPACE, 
+        init,
+        payer = creator,
+        space = 8 + Baskt::INIT_SPACE,
         seeds = [b"baskt", &get_baskt_name_seed(&params.baskt_name)[..]], 
         bump
     )]
@@ -36,7 +35,7 @@ pub struct CreateBaskt<'info> {
     #[account(seeds = [b"protocol"], bump)]
     pub protocol: Account<'info, Protocol>,
 
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -60,12 +59,12 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
     let remaining = &ctx.remaining_accounts;
     // Check if baskt creation is allowed
     if !protocol.feature_flags.allow_baskt_creation {
-        return Err(PerpetualsError::FeatureDisabled.into());
+        return Err(PerpetualsError::BasktOperationsDisabled.into());
     }
 
     // Validate weights sum to 100%
     let total_weight: u64 = params.asset_params.iter().map(|config| config.weight).sum();
-    if total_weight != 10000 {
+    if total_weight != BPS_DIVISOR {
         return Err(PerpetualsError::InvalidBasktConfig.into());
     }
 
@@ -96,16 +95,16 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
     }
 
     let asset_configs: Vec<AssetConfig> = params
-    .asset_params
-    .iter()
-    .enumerate()
-    .map(|(i, config)| AssetConfig {
-        asset_id: remaining[i].key(),
-        direction: config.direction,
-        weight: config.weight,
-        baseline_price: 0,
-    })
-    .collect();
+        .asset_params
+        .iter()
+        .enumerate()
+        .map(|(i, config)| AssetConfig {
+            asset_id: remaining[i].key(),
+            direction: config.direction,
+            weight: config.weight,
+            baseline_price: 0,
+        })
+        .collect();
 
     baskt.initialize(
         baskt_key,
@@ -114,7 +113,7 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
         params.is_public,
         creator.key(),
         clock.unix_timestamp,
-        ctx.bumps.baskt
+        ctx.bumps.baskt,
     )?;
 
     emit!(BasktCreatedEvent {
@@ -133,12 +132,12 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
 #[instruction(params: ActivateBasktParams)]
 pub struct ActivateBaskt<'info> {
     #[account(
-        mut, 
+        mut,
         seeds = [b"baskt", &get_baskt_name_seed(&baskt.baskt_name)[..]], 
         bump = baskt.bump
     )]
     pub baskt: Account<'info, Baskt>,
-    
+
     /// @dev Requires either baskt creator or OracleManager role to activate baskts
     #[account(seeds = [b"protocol"], bump)]
     pub protocol: Account<'info, Protocol>,
@@ -153,17 +152,14 @@ pub struct ActivateBasktParams {
     pub max_price_age_sec: u32,
 }
 
-pub fn activate_baskt(
-    ctx: Context<ActivateBaskt>,
-    params: ActivateBasktParams,
-) -> Result<()> {
+pub fn activate_baskt(ctx: Context<ActivateBaskt>, params: ActivateBasktParams) -> Result<()> {
     require!(
-        ctx.accounts.baskt.is_active == false,
+        !ctx.accounts.baskt.is_active,
         PerpetualsError::BasktAlreadyActive
     );
     let baskt = &mut ctx.accounts.baskt;
 
-    let current_nav = 100 * Constants::PRICE_PRECISION;
+    let current_nav = BASE_NAV * PRICE_PRECISION;
 
     // Check if the number of prices matches the number of assets in the baskt
     if params.prices.len() != baskt.current_asset_configs.len() {
@@ -172,7 +168,7 @@ pub fn activate_baskt(
 
     // Activate the baskt with the provided prices
     baskt.activate(params.prices, current_nav)?;
-    
+
     // Set oracle params and validate max_price_age_sec
     baskt.oracle.set(
         current_nav,

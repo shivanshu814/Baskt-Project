@@ -1,20 +1,19 @@
+use anchor_lang::solana_program::keccak;
 use {
+    crate::constants::MAX_FUNDING_RATE_BPS,
+    crate::error::PerpetualsError,
     crate::state::{
         baskt::Baskt,
         funding_index::FundingIndex,
-        protocol::{Protocol, Role}
+        protocol::{Protocol, Role},
     },
-    crate::error::PerpetualsError,
-    crate::constants::Constants,
     anchor_lang::prelude::*,
 };
-use anchor_lang::solana_program::keccak;
 
 // Make this a helper function that returns the right type for seeds
 fn get_baskt_name_seed(baskt_name: &str) -> [u8; 32] {
     keccak::hash(baskt_name.as_bytes()).to_bytes()
 }
-
 
 //----------------------------------------------------------------------------
 // Initialize Funding Index Instruction
@@ -23,7 +22,7 @@ fn get_baskt_name_seed(baskt_name: &str) -> [u8; 32] {
 #[derive(Accounts)]
 pub struct InitializeFundingIndex<'info> {
     /// @dev Requires Owner role to initialize funding indices
-    #[account(mut, constraint = protocol.has_permission(authority.key(), Role::Owner) @ PerpetualsError::Unauthorized)]
+    #[account(mut, constraint = protocol.has_permission(authority.key(), Role::Owner) @ PerpetualsError::UnauthorizedRole)]
     pub authority: Signer<'info>,
 
     #[account(
@@ -45,7 +44,7 @@ pub struct InitializeFundingIndex<'info> {
     #[account(seeds = [b"protocol"], bump)]
     pub protocol: Account<'info, Protocol>,
 
-    pub system_program: Program<'info, System>
+    pub system_program: Program<'info, System>,
 }
 
 pub fn initialize_funding_index(ctx: Context<InitializeFundingIndex>) -> Result<()> {
@@ -74,7 +73,7 @@ pub fn initialize_funding_index(ctx: Context<InitializeFundingIndex>) -> Result<
 #[instruction(new_rate: i64)] // BPS
 pub struct UpdateFundingIndex<'info> {
     /// @dev Requires FundingManager role to update funding indices
-    #[account(mut, constraint = protocol.has_permission(authority.key(), Role::FundingManager) @ PerpetualsError::Unauthorized)]
+    #[account(mut, constraint = protocol.has_permission(authority.key(), Role::FundingManager) @ PerpetualsError::UnauthorizedRole)]
     pub authority: Signer<'info>,
 
     #[account(
@@ -95,14 +94,13 @@ pub struct UpdateFundingIndex<'info> {
     pub protocol: Account<'info, Protocol>,
 }
 
-
 pub fn update_funding_index(ctx: Context<UpdateFundingIndex>, new_rate: i64) -> Result<()> {
     // Validate the new rate is within bounds
     require!(
-        new_rate.abs() as u64 <= Constants::MAX_FUNDING_RATE_BPS,
+        new_rate.unsigned_abs() <= MAX_FUNDING_RATE_BPS,
         PerpetualsError::FundingRateExceedsMaximum
     );
-    
+
     let funding_index = &mut ctx.accounts.funding_index;
     let clock = Clock::get()?;
 
