@@ -43,7 +43,7 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                   <TableCell className="capitalize">{asset.direction ? 'long' : 'short'}</TableCell>
                   <TableCell>{asset.weight}%</TableCell>
                   <TableCell>
-                    {asset.baselinePrice !== undefined ? `$${(asset.baselinePrice / 1e9).toFixed(2)}` : 'Price Unavailable'}
+                    {asset.baselinePrice !== undefined ? `$${(asset.baselinePrice / 1e9).toFixed(8)}` : 'Price Unavailable'}
                   </TableCell>
                   <TableCell>
                     {asset.price !== undefined ? `$${asset.price.toFixed(asset.price < 0.0001 ? 8 : 4)}` : 'Price Unavailable'}
