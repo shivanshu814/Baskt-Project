@@ -1,7 +1,7 @@
 import { ReactNode, ComponentType } from 'react';
 import { TabId } from '../constants/tabs';
 import { Baskt } from './baskt';
-import { Asset } from './asset';
+import { Asset } from './assets';
 import { Role, Permission } from './roles';
 
 export interface AdminTabsProps {
@@ -17,8 +17,8 @@ export interface AdminTabsProps {
 export interface TabConfig {
   id: TabId;
   label: string;
-  component: ComponentType<any>;
-  actionButton?: ComponentType<any>;
+  component: ComponentType<any>; // eslint-disable-line
+  actionButton?: ComponentType<any>; // eslint-disable-line
   requiresOwner?: boolean;
   requiresPermission?: boolean;
   permissionKey?: string;
@@ -93,4 +93,9 @@ export interface AdminState {
 export interface RootState {
   auth: AuthState;
   admin: AdminState;
+}
+
+export interface AdminNavbarProps {
+  setSidebarOpen: (open: boolean) => void;
+  className?: string;
 }

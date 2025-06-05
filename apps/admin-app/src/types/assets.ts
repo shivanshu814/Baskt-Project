@@ -107,3 +107,28 @@ export const assetFormSchema = z.object({
 });
 
 export type AssetFormValues = z.infer<typeof assetFormSchema>;
+
+export interface PriceHistoryTableProps {
+  data: any[]; // eslint-disable-line
+  isLoading: boolean;
+  error?: Error | null;
+}
+
+export interface FiltersSectionProps {
+  range: {
+    start: Date;
+    end: Date;
+  };
+  all: boolean;
+  onRangeChange: (e: React.ChangeEvent<HTMLInputElement>, type: 'start' | 'end') => void;
+  onAllChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFetch: () => void;
+  onBack?: () => void;
+}
+
+export interface AssetHeaderProps {
+  assetName: string;
+  assetAddress: string;
+  assetLogo?: string;
+  ticker?: string;
+}

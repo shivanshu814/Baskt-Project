@@ -53,6 +53,7 @@ export function useAdminDashboard() {
             userPermissions.add('manage_liquidity');
           }
           setPermissions(userPermissions);
+          // eslint-disable-next-line
         } catch (err: any) {
           setIsOwner(false);
           setError(err?.message || 'Failed to fetch protocol info');

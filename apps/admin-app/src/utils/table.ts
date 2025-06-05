@@ -2,6 +2,7 @@
  * Table utility functions
  */
 
+// eslint-disable-next-line
 export const formatTableValue = (value: any, defaultValue: string = '-'): string => {
   if (value === null || value === undefined) return defaultValue;
   return String(value);

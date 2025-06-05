@@ -5,12 +5,7 @@ import { ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { cn } from '@baskt/ui';
 import { useMemo } from 'react';
-import { BasktInfo } from '@baskt/types';
-
-interface BasktCardProps {
-  baskt: BasktInfo;
-  className?: string;
-}
+import { BasktCardProps } from '../../types/baskt';
 
 const DEFAULT_SPARKLINE = Array(24).fill(0);
 
@@ -51,7 +46,6 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
     };
   }, [baskt]);
 
-
   const gradientId = `gradient-${baskt.basktId}`;
 
   return (
@@ -63,9 +57,6 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
           </div>
           <div>
             <h3 className="font-semibold">{baskt.name || 'Unnamed Baskt'}</h3>
-            <p className="text-sm text-muted-foreground">
-              {baskt.categories?.[0] || 'Uncategorized'}
-            </p>
           </div>
         </div>
         <div className={cn('flex items-center text-sm font-medium', changeColor)}>

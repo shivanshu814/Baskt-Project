@@ -15,11 +15,7 @@ import { User, LogOut, ShieldCheck, Wallet } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from '../ui/navigation-menu';
 import { useState } from 'react';
-
-interface AdminNavbarProps {
-  setSidebarOpen: (open: boolean) => void;
-  className?: string;
-}
+import { AdminNavbarProps } from '../../types';
 
 export function AdminNavbar({ className }: AdminNavbarProps) {
   const router = useRouter();

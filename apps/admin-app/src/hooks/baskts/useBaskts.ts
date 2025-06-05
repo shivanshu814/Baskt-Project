@@ -3,13 +3,7 @@ import { trpc } from '../../utils/trpc';
 import { useBasktClient } from '@baskt/ui';
 import { PublicKey } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
-import { BasktData, BasktAsset } from '../../types/baskt';
-
-interface BasktResponse {
-  success: boolean;
-  data: BasktData[];
-  message?: string;
-}
+import { BasktData, BasktAsset, BasktResponse } from '../../types/baskt';
 
 export function useBaskts() {
   const [activatingBasktId, setActivatingBasktId] = useState<string | null>(null);
@@ -26,7 +20,6 @@ export function useBaskts() {
     const basktInfo = basktList.find((baskt: BasktData) => baskt.basktId === basktId);
 
     if (!basktInfo) {
-      console.error('Baskt not found');
       return;
     }
 
@@ -35,6 +28,7 @@ export function useBaskts() {
         new PublicKey(basktId),
         basktInfo.assets.map((asset: BasktAsset) => new anchor.BN(asset.priceRaw)),
       );
+      // eslint-disable-next-line
     } catch (error) {
       console.error('Error activating baskt:', error);
     } finally {

@@ -7,6 +7,7 @@ export function useAssets() {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
   // Ensure each asset has an _id property for type compatibility
+  // eslint-disable-next-line
   const assets: Asset[] = (assetsRaw?.data || []).map((asset: any) => ({
     _id: asset._id || asset.assetAddress || asset.account?.address || '',
     ticker: asset.ticker,

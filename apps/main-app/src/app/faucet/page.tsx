@@ -1,5 +1,5 @@
-"use client";
-import Faucet from "../pool/Faucet";
+'use client';
+import Faucet from '../../components/faucet/Faucet';
 
 export default function FaucetPage() {
   return (

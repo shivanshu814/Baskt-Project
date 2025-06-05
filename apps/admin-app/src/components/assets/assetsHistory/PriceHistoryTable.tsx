@@ -4,12 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Loading } from '../../ui/loading';
 import { formatDate } from '../../../utils/date';
 import { formatTableValue, getTableRowKey } from '../../../utils/table';
-
-interface PriceHistoryTableProps {
-  data: any[];
-  isLoading: boolean;
-  error?: Error | null;
-}
+import { PriceHistoryTableProps } from '../../../types/assets';
 
 export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({ data, isLoading, error }) => {
   return (
@@ -44,6 +39,7 @@ export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({ data, isLo
               </TableCell>
             </TableRow>
           ) : (
+            // eslint-disable-next-line
             data.map((row: any, i: number) => (
               <TableRow key={getTableRowKey(i)} className="border-white/10">
                 <TableCell className="text-[#E5E7EB]">{formatDate(row.time)}</TableCell>

@@ -103,6 +103,7 @@ export function useRoles() {
           variant: 'destructive',
         });
       }
+      // eslint-disable-next-line
     } catch (error: any) {
       const errorMessage = error?.message?.includes('insufficient funds')
         ? 'Insufficient balance in your wallet'

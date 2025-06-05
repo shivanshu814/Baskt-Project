@@ -135,7 +135,7 @@ export const basktRouter = router({
     .input(
       z.object({
         basktId: z.string(),
-        period: z.enum(['1D', '1W', '1M', '1Y', 'All']).default('1D'),
+        period: z.enum(['1D', '1W', '1M', '1Y', 'All']).default('1W'),
       }),
     )
     .query(async ({ input }) => {

@@ -31,3 +31,8 @@ export interface BasktRowProps {
   onActivate: (basktId: string) => Promise<void>;
   isActivating: boolean;
 }
+export interface BasktResponse {
+  success: boolean;
+  data: BasktData[];
+  message?: string;
+}

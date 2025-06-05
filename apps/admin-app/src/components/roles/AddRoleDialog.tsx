@@ -5,7 +5,7 @@ import { useToast } from '../../hooks/use-toast';
 import { useBasktClient } from '@baskt/ui';
 import { PublicKey } from '@solana/web3.js';
 import { AccessControlRole } from '@baskt/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -51,6 +51,7 @@ export function AddRoleDialog({
           variant: 'destructive',
         });
       }
+      // eslint-disable-next-line
     } catch (error: any) {
       const errorMessage = error?.message?.includes('insufficient funds')
         ? 'insufficient balance in your wallet'
@@ -70,7 +71,11 @@ export function AddRoleDialog({
     <Dialog open={showModal} onOpenChange={setShowModal}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Role</DialogTitle>
+          <DialogTitle>Add Role</DialogTitle>
+          <DialogDescription>
+            Assign a new role to a user by entering their wallet address and selecting the role
+            type.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

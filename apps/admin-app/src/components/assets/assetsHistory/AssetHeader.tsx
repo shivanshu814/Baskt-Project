@@ -1,12 +1,6 @@
 import React from 'react';
 import { Card } from '../../ui/card';
-
-interface AssetHeaderProps {
-  assetName: string;
-  assetAddress: string;
-  assetLogo?: string;
-  ticker?: string;
-}
+import { AssetHeaderProps } from '../../../types/assets';
 
 export const AssetHeader: React.FC<AssetHeaderProps> = ({
   assetName,

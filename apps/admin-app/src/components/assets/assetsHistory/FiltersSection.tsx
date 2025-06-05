@@ -4,19 +4,7 @@ import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { ArrowLeft } from 'lucide-react';
-
-interface FiltersSectionProps {
-  range: {
-    start: Date;
-    end: Date;
-  };
-  all: boolean;
-  onRangeChange: (e: React.ChangeEvent<HTMLInputElement>, type: 'start' | 'end') => void;
-  onAllChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onFetch: () => void;
-  onBack?: () => void;
-}
-
+import { FiltersSectionProps } from '../../../types/assets';
 export const FiltersSection: React.FC<FiltersSectionProps> = ({
   range,
   all,
