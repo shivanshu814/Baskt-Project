@@ -66,11 +66,6 @@ export interface BasktChartProps {
   onPositionClick: () => void;
 }
 
-export interface BasktHeaderProps {
-  baskt: BasktInfo;
-  onShareClick: () => void;
-}
-
 export interface BasktPositionProps {
   userPosition: UserBasktPositionInfo | null;
 }
@@ -83,13 +78,6 @@ export interface BasktTradingFormProps {
 
 export interface IndexCompositionProps {
   assets: BasktAssetInfo[];
-}
-
-export interface ShareBasktModalProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  basktName: string;
-  basktPrice: number;
 }
 
 export type ChartPeriod = '1D' | '1W' | '1M' | '1Y' | 'All';
@@ -148,4 +136,8 @@ export interface RawBasktData {
   txSignature?: string;
   categories?: string[];
   creator?: string;
+}
+export interface BasktTabsProps {
+  baskt: any; // eslint-disable-line
+  userPosition: any; // eslint-disable-line
 }

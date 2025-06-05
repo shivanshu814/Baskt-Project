@@ -11,7 +11,7 @@ export function changeFromCurrentPrice(asset: BasktAssetInfo) {
 
 export function IndexComposition({ assets }: IndexCompositionProps) {
   return (
-    <Card>
+    <Card className="rounded-none">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Index Composition</CardTitle>
       </CardHeader>
@@ -34,7 +34,7 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
                       {asset.logo && (
-                        <img src={asset.logo} alt={asset.ticker} className="h-8 w-8 rounded-full" />
+                        <img src={asset.logo} alt={asset.ticker} className="h-8 w-8 rounded-none" />
                       )}
                       <div className="flex flex-col">
                         <span>{asset.ticker}</span>

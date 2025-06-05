@@ -47,8 +47,8 @@ export function BasktTradingForm({ baskt, userPosition = null, className }: Bask
 
       <Tabs defaultValue="long" className="w-full">
         <TabsList className="grid grid-cols-2 mb-4">
-          <TabsTrigger value="long">Long</TabsTrigger>
-          <TabsTrigger value="short">Short</TabsTrigger>
+          <TabsTrigger value="long">Buy/Long</TabsTrigger>
+          <TabsTrigger value="short">Sell/Short</TabsTrigger>
         </TabsList>
 
         <div className="space-y-4">

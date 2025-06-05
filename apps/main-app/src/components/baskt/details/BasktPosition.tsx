@@ -4,7 +4,7 @@ import { BasktPositionProps } from '../../../types/baskt';
 
 export const BasktPosition = ({ userPosition }: BasktPositionProps) => {
   return (
-    <Card>
+    <Card className="rounded-none">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Your Position</CardTitle>
       </CardHeader>

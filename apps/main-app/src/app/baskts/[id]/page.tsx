@@ -2,17 +2,12 @@
 
 import { useRouter, useParams } from 'next/navigation';
 import { BasktTradingForm } from '../../../components/baskt/details/BasktTradingForm';
-import { IndexComposition } from '../../../components/baskt/details/IndexComposition';
-import { SuggestedBaskts } from '../../../components/baskt/details/SuggestedBaskts';
-import { ShareBasktModal } from '../../../components/baskt/details/ShareBasktModal';
 import { CryptoNews } from '../../../components/baskt/details/CryptoNews';
 import { Loading } from '../../../components/ui/loading';
 import { Button } from '../../../components/ui/button';
 import { useBasktDetail } from '../../../hooks/baskt/useBasktDetail';
-import { BasktHeader } from '../../../components/baskt/details/BasktHeader';
 import { BasktChart } from '../../../components/baskt/details/BasktChart';
-import { BasktPosition } from '../../../components/baskt/details/BasktPosition';
-import { suggestedBaskts } from '../../../data/suggested-baskts';
+import { BasktTabs } from '../../../components/baskt/details/BasktTabs';
 
 export default function BasktDetailPage() {
   const router = useRouter();
@@ -23,14 +18,19 @@ export default function BasktDetailPage() {
     baskt,
     userPosition,
     isLoading,
-    isShareModalOpen,
-    setIsShareModalOpen,
     chartPeriod,
     setChartPeriod,
     chartType,
     setChartType,
     cryptoNews,
   } = useBasktDetail(basktId);
+
+  const userPositionFixed =
+    userPosition && userPosition.type
+      ? userPosition
+      : userPosition
+      ? { ...userPosition, type: 'long' as const }
+      : null;
 
   if (isLoading) {
     return (
@@ -54,44 +54,21 @@ export default function BasktDetailPage() {
     );
   }
 
-  const userPositionFixed =
-    userPosition && userPosition.type
-      ? userPosition
-      : userPosition
-      ? { ...userPosition, type: 'long' as const }
-      : null;
-
-  const scrollToSection = (sectionId: string) => {
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   return (
     <div>
       <div className="space-y-6 animate-fade-in p-6">
         <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-3 space-y-6">
-            <BasktHeader baskt={baskt} onShareClick={() => setIsShareModalOpen(true)} />
-            <SuggestedBaskts suggestedBaskts={suggestedBaskts} />
-          </div>
-
-          <div className="col-span-6 space-y-6">
+          <div className="col-span-9 space-y-9">
             <BasktChart
               baskt={baskt}
               chartPeriod={chartPeriod}
               setChartPeriod={setChartPeriod}
               chartType={chartType}
               setChartType={setChartType}
-              onCompositionClick={() => scrollToSection('composition-section')}
-              onPositionClick={() => scrollToSection('position-section')}
+              onBasktChange={(id) => router.push(`/baskts/${id}`)}
             />
 
-            <div id="composition-section">
-              <IndexComposition assets={baskt.assets} />
-            </div>
-
-            <div id="position-section">
-              <BasktPosition userPosition={userPositionFixed} />
-            </div>
+            <BasktTabs baskt={baskt} userPosition={userPositionFixed} />
           </div>
 
           <div className="col-span-3 space-y-6">
@@ -100,13 +77,6 @@ export default function BasktDetailPage() {
           </div>
         </div>
       </div>
-
-      <ShareBasktModal
-        isOpen={isShareModalOpen}
-        onOpenChange={setIsShareModalOpen}
-        basktName={baskt.name}
-        basktPrice={baskt.price}
-      />
     </div>
   );
 }
