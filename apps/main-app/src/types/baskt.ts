@@ -72,7 +72,9 @@ export interface BasktPositionProps {
 
 export interface BasktTradingFormProps {
   baskt: BasktInfo;
-  userPosition?: UserBasktPositionInfo | null;
+  userPosition?: {
+    userBalance: number;
+  } | null;
   className?: string;
 }
 
@@ -140,4 +142,16 @@ export interface RawBasktData {
 export interface BasktTabsProps {
   baskt: any; // eslint-disable-line
   userPosition: any; // eslint-disable-line
+}
+export interface UseOpenPositionProps {
+  baskt: BasktInfo;
+}
+export interface CalculateSharesParams {
+  collateral: number;
+  price: number;
+  leverage: number;
+}
+
+export interface CalculateLiquidationPriceParams extends CalculateSharesParams {
+  position: 'long' | 'short';
 }

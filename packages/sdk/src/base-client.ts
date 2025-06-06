@@ -365,6 +365,14 @@ export abstract class BaseClient {
     return await this.program.account.syntheticAsset.all();
   }
 
+  public async getAllOrdersRaw() {
+    return await this.program.account.order.all();
+  }
+
+  public async getAllPositionsRaw() {
+    return await this.program.account.position.all();
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private convertAsset(account: any) {
     const newAccount = account.permissions ? account : account.account;

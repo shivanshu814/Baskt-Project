@@ -22,6 +22,7 @@ export interface BasktMetadataModel {
   _id?: string;
   createdAt?: Date;
   updatedAt?: Date;
+  isActive: boolean;
 }
 
 /**

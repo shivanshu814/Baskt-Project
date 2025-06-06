@@ -19,6 +19,7 @@ export const processBasktData = (
       change24h: baskt.change24h ?? 0,
       aum: baskt.aum ?? 0,
       totalAssets: baskt.totalAssets ?? 0,
+      isActive: baskt.account?.isActive ?? false,
       creationDate: baskt.creationDate ? new Date(baskt.creationDate) : new Date(),
       performance: {
         day: baskt.performance?.daily || 0,

@@ -65,6 +65,7 @@ export interface BasktInfo extends Omit<BasktMetadataModel, 'assets'> {
   change24h: number;
   price: number;
   totalAssets: number;
+  isActive: boolean;
   performance: {
     day: number;
     week: number;

@@ -18,7 +18,7 @@ export const BasktTabs = ({ baskt, userPosition }: BasktTabsProps) => {
       case 'position':
         return <BasktPosition userPosition={userPosition} />;
       case 'openOrders':
-        return <BasktOpenOrders />;
+        return <BasktOpenOrders basktId={baskt.basktId} />;
       case 'orderHistory':
         return <BasktOrderHistory />;
       default:
@@ -32,41 +32,37 @@ export const BasktTabs = ({ baskt, userPosition }: BasktTabsProps) => {
         <div className="flex items-center border-b">
           <div className="flex items-center space-x-8 mx-4">
             <button
-              className={`px-1 py-2 text-[14px] ${
-                activeTab === 'composition'
+              className={`px-1 py-2 text-[14px] ${activeTab === 'composition'
                   ? 'text-primary border-b-2 border-primary'
                   : 'text-muted-foreground hover:text-primary'
-              }`}
+                }`}
               onClick={() => setActiveTab('composition')}
             >
               Composition
             </button>
             <button
-              className={`px-1 py-2 text-[14px] ${
-                activeTab === 'position'
+              className={`px-1 py-2 text-[14px] ${activeTab === 'position'
                   ? 'text-primary border-b-2 border-primary'
                   : 'text-muted-foreground hover:text-primary'
-              }`}
+                }`}
               onClick={() => setActiveTab('position')}
             >
               Position
             </button>
             <button
-              className={`px-1 py-2 text-[14px] ${
-                activeTab === 'openOrders'
+              className={`px-1 py-2 text-[14px] ${activeTab === 'openOrders'
                   ? 'text-primary border-b-2 border-primary'
                   : 'text-muted-foreground hover:text-primary'
-              }`}
+                }`}
               onClick={() => setActiveTab('openOrders')}
             >
               Open Orders
             </button>
             <button
-              className={`px-1 py-2 text-[14px] ${
-                activeTab === 'orderHistory'
+              className={`px-1 py-2 text-[14px] ${activeTab === 'orderHistory'
                   ? 'text-primary border-b-2 border-primary'
                   : 'text-muted-foreground hover:text-primary'
-              }`}
+                }`}
               onClick={() => setActiveTab('orderHistory')}
             >
               Order History

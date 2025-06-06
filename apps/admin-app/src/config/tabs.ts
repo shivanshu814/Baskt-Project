@@ -8,9 +8,11 @@ import { ListNewAssetButton } from '../components/assets/ListNewAssetButton';
 import { ProtocolDetails } from '../components/dashboard/Protocol';
 import { RolesManagement } from '../components/dashboard/RolesList';
 import { LiquidityPoolManagement } from '../components/dashboard/BasktLiquidity';
+import OrderList from '../components/orders/OrderList';
 import { TabConfig, TabProps } from '../types';
 
 import { TAB_IDS } from '../constants/tabs';
+import PositionList from '../components/position/PositionList';
 
 export const TAB_CONFIG: TabConfig[] = [
   {
@@ -23,6 +25,16 @@ export const TAB_CONFIG: TabConfig[] = [
     id: TAB_IDS.BASKTS,
     label: 'Baskts',
     component: AdminBasktsList,
+  },
+  {
+    id: TAB_IDS.ORDERS,
+    label: 'Orders',
+    component: OrderList,
+  },
+  {
+    id: TAB_IDS.POSITIONS,
+    label: 'Positions',
+    component: PositionList,
   },
   {
     id: TAB_IDS.PROTOCOL,

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useBasktClient } from '@baskt/ui';
 import { PublicKey } from '@solana/web3.js';
 import { usePrivy } from '@privy-io/react-auth';
+import { Account } from '@solana/spl-token';
 
 export function useTokenBalance(
   mint: string | PublicKey,
@@ -11,6 +12,7 @@ export function useTokenBalance(
   const { authenticated } = usePrivy();
   const { client, wallet } = useBasktClient();
   const [balance, setBalance] = useState<string>('0');
+  const [account, setAccount] = useState<Account>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +35,7 @@ export function useTokenBalance(
       const mintKey = mint instanceof PublicKey ? mint : new PublicKey(mint);
       const acc = await client.getUserTokenAccount(userPubkey, mintKey);
       setBalance((Number(acc?.amount) / Math.pow(10, decimals)).toString());
+      setAccount(acc);
       setError(null);
       return acc;
       // eslint-disable-next-line
@@ -49,5 +52,5 @@ export function useTokenBalance(
     fetchBalance();
   }, [fetchBalance]);
 
-  return { balance, loading, error, refetch: fetchBalance };
+  return { balance, account, loading, error, refetch: fetchBalance };
 }

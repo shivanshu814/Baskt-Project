@@ -7,6 +7,8 @@ export const TAB_IDS = {
   PROTOCOL: 'protocol',
   ROLES: 'roles',
   LIQUIDITY: 'liquidity',
+  ORDERS: 'orders',
+  POSITIONS: 'positions',
 } as const;
 
 export type TabId = (typeof TAB_IDS)[keyof typeof TAB_IDS];

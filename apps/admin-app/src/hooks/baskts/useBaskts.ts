@@ -4,12 +4,13 @@ import { useBasktClient } from '@baskt/ui';
 import { PublicKey } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
 import { BasktData, BasktAsset, BasktResponse } from '../../types/baskt';
+import { useToast } from '../use-toast';
 
 export function useBaskts() {
   const [activatingBasktId, setActivatingBasktId] = useState<string | null>(null);
   const { data: trpcResponse, isLoading, error } = trpc.baskt.getAllBaskts.useQuery();
   const { client } = useBasktClient();
-
+  const { toast } = useToast();
   const basktList = (trpcResponse as BasktResponse)?.success
     ? (trpcResponse as BasktResponse).data
     : [];
@@ -28,9 +29,12 @@ export function useBaskts() {
         new PublicKey(basktId),
         basktInfo.assets.map((asset: BasktAsset) => new anchor.BN(asset.priceRaw)),
       );
-      // eslint-disable-next-line
     } catch (error) {
-      console.error('Error activating baskt:', error);
+      toast({
+        title: 'Error',
+        description: 'Error activating baskt',
+        variant: 'destructive',
+      });
     } finally {
       setTimeout(() => setActivatingBasktId(null), 1000);
     }
