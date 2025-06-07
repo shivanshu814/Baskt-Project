@@ -72,10 +72,13 @@ pub struct OpenPosition<'info> {
     #[account(
         constraint = protocol.key() == registry.protocol @ PerpetualsError::Unauthorized,
         constraint = protocol.feature_flags.allow_open_position && protocol.feature_flags.allow_trading @ PerpetualsError::PositionOperationsDisabled,
-        constraint = protocol.has_permission(matcher.key(), Role::Matcher) @ PerpetualsError::Unauthorized
+        constraint = protocol.has_permission(matcher.key(), Role::Matcher) @ PerpetualsError::Unauthorized,
+        seeds = [b"protocol"],
+        bump
     )]
     pub protocol: Box<Account<'info, Protocol>>,
 
+    //TODO: sidduHERE Does this mean we have cross margined account?
     #[account(
         mut,
         seeds = [b"user_escrow", order.owner.as_ref()],

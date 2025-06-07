@@ -70,9 +70,11 @@ pub struct AddCollateral<'info> {
     /// Protocol account - required for validating the feature flag
     #[account(
         constraint = protocol.key() == registry.protocol @ PerpetualsError::Unauthorized,
-        constraint = protocol.feature_flags.allow_add_collateral @ PerpetualsError::PositionOperationsDisabled
+        constraint = protocol.feature_flags.allow_add_collateral @ PerpetualsError::PositionOperationsDisabled,
+        seeds = [b"protocol"],
+        bump
     )]
-    pub protocol: Account<'info, Protocol>,
+    pub protocol: Box<Account<'info, Protocol>>,
 
     pub token_program: Program<'info, Token>,
 }

@@ -5,7 +5,7 @@ import { sdkClient } from '../utils';
 import { PublicKey } from '@solana/web3.js';
 import { getAssetFromAddress, getAssetIdFromAddress } from './assetRouter';
 import { calculateNav, NAV_PRECISION, WEIGHT_PRECISION } from '@baskt/sdk';
-import { OnchainAssetConfig } from '@baskt/types';
+import { OnchainAssetConfig, OnchainBasktAccount, OnchainOracleParams } from '@baskt/types';
 import { BN } from 'bn.js';
 import { generateNavHistory } from '../fakers/price';
 
@@ -95,8 +95,6 @@ export const basktRouter = router({
           return await convertToBasktInfo(basktConfig.account, basktMetadata);
         }),
       );
-
-      console.log(combinedBaskts);
 
       return { success: true, data: combinedBaskts };
     } catch (error) {
@@ -197,13 +195,10 @@ async function getBasktInfoFromAddress(basktId: string) {
   if (!onchainBaskt) {
     return null;
   }
-  console.log({ basktMetadata }, ' this is basktmetadata');
-  console.log({ onchainBaskt }, ' this is onchainBaskt');
   return convertToBasktInfo(onchainBaskt, basktMetadata);
 }
 
 async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
-  console.log(onchainBaskt);
   const assets = await Promise.all(
     onchainBaskt.currentAssetConfigs.map(async (asset: any) => ({
       ...(await getAssetFromAddress(asset.assetId.toString())),
@@ -216,29 +211,28 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     })),
   );
 
-  console.log(assets);
-
   const basktId =
     basktMetadata?.basktId?.toString() ||
     onchainBaskt.basktId?.toString() ||
     onchainBaskt.account?.basktId?.toString();
 
   let price = new BN(0);
+  const formattedAssets = assets.map(
+    (asset) =>
+      ({
+        assetId: new PublicKey(asset.id),
+        direction: asset.direction,
+        weight: new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100),
+        baselinePrice: new BN(asset.price),
+      } as OnchainAssetConfig),
+  );
   try {
     if (assets.length > 0 && assets.every((asset) => asset && asset.price > 0)) {
       price = calculateNav(
         onchainBaskt.currentAssetConfigs.map((asset: any) => ({
           ...asset,
         })),
-        assets.map(
-          (asset) =>
-            ({
-              assetId: new PublicKey(asset.id),
-              direction: asset.direction,
-              weight: new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100),
-              baselinePrice: new BN(asset.price),
-            } as OnchainAssetConfig),
-        ),
+        formattedAssets,
         new BN(onchainBaskt.baselineNav || 0),
       );
     }
@@ -246,6 +240,8 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     console.error('Error calculating NAV:', error);
     price = new BN(0);
   }
+
+  const account = onchainBaskt.account || onchainBaskt;
 
   return {
     id: basktId,
@@ -261,7 +257,22 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     change24h: 0,
     aum: 0,
     sparkline: [],
-    account: onchainBaskt.account || onchainBaskt,
+    account: {
+      ...account,
+      creationTime: account.creationTime.toString(),
+      lastRebalanceTime: account.lastRebalanceTime.toString(),
+      baselineNav: account.baselineNav.toString(),
+      currentAssetConfigs: formattedAssets.map((asset) => ({
+        ...asset,
+        weight: asset.weight.toString(),
+        baselinePrice: asset.baselinePrice.toString(),
+      })),
+      oracle: {
+        ...account.oracle,
+        price: account.oracle.price.toString(),
+        publishTime: account.oracle.publishTime.toString(),
+      } as OnchainOracleParams,
+    } as OnchainBasktAccount,
     creationDate: basktMetadata?.creationDate || new Date().toISOString(),
     priceHistory: generateNavHistory(onchainBaskt.currentAssetConfigs, new BN(1e9)),
     performance: {

@@ -3,6 +3,8 @@ use anchor_lang::prelude::*;
 /// Central registry for commonly used protocol addresses
 #[account]
 #[derive(InitSpace)]
+// TODO: sidduHERE why do we need to protocol, lp, pool_auth. These are all anyway PDAs right.
+// We can basically remove the use of this if we store the escrow mint in the protocol account
 pub struct ProtocolRegistry {
     /// Protocol account reference
     pub protocol: Pubkey,

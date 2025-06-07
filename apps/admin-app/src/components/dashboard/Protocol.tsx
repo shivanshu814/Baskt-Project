@@ -6,6 +6,7 @@ import { ProtocolDetailsProps } from '../../types/protocol';
 import { ProtocolInitialization } from '../protocol/ProtocolInitialization';
 import { ProtocolGeneralInfo } from '../protocol/ProtocolGeneralInfo';
 import { FeatureFlags } from '../protocol/FeatureFlags';
+import { RegistryInfo } from '../protocol/RegistryInfo';
 
 export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
   const { protocol, error } = useProtocol();
@@ -25,8 +26,11 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
   return (
     <div className={className}>
       <h2 className="text-2xl font-semibold my-6">Protocol Details</h2>
-      <ProtocolGeneralInfo owner={protocol.owner} />
-      <FeatureFlags flags={protocol.featureFlags} />
+      <div className="grid gap-6">
+        <ProtocolGeneralInfo owner={protocol.owner} />
+        <FeatureFlags flags={protocol.featureFlags} />
+        <RegistryInfo />
+      </div>
     </div>
   );
 }

@@ -27,6 +27,7 @@ const PositionList = () => {
             </div>
         );
     }
+    console.log(positions)
 
     return (
         <div className="mt-6 rounded-md border">
@@ -55,7 +56,7 @@ const PositionList = () => {
                             <TableRow key={position.publicKey.toString()}>
                                 <TableCell>
                                     <p className="text-sm font-medium text-gray-200 truncate cursor-pointer">
-                                        {position.positionId}
+                                        {position.positionId.toString()}
                                     </p>
                                 </TableCell>
                                 <TableCell>
@@ -72,10 +73,10 @@ const PositionList = () => {
                                     <p className={`text-sm font-medium ${position.isLong ? 'text-green-500' : 'text-red-500'}`}>{position.isLong ? 'Long' : 'Short'}</p>
                                 </TableCell>
                                 <TableCell>
-                                    <p className="text-sm text-gray-200">{position.size}</p>
+                                    <p className="text-sm text-gray-200">{position.size.toString()}</p>
                                 </TableCell>
                                 <TableCell>
-                                    <p className="text-sm text-gray-200">{position.collateral}</p>
+                                    <p className="text-sm text-gray-200">{position.collateral.toString()}</p>
                                 </TableCell>
                                 <TableCell>
                                     <p className={`text-sm font-medium ${position.status === 'open'
@@ -84,7 +85,7 @@ const PositionList = () => {
                                             ? 'text-gray-400'
                                             : 'text-red-500'
                                         }`}>
-                                        {position.status}
+                                        {JSON.stringify(position.status)}
                                     </p>
                                 </TableCell>
                                 <TableCell>

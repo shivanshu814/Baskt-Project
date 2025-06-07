@@ -2,7 +2,18 @@ import { Button } from '../../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { BasktPositionProps } from '../../../types/baskt';
 
-export const BasktPosition = ({ userPosition }: BasktPositionProps) => {
+export const BasktPosition = ({ basktId }: BasktPositionProps) => {
+  const userPosition = {
+    collateral: 1500,
+    positionSize: 100,
+    type: 'long',
+    entryPrice: 1500,
+    currentValue: 1500,
+    pnl: 0,
+    pnlPercentage: 0,
+    openDate: new Date().toISOString(),
+    basktId,
+  };
   return (
     <Card className="rounded-none">
       <CardHeader className="pb-2">
@@ -20,9 +31,8 @@ export const BasktPosition = ({ userPosition }: BasktPositionProps) => {
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Position Type</span>
               <span
-                className={`font-medium ${
-                  (userPosition.type || 'long') === 'long' ? 'text-[#16c784]' : 'text-[#ea3943]'
-                }`}
+                className={`font-medium ${(userPosition.type || 'long') === 'long' ? 'text-[#16c784]' : 'text-[#ea3943]'
+                  }`}
               >
                 {userPosition.type
                   ? userPosition.type.charAt(0).toUpperCase() + userPosition.type.slice(1)
@@ -40,9 +50,8 @@ export const BasktPosition = ({ userPosition }: BasktPositionProps) => {
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">P&L</span>
               <span
-                className={`font-medium ${
-                  userPosition.pnl >= 0 ? 'text-[#16c784]' : 'text-[#ea3943]'
-                }`}
+                className={`font-medium ${userPosition.pnl >= 0 ? 'text-[#16c784]' : 'text-[#ea3943]'
+                  }`}
               >
                 {userPosition.pnl >= 0 ? '+' : ''}
                 {userPosition.pnl.toFixed(2)} USD ({userPosition.pnl >= 0 ? '+' : ''}

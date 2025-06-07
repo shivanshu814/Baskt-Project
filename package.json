@@ -8,7 +8,9 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev:all": "turbo run dev",
+    "dev:admin": "turbo run dev --filter=@baskt/admin-app --filter=@baskt/backend",
+    "dev:main": "turbo run dev --filter=@baskt/main-app --filter=@baskt/backend",
     "lint": "turbo run lint",
     "test": "turbo run test"
   },
@@ -20,11 +22,7 @@
     "postcss": "^8.5.3",
     "turbo": "^2.5.0"
   },
-  "workspaces": [
-    "apps/*",
-    "packages/*",
-    "backend"
-  ],
+  "workspaces": ["apps/*", "packages/*", "backend"],
   "packageManager": "pnpm@9.0.0",
   "dependencies": {
     "@trpc/client": "^10.45.1",

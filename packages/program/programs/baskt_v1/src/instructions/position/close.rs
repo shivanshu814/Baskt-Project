@@ -34,7 +34,7 @@ impl<'info> ClosePositionRemainingAccounts<'info> {
             remaining_accounts.len() >= 3,
             PerpetualsError::InvalidAccountInput
         );
-        
+
         Ok(Self {
             owner_token: &remaining_accounts[0],
             treasury_token: &remaining_accounts[1],
@@ -44,7 +44,7 @@ impl<'info> ClosePositionRemainingAccounts<'info> {
 }
 
 /// ClosePosition using ProtocolRegistry and remaining accounts
-/// 
+///
 /// Remaining accounts expected (in order):
 /// 0. owner_token account
 /// 1. treasury_token account
@@ -102,7 +102,9 @@ pub struct ClosePosition<'info> {
     #[account(
         constraint = protocol.key() == registry.protocol @ PerpetualsError::Unauthorized,
         constraint = protocol.feature_flags.allow_close_position && protocol.feature_flags.allow_trading @ PerpetualsError::PositionOperationsDisabled,
-        constraint = protocol.has_permission(matcher.key(), Role::Matcher) @ PerpetualsError::Unauthorized
+        constraint = protocol.has_permission(matcher.key(), Role::Matcher) @ PerpetualsError::Unauthorized,
+        seeds = [b"protocol"],
+        bump
     )]
     pub protocol: Box<Account<'info, Protocol>>,
 
@@ -150,8 +152,8 @@ pub struct ClosePosition<'info> {
 }
 
 pub fn close_position<'info>(
-    ctx: Context<'_, '_, 'info, 'info, ClosePosition<'info>>, 
-    params: ClosePositionParams
+    ctx: Context<'_, '_, 'info, 'info, ClosePosition<'info>>,
+    params: ClosePositionParams,
 ) -> Result<()> {
     let order = &ctx.accounts.order;
     let position = &mut ctx.accounts.position;
@@ -160,14 +162,27 @@ pub fn close_position<'info>(
     let clock = Clock::get()?;
 
     // Validate target position
-    let target_pos_key = order.target_position.ok_or(PerpetualsError::InvalidTargetPosition)?;
-    require_keys_eq!(target_pos_key, position.key(), PerpetualsError::InvalidTargetPosition);
+    let target_pos_key = order
+        .target_position
+        .ok_or(PerpetualsError::InvalidTargetPosition)?;
+    require_keys_eq!(
+        target_pos_key,
+        position.key(),
+        PerpetualsError::InvalidTargetPosition
+    );
 
     // Validate oracle price
-    ctx.accounts.baskt.oracle.validate_execution_price(params.exit_price, clock.unix_timestamp)?;
+    ctx.accounts
+        .baskt
+        .oracle
+        .validate_execution_price(params.exit_price, clock.unix_timestamp)?;
 
     // Settle position
-    position.settle_close(params.exit_price, funding_index.cumulative_index, clock.unix_timestamp)?;
+    position.settle_close(
+        params.exit_price,
+        funding_index.cumulative_index,
+        clock.unix_timestamp,
+    )?;
 
     // Calculate amounts
     let pnl = position.calculate_pnl()?;
@@ -238,7 +253,7 @@ pub fn close_position<'info>(
             .ok_or(PerpetualsError::MathOverflow)?;
     }
 
-    // 4. Determine amounts from escrow for user payout 
+    // 4. Determine amounts from escrow for user payout
     let payout_from_escrow_to_user = std::cmp::min(user_total_payout_u64, current_escrow_balance);
 
     if payout_from_escrow_to_user > 0 {
@@ -309,11 +324,15 @@ pub fn close_position<'info>(
         .ok_or(PerpetualsError::MathOverflow)?;
 
     if net_change_for_lp_state_i128 > 0 {
-        ctx.accounts.liquidity_pool.increase_liquidity(net_change_for_lp_state_i128 as u64)?;
+        ctx.accounts
+            .liquidity_pool
+            .increase_liquidity(net_change_for_lp_state_i128 as u64)?;
     } else if net_change_for_lp_state_i128 < 0 {
         ctx.accounts.liquidity_pool.decrease_liquidity(
-            net_change_for_lp_state_i128.unsigned_abs().try_into()
-                .map_err(|_| PerpetualsError::MathOverflow)?
+            net_change_for_lp_state_i128
+                .unsigned_abs()
+                .try_into()
+                .map_err(|_| PerpetualsError::MathOverflow)?,
         )?;
     }
 

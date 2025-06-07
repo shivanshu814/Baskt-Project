@@ -16,7 +16,6 @@ export default function BasktDetailPage() {
 
   const {
     baskt,
-    userPosition,
     isLoading,
     chartPeriod,
     setChartPeriod,
@@ -24,13 +23,6 @@ export default function BasktDetailPage() {
     setChartType,
     cryptoNews,
   } = useBasktDetail(basktId);
-
-  const userPositionFixed =
-    userPosition && userPosition.type
-      ? userPosition
-      : userPosition
-      ? { ...userPosition, type: 'long' as const }
-      : null;
 
   if (isLoading) {
     return (
@@ -68,11 +60,11 @@ export default function BasktDetailPage() {
               onBasktChange={(id) => router.push(`/baskts/${id}`)}
             />
 
-            <BasktTabs baskt={baskt} userPosition={userPositionFixed} />
+            <BasktTabs baskt={baskt} />
           </div>
 
           <div className="col-span-3 space-y-6">
-            <BasktTradingForm baskt={baskt} userPosition={userPositionFixed} />
+            <BasktTradingForm baskt={baskt} />
             <CryptoNews news={cryptoNews} />
           </div>
         </div>

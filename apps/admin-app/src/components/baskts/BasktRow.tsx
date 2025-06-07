@@ -1,36 +1,39 @@
 'use client';
 
 import { TableCell, TableRow } from '../ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '../ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Eye, Power } from 'lucide-react';
 import { BasktRowProps } from '../../types/baskt';
 
-export function BasktRow({ baskt, onActivate, isActivating }: BasktRowProps) {
+export function BasktRow({ baskt, onActivate, isActivating, onViewDetails }: BasktRowProps) {
+  const { account } = baskt;
+  const name = baskt.name || account.basktName || 'Unnamed Baskt';
+  
   return (
     <TableRow key={baskt.basktId}>
-      <TableCell>{baskt.name || 'Unnamed'}</TableCell>
+      <TableCell className="font-medium">{name}</TableCell>
       <TableCell>
         <span className="font-mono text-xs text-white/80">{baskt.basktId}</span>
       </TableCell>
-      <TableCell>{baskt.account.isActive ? 'Yes' : 'No'}</TableCell>
-      <TableCell className="text-right">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="p-1 rounded hover:bg-white/10">
-              <MoreHorizontal className="w-5 h-5 text-white/60" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onActivate(baskt.basktId)} disabled={isActivating}>
-              {isActivating ? 'Activating...' : 'Activate'}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <TableCell className="flex justify-end gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onViewDetails?.(baskt.basktId)}
+        >
+          <Eye className="h-4 w-4 mr-1" />
+          View
+        </Button>
+        
+        <Button
+          variant={account.isActive ? "secondary" : "default"}
+          size="sm"
+          onClick={() => onActivate(baskt.basktId)}
+          disabled={isActivating || account.isActive}
+        >
+          <Power className="h-4 w-4 mr-1" />
+          {isActivating ? 'Activating...' : (account.isActive ? 'Active' : 'Activate')}
+        </Button>
       </TableCell>
     </TableRow>
   );

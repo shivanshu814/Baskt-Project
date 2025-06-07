@@ -6,13 +6,11 @@ import {
   LAMPORTS_PER_SOL,
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
-  Transaction,
 } from '@solana/web3.js';
 import { BaseClient } from '@baskt/sdk';
 import { BasktV1 } from '../../target/types/baskt_v1';
 import { AccessControlRole, OnchainAssetPermissions } from '@baskt/types';
 import {
-  createMint,
   createAccount,
   createAssociatedTokenAccount,
   getAssociatedTokenAddress,
@@ -22,8 +20,6 @@ import {
   getMint,
 } from '@solana/spl-token';
 import BN from 'bn.js';
-import * as fs from 'fs';
-import path from 'path';
 
 /**
  * Helper function to request an airdrop for a given address
@@ -273,44 +269,6 @@ export class TestClient extends BaseClient {
   }
 
   /**
-   * Find the protocol registry PDA
-   * @returns The protocol registry PDA
-   */
-  public async findProtocolRegistryPDA(): Promise<PublicKey> {
-    const [registry] = PublicKey.findProgramAddressSync(
-      [Buffer.from('protocol_registry')],
-      this.program.programId,
-    );
-    return registry;
-  }
-
-  /**
-   * Find the pool authority PDA
-   * @param liquidityPool The liquidity pool PDA
-   * @returns The pool authority PDA
-   */
-  public async findPoolAuthorityPDA(liquidityPool: PublicKey): Promise<PublicKey> {
-    const [poolAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from('pool_authority'), liquidityPool.toBuffer(), this.protocolPDA.toBuffer()],
-      this.program.programId,
-    );
-    return poolAuthority;
-  }
-
-  /**
-   * Get the protocol registry account
-   * @returns Protocol registry account data or null if not initialized
-   */
-  public async getProtocolRegistry(): Promise<any | null> {
-    const registry = await this.findProtocolRegistryPDA();
-    try {
-      return await this.program.account.protocolRegistry.fetch(registry);
-    } catch (error) {
-      return null;
-    }
-  }
-
-  /**
    * Initialize the protocol registry
    * This must be called after the protocol and liquidity pool are initialized
    * @returns Registry public key
@@ -342,7 +300,7 @@ export class TestClient extends BaseClient {
     const liquidityPool = await this.findLiquidityPoolPDA();
 
     // Find the pool authority PDA
-    const poolAuthority = await this.findPoolAuthorityPDA(liquidityPool);
+    const poolAuthority = await this.findPoolAuthorityPDA();
 
     let lpMint: PublicKey;
     let [tokenVault]: [PublicKey, number] = await super.getTokenVaultPda();
@@ -572,107 +530,6 @@ export class TestClient extends BaseClient {
   }
 
   /**
-   * Open a position using the registry pattern
-   */
-  public async openPosition(params: {
-    positionId: BN;
-    entryPrice: BN;
-    order: PublicKey;
-    position: PublicKey;
-    fundingIndex: PublicKey;
-    baskt: PublicKey;
-  }): Promise<string> {
-    // Ensure registry is initialized
-    const registry = await this.getProtocolRegistry();
-    if (!registry) {
-      throw new Error('ProtocolRegistry not initialized. Please initialize the registry before opening positions.');
-    }
-
-    // Fetch the order account to get the owner
-    const orderAccount = await this.program.account.order.fetch(params.order);
-
-    // Find registry PDA
-    const registryPDA = await this.findProtocolRegistryPDA();
-
-    // Derive PDAs
-    const [programAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from('authority')],
-      this.program.programId,
-    );
-    const [orderEscrow] = PublicKey.findProgramAddressSync(
-      [Buffer.from('user_escrow'), orderAccount.owner.toBuffer()],
-      this.program.programId,
-    );
-    const [escrowToken] = PublicKey.findProgramAddressSync(
-      [Buffer.from('escrow'), params.position.toBuffer()],
-      this.program.programId,
-    );
-
-    // Call openPosition with registry
-    return await this.program.methods
-      .openPosition({ positionId: params.positionId, entryPrice: params.entryPrice })
-      .accounts({
-        matcher: this.getPublicKey(),
-        order: params.order,
-        position: params.position,
-        fundingIndex: params.fundingIndex,
-        baskt: params.baskt,
-        registry: registryPDA,
-        protocol: this.protocolPDA,
-        orderEscrow: orderEscrow,
-        escrowToken: escrowToken,
-        escrowMint: registry.escrowMint,
-        programAuthority: programAuthority,
-        systemProgram: SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        rent: SYSVAR_RENT_PUBKEY,
-      } as any)
-      .rpc();
-  }
-
-  /**
-   * Add collateral to a position using the registry pattern
-   */
-  public async addCollateral(params: {
-    position: PublicKey;
-    additionalCollateral: BN;
-    ownerTokenAccount: PublicKey;
-  }): Promise<string> {
-    // Ensure registry is initialized
-    const registry = await this.getProtocolRegistry();
-    if (!registry) {
-      throw new Error('ProtocolRegistry not initialized. Please initialize the registry before adding collateral.');
-    }
-
-    // Find registry PDA
-    const registryPDA = await this.findProtocolRegistryPDA();
-
-    // Derive PDAs
-    const [programAuthority] = PublicKey.findProgramAddressSync(
-      [Buffer.from('authority')],
-      this.program.programId,
-    );
-    const [escrowToken] = PublicKey.findProgramAddressSync(
-      [Buffer.from('escrow'), params.position.toBuffer()],
-      this.program.programId,
-    );
-
-    return await this.program.methods
-      .addCollateral({ additionalCollateral: params.additionalCollateral })
-      .accounts({
-        owner: this.getPublicKey(),
-        position: params.position,
-        ownerToken: params.ownerTokenAccount,
-        escrowToken: escrowToken,
-        registry: registryPDA,
-        programAuthority: programAuthority,
-        protocol: this.protocolPDA,
-        tokenProgram: TOKEN_PROGRAM_ID,
-      } as any)
-      .rpc();
-  }
-
-  /**
    * Close a position using the registry pattern with remaining accounts
    */
   public async closePosition(params: {
@@ -688,7 +545,9 @@ export class TestClient extends BaseClient {
     // Ensure registry is initialized
     const registry = await this.getProtocolRegistry();
     if (!registry) {
-      throw new Error('ProtocolRegistry not initialized. Please initialize the registry before closing positions.');
+      throw new Error(
+        'ProtocolRegistry not initialized. Please initialize the registry before closing positions.',
+      );
     }
 
     // Fetch the position to get the owner
@@ -768,7 +627,9 @@ export class TestClient extends BaseClient {
     // Ensure registry is initialized
     const registry = await this.getProtocolRegistry();
     if (!registry) {
-      throw new Error('ProtocolRegistry not initialized. Please initialize the registry before liquidating positions.');
+      throw new Error(
+        'ProtocolRegistry not initialized. Please initialize the registry before liquidating positions.',
+      );
     }
 
     // Fetch the position to get the owner

@@ -1,3 +1,4 @@
+import React, { useState } from 'react'; // Added React and useState
 import { useOrders } from '../../hooks/orders/useOrders';
 import {
     Table,
@@ -7,14 +8,49 @@ import {
     TableHeader,
     TableRow,
 } from "../../components/ui/table";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "../ui/dropdown-menu"; // Added DropdownMenu components
 import { formatDate } from '../../utils/pool';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, MoreHorizontal } from 'lucide-react'; // Added MoreHorizontal
 import { useCopyWithTimeout } from '../../hooks/useCopyWithTimeout';
 import { getStatusColor, getActionColor } from '../../utils/orderUtils';
+import FillPositionDialog from './FillPositionDialog'; // Import the dialog
+
+// Define a more specific type for your order object if you have one
+// This is a placeholder based on usage in the component.
+interface Order {
+    orderId: string;
+    owner: string;
+    basktId: string;
+    isLong: boolean;
+    action: string; // e.g., 'Open', 'Close'
+    size: number;
+    collateral: number;
+    status: string; // e.g., 'Pending', 'Filled', 'Cancelled'
+    timestamp: number;
+    // Add other fields as necessary
+}
 
 const OrderList = () => {
     const { orders = [], isLoading, error } = useOrders();
     const { copiedKey, handleCopy } = useCopyWithTimeout();
+
+    const [isFillDialogOpen, setIsFillDialogOpen] = useState(false);
+    const [selectedOrderForFill, setSelectedOrderForFill] = useState<Order | null>(null);
+
+    const openFillDialog = (order: Order) => {
+        setSelectedOrderForFill(order);
+        setIsFillDialogOpen(true);
+    };
+
+    const closeFillDialog = () => {
+        setSelectedOrderForFill(null);
+        setIsFillDialogOpen(false);
+    };
 
     if (isLoading) {
         return (
@@ -45,17 +81,19 @@ const OrderList = () => {
                         <TableHead>Collateral</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Time</TableHead>
+                        <TableHead className="text-right">Actions</TableHead> {/* Added Actions header */}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {orders.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={8} className="text-center text-gray-400 py-8">
+                            {/* Updated colSpan to 9 */}
+                            <TableCell colSpan={9} className="text-center text-gray-400 py-8">
                                 No orders found.
                             </TableCell>
                         </TableRow>
                     ) : (
-                        orders.map((order) => (
+                        orders.map((order: Order) => (
                             <TableRow key={order.orderId}>
                                 <TableCell>
                                     <div className="flex items-center gap-2">
@@ -112,11 +150,35 @@ const OrderList = () => {
                                 <TableCell>
                                     <p className="text-sm text-gray-500">{formatDate(order.timestamp)}</p>
                                 </TableCell>
+                                <TableCell className="text-right"> {/* Added Actions cell */}
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <button className="p-1 rounded hover:bg-gray-700 focus:outline-none">
+                                                <MoreHorizontal className="w-5 h-5 text-gray-400" />
+                                            </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem
+                                                onClick={() => openFillDialog(order)}
+                                                disabled={!(order.action === 'Open' && order.status === 'Pending')}
+                                            >
+                                                Fill Position
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
                             </TableRow>
                         ))
                     )}
                 </TableBody>
             </Table>
+            {isFillDialogOpen && selectedOrderForFill && (
+                <FillPositionDialog
+                    order={selectedOrderForFill}
+                    isOpen={isFillDialogOpen}
+                    onClose={closeFillDialog}
+                />
+            )}
         </div>
     );
 };

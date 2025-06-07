@@ -4,9 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { BasktListProps, BasktData } from '../../types/baskt';
 import { BasktRow } from './BasktRow';
 import { useBaskts } from '../../hooks/baskts/useBaskts';
-import { BASKT_TABLE_HEADERS } from '../../config/baskt';
 
-export function BasktList({ onActivate, activatingBasktId }: BasktListProps) {
+export function BasktList({ onActivate, activatingBasktId, onViewDetails }: BasktListProps) {
   const { basktList, isLoading, error } = useBaskts();
 
   if (error) {
@@ -22,15 +21,15 @@ export function BasktList({ onActivate, activatingBasktId }: BasktListProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            {BASKT_TABLE_HEADERS.map((header) => (
-              <TableHead key={header.id}>{header.label}</TableHead>
-            ))}
+            <TableHead>Baskt Name</TableHead>
+            <TableHead>Baskt Address</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={BASKT_TABLE_HEADERS.length} className="h-32 text-center">
+              <TableCell colSpan={3} className="h-32 text-center">
                 <div className="flex flex-col items-center justify-center gap-2">
                   <p className="text-white/60 text-sm">Loading baskts...</p>
                 </div>
@@ -43,11 +42,12 @@ export function BasktList({ onActivate, activatingBasktId }: BasktListProps) {
                 baskt={baskt}
                 onActivate={onActivate}
                 isActivating={activatingBasktId === baskt.basktId}
+                onViewDetails={onViewDetails}
               />
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={BASKT_TABLE_HEADERS.length} className="text-center text-white/60">
+              <TableCell colSpan={3} className="text-center text-white/60">
                 No baskts found.
               </TableCell>
             </TableRow>

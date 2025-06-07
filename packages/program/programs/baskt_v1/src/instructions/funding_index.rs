@@ -85,7 +85,7 @@ pub struct UpdateFundingIndex<'info> {
 
     /// Baskt account associated with the funding index. Used only for seed verification.
     #[account(
-        seeds = [b"baskt", baskt.baskt_id.as_ref()],
+        seeds = [b"baskt", &get_baskt_name_seed(&baskt.baskt_name)[..]],
         bump = baskt.bump
     )]
     pub baskt: Account<'info, BasktV1>, // Read-only access needed for seeds
@@ -94,6 +94,7 @@ pub struct UpdateFundingIndex<'info> {
     pub protocol: Account<'info, Protocol>,
 }
 
+//TOOD: SidduHERE should we add the latest index to baskt account
 pub fn update_funding_index(ctx: Context<UpdateFundingIndex>, new_rate: i64) -> Result<()> {
     // Validate the new rate is within bounds
     require!(

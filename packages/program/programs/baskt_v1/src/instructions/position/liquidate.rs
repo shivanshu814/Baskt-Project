@@ -33,7 +33,7 @@ impl<'info> LiquidatePositionRemainingAccounts<'info> {
             remaining_accounts.len() >= 3,
             PerpetualsError::InvalidAccountInput
         );
-        
+
         Ok(Self {
             owner_token: &remaining_accounts[0],
             treasury_token: &remaining_accounts[1],
@@ -43,7 +43,7 @@ impl<'info> LiquidatePositionRemainingAccounts<'info> {
 }
 
 /// LiquidatePosition using ProtocolRegistry
-/// 
+///
 /// Remaining accounts expected (in order):
 /// 0. owner_token account
 /// 1. treasury_token account  
@@ -90,9 +90,11 @@ pub struct LiquidatePosition<'info> {
     #[account(
         constraint = protocol.key() == registry.protocol @ PerpetualsError::Unauthorized,
         constraint = protocol.feature_flags.allow_liquidations @ PerpetualsError::PositionOperationsDisabled,
-        constraint = protocol.has_permission(liquidator.key(), Role::Liquidator) @ PerpetualsError::Unauthorized
+        constraint = protocol.has_permission(liquidator.key(), Role::Liquidator) @ PerpetualsError::Unauthorized,
+        seeds = [b"protocol"],
+        bump
     )]
-    pub protocol: Account<'info, Protocol>,
+    pub protocol: Box<Account<'info, Protocol>>,
 
     /// Liquidity pool (loaded from registry)
     #[account(
@@ -147,7 +149,10 @@ pub fn liquidate_position<'info>(
     let clock = Clock::get()?;
 
     // Validate liquidation price
-    ctx.accounts.baskt.oracle.validate_liquidation_price(params.exit_price, clock.unix_timestamp)?;
+    ctx.accounts
+        .baskt
+        .oracle
+        .validate_liquidation_price(params.exit_price, clock.unix_timestamp)?;
 
     // Update funding first
     position.update_funding(funding_index.cumulative_index)?;
@@ -194,7 +199,8 @@ pub fn liquidate_position<'info>(
     let initial_escrow_balance = ctx.accounts.escrow_token.amount;
     let mut current_escrow_balance = initial_escrow_balance;
 
-    let liquidation_fee_paid_to_treasury = std::cmp::min(raw_liquidation_fee, initial_escrow_balance);
+    let liquidation_fee_paid_to_treasury =
+        std::cmp::min(raw_liquidation_fee, initial_escrow_balance);
 
     if liquidation_fee_paid_to_treasury > 0 {
         token::transfer(
@@ -296,11 +302,15 @@ pub fn liquidate_position<'info>(
         .ok_or(PerpetualsError::MathOverflow)?;
 
     if net_change_for_lp_state_i128 > 0 {
-        ctx.accounts.liquidity_pool.increase_liquidity(net_change_for_lp_state_i128 as u64)?;
+        ctx.accounts
+            .liquidity_pool
+            .increase_liquidity(net_change_for_lp_state_i128 as u64)?;
     } else if net_change_for_lp_state_i128 < 0 {
         ctx.accounts.liquidity_pool.decrease_liquidity(
-            net_change_for_lp_state_i128.unsigned_abs().try_into()
-                .map_err(|_| PerpetualsError::MathOverflow)?
+            net_change_for_lp_state_i128
+                .unsigned_abs()
+                .try_into()
+                .map_err(|_| PerpetualsError::MathOverflow)?,
         )?;
     }
 

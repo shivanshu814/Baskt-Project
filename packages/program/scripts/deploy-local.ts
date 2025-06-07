@@ -17,6 +17,14 @@ import { getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';
 
 const shouldCreateFakePrices = process.argv.includes('--create-fake-prices');
 
+const trpc = createTRPCProxyClient<AppRouter>({
+  links: [
+    httpBatchLink({
+      url: 'http://localhost:4000/trpc',
+    }),
+  ],
+});
+
 async function addAssetsToTrpc(
   assets: {
     ticker: string;
@@ -30,14 +38,6 @@ async function addAssetsToTrpc(
     };
   }[],
 ) {
-  const trpc = createTRPCProxyClient<AppRouter>({
-    links: [
-      httpBatchLink({
-        url: 'http://localhost:4000/trpc',
-      }),
-    ],
-  });
-
   for (const asset of assets) {
     await trpc.asset.createAsset.mutate({
       name: asset.name,
@@ -209,6 +209,36 @@ async function main() {
     wallet.payer,
     usdcAmount.toNumber(),
   );
+
+  const assetsConfig = [
+    {
+      assetId: new PublicKey(assetsWithAddress[0].address),
+      weight: new anchor.BN(5000),
+      direction: true,
+      baselinePrice: new anchor.BN(0),
+    },
+    {
+      assetId: new PublicKey(assetsWithAddress[1].address),
+      weight: new anchor.BN(5000),
+      direction: false,
+      baselinePrice: new anchor.BN(0),
+    },
+  ];
+
+  // Lets also just create a baskt
+  const basket = await client.createBaskt('Test Basket', assetsConfig, true);
+  trpc.baskt.createBasktMetadata.mutate({
+    basktId: basket.basktId.toString(),
+    name: 'Test Basket',
+    creator: wallet.publicKey.toString(),
+    assets: assetsConfig.map((asset) => asset.assetId.toString()),
+    image: '',
+    rebalancePeriod: {
+      value: 1,
+      unit: 'day',
+    },
+    txSignature: basket.txSignature,
+  });
 
   console.log('Deployment complete! Info saved to deployment-localnet.json');
 }

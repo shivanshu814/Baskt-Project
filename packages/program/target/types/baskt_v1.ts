@@ -287,7 +287,24 @@ export type BasktV1 = {
           "name": "protocol",
           "docs": [
             "Protocol account - required for validating the feature flag"
-          ]
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "tokenProgram",
@@ -829,7 +846,24 @@ export type BasktV1 = {
           "name": "protocol",
           "docs": [
             "Protocol for permission checks"
-          ]
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "liquidityPool",
@@ -1845,7 +1879,24 @@ export type BasktV1 = {
           "name": "protocol",
           "docs": [
             "Protocol for permission checks"
-          ]
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "liquidityPool",
@@ -2079,7 +2130,24 @@ export type BasktV1 = {
           "docs": [
             "Protocol account for checking permissions",
             "@dev Requires Matcher role to open positions"
-          ]
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "orderEscrow",
@@ -2703,26 +2771,7 @@ export type BasktV1 = {
           "name": "baskt",
           "docs": [
             "Baskt account associated with the funding index. Used only for seed verification."
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  98,
-                  97,
-                  115,
-                  107,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "baskt.baskt_id",
-                "account": "basktV1"
-              }
-            ]
-          }
+          ]
         },
         {
           "name": "protocol",

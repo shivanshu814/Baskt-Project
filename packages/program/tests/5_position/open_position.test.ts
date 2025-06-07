@@ -39,7 +39,7 @@ describe('Position Opening', () => {
   let positionPDA: PublicKey;
 
   // USDC mint constant from the program
-  const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+  const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
   before(async () => {
     // Initialize protocol and roles using centralized setup
@@ -96,7 +96,7 @@ describe('Position Opening', () => {
     const { basktId: createdBasktId } = await client.createBaskt(
       basktName,
       [formattedAssetConfig],
-      true // isPublic
+      true, // isPublic
     );
     basktId = createdBasktId;
 
@@ -105,13 +105,13 @@ describe('Position Opening', () => {
     await client.activateBaskt(
       basktId,
       [new BN(100_000_000)], // NAV = 100 with 6 decimals
-      60 // maxPriceAgeSec
+      60, // maxPriceAgeSec
     );
 
     // Find the funding index PDA for the baskt
     [fundingIndexPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('funding_index'), basktId.toBuffer()],
-      client.program.programId
+      client.program.programId,
     );
 
     // Initialize the funding index
@@ -136,13 +136,13 @@ describe('Position Opening', () => {
     // Find the funding index PDA for the baskt
     [fundingIndexPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('funding_index'), basktId.toBuffer()],
-      client.program.programId
+      client.program.programId,
     );
 
     // Mint USDC tokens to user
     await client.mintUSDC(
       userTokenAccount,
-      COLLATERAL_AMOUNT.muln(10).toNumber() // 10x for multiple tests
+      COLLATERAL_AMOUNT.muln(10).toNumber(), // 10x for multiple tests
     );
 
     // Set up a minimal liquidity pool (required for registry initialization)
@@ -163,12 +163,12 @@ describe('Position Opening', () => {
     // Find the order and position PDAs
     [orderPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('order'), user.publicKey.toBuffer(), orderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      client.program.programId,
     );
 
     [positionPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('position'), user.publicKey.toBuffer(), positionId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      client.program.programId,
     );
 
     // Create an open order for testing
@@ -210,8 +210,12 @@ describe('Position Opening', () => {
     expect(positionAccount.collateral.toString()).to.equal(COLLATERAL_AMOUNT.toString());
     expect(positionAccount.isLong).to.be.true;
     expect(positionAccount.entryPrice.toString()).to.equal(ENTRY_PRICE.toString());
-    expect(positionAccount.entryFundingIndex.toString()).to.equal(fundingIndexBefore.cumulativeIndex.toString());
-    expect(positionAccount.lastFundingIndex.toString()).to.equal(fundingIndexBefore.cumulativeIndex.toString());
+    expect(positionAccount.entryFundingIndex.toString()).to.equal(
+      fundingIndexBefore.cumulativeIndex.toString(),
+    );
+    expect(positionAccount.lastFundingIndex.toString()).to.equal(
+      fundingIndexBefore.cumulativeIndex.toString(),
+    );
     expect(positionAccount.fundingAccumulated.toString()).to.equal('0');
     expect(Object.keys(positionAccount.status)[0]).to.equal('open');
     expect(positionAccount.exitPrice).to.be.null;
@@ -220,7 +224,7 @@ describe('Position Opening', () => {
     // Try to fetch the order account - should be closed
     try {
       await client.program.account.order.fetch(orderPDA);
-      expect.fail("Order account should be closed");
+      expect.fail('Order account should be closed');
     } catch (error) {
       // This is expected - the account should be closed
       expect((error as Error).message).to.include('Account does not exist');
@@ -235,12 +239,16 @@ describe('Position Opening', () => {
     // Find the new order and position PDAs
     const [newOrderPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('order'), user.publicKey.toBuffer(), newOrderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      client.program.programId,
     );
 
     const [newPositionPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('position'), user.publicKey.toBuffer(), newPositionId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      [
+        Buffer.from('position'),
+        user.publicKey.toBuffer(),
+        newPositionId.toArrayLike(Buffer, 'le', 8),
+      ],
+      client.program.programId,
     );
 
     // Create a new open order
@@ -267,7 +275,7 @@ describe('Position Opening', () => {
         baskt: basktId,
       });
 
-      expect.fail("Transaction should have failed due to missing matcher role");
+      expect.fail('Transaction should have failed due to missing matcher role');
     } catch (error: any) {
       // console.debug('Non-matcher open error:', error.toString());
       expect(error.error?.errorName || error.toString()).to.include('Unauthorized');
@@ -280,7 +288,7 @@ describe('Position Opening', () => {
     // Valid range: 75_000_000 to 125_000_000
 
     const validPriceHigh = new BN(124_000_000); // 124 - within 25% bound
-    const validPriceLow = new BN(76_000_000);   // 76 - within 25% bound
+    const validPriceLow = new BN(76_000_000); // 76 - within 25% bound
 
     // Test with high valid price
     const highOrderId = new BN(Date.now() + 200);
@@ -288,12 +296,16 @@ describe('Position Opening', () => {
 
     const [highOrderPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('order'), user.publicKey.toBuffer(), highOrderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      client.program.programId,
     );
 
     const [highPositionPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('position'), user.publicKey.toBuffer(), highPositionId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      [
+        Buffer.from('position'),
+        user.publicKey.toBuffer(),
+        highPositionId.toArrayLike(Buffer, 'le', 8),
+      ],
+      client.program.programId,
     );
 
     await userClient.createOrder({
@@ -328,12 +340,16 @@ describe('Position Opening', () => {
 
     const [lowOrderPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('order'), user.publicKey.toBuffer(), lowOrderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      client.program.programId,
     );
 
     const [lowPositionPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('position'), user.publicKey.toBuffer(), lowPositionId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      [
+        Buffer.from('position'),
+        user.publicKey.toBuffer(),
+        lowPositionId.toArrayLike(Buffer, 'le', 8),
+      ],
+      client.program.programId,
     );
 
     await userClient.createOrder({
@@ -369,7 +385,7 @@ describe('Position Opening', () => {
     // Invalid range: <75_000_000 or >125_000_000
 
     const invalidPriceHigh = new BN(130_000_000); // 130 - outside 25% bound
-    const invalidPriceLow = new BN(70_000_000);   // 70 - outside 25% bound
+    const invalidPriceLow = new BN(70_000_000); // 70 - outside 25% bound
 
     // Test with invalid high price
     const highOrderId = new BN(Date.now() + 300);
@@ -377,12 +393,16 @@ describe('Position Opening', () => {
 
     const [highOrderPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('order'), user.publicKey.toBuffer(), highOrderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      client.program.programId,
     );
 
     const [highPositionPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('position'), user.publicKey.toBuffer(), highPositionId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      [
+        Buffer.from('position'),
+        user.publicKey.toBuffer(),
+        highPositionId.toArrayLike(Buffer, 'le', 8),
+      ],
+      client.program.programId,
     );
 
     await userClient.createOrder({
@@ -408,7 +428,7 @@ describe('Position Opening', () => {
         baskt: basktId,
       });
 
-      expect.fail("Transaction should have failed due to price outside deviation bounds");
+      expect.fail('Transaction should have failed due to price outside deviation bounds');
     } catch (error: any) {
       expect(error.error?.errorName || error.toString()).to.include('PriceOutOfBounds');
     }
@@ -419,12 +439,16 @@ describe('Position Opening', () => {
 
     const [lowOrderPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('order'), user.publicKey.toBuffer(), lowOrderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      client.program.programId,
     );
 
     const [lowPositionPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('position'), user.publicKey.toBuffer(), lowPositionId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      [
+        Buffer.from('position'),
+        user.publicKey.toBuffer(),
+        lowPositionId.toArrayLike(Buffer, 'le', 8),
+      ],
+      client.program.programId,
     );
 
     await userClient.createOrder({
@@ -450,7 +474,7 @@ describe('Position Opening', () => {
         baskt: basktId,
       });
 
-      expect.fail("Transaction should have failed due to price outside deviation bounds");
+      expect.fail('Transaction should have failed due to price outside deviation bounds');
     } catch (error: any) {
       expect(error.error?.errorName || error.toString()).to.include('PriceOutOfBounds');
     }
@@ -462,12 +486,16 @@ describe('Position Opening', () => {
 
     const [zeroOrderPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('order'), user.publicKey.toBuffer(), zeroOrderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      client.program.programId,
     );
 
     const [zeroPositionPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('position'), user.publicKey.toBuffer(), zeroPositionId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      [
+        Buffer.from('position'),
+        user.publicKey.toBuffer(),
+        zeroPositionId.toArrayLike(Buffer, 'le', 8),
+      ],
+      client.program.programId,
     );
 
     await userClient.createOrder({
@@ -493,7 +521,7 @@ describe('Position Opening', () => {
         baskt: basktId,
       });
 
-      expect.fail("Transaction should have failed due to zero entry price");
+      expect.fail('Transaction should have failed due to zero entry price');
     } catch (error: any) {
       expect(error.error?.errorName || error.toString()).to.include('InvalidOraclePrice');
     }

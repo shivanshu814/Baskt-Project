@@ -56,7 +56,7 @@ export const useWithdraw = ({ poolData, liquidityPool, onSuccess }: UseWithdrawP
       }
 
       const minUsdcOut = new BN(0);
-      const treasurySetup = await setupTreasuryAccount(liquidityPool);
+      const treasurySetup = await setupTreasuryAccount();
       if (!treasurySetup) {
         setIsWithdrawing(false);
         return;

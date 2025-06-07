@@ -9,22 +9,22 @@ import { useBasktClient } from '@baskt/ui';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import { useOpenPosition } from '../../../hooks/baskt/trade/openPosition';
 
-export function BasktTradingForm({ baskt, userPosition = null, className }: BasktTradingFormProps) {
-  const [collateral, setCollateral] = useState<number>(1500);
-  const { isLoading, openPosition, getEstimatedShares, getLiquidationPrice } = useOpenPosition({ baskt });
+export function BasktTradingForm({ baskt, className }: BasktTradingFormProps) {
+  const [size, setSize] = useState<number>(0);
+  const { isLoading, openPosition, getLiquidationPrice, collateral } = useOpenPosition({ baskt, size });
   const { client } = useBasktClient();
   const publicKey = client?.wallet?.address;
-  const { account: userUSDCAccount } = useUSDCBalance(publicKey);
+  const { account: userUSDCAccount, balance } = useUSDCBalance(publicKey);
 
-  const handleCollateralChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlesizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
     if (!isNaN(value) && value >= 0) {
-      setCollateral(value);
+      setSize(value);
     }
   };
 
-  const handleCollateralSliderChange = (value: number[]) => {
-    setCollateral(value[0]);
+  const handlesizeSliderChange = (value: number[]) => {
+    setSize(value[0]);
   };
 
   const handleTrade = async (position: 'long' | 'short') => {
@@ -47,9 +47,10 @@ export function BasktTradingForm({ baskt, userPosition = null, className }: Bask
     }
 
     try {
-      await openPosition(position, collateral);
+      await openPosition(position, size);
       // eslint-disable-next-line 
     } catch (error: any) {
+      console.log(error);
       toast({
         title: 'Error',
         description: error.message || 'Failed to open position',
@@ -77,38 +78,38 @@ export function BasktTradingForm({ baskt, userPosition = null, className }: Bask
 
       <Tabs defaultValue="long" className="w-full">
         <TabsList className="grid grid-cols-2 mb-4">
-          <TabsTrigger value="long">Buy/Long</TabsTrigger>
-          <TabsTrigger value="short">Sell/Short</TabsTrigger>
+          <TabsTrigger value="long">Long</TabsTrigger>
+          <TabsTrigger value="short">Short</TabsTrigger>
         </TabsList>
 
         <div className="space-y-4">
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-medium">Collateral (USDT)</label>
+              <label className="text-sm font-medium">Size</label>
               <span className="text-sm text-muted-foreground">
-                Balance: ${userPosition?.userBalance.toLocaleString() || 50000}
+                Balance: ${balance}
               </span>
             </div>
             <Input
               type="number"
-              value={collateral}
-              onChange={handleCollateralChange}
+              value={size}
+              onChange={handlesizeChange}
               className="mb-2"
               disabled={isLoading}
             />
             <Slider
               defaultValue={[1500]}
               min={100}
-              max={userPosition?.userBalance || 50000}
+              max={parseFloat(balance)}
               step={100}
-              value={[collateral]}
-              onValueChange={handleCollateralSliderChange}
+              value={[size]}
+              onValueChange={handlesizeSliderChange}
               disabled={isLoading}
             />
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>$100</span>
-              <span>${((userPosition?.userBalance || 50000) / 2).toLocaleString()}</span>
-              <span>${(userPosition?.userBalance || 50000).toLocaleString()}</span>
+              <span>${parseFloat(balance) / 2}</span>
+              <span>${balance.toLocaleString()}</span>
             </div>
           </div>
 
@@ -118,44 +119,43 @@ export function BasktTradingForm({ baskt, userPosition = null, className }: Bask
               <span>${baskt.price.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Estimated Shares:</span>
-              <span>{getEstimatedShares(collateral).toFixed(4)}</span>
+              <span className="text-muted-foreground">Size:</span>
+              <span>{size}</span>
             </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Collateral:</span>
+              <span>${collateral.toString()}</span>
+            </div>
+
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Liquidation Price:</span>
               <TabsContent value="long" className="m-0 p-0">
-                <span className="text-[#EA3943]">${getLiquidationPrice(collateral, 'long').toFixed(2)}</span>
+                <span className="text-[#EA3943]">${getLiquidationPrice(size, 'long').toFixed(2)}</span>
               </TabsContent>
               <TabsContent value="short" className="m-0 p-0">
-                <span className="text-[#EA3943]">${getLiquidationPrice(collateral, 'short').toFixed(2)}</span>
+                <span className="text-[#EA3943]">${getLiquidationPrice(size, 'short').toFixed(2)}</span>
               </TabsContent>
             </div>
           </div>
         </div>
 
         <TabsContent value="long" className="mt-4">
-          <p className="text-sm text-muted-foreground mb-4">
-            You'll profit if {baskt.name} increases in value
-          </p>
           <Button
             className="w-full bg-[#16C784] hover:bg-[#16C784]/90"
             onClick={() => handleTrade('long')}
             disabled={isLoading}
           >
-            {isLoading ? 'Opening Position...' : 'Open Long Position'}
+            {isLoading ? 'Loading...' : 'Trade'}
           </Button>
         </TabsContent>
 
         <TabsContent value="short" className="mt-4">
-          <p className="text-sm text-muted-foreground mb-4">
-            You'll profit if {baskt.name} decreases in value
-          </p>
           <Button
             className="w-full bg-[#EA3943] hover:bg-[#EA3943]/90"
             onClick={() => handleTrade('short')}
             disabled={isLoading}
           >
-            {isLoading ? 'Opening Position...' : 'Open Short Position'}
+            {isLoading ? 'Loading...' : 'Trade'}
           </Button>
         </TabsContent>
       </Tabs>

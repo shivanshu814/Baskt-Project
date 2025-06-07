@@ -6,22 +6,16 @@ import { useUSDCBalance } from '../../pool/useUSDCBalance';
 import { toast } from '../../common/use-toast';
 import { UseOpenPositionProps } from '../../../types/baskt';
 import {
-  calculateEstimatedShares,
-  calculateLiquidationPrice,
-  calculateMinCollateral,
-  calculateSize,
   calculateCollateralAmount,
+  calculateLiquidationPrice,
 } from '../../../utils/baskt/trade/calculate';
 
-export const useOpenPosition = ({ baskt }: UseOpenPositionProps) => {
+export const useOpenPosition = ({ baskt, size }: UseOpenPositionProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { client } = useBasktClient();
   const publicKey = client?.wallet?.address;
   const { balance: usdcBalance, account: userUSDCAccount } = useUSDCBalance(publicKey);
-
-  const getEstimatedShares = (collateral: number) => {
-    return calculateEstimatedShares({ collateral, price: baskt.price, leverage: 1.5 });
-  };
+  const collateral = calculateCollateralAmount(new BN(size));
 
   const getLiquidationPrice = (collateral: number, position: 'long' | 'short') => {
     return calculateLiquidationPrice({
@@ -32,7 +26,7 @@ export const useOpenPosition = ({ baskt }: UseOpenPositionProps) => {
     });
   };
 
-  const openPosition = async (position: 'long' | 'short', collateral: number) => {
+  const openPosition = async (position: 'long' | 'short', size: number) => {
     if (!publicKey || !client || !userUSDCAccount) {
       toast({
         title: 'Error',
@@ -55,30 +49,15 @@ export const useOpenPosition = ({ baskt }: UseOpenPositionProps) => {
       setIsLoading(true);
 
       const orderId = new BN(Date.now());
-      const estimatedShares = getEstimatedShares(collateral);
-      //   const estimatedShares = 10; // for testing
 
-      if (estimatedShares <= 0) {
-        throw new Error('Invalid position size');
-      }
-
-      const size = calculateSize(estimatedShares);
-      const collateralAmount = calculateCollateralAmount(collateral);
-
-      if (collateralAmount.lte(new BN(0))) {
+      if (collateral.lte(new BN(0))) {
         throw new Error('Collateral amount must be greater than 0');
-      }
-
-      const minCollateral = calculateMinCollateral(size);
-
-      if (collateralAmount.lt(minCollateral)) {
-        throw new Error(`Collateral must be at least ${minCollateral.divn(1e6).toString()} USDC`);
       }
 
       const tx = await client.createOrderTx(
         orderId,
-        size,
-        collateralAmount,
+        new BN(size).mul(new BN(1e6)),
+        collateral.mul(new BN(1e6)),
         position === 'long',
         { open: {} },
         null,
@@ -115,9 +94,9 @@ export const useOpenPosition = ({ baskt }: UseOpenPositionProps) => {
   return {
     isLoading,
     openPosition,
-    getEstimatedShares,
     getLiquidationPrice,
     usdcBalance,
     userUSDCAccount,
+    collateral,
   };
 };

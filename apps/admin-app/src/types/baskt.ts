@@ -1,13 +1,11 @@
+import { OnchainBasktAccount } from '@baskt/types';
+
 export interface Baskt {
   id: string;
   name: string;
   description: string;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface BasktAccount {
-  isActive: boolean;
 }
 
 export interface BasktAsset {
@@ -17,19 +15,23 @@ export interface BasktAsset {
 export interface BasktData {
   basktId: string;
   name: string;
-  account: BasktAccount;
+  account: OnchainBasktAccount;
   assets: BasktAsset[];
+  price: number;
+  change24h: number;
 }
 
 export interface BasktListProps {
   onActivate: (basktId: string) => Promise<void>;
   activatingBasktId: string | null;
+  onViewDetails?: (basktId: string) => void;
 }
 
 export interface BasktRowProps {
   baskt: BasktData;
   onActivate: (basktId: string) => Promise<void>;
   isActivating: boolean;
+  onViewDetails?: (basktId: string) => void;
 }
 export interface BasktResponse {
   success: boolean;

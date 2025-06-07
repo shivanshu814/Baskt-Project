@@ -67,7 +67,7 @@ export interface BasktChartProps {
 }
 
 export interface BasktPositionProps {
-  userPosition: UserBasktPositionInfo | null;
+  basktId: string;
 }
 
 export interface BasktTradingFormProps {
@@ -141,10 +141,10 @@ export interface RawBasktData {
 }
 export interface BasktTabsProps {
   baskt: any; // eslint-disable-line
-  userPosition: any; // eslint-disable-line
 }
 export interface UseOpenPositionProps {
   baskt: BasktInfo;
+  size: number;
 }
 export interface CalculateSharesParams {
   collateral: number;

@@ -79,7 +79,7 @@ export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositPro
       }
 
       const minSharesOut = new BN(0);
-      const treasurySetup = await setupTreasuryAccount(liquidityPool);
+      const treasurySetup = await setupTreasuryAccount();
       if (!treasurySetup) {
         setIsDepositing(false);
         return;

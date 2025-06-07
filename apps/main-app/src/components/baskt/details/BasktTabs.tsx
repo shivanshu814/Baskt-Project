@@ -8,7 +8,7 @@ import { BasktTabsProps } from '../../../types/baskt';
 
 type TabType = 'composition' | 'position' | 'openOrders' | 'orderHistory';
 
-export const BasktTabs = ({ baskt, userPosition }: BasktTabsProps) => {
+export const BasktTabs = ({ baskt }: BasktTabsProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('composition');
 
   const renderTabContent = () => {
@@ -16,7 +16,7 @@ export const BasktTabs = ({ baskt, userPosition }: BasktTabsProps) => {
       case 'composition':
         return <IndexComposition assets={baskt?.assets || []} />;
       case 'position':
-        return <BasktPosition userPosition={userPosition} />;
+        return <BasktPosition basktId={baskt.basktId} />;
       case 'openOrders':
         return <BasktOpenOrders basktId={baskt.basktId} />;
       case 'orderHistory':
@@ -33,8 +33,8 @@ export const BasktTabs = ({ baskt, userPosition }: BasktTabsProps) => {
           <div className="flex items-center space-x-8 mx-4">
             <button
               className={`px-1 py-2 text-[14px] ${activeTab === 'composition'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-primary'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-primary'
                 }`}
               onClick={() => setActiveTab('composition')}
             >
@@ -42,8 +42,8 @@ export const BasktTabs = ({ baskt, userPosition }: BasktTabsProps) => {
             </button>
             <button
               className={`px-1 py-2 text-[14px] ${activeTab === 'position'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-primary'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-primary'
                 }`}
               onClick={() => setActiveTab('position')}
             >
@@ -51,8 +51,8 @@ export const BasktTabs = ({ baskt, userPosition }: BasktTabsProps) => {
             </button>
             <button
               className={`px-1 py-2 text-[14px] ${activeTab === 'openOrders'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-primary'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-primary'
                 }`}
               onClick={() => setActiveTab('openOrders')}
             >
@@ -60,8 +60,8 @@ export const BasktTabs = ({ baskt, userPosition }: BasktTabsProps) => {
             </button>
             <button
               className={`px-1 py-2 text-[14px] ${activeTab === 'orderHistory'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-primary'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-primary'
                 }`}
               onClick={() => setActiveTab('orderHistory')}
             >

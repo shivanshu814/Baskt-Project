@@ -25,14 +25,7 @@ export const calculateLiquidationPrice = ({
   }
 };
 
-export const calculateMinCollateral = (size: BN): BN => {
+//TODO we should be reading from the constants in constant
+export const calculateCollateralAmount = (size: BN): BN => {
   return size.muln(110).divn(100);
-};
-
-export const calculateSize = (estimatedShares: number): BN => {
-  return new BN(Math.floor(estimatedShares * 1e6));
-};
-
-export const calculateCollateralAmount = (collateral: number): BN => {
-  return new BN(Math.floor(collateral * 1e6));
 };

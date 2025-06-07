@@ -12,11 +12,11 @@ export const useTreasuryAccount = () => {
   const { toast } = useToast();
 
   const setupTreasuryAccount = useCallback(
-    async (liquidityPool: PublicKey) => {
+    async () => {
       if (!client || !wallet?.address) return null;
 
       try {
-        const poolAuthority = await client.findPoolAuthorityPDA(liquidityPool);
+        const poolAuthority = await client.findPoolAuthorityPDA();
         const treasuryTokenAccount = getAssociatedTokenAddressSync(USDC_MINT, poolAuthority, true);
 
         const hasTreasuryRole = await client.hasRole(poolAuthority, AccessControlRole.Treasury);
