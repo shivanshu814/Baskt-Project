@@ -76,6 +76,7 @@ pub struct ClosePosition<'info> {
     pub position: Box<Account<'info, Position>>,
 
     /// CHECK: Position owner, for token transfers
+    /// TODO: sidduHERE why is this unchecked?
     pub position_owner: UncheckedAccount<'info>,
 
     #[account(
@@ -109,6 +110,7 @@ pub struct ClosePosition<'info> {
     pub protocol: Box<Account<'info, Protocol>>,
 
     /// Liquidity pool (loaded from registry)
+    /// TODO: sidduHERE this can be seeds right?
     #[account(
         mut,
         constraint = liquidity_pool.key() == registry.liquidity_pool @ PerpetualsError::InvalidLiquidityPool
@@ -143,6 +145,7 @@ pub struct ClosePosition<'info> {
     pub program_authority: Account<'info, ProgramAuthority>,
 
     /// CHECK: PDA authority for token_vault - validated via registry
+    /// TODO: sidduHERE this can be seeds right?
     #[account(
         constraint = pool_authority.key() == registry.pool_authority @ PerpetualsError::InvalidPoolAuthority
     )]
@@ -194,6 +197,7 @@ pub fn close_position<'info>(
         .ok_or(PerpetualsError::MathOverflow)? as u64;
 
     // Parse remaining accounts
+    // TODO: sidduHERE why are these remaining accounts and not simple context accounts
     let remaining_accounts = ClosePositionRemainingAccounts::parse(ctx.remaining_accounts)?;
 
     // Signer seeds

@@ -1110,11 +1110,6 @@ export abstract class BaseClient {
     baskt: PublicKey;
   }): Promise<string> {
     const registry = await this.getProtocolRegistry();
-    if (!registry) {
-      throw new Error(
-        'ProtocolRegistry not initialized. Please initialize the registry before opening positions.',
-      );
-    }
 
     const [fundinIndexPDA] = await this.getFundingIndexPda(params.baskt);
     const orderEscrow = await this.getOrderEscrowPDA(this.getPublicKey());
@@ -1151,14 +1146,6 @@ export abstract class BaseClient {
     additionalCollateral: BN;
     ownerTokenAccount: PublicKey;
   }): Promise<string> {
-    // Ensure registry is initialized
-    const registry = await this.getProtocolRegistry();
-    if (!registry) {
-      throw new Error(
-        'ProtocolRegistry not initialized. Please initialize the registry before adding collateral.',
-      );
-    }
-
     return await this.program.methods
       .addCollateral({ additionalCollateral: params.additionalCollateral })
       .accountsPartial({
@@ -1179,26 +1166,12 @@ export abstract class BaseClient {
     treasury: PublicKey;
     treasuryTokenAccount: PublicKey;
   }): Promise<string> {
-    //TODO: nshmadhani - remove this and it needs to be cleaned
     // Ensure registry is initialized
     const registry = await this.getProtocolRegistry();
-    if (!registry) {
-      throw new Error(
-        'ProtocolRegistry not initialized. Please initialize the registry before closing positions.',
-      );
-    }
 
     // Fetch the position to get the owner
     const positionAccount = await this.program.account.position.fetch(params.position);
 
-    // Find registry PDA
-    const registryPDA = await this.findProtocolRegistryPDA();
-
-    // Derive PDAs
-    const [escrowToken] = PublicKey.findProgramAddressSync(
-      [Buffer.from('escrow'), params.position.toBuffer()],
-      this.program.programId,
-    );
     const [programAuthority] = PublicKey.findProgramAddressSync(
       [Buffer.from('authority')],
       this.program.programId,
@@ -1235,12 +1208,8 @@ export abstract class BaseClient {
         order: params.orderPDA,
         position: params.position,
         positionOwner: positionAccount.owner,
-        fundingIndex: params.fundingIndex,
         baskt: params.baskt,
-        registry: registryPDA,
-        protocol: this.protocolPDA,
         liquidityPool: liquidityPoolPDA,
-        escrowToken: escrowToken,
         programAuthority: programAuthority,
         poolAuthority: registry.poolAuthority,
         treasury: params.treasury,
