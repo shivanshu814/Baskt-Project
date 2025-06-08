@@ -1,95 +1,124 @@
-import { Button } from '../../ui/button';
+import React, { useState } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
+import { Button } from '../../ui/button';
+import { useOpenPositions } from '../../../hooks/baskt/trade/useOpenPositions';
+import { useBasktClient } from '@baskt/ui';
+import { OnchainPosition, PositionStatus } from '@baskt/types';
+import BN from 'bn.js';
 import { BasktPositionProps } from '../../../types/baskt';
+import AddCollateralDialog from './AddCollateralDialog';
 
 export const BasktPosition = ({ basktId }: BasktPositionProps) => {
-  const userPosition = {
-    collateral: 1500,
-    positionSize: 100,
-    type: 'long',
-    entryPrice: 1500,
-    currentValue: 1500,
-    pnl: 0,
-    pnlPercentage: 0,
-    openDate: new Date().toISOString(),
-    basktId,
+  const { client } = useBasktClient();
+  const userAddress = client?.wallet?.address?.toString();
+  const { positions = [], closePosition, addCollateral } = useOpenPositions(basktId, userAddress);
+  
+  // State for the AddCollateralDialog
+  const [isAddCollateralDialogOpen, setIsAddCollateralDialogOpen] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState<OnchainPosition | null>(null);
+  
+  const openAddCollateralDialog = (position: OnchainPosition) => {
+    setSelectedPosition(position);
+    setIsAddCollateralDialogOpen(true);
   };
+  
+  const closeAddCollateralDialog = () => {
+    setSelectedPosition(null);
+    setIsAddCollateralDialogOpen(false);
+  };
+
+
   return (
     <Card className="rounded-none">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-medium">Your Position</CardTitle>
+        <CardTitle className="text-lg font-medium">Your Positions</CardTitle>
       </CardHeader>
       <CardContent>
-        {userPosition ? (
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Collateral</span>
-              <span className="font-medium">
-                ${(userPosition.collateral || userPosition.positionSize * 1.5).toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Position Type</span>
-              <span
-                className={`font-medium ${(userPosition.type || 'long') === 'long' ? 'text-[#16c784]' : 'text-[#ea3943]'
-                  }`}
-              >
-                {userPosition.type
-                  ? userPosition.type.charAt(0).toUpperCase() + userPosition.type.slice(1)
-                  : 'Long'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Entry Price</span>
-              <span className="font-medium">${userPosition.entryPrice.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Current Value</span>
-              <span className="font-medium">${userPosition.currentValue.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">P&L</span>
-              <span
-                className={`font-medium ${userPosition.pnl >= 0 ? 'text-[#16c784]' : 'text-[#ea3943]'
-                  }`}
-              >
-                {userPosition.pnl >= 0 ? '+' : ''}
-                {userPosition.pnl.toFixed(2)} USD ({userPosition.pnl >= 0 ? '+' : ''}
-                {userPosition.pnlPercentage.toFixed(2)}%)
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Open Date</span>
-              <span className="font-medium">{userPosition.openDate}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              <Button variant="outline" size="sm">
-                Increase
-              </Button>
-              <Button variant="destructive" size="sm">
-                Close Position
-              </Button>
-            </div>
+        {positions.length > 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Position ID</TableHead>
+                  <TableHead>Size</TableHead>
+                  <TableHead>Collateral</TableHead>
+                  <TableHead>Entry Price</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Open Date</TableHead>
+                  <TableHead className="text-right"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {!positions || positions.length === 0 ? (
+                  <TableRow>
+                    {[...Array(7)].map((_, i) => (
+                      <TableCell key={i} className="py-8" />
+                    ))}
+                  </TableRow>
+                ) : (
+                  positions.map((position: OnchainPosition) => (
+                    <TableRow key={position.address.toString()}>
+                      <TableCell className="font-medium">
+                        {position.positionId.toString().substring(0, 8)}...
+                      </TableCell>
+                      <TableCell>
+                        {position.size ? `${(new BN(position.size).toNumber() / 1e6).toFixed(2)}` : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {position.collateral ? `$${(new BN(position.collateral).toNumber() / 1e6).toFixed(2)}` : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {position.entryPrice ? `$${(new BN(position.entryPrice).toNumber() / 1e6).toFixed(2)}` : '-'}
+                      </TableCell>
+                      <TableCell className="text-[#16C784]">
+                        {position.status === PositionStatus.OPEN ? 'Open' : position.status === PositionStatus.CLOSED ? 'Closed' : 'Liquidated'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {position.timestampOpen
+                          ? new Date(new BN(position.timestampOpen).toNumber() * 1000).toLocaleDateString()
+                          : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" className="px-2 py-1 h-auto text-xs"
+                            onClick={() => openAddCollateralDialog(position)}>
+                            Add Collateral
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="px-2 py-1 h-auto text-xs"
+                            onClick={() => closePosition(position)}
+                          >
+                            Close
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 mt-4">
             <div className="text-center py-2">
               <p className="text-muted-foreground mb-2">
-                You don't have a position in this Baskt yet.
+                You don't have any positions in this Baskt yet.
               </p>
-              <p className="text-sm text-muted-foreground">
-                Get started by opening a long or short position.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <Button variant="outline" size="sm" className="w-full">
-                <span className="text-[#16c784]">Long</span>
-              </Button>
-              <Button variant="outline" size="sm" className="w-full">
-                <span className="text-[#ea3943]">Short</span>
-              </Button>
             </div>
           </div>
+        )}
+        
+        {/* Add Collateral Dialog */}
+        {isAddCollateralDialogOpen && selectedPosition && (
+          <AddCollateralDialog
+            position={selectedPosition}
+            isOpen={isAddCollateralDialogOpen}
+            onClose={closeAddCollateralDialog}
+            onAddCollateral={addCollateral}
+          />
         )}
       </CardContent>
     </Card>

@@ -1,12 +1,6 @@
 import * as anchor from '@coral-xyz/anchor';
 import { Program } from '@coral-xyz/anchor';
-import {
-  Keypair,
-  PublicKey,
-  LAMPORTS_PER_SOL,
-  SystemProgram,
-  SYSVAR_RENT_PUBKEY,
-} from '@solana/web3.js';
+import { Keypair, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { BaseClient } from '@baskt/sdk';
 import { BasktV1 } from '../../target/types/baskt_v1';
 import { AccessControlRole, OnchainAssetPermissions } from '@baskt/types';

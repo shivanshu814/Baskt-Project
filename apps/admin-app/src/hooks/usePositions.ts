@@ -1,19 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { useBasktClient } from '@baskt/ui';
-import { Position } from '../types/position';
+import { OnchainPosition } from '@baskt/types';
 
 export const usePositions = () => {
   const { client } = useBasktClient();
 
-  return useQuery<Position[]>({
+  return useQuery<OnchainPosition[]>({
     queryKey: ['positions'],
     queryFn: async () => {
       if (!client) throw new Error('Client not initialized');
-      const positions = await (client as any).getAllPositionsRaw(); // eslint-disable-line
+      const positions = await client.getAllPositions(); // eslint-disable-line
       // eslint-disable-next-line
-      return positions.map((position: any) => ({
-        ...position.account,
-        publicKey: position.publicKey,
+      return positions.map((position: OnchainPosition) => ({
+        ...position,
+        publicKey: position.address.toString(),
       }));
     },
     enabled: !!client,

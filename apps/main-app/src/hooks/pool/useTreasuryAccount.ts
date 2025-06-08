@@ -11,45 +11,40 @@ export const useTreasuryAccount = () => {
   const { client, wallet } = useBasktClient();
   const { toast } = useToast();
 
-  const setupTreasuryAccount = useCallback(
-    async () => {
-      if (!client || !wallet?.address) return null;
+  const setupTreasuryAccount = useCallback(async () => {
+    if (!client || !wallet?.address) return null;
 
-      try {
-        const poolAuthority = await client.findPoolAuthorityPDA();
-        const treasuryTokenAccount = getAssociatedTokenAddressSync(USDC_MINT, poolAuthority, true);
+    try {
+      const poolAuthority = await client.findPoolAuthorityPDA();
+      const treasuryTokenAccount = getAssociatedTokenAddressSync(USDC_MINT, poolAuthority, true);
 
-        const hasTreasuryRole = await client.hasRole(poolAuthority, AccessControlRole.Treasury);
+      const hasTreasuryRole = await client.hasRole(poolAuthority, AccessControlRole.Treasury);
 
-        if (!hasTreasuryRole) {
-          await client.addRole(poolAuthority, AccessControlRole.Treasury);
-        }
-
-        const treasuryTokenAccountInfo = await client.connection.getAccountInfo(
-          treasuryTokenAccount,
-        );
-        if (!treasuryTokenAccountInfo) {
-          const createTreasuryAtaIx = createAssociatedTokenAccountInstruction(
-            new PublicKey(wallet.address),
-            treasuryTokenAccount,
-            poolAuthority,
-            USDC_MINT,
-          );
-          const tx = new Transaction().add(createTreasuryAtaIx);
-          await client.provider.sendAndConfirmLegacy(tx);
-        }
-
-        return { poolAuthority, treasuryTokenAccount };
-      } catch (error) {
-        toast({
-          title: 'Failed to verify treasury accounts. Please contact support.',
-          variant: 'destructive',
-        });
-        return null;
+      if (!hasTreasuryRole) {
+        await client.addRole(poolAuthority, AccessControlRole.Treasury);
       }
-    },
-    [client, wallet, toast],
-  );
+
+      const treasuryTokenAccountInfo = await client.connection.getAccountInfo(treasuryTokenAccount);
+      if (!treasuryTokenAccountInfo) {
+        const createTreasuryAtaIx = createAssociatedTokenAccountInstruction(
+          new PublicKey(wallet.address),
+          treasuryTokenAccount,
+          poolAuthority,
+          USDC_MINT,
+        );
+        const tx = new Transaction().add(createTreasuryAtaIx);
+        await client.provider.sendAndConfirmLegacy(tx);
+      }
+
+      return { poolAuthority, treasuryTokenAccount };
+    } catch (error) {
+      toast({
+        title: 'Failed to verify treasury accounts. Please contact support.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  }, [client, wallet, toast]);
 
   return {
     setupTreasuryAccount,

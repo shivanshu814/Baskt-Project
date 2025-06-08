@@ -95,10 +95,10 @@ pub fn create_order(
     action: OrderAction,
     target_position: Option<Pubkey>,
 ) -> Result<()> {
-    // Validate inputs
+    //TOOD: sidduHERE do we need to do this check for when closing an order
     require!(size > 0, PerpetualsError::ZeroSizedPosition);
-
     if action == OrderAction::Open {
+        // Validate inputs
         require!(collateral > 0, PerpetualsError::InsufficientCollateral);
 
         // Check minimum collateral ratio using existing Constants

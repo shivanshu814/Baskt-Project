@@ -8,6 +8,7 @@ import {
     TableRow,
 } from "../../components/ui/table";
 import { formatDate } from '../../utils/date';
+import { PositionStatus } from '@baskt/types';
 
 const PositionList = () => {
     const { data: positions = [], isLoading, error } = usePositions();
@@ -27,7 +28,6 @@ const PositionList = () => {
             </div>
         );
     }
-    console.log(positions)
 
     return (
         <div className="mt-6 rounded-md border">
@@ -40,6 +40,7 @@ const PositionList = () => {
                         <TableHead>Direction</TableHead>
                         <TableHead>Size</TableHead>
                         <TableHead>Collateral</TableHead>
+                        <TableHead>Entry Price</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Opened</TableHead>
                     </TableRow>
@@ -53,7 +54,7 @@ const PositionList = () => {
                         </TableRow>
                     ) : (
                         positions.map((position) => (
-                            <TableRow key={position.publicKey.toString()}>
+                            <TableRow key={position.address.toString()}>
                                 <TableCell>
                                     <p className="text-sm font-medium text-gray-200 truncate cursor-pointer">
                                         {position.positionId.toString()}
@@ -79,9 +80,12 @@ const PositionList = () => {
                                     <p className="text-sm text-gray-200">{position.collateral.toString()}</p>
                                 </TableCell>
                                 <TableCell>
-                                    <p className={`text-sm font-medium ${position.status === 'open'
+                                    <p className="text-sm text-gray-200">{position.entryPrice.toString()}</p>
+                                </TableCell>
+                                <TableCell>
+                                    <p className={`text-sm font-medium ${position.status === PositionStatus.OPEN
                                         ? 'text-green-500'
-                                        : position.status === 'closed'
+                                        : position.status === PositionStatus.CLOSED
                                             ? 'text-gray-400'
                                             : 'text-red-500'
                                         }`}>
@@ -89,7 +93,7 @@ const PositionList = () => {
                                     </p>
                                 </TableCell>
                                 <TableCell>
-                                    <p className="text-sm text-gray-500">{formatDate(position.timestampOpen)}</p>
+                                    <p className="text-sm text-gray-500">{formatDate(position.timestampOpen.toNumber())}</p>
                                 </TableCell>
                             </TableRow>
                         ))

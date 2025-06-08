@@ -162,7 +162,7 @@ async function main() {
   // 1. Derive PDAs
   const protocolPDA = await client.protocolPDA;
   const liquidityPoolPDA = await client.findLiquidityPoolPDA();
-  const poolAuthorityPDA = await client.findPoolAuthorityPDA(liquidityPoolPDA);
+  const poolAuthorityPDA = await client.findPoolAuthorityPDA();
   console.log('Protocol PDA:', protocolPDA.toBase58());
   console.log('Liquidity Pool PDA:', liquidityPoolPDA.toBase58());
   console.log('Pool Authority PDA:', poolAuthorityPDA.toBase58());

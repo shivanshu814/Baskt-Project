@@ -1,7 +1,6 @@
 import mongoose, { ObjectId } from 'mongoose';
 
 type TimeUnit = 'day' | 'hour';
-type RiskLevel = 'low' | 'medium' | 'high';
 
 /**
  * Interface for BasktMetadata model

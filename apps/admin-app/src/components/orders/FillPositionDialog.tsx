@@ -16,21 +16,10 @@ import { useBasktClient } from '@baskt/ui';
 import { useToast } from '../../hooks/use-toast';
 import { PublicKey } from '@solana/web3.js';
 import { BN } from 'bn.js';
-interface OrderData {
-    orderId: string;
-    owner: string;
-    basktId: string;
-    isLong: boolean;
-    action: string;
-    size: number;
-    collateral: number;
-    status: string;
-    timestamp: number;
-    // Add any other relevant fields from your actual Order type
-}
+import { OnchainOrder } from '@baskt/types';
 
 interface FillPositionDialogProps {
-    order: OrderData | null;
+    order: OnchainOrder | null;
     isOpen: boolean;
     onClose: () => void;
 }
@@ -102,14 +91,14 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
 
         try {
             setIsSubmitting(true);
-            
+
             const basktId = new PublicKey(order.basktId);
             const entryPriceBN = new BN(entryPriceNum);
             const oraclePriceBN = new BN(oraclePriceNum);
-            
+
             // First update the oracle price (Oracle Address == BasktId)
             await client.updateOraclePrice(basktId, oraclePriceBN);
-            
+
             // Then open the position
             await client.openPosition({
                 order: await client.getOrderPDA(new BN(order.orderId), new PublicKey(order.owner)),
@@ -150,13 +139,13 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
                         <Label htmlFor="orderIdDisplay" className="text-right col-span-1">
                             Order ID
                         </Label>
-                        <Input id="orderIdDisplay" value={order.orderId} readOnly className="col-span-3 bg-muted" />
+                        <Input id="orderIdDisplay" value={order.orderId.toString()} readOnly className="col-span-3 bg-muted" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="basktIdDisplay" className="text-right col-span-1">
                             Baskt ID
                         </Label>
-                        <Input id="basktIdDisplay" value={order.basktId} readOnly className="col-span-3 bg-muted" />
+                        <Input id="basktIdDisplay" value={order.basktId.toBase58()} readOnly className="col-span-3 bg-muted" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="directionDisplay" className="text-right col-span-1">

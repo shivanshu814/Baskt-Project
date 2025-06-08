@@ -23,6 +23,11 @@ import {
   OnchainAsset,
   OnchainAssetConfig,
   AccessControlRole,
+  OnchainOrder,
+  OnchainPosition,
+  OrderAction,
+  OrderStatus,
+  PositionStatus,
 } from '@baskt/types';
 import { getAccount, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { toU64LeBytes } from './utils';
@@ -373,6 +378,30 @@ export abstract class BaseClient {
     return await this.program.account.position.all();
   }
 
+  public async getAllBasktsRaw() {
+    return await this.program.account.basktV1.all();
+  }
+
+  public async getOrder(orderPublicKey: PublicKey) {
+    const order = await this.program.account.order.fetch(orderPublicKey);
+    return this.convertOrder(order, orderPublicKey);
+  }
+
+  public async getPosition(positionPublicKey: PublicKey) {
+    const position = await this.program.account.position.fetch(positionPublicKey);
+    return this.convertPosition(position, positionPublicKey);
+  }
+
+  public async getAllOrders() {
+    const orders = await this.getAllOrdersRaw();
+    return orders.map((order) => this.convertOrder(order.account, order.publicKey));
+  }
+
+  public async getAllPositions() {
+    const positions = await this.getAllPositionsRaw();
+    return positions.map((position) => this.convertPosition(position.account, position.publicKey));
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private convertAsset(account: any) {
     const newAccount = account.permissions ? account : account.account;
@@ -386,6 +415,54 @@ export abstract class BaseClient {
       isActive: Boolean(newAccount.isActive),
       listingTime: new Date(newAccount.listingTime.toNumber() * 1000),
     } as OnchainAsset;
+  }
+
+  private convertOrder(order: any, orderAddress: PublicKey) {
+    return {
+      address: orderAddress,
+      action: order.action?.open ? OrderAction.Open : OrderAction.Close,
+      basktId: order.basktId,
+      bump: order.bump,
+      collateral: order.collateral,
+      isLong: order.isLong,
+      orderId: order.orderId,
+      owner: order.owner,
+      price: order.price,
+      size: order.size,
+      status: order.status?.pending
+        ? OrderStatus.PENDING
+        : order.status?.filled
+        ? OrderStatus.FILLED
+        : OrderStatus.CANCELLED,
+      timestamp: order.timestamp,
+      targetPosition: order.targetPosition,
+      userPublicKey: order.userPublicKey,
+    } as OnchainOrder;
+  }
+
+  private convertPosition(position: any, positionAddress: PublicKey) {
+    return {
+      address: positionAddress,
+      positionId: position.positionId,
+      basktId: position.basktId,
+      bump: position.bump,
+      owner: position.owner,
+      size: position.size,
+      collateral: position.collateral,
+      isLong: position.isLong,
+      timestamp: position.timestamp,
+      targetOrder: position.targetOrder,
+      userPublicKey: position.userPublicKey,
+      entryPrice: position.entryPrice,
+      entryPriceExponent: position.entryPriceExponent,
+      status: position.status?.open
+        ? PositionStatus.OPEN
+        : position.status?.closed
+        ? PositionStatus.CLOSED
+        : PositionStatus.LIQUIDATED,
+      timestampOpen: position.timestampOpen,
+      timestampClose: position.timestampClose,
+    } as OnchainPosition;
   }
 
   /**
@@ -1043,21 +1120,6 @@ export abstract class BaseClient {
     const orderEscrow = await this.getOrderEscrowPDA(this.getPublicKey());
     const position = await this.getPositionPDA(this.getPublicKey(), params.positionId);
 
-    console.log(orderEscrow.toBase58(), position.toBase58(), fundinIndexPDA.toBase58());
-
-    console.log('orderEscrow', await this.program.provider.connection.getAccountInfo(orderEscrow));
-    console.log('position', await this.program.provider.connection.getAccountInfo(position));
-    console.log(
-      'fundinIndexPDA',
-      await this.program.provider.connection.getAccountInfo(fundinIndexPDA),
-    );
-    console.log('baskt', await this.program.provider.connection.getAccountInfo(params.baskt));
-    console.log(
-      'escrowMint',
-      await this.program.provider.connection.getAccountInfo(registry.escrowMint),
-    );
-    console.log('order', await this.program.provider.connection.getAccountInfo(params.order));
-
     // Call openPosition with registry
     return await this.program.methods
       .openPosition({ positionId: params.positionId, entryPrice: params.entryPrice })
@@ -1104,6 +1166,86 @@ export abstract class BaseClient {
         ownerToken: params.ownerTokenAccount,
         position: params.position,
       })
+      .rpc();
+  }
+
+  public async closePosition(params: {
+    orderPDA: PublicKey;
+    position: PublicKey;
+    exitPrice: BN;
+    fundingIndex: PublicKey;
+    baskt: PublicKey;
+    ownerTokenAccount: PublicKey;
+    treasury: PublicKey;
+    treasuryTokenAccount: PublicKey;
+  }): Promise<string> {
+    //TODO: nshmadhani - remove this and it needs to be cleaned
+    // Ensure registry is initialized
+    const registry = await this.getProtocolRegistry();
+    if (!registry) {
+      throw new Error(
+        'ProtocolRegistry not initialized. Please initialize the registry before closing positions.',
+      );
+    }
+
+    // Fetch the position to get the owner
+    const positionAccount = await this.program.account.position.fetch(params.position);
+
+    // Find registry PDA
+    const registryPDA = await this.findProtocolRegistryPDA();
+
+    // Derive PDAs
+    const [escrowToken] = PublicKey.findProgramAddressSync(
+      [Buffer.from('escrow'), params.position.toBuffer()],
+      this.program.programId,
+    );
+    const [programAuthority] = PublicKey.findProgramAddressSync(
+      [Buffer.from('authority')],
+      this.program.programId,
+    );
+
+    // Find liquidity pool and get token vault
+    const liquidityPoolPDA = await this.findLiquidityPoolPDA();
+    const liquidityPool = await this.program.account.liquidityPool.fetch(liquidityPoolPDA);
+    const tokenVault = liquidityPool.tokenVault;
+
+    // Prepare remaining accounts in the correct order
+    const remainingAccounts = [
+      {
+        pubkey: params.ownerTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: params.treasuryTokenAccount,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: tokenVault,
+        isSigner: false,
+        isWritable: true,
+      },
+    ];
+
+    return await this.program.methods
+      .closePosition({ exitPrice: params.exitPrice })
+      .accountsPartial({
+        matcher: this.getPublicKey(),
+        order: params.orderPDA,
+        position: params.position,
+        positionOwner: positionAccount.owner,
+        fundingIndex: params.fundingIndex,
+        baskt: params.baskt,
+        registry: registryPDA,
+        protocol: this.protocolPDA,
+        liquidityPool: liquidityPoolPDA,
+        escrowToken: escrowToken,
+        programAuthority: programAuthority,
+        poolAuthority: registry.poolAuthority,
+        treasury: params.treasury,
+      })
+      .remainingAccounts(remainingAccounts)
       .rpc();
   }
 }

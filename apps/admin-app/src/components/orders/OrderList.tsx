@@ -19,30 +19,22 @@ import { Copy, Check, MoreHorizontal } from 'lucide-react'; // Added MoreHorizon
 import { useCopyWithTimeout } from '../../hooks/useCopyWithTimeout';
 import { getStatusColor, getActionColor } from '../../utils/orderUtils';
 import FillPositionDialog from './FillPositionDialog'; // Import the dialog
+import ClosePositionDialog from './ClosePositionDialog'; // Import the close position dialog
+import { OnchainOrder, OrderAction, OrderStatus } from '@baskt/types';
 
-// Define a more specific type for your order object if you have one
-// This is a placeholder based on usage in the component.
-interface Order {
-    orderId: string;
-    owner: string;
-    basktId: string;
-    isLong: boolean;
-    action: string; // e.g., 'Open', 'Close'
-    size: number;
-    collateral: number;
-    status: string; // e.g., 'Pending', 'Filled', 'Cancelled'
-    timestamp: number;
-    // Add other fields as necessary
-}
+
 
 const OrderList = () => {
-    const { orders = [], isLoading, error } = useOrders();
+    const { orders = [] } = useOrders();
     const { copiedKey, handleCopy } = useCopyWithTimeout();
 
     const [isFillDialogOpen, setIsFillDialogOpen] = useState(false);
-    const [selectedOrderForFill, setSelectedOrderForFill] = useState<Order | null>(null);
+    const [selectedOrderForFill, setSelectedOrderForFill] = useState<OnchainOrder | null>(null);
+    
+    const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
+    const [selectedOrderForClose, setSelectedOrderForClose] = useState<OnchainOrder | null>(null);
 
-    const openFillDialog = (order: Order) => {
+    const openFillDialog = (order: OnchainOrder) => {
         setSelectedOrderForFill(order);
         setIsFillDialogOpen(true);
     };
@@ -51,22 +43,18 @@ const OrderList = () => {
         setSelectedOrderForFill(null);
         setIsFillDialogOpen(false);
     };
+    
+    const openCloseDialog = (order: OnchainOrder) => {
+        setSelectedOrderForClose(order);
+        setIsCloseDialogOpen(true);
+    };
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
-        );
-    }
+    const closeCloseDialog = () => {
+        setSelectedOrderForClose(null);
+        setIsCloseDialogOpen(false);
+    };
 
-    if (error instanceof Error) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <p className="text-red-500">Error loading orders: {error.message}</p>
-            </div>
-        );
-    }
+
 
     return (
         <div className="mt-6 rounded-md border">
@@ -93,16 +81,16 @@ const OrderList = () => {
                             </TableCell>
                         </TableRow>
                     ) : (
-                        orders.map((order: Order) => (
-                            <TableRow key={order.orderId}>
+                        orders.map((order: OnchainOrder) => (
+                            <TableRow key={order.orderId.toString()}>
                                 <TableCell>
                                     <div className="flex items-center gap-2">
-                                        <p className="text-sm font-medium text-gray-200 truncate cursor-pointer" onClick={() => handleCopy(order.orderId, `orderId-${order.orderId}`)}>
-                                            {order.orderId}
+                                        <p className="text-sm font-medium text-gray-200 truncate cursor-pointer" onClick={() => handleCopy(order.orderId.toString(), `orderId-${order.orderId}`)}>
+                                            {order.orderId.toString()}
                                         </p>
                                         <button
                                             className="p-1 hover:bg-gray-700 rounded"
-                                            onClick={() => handleCopy(order.orderId, `orderId-${order.orderId}`)}
+                                            onClick={() => handleCopy(order.orderId.toString(), `orderId-${order.orderId}`)}
                                             title={copiedKey === `orderId-${order.orderId}` ? 'Copied!' : 'Copy Order ID'}
                                         >
                                             {copiedKey === `orderId-${order.orderId}` ? (
@@ -113,12 +101,12 @@ const OrderList = () => {
                                         </button>
                                     </div>
                                     <div className="flex items-center gap-2 mt-1">
-                                        <p className="text-sm text-gray-500 cursor-pointer" onClick={() => handleCopy(order.owner, `owner-${order.orderId}`)}>
-                                            {order.owner.slice(0, 8)}...{order.owner.slice(-8)}
+                                        <p className="text-sm text-gray-500 cursor-pointer" onClick={() => handleCopy(order.owner.toBase58(), `owner-${order.orderId}`)}>
+                                            {order.owner.toBase58().slice(0, 8)}...{order.owner.toBase58().slice(-8)}
                                         </p>
                                         <button
                                             className="p-1 hover:bg-gray-700 rounded"
-                                            onClick={() => handleCopy(order.owner, `owner-${order.orderId}`)}
+                                            onClick={() => handleCopy(order.owner.toBase58(), `owner-${order.orderId}`)}
                                             title={copiedKey === `owner-${order.orderId}` ? 'Copied!' : 'Copy Owner'}
                                         >
                                             {copiedKey === `owner-${order.orderId}` ? (
@@ -130,7 +118,7 @@ const OrderList = () => {
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <p className="text-sm text-gray-200">{order.basktId.slice(0, 8)}...{order.basktId.slice(-8)}</p>
+                                    <p className="text-sm text-gray-200">{order.basktId.toBase58().slice(0, 8)}...{order.basktId.toBase58().slice(-8)}</p>
                                 </TableCell>
                                 <TableCell>
                                     <p className={`text-sm font-medium ${getActionColor(order.isLong)}`}>{order.isLong ? 'Long' : 'Short'}</p>
@@ -139,16 +127,16 @@ const OrderList = () => {
                                     <p className="text-sm text-gray-200">{order.action}</p>
                                 </TableCell>
                                 <TableCell>
-                                    <p className="text-sm text-gray-200">{order.size.toFixed(2)}</p>
+                                    <p className="text-sm text-gray-200">{order.size.toString()}</p>
                                 </TableCell>
                                 <TableCell>
-                                    <p className="text-sm text-gray-200">${order.collateral.toFixed(2)}</p>
+                                    <p className="text-sm text-gray-200">${order.collateral.toString()}</p>
                                 </TableCell>
                                 <TableCell>
                                     <p className={`text-sm font-medium ${getStatusColor(order.status)}`}>{order.status}</p>
                                 </TableCell>
                                 <TableCell>
-                                    <p className="text-sm text-gray-500">{formatDate(order.timestamp)}</p>
+                                    <p className="text-sm text-gray-500">{formatDate(order.timestamp.toNumber())}</p>
                                 </TableCell>
                                 <TableCell className="text-right"> {/* Added Actions cell */}
                                     <DropdownMenu>
@@ -160,9 +148,15 @@ const OrderList = () => {
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuItem
                                                 onClick={() => openFillDialog(order)}
-                                                disabled={!(order.action === 'Open' && order.status === 'Pending')}
+                                                disabled={!(order.action === OrderAction.Open && order.status === OrderStatus.PENDING)}
                                             >
                                                 Fill Position
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={() => openCloseDialog(order)}
+                                                disabled={!(order.action === OrderAction.Close && order.status === OrderStatus.PENDING)}
+                                            >
+                                                Close Position
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -177,6 +171,13 @@ const OrderList = () => {
                     order={selectedOrderForFill}
                     isOpen={isFillDialogOpen}
                     onClose={closeFillDialog}
+                />
+            )}
+            {isCloseDialogOpen && selectedOrderForClose && (
+                <ClosePositionDialog
+                    order={selectedOrderForClose}
+                    isOpen={isCloseDialogOpen}
+                    onClose={closeCloseDialog}
                 />
             )}
         </div>
