@@ -1,3 +1,4 @@
+use crate::constants::*;
 use crate::error::PerpetualsError;
 use crate::state::{
     asset::{AssetPermissions, SyntheticAsset},
@@ -24,13 +25,13 @@ pub struct AddAsset<'info> {
         init,
         payer = admin,
         space = 8 + SyntheticAsset::INIT_SPACE,
-        seeds = [b"asset", params.ticker.as_bytes()],
+        seeds = [ASSET_SEED, params.ticker.as_bytes()],
         bump
     )]
     pub asset: Account<'info, SyntheticAsset>,
 
     /// Protocol account for access control check
-    #[account(seeds = [b"protocol"], bump)]
+    #[account(seeds = [PROTOCOL_SEED], bump)]
     pub protocol: Account<'info, Protocol>,
 
     pub system_program: Program<'info, System>,

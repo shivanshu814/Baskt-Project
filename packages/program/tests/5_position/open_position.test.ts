@@ -1,10 +1,9 @@
 import { expect } from 'chai';
 import { describe, it, before } from 'mocha';
-import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { initializeProtocolAndRoles } from '../utils/test-setup';
-import { initializeProtocolRegistry } from '../utils/protocol_setup';
 
 describe('Position Opening', () => {
   // Get the test client instance
@@ -18,7 +17,6 @@ describe('Position Opening', () => {
 
   // Test accounts
   let user: Keypair;
-  let treasury: Keypair;
   let matcher: Keypair;
   let nonMatcher: Keypair;
   let userClient: TestClient;
@@ -44,7 +42,6 @@ describe('Position Opening', () => {
   before(async () => {
     // Initialize protocol and roles using centralized setup
     const globalAccounts = await initializeProtocolAndRoles(client);
-    treasury = globalAccounts.treasury;
     matcher = globalAccounts.matcher;
 
     // Create test-specific accounts
@@ -119,11 +116,7 @@ describe('Position Opening', () => {
       .initializeFundingIndex()
       .accounts({
         authority: client.getPublicKey(),
-        // @ts-ignore: fundingIndex matches IDL but TS types are out of sync
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
-        protocol: client.protocolPDA,
-        systemProgram: SystemProgram.programId,
       })
       .rpc();
 
@@ -152,9 +145,6 @@ describe('Position Opening', () => {
       minDeposit: new BN(0),
       collateralMint,
     });
-
-    // Initialize the protocol registry after liquidity pool setup
-    await initializeProtocolRegistry(client);
 
     // Generate unique IDs for order and position
     orderId = new BN(Date.now());
@@ -194,9 +184,8 @@ describe('Position Opening', () => {
       positionId: positionId,
       entryPrice: ENTRY_PRICE,
       order: orderPDA,
-      position: positionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Fetch the position account
@@ -242,15 +231,6 @@ describe('Position Opening', () => {
       client.program.programId,
     );
 
-    const [newPositionPDA] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from('position'),
-        user.publicKey.toBuffer(),
-        newPositionId.toArrayLike(Buffer, 'le', 8),
-      ],
-      client.program.programId,
-    );
-
     // Create a new open order
     await userClient.createOrder({
       orderId: newOrderId,
@@ -270,9 +250,8 @@ describe('Position Opening', () => {
         positionId: newPositionId,
         entryPrice: ENTRY_PRICE,
         order: newOrderPDA,
-        position: newPositionPDA,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
+        orderOwner: user.publicKey,
       });
 
       expect.fail('Transaction should have failed due to missing matcher role');
@@ -325,9 +304,8 @@ describe('Position Opening', () => {
       positionId: highPositionId,
       entryPrice: validPriceHigh,
       order: highOrderPDA,
-      position: highPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Verify position was created
@@ -369,9 +347,8 @@ describe('Position Opening', () => {
       positionId: lowPositionId,
       entryPrice: validPriceLow,
       order: lowOrderPDA,
-      position: lowPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Verify position was created
@@ -396,15 +373,6 @@ describe('Position Opening', () => {
       client.program.programId,
     );
 
-    const [highPositionPDA] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from('position'),
-        user.publicKey.toBuffer(),
-        highPositionId.toArrayLike(Buffer, 'le', 8),
-      ],
-      client.program.programId,
-    );
-
     await userClient.createOrder({
       orderId: highOrderId,
       size: ORDER_SIZE,
@@ -423,9 +391,8 @@ describe('Position Opening', () => {
         positionId: highPositionId,
         entryPrice: invalidPriceHigh,
         order: highOrderPDA,
-        position: highPositionPDA,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
+        orderOwner: user.publicKey,
       });
 
       expect.fail('Transaction should have failed due to price outside deviation bounds');
@@ -439,15 +406,6 @@ describe('Position Opening', () => {
 
     const [lowOrderPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('order'), user.publicKey.toBuffer(), lowOrderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId,
-    );
-
-    const [lowPositionPDA] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from('position'),
-        user.publicKey.toBuffer(),
-        lowPositionId.toArrayLike(Buffer, 'le', 8),
-      ],
       client.program.programId,
     );
 
@@ -469,9 +427,8 @@ describe('Position Opening', () => {
         positionId: lowPositionId,
         entryPrice: invalidPriceLow,
         order: lowOrderPDA,
-        position: lowPositionPDA,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
+        orderOwner: user.publicKey,
       });
 
       expect.fail('Transaction should have failed due to price outside deviation bounds');
@@ -486,15 +443,6 @@ describe('Position Opening', () => {
 
     const [zeroOrderPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('order'), user.publicKey.toBuffer(), zeroOrderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId,
-    );
-
-    const [zeroPositionPDA] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from('position'),
-        user.publicKey.toBuffer(),
-        zeroPositionId.toArrayLike(Buffer, 'le', 8),
-      ],
       client.program.programId,
     );
 
@@ -516,9 +464,8 @@ describe('Position Opening', () => {
         positionId: zeroPositionId,
         entryPrice: new BN(0),
         order: zeroOrderPDA,
-        position: zeroPositionPDA,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
+        orderOwner: user.publicKey,
       });
 
       expect.fail('Transaction should have failed due to zero entry price');

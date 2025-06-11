@@ -1,4 +1,7 @@
-use crate::constants::{BPS_DIVISOR, ESCROW_MINT, MIN_COLLATERAL_RATIO_BPS};
+use crate::constants::{
+    AUTHORITY_SEED, BPS_DIVISOR, ESCROW_MINT, MIN_COLLATERAL_RATIO_BPS, ORDER_SEED, PROTOCOL_SEED,
+    USER_ESCROW_SEED,
+};
 use crate::error::PerpetualsError;
 use crate::events::*;
 use crate::state::{
@@ -29,7 +32,7 @@ pub struct CreateOrder<'info> {
         init,
         payer = owner,
         space = 8 + Order::INIT_SPACE,
-        seeds = [b"order", owner.key().as_ref(), &order_id.to_le_bytes()],
+        seeds = [ORDER_SEED, owner.key().as_ref(), &order_id.to_le_bytes()],
         bump
     )]
     pub order: Account<'info, Order>,
@@ -57,7 +60,7 @@ pub struct CreateOrder<'info> {
     #[account(
         init_if_needed,
         payer = owner,
-        seeds = [b"user_escrow", owner.key().as_ref()],
+        seeds = [USER_ESCROW_SEED, owner.key().as_ref()],
         bump,
         token::mint = escrow_mint,
         token::authority = program_authority,
@@ -66,14 +69,14 @@ pub struct CreateOrder<'info> {
 
     ///CHECK: PDA used for token authority over escrow for future operations
     #[account(
-        seeds = [b"authority"],
+        seeds = [AUTHORITY_SEED],
         bump,
     )]
     pub program_authority: AccountInfo<'info>,
 
     /// Protocol account to verify feature flags
     #[account(
-        seeds = [b"protocol"],
+        seeds = [PROTOCOL_SEED],
         bump,
         constraint = protocol.feature_flags.allow_trading @ PerpetualsError::TradingDisabled
     )]
@@ -180,7 +183,7 @@ pub struct CancelOrder<'info> {
 
     #[account(
         mut,
-        seeds = [b"order", owner.key().as_ref(), &order.order_id.to_le_bytes()],
+        seeds = [ORDER_SEED, owner.key().as_ref(), &order.order_id.to_le_bytes()],
         bump = order.bump,
         // has_one = owner, // Simpler constraint for owner check
         constraint = order.owner == owner.key() @ PerpetualsError::Unauthorized,
@@ -200,7 +203,7 @@ pub struct CancelOrder<'info> {
 
     #[account(
         mut,
-        seeds = [b"user_escrow", owner.key().as_ref()],
+        seeds = [USER_ESCROW_SEED, owner.key().as_ref()],
         bump,
         constraint = escrow_token.owner == program_authority.key() @ PerpetualsError::InvalidProgramAuthority,
         constraint = escrow_token.mint == ESCROW_MINT @ PerpetualsError::InvalidMint,
@@ -211,14 +214,14 @@ pub struct CancelOrder<'info> {
 
     ///CHECK: PDA used for token authority. Needed to sign the transfer from escrow.
     #[account(
-        seeds = [b"authority"],
+        seeds = [AUTHORITY_SEED],
         bump,
     )]
     pub program_authority: AccountInfo<'info>,
 
     /// Protocol account to verify feature flags
     #[account(
-        seeds = [b"protocol"],
+        seeds = [PROTOCOL_SEED],
         bump,
         constraint = protocol.feature_flags.allow_trading @ PerpetualsError::TradingDisabled
     )]
@@ -235,7 +238,7 @@ pub fn cancel_order(ctx: Context<CancelOrder>) -> Result<()> {
     // Only open orders have collateral to return from escrow
     if order.action == OrderAction::Open && order.collateral > 0 {
         // Use signer seeds with canonical bump derived by Anchor
-        let signer_seeds = [b"authority" as &[u8], &[ctx.bumps.program_authority]];
+        let signer_seeds = [AUTHORITY_SEED, &[ctx.bumps.program_authority]];
         let signer = &[&signer_seeds[..]];
 
         token::transfer(

@@ -33,6 +33,9 @@ pub struct LiquidityPool {
 
     /// Bump for this PDA
     pub bump: u8,
+
+    /// Bump for pool authority PDA
+    pub pool_authority_bump: u8,
 }
 
 impl LiquidityPool {

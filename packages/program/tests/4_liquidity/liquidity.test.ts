@@ -4,22 +4,18 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import { getAccount } from '@solana/spl-token';
 import { BN } from 'bn.js';
 import { TestClient, requestAirdrop } from '../utils/test-client';
-import { AccessControlRole } from '@baskt/types';
-import { initializeProtocolWithRegistry } from '../utils/protocol_setup';
 
 describe('Liquidity Pool', () => {
   // Get the test client instance
   const client = TestClient.getInstance();
 
-  // Test parameters
   const DEPOSIT_FEE_BPS = 50; // 0.25%
   const WITHDRAWAL_FEE_BPS = 50; // 0.5%
   const MIN_DEPOSIT = new BN(1_000_000); // 1 USDC (assuming 6 decimals)
   const DEPOSIT_AMOUNT = new BN(100_000_000); // 100 USDC
 
-  // Test accounts
-  let liquidityProvider: Keypair;
   let treasury: Keypair;
+  let liquidityProvider: Keypair;
 
   // Liquidity Pool accounts
   let liquidityPool: PublicKey;
@@ -31,16 +27,9 @@ describe('Liquidity Pool', () => {
   let lpClient: TestClient;
 
   before(async () => {
-    // Initialize protocol with registry
-    await initializeProtocolWithRegistry(client, {
-      depositFeeBps: DEPOSIT_FEE_BPS,
-      withdrawalFeeBps: WITHDRAWAL_FEE_BPS,
-      minDeposit: MIN_DEPOSIT,
-    });
-
     // Create test keypairs
     liquidityProvider = Keypair.generate();
-    treasury = Keypair.generate();
+    treasury = client.treasury;
 
     // Fund the test accounts
     await requestAirdrop(liquidityProvider.publicKey, client.connection);
@@ -48,14 +37,6 @@ describe('Liquidity Pool', () => {
 
     // Create user clients
     lpClient = await TestClient.forUser(liquidityProvider);
-
-    // Add Treasury role to treasury
-    await client.addRole(treasury.publicKey, AccessControlRole.Treasury);
-
-    // Verify the treasury role was added
-    const hasTreasuryRole = await client.hasRole(treasury.publicKey, AccessControlRole.Treasury);
-    // Verified treasury role assignment
-    expect(hasTreasuryRole).to.be.true;
 
     // Enable liquidity features
     await client.updateFeatureFlags({
@@ -72,14 +53,12 @@ describe('Liquidity Pool', () => {
       allowLiquidations: true,
     });
 
-    // Create a liquidity pool with initial liquidity
     const poolSetup = await client.setupLiquidityPoolWithLiquidity({
       depositFeeBps: DEPOSIT_FEE_BPS,
       withdrawalFeeBps: WITHDRAWAL_FEE_BPS,
       minDeposit: MIN_DEPOSIT,
       initialDeposit: DEPOSIT_AMOUNT,
       provider: liquidityProvider,
-      treasury,
     });
 
     // Store pool accounts for future tests
@@ -93,7 +72,7 @@ describe('Liquidity Pool', () => {
 
   it('Initializes the liquidity pool', async () => {
     // Fetch liquidity pool state
-    const liquidityPoolState = await client.getLiquidityPool(liquidityPool);
+    const liquidityPoolState = await client.getLiquidityPool();
 
     // Verify the liquidity pool was initialized correctly
     expect(liquidityPoolState.lpMint.toString()).to.equal(lpMint.toString());
@@ -126,7 +105,7 @@ describe('Liquidity Pool', () => {
     const expectedNetDeposit = secondDepositAmount.sub(expectedFeeAmount);
 
     // Get current pool state
-    const poolStateBefore = await client.getLiquidityPool(liquidityPool);
+    const poolStateBefore = await client.getLiquidityPool();
     // Get the current liquidity and shares totals for calculation
     const totalLiquidityBefore = new BN(poolStateBefore.totalLiquidity.toString());
     const totalSharesBefore = new BN(poolStateBefore.totalShares.toString());
@@ -151,7 +130,7 @@ describe('Liquidity Pool', () => {
     });
 
     // Fetch updated state
-    const poolStateAfter = await client.getLiquidityPool(liquidityPool);
+    const poolStateAfter = await client.getLiquidityPool();
     const lpTokenBalance = await getAccount(client.connection, providerLpAccount);
     const treasuryBalance = await getAccount(client.connection, treasuryTokenAccount);
 
@@ -170,7 +149,7 @@ describe('Liquidity Pool', () => {
 
   it('Withdraws liquidity by burning LP tokens', async () => {
     // Get current pool state
-    const poolStateBefore = await client.getLiquidityPool(liquidityPool);
+    const poolStateBefore = await client.getLiquidityPool();
 
     // Calculate burn amount - 25% of total shares
     const totalShares = new BN(poolStateBefore.totalShares.toString());
@@ -196,7 +175,7 @@ describe('Liquidity Pool', () => {
     });
 
     // Fetch updated state
-    const poolStateAfter = await client.getLiquidityPool(liquidityPool);
+    const poolStateAfter = await client.getLiquidityPool();
     const lpTokenBalance = await getAccount(client.connection, providerLpAccount);
     const treasuryBalance = await getAccount(client.connection, treasuryTokenAccount);
 

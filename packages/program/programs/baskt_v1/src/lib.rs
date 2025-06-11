@@ -16,10 +16,10 @@ use crate::state::order::OrderAction;
 use instructions::*;
 // Import position instruction structs and params
 use crate::instructions::position::{
-    open::{OpenPosition, OpenPositionParams},
     add_collateral::{AddCollateral, AddCollateralParams},
     close::{ClosePosition, ClosePositionParams},
     liquidate::{LiquidatePosition, LiquidatePositionParams},
+    open::{OpenPosition, OpenPositionParams},
 };
 
 #[program]
@@ -27,8 +27,8 @@ pub mod baskt_v1 {
     use super::*;
 
     // Protocol Management
-    pub fn initialize_protocol(ctx: Context<InitializeProtocol>) -> Result<()> {
-        instructions::protocol::initialize_protocol(ctx)
+    pub fn initialize_protocol(ctx: Context<InitializeProtocol>, treasury: Pubkey) -> Result<()> {
+        instructions::protocol::initialize_protocol(ctx, treasury)
     }
 
     pub fn add_role(ctx: Context<AddRole>, role_type: u8) -> Result<()> {
@@ -44,10 +44,6 @@ pub mod baskt_v1 {
         params: UpdateFeatureFlagsParams,
     ) -> Result<()> {
         instructions::protocol::update_feature_flags(ctx, params)
-    }
-
-    pub fn initialize_registry(ctx: Context<InitializeRegistry>) -> Result<()> {
-        instructions::protocol::initialize_registry(ctx)
     }
 
     // Baskt Management
@@ -104,8 +100,8 @@ pub mod baskt_v1 {
     }
 
     pub fn close_position<'info>(
-        ctx: Context<'_, '_, 'info, 'info, ClosePosition<'info>>, 
-        params: ClosePositionParams
+        ctx: Context<'_, '_, 'info, 'info, ClosePosition<'info>>,
+        params: ClosePositionParams,
     ) -> Result<()> {
         instructions::position::close::close_position(ctx, params)
     }

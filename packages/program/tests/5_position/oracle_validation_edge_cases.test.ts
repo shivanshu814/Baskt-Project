@@ -3,9 +3,7 @@ import { describe, it, before } from 'mocha';
 import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
 import BN from 'bn.js';
 import { TestClient, requestAirdrop } from '../utils/test-client';
-import { AccessControlRole } from '@baskt/types';
 import { initializeProtocolAndRoles } from '../utils/test-setup';
-import { initializeProtocolRegistry } from '../utils/protocol_setup';
 
 describe('Oracle Price Validation Edge Cases', () => {
   // Get the test client instance
@@ -22,9 +20,6 @@ describe('Oracle Price Validation Edge Cases', () => {
   // Valid range for regular operations: 75_000_000 to 125_000_000
   // 20% deviation = ±20_000_000
   // Valid range for liquidation: 80_000_000 to 120_000_000
-
-  // Boundary test prices
-  const ORACLE_PRICE_6_DECIMALS = new BN(100_000_000);
 
   // Regular operation boundaries (25%)
   const REGULAR_LOWER_BOUNDARY = new BN(75_000_000); // Exactly 25% below
@@ -59,7 +54,6 @@ describe('Oracle Price Validation Edge Cases', () => {
   let liquidityPool: PublicKey;
   let lpMint: PublicKey;
   let tokenVault: PublicKey;
-  let providerLpAccount: PublicKey;
 
   // USDC mint constant from the program
   const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
@@ -67,15 +61,9 @@ describe('Oracle Price Validation Edge Cases', () => {
   before(async () => {
     // Initialize protocol and roles using centralized setup
     const globalAccounts = await initializeProtocolAndRoles(client);
-    treasury = globalAccounts.treasury;
+    treasury = client.treasury;
     matcher = globalAccounts.matcher;
     liquidator = globalAccounts.liquidator;
-
-    // Verify treasury role was added successfully
-    const hasTreasuryRole = await client.hasRole(treasury.publicKey, AccessControlRole.Treasury);
-    if (!hasTreasuryRole) {
-      throw new Error('Treasury role was not added successfully');
-    }
 
     // Create test user
     user = Keypair.generate();
@@ -170,11 +158,6 @@ describe('Oracle Price Validation Edge Cases', () => {
       collateralMint,
     }));
 
-    // Initialize the protocol registry after liquidity pool setup
-    await initializeProtocolRegistry(client);
-
-    providerLpAccount = await userClient.createTokenAccount(lpMint, user.publicKey);
-
     // Create a separate provider for liquidity to avoid role conflicts
     const liquidityProvider = Keypair.generate();
     await requestAirdrop(liquidityProvider.publicKey, client.connection);
@@ -244,9 +227,8 @@ describe('Oracle Price Validation Edge Cases', () => {
       positionId: upperPositionId,
       entryPrice: REGULAR_UPPER_BOUNDARY,
       order: upperOrderPDA,
-      position: upperPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     const upperPosition = await client.program.account.position.fetch(upperPositionPDA);
@@ -287,9 +269,8 @@ describe('Oracle Price Validation Edge Cases', () => {
       positionId: lowerPositionId,
       entryPrice: REGULAR_LOWER_BOUNDARY,
       order: lowerOrderPDA,
-      position: lowerPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     const lowerPosition = await client.program.account.position.fetch(lowerPositionPDA);
@@ -305,15 +286,6 @@ describe('Oracle Price Validation Edge Cases', () => {
 
     const [highOrderPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('order'), user.publicKey.toBuffer(), highOrderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId,
-    );
-
-    const [highPositionPDA] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from('position'),
-        user.publicKey.toBuffer(),
-        highPositionId.toArrayLike(Buffer, 'le', 8),
-      ],
       client.program.programId,
     );
 
@@ -335,9 +307,8 @@ describe('Oracle Price Validation Edge Cases', () => {
         positionId: highPositionId,
         entryPrice: REGULAR_INVALID_HIGH,
         order: highOrderPDA,
-        position: highPositionPDA,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
+        orderOwner: user.publicKey,
       });
 
       expect.fail('Should have failed just above 25% boundary');
@@ -351,15 +322,6 @@ describe('Oracle Price Validation Edge Cases', () => {
 
     const [lowOrderPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('order'), user.publicKey.toBuffer(), lowOrderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId,
-    );
-
-    const [lowPositionPDA] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from('position'),
-        user.publicKey.toBuffer(),
-        lowPositionId.toArrayLike(Buffer, 'le', 8),
-      ],
       client.program.programId,
     );
 
@@ -381,9 +343,8 @@ describe('Oracle Price Validation Edge Cases', () => {
         positionId: lowPositionId,
         entryPrice: REGULAR_INVALID_LOW,
         order: lowOrderPDA,
-        position: lowPositionPDA,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
+        orderOwner: user.publicKey,
       });
 
       expect.fail('Should have failed just below 25% boundary');
@@ -432,16 +393,14 @@ describe('Oracle Price Validation Edge Cases', () => {
       positionId: upperPositionId,
       entryPrice: ENTRY_PRICE,
       order: upperOrderPDA,
-      position: upperPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Should succeed at exactly 20% above oracle price for liquidation
     await liquidatorClient.liquidatePosition({
       position: upperPositionPDA,
       exitPrice: LIQUIDATION_UPPER_BOUNDARY,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
       ownerTokenAccount: userTokenAccount,
       treasury: treasury.publicKey,
@@ -483,16 +442,14 @@ describe('Oracle Price Validation Edge Cases', () => {
       positionId: lowerPositionId,
       entryPrice: ENTRY_PRICE,
       order: lowerOrderPDA,
-      position: lowerPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Should succeed at exactly 20% below oracle price for liquidation
     await liquidatorClient.liquidatePosition({
       position: lowerPositionPDA,
       exitPrice: LIQUIDATION_LOWER_BOUNDARY,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
       ownerTokenAccount: userTokenAccount,
       treasury: treasury.publicKey,
@@ -537,9 +494,8 @@ describe('Oracle Price Validation Edge Cases', () => {
       positionId: highPositionId,
       entryPrice: ENTRY_PRICE,
       order: highOrderPDA,
-      position: highPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Should fail just above 20% boundary for liquidation
@@ -547,7 +503,6 @@ describe('Oracle Price Validation Edge Cases', () => {
       await liquidatorClient.liquidatePosition({
         position: highPositionPDA,
         exitPrice: LIQUIDATION_INVALID_HIGH,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,
@@ -593,9 +548,8 @@ describe('Oracle Price Validation Edge Cases', () => {
       positionId: lowPositionId,
       entryPrice: ENTRY_PRICE,
       order: lowOrderPDA,
-      position: lowPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Should fail just below 20% boundary for liquidation
@@ -603,7 +557,6 @@ describe('Oracle Price Validation Edge Cases', () => {
       await liquidatorClient.liquidatePosition({
         position: lowPositionPDA,
         exitPrice: LIQUIDATION_INVALID_LOW,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,
@@ -655,9 +608,8 @@ describe('Oracle Price Validation Edge Cases', () => {
       positionId: openPositionId,
       entryPrice: edgeCasePrice,
       order: openOrderPDA,
-      position: openPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     const position = await client.program.account.position.fetch(openPositionPDA);
@@ -688,7 +640,6 @@ describe('Oracle Price Validation Edge Cases', () => {
       orderPDA: closeOrderPDA,
       position: openPositionPDA,
       exitPrice: edgeCasePrice,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
       ownerTokenAccount: userTokenAccount,
       treasury: treasury.publicKey,
@@ -733,9 +684,8 @@ describe('Oracle Price Validation Edge Cases', () => {
       positionId: liquidatePositionId,
       entryPrice: ENTRY_PRICE,
       order: liquidateOrderPDA,
-      position: liquidatePositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Should fail with 22% deviation for liquidation
@@ -743,7 +693,6 @@ describe('Oracle Price Validation Edge Cases', () => {
       await liquidatorClient.liquidatePosition({
         position: liquidatePositionPDA,
         exitPrice: edgeCasePrice,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,

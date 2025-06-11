@@ -1,4 +1,4 @@
-use crate::constants::BPS_DIVISOR;
+use crate::constants::{BPS_DIVISOR, PROTOCOL_SEED};
 use crate::error::PerpetualsError;
 use crate::state::baskt::{AssetConfig, BasktV1, RebalanceHistory};
 use crate::state::protocol::{Protocol, Role};
@@ -31,7 +31,7 @@ pub struct Rebalance<'info> {
     )]
     pub payer: Signer<'info>,
 
-    #[account(seeds = [b"protocol"], bump)]
+    #[account(seeds = [PROTOCOL_SEED], bump)]
     pub protocol: Account<'info, Protocol>,
 
     pub system_program: Program<'info, System>,
@@ -65,7 +65,10 @@ pub fn rebalance(ctx: Context<Rebalance>, asset_params: Vec<AssetConfig>) -> Res
 
     // Verify total weight is 100%
     let total_weight: u64 = asset_params.iter().map(|config| config.weight).sum();
-    require!(total_weight == BPS_DIVISOR, PerpetualsError::InvalidAssetConfig);
+    require!(
+        total_weight == BPS_DIVISOR,
+        PerpetualsError::InvalidAssetConfig
+    );
 
     let current_nav = baskt.get_nav()?;
     let current_timestamp = Clock::get()?.unix_timestamp;

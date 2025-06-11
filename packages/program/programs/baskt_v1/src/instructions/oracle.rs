@@ -1,4 +1,5 @@
 use {
+    crate::constants::PROTOCOL_SEED,
     crate::error::PerpetualsError,
     crate::state::baskt::BasktV1,
     crate::state::protocol::{Protocol, Role},
@@ -14,7 +15,7 @@ pub struct UpdateCustomOracle<'info> {
     #[account(mut, constraint = protocol.has_permission(authority.key(), Role::OracleManager) @ PerpetualsError::Unauthorized)]
     pub authority: Signer<'info>,
 
-    #[account(seeds = [b"protocol"], bump, mut)]
+    #[account(seeds = [PROTOCOL_SEED], bump, mut)]
     pub protocol: Account<'info, Protocol>,
 }
 

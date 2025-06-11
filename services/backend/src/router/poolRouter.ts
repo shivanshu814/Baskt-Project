@@ -1,7 +1,7 @@
 import { publicProcedure, router } from '../trpc/trpc';
 import { sdkClient } from '../utils';
 import { PublicKey } from '@solana/web3.js';
-import { getAssociatedTokenAddressSync, getAccount } from '@solana/spl-token';
+import { getAccount } from '@solana/spl-token';
 
 const sdkClientInstance = sdkClient();
 
@@ -13,7 +13,7 @@ export const poolRouter = router({
         sdkClientInstance.program.programId,
       );
 
-      const poolData = await sdkClientInstance.getLiquidityPool(liquidityPoolPDA);
+      const poolData = await sdkClientInstance.getLiquidityPool();
       return {
         success: true,
         data: {
@@ -46,7 +46,7 @@ export const poolRouter = router({
       );
 
       // Get pool data
-      const poolData = await sdkClientInstance.getLiquidityPool(liquidityPoolPDA);
+      const poolData = await sdkClientInstance.getLiquidityPool();
 
       // Get all token accounts for the LP mint
       const lpMint = new PublicKey(poolData.lpMint);

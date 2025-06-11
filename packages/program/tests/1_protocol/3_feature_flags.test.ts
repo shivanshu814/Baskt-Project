@@ -100,7 +100,6 @@ describe('protocol feature flags', () => {
         })
         .accounts({
           owner: nonOwnerAccount.publicKey,
-          protocol: client.protocolPDA,
         })
         .signers([nonOwnerAccount])
         .rpc();

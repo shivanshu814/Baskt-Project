@@ -9,6 +9,6 @@ pub mod protocol;
 pub mod rebalance;
 // bring everything in scope
 pub use {
-    asset::*, baskt::*, funding_index::*, liquidity::*, oracle::*, order::*, 
-    position::*, protocol::*, rebalance::*,
+    asset::*, baskt::*, funding_index::*, liquidity::*, oracle::*, order::*, position::*,
+    protocol::*, rebalance::*,
 };

@@ -1,11 +1,10 @@
 import { expect } from 'chai';
 import { describe, it, before } from 'mocha';
-import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { initializeProtocolAndRoles } from '../utils/test-setup';
-import { initializeProtocolRegistry } from '../utils/protocol_setup';
 
 describe('Liquidate Position', () => {
   // Get the test client instance
@@ -36,7 +35,6 @@ describe('Liquidate Position', () => {
   let userTokenAccount: PublicKey;
   let treasuryTokenAccount: PublicKey;
   let assetId: PublicKey;
-  let fundingIndexPDA: PublicKey;
 
   // Position state for liquidation
   let orderId: BN;
@@ -57,13 +55,11 @@ describe('Liquidate Position', () => {
   let liquidityPool: PublicKey;
   let lpMint: PublicKey;
   let tokenVault: PublicKey;
-  let poolAuthority: PublicKey;
-  let providerLpAccount: PublicKey;
 
   before(async () => {
     // Initialize protocol and roles using centralized setup
     const globalAccounts = await initializeProtocolAndRoles(client);
-    treasury = globalAccounts.treasury;
+    treasury = client.treasury;
     matcher = globalAccounts.matcher;
     liquidator = globalAccounts.liquidator;
 
@@ -129,22 +125,12 @@ describe('Liquidate Position', () => {
       60, // maxPriceAgeSec
     );
 
-    // Find the funding index PDA for the baskt
-    [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('funding_index'), basktId.toBuffer()],
-      client.program.programId,
-    );
-
     // Initialize the funding index
     await client.program.methods
       .initializeFundingIndex()
       .accounts({
         authority: client.getPublicKey(),
-        // @ts-ignore: fundingIndex matches IDL but TS types are out of sync
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
-        protocol: client.protocolPDA,
-        systemProgram: SystemProgram.programId,
       })
       .rpc();
 
@@ -153,12 +139,6 @@ describe('Liquidate Position', () => {
     // Create token accounts for the test
     userTokenAccount = await client.getOrCreateUSDCAccount(user.publicKey);
     treasuryTokenAccount = await client.getOrCreateUSDCAccount(treasury.publicKey);
-
-    // Find the funding index PDA for the baskt
-    [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('funding_index'), basktId.toBuffer()],
-      client.program.programId,
-    );
 
     // Mint USDC tokens to user
     await client.mintUSDC(
@@ -175,7 +155,7 @@ describe('Liquidate Position', () => {
     }));
 
     // Initialize the protocol registry after liquidity pool setup
-    await initializeProtocolRegistry(client);
+    await initializeProtocolAndRoles(client);
 
     // Create a separate provider for liquidity to avoid role conflicts
     const liquidityProvider = Keypair.generate();
@@ -257,9 +237,8 @@ describe('Liquidate Position', () => {
       positionId: positionId,
       entryPrice: ENTRY_PRICE,
       order: orderPDA,
-      position: positionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Create an open order for non-liquidation scenario (higher collateral)
@@ -280,19 +259,12 @@ describe('Liquidate Position', () => {
       positionId: positionIdSafe,
       entryPrice: ENTRY_PRICE,
       order: orderPDASafe,
-      position: positionPDASafe,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
   });
 
   it('Successfully liquidates a position that meets liquidation criteria', async () => {
-    // Derive the position escrow token account PDA
-    const [positionEscrow] = PublicKey.findProgramAddressSync(
-      [Buffer.from('escrow'), positionPDA.toBuffer()],
-      client.program.programId,
-    );
-
     // Get token balances before liquidation
     const treasuryTokenBefore = await getAccount(client.connection, treasuryTokenAccount);
     // Get pool vault balance before liquidation
@@ -302,7 +274,6 @@ describe('Liquidate Position', () => {
     await liquidatorClient.liquidatePosition({
       position: positionPDA,
       exitPrice: LIQUIDATION_PRICE,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
       ownerTokenAccount: userTokenAccount,
       treasury: treasury.publicKey,
@@ -338,7 +309,6 @@ describe('Liquidate Position', () => {
       await liquidatorClient.liquidatePosition({
         position: positionPDASafe,
         exitPrice: NON_LIQUIDATION_PRICE, // Price that would result in profit for long
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,
@@ -389,9 +359,8 @@ describe('Liquidate Position', () => {
       positionId: newPositionId,
       entryPrice: ENTRY_PRICE,
       order: newOrderPDA,
-      position: newPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Try to liquidate the position with a non-liquidator (should fail)
@@ -399,7 +368,6 @@ describe('Liquidate Position', () => {
       await nonLiquidatorClient.liquidatePosition({
         position: newPositionPDA,
         exitPrice: LIQUIDATION_PRICE,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,
@@ -456,16 +424,14 @@ describe('Liquidate Position', () => {
       positionId: highPositionId,
       entryPrice: ENTRY_PRICE,
       order: highOrderPDA,
-      position: highPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Should succeed with valid high liquidation price for SHORT position
     await liquidatorClient.liquidatePosition({
       position: highPositionPDA,
       exitPrice: validLiquidationPriceHigh,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
       ownerTokenAccount: userTokenAccount,
       treasury: treasury.publicKey,
@@ -515,16 +481,14 @@ describe('Liquidate Position', () => {
       positionId: lowPositionId,
       entryPrice: ENTRY_PRICE,
       order: lowOrderPDA,
-      position: lowPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Should succeed with valid low liquidation price
     await liquidatorClient.liquidatePosition({
       position: lowPositionPDA,
       exitPrice: validLiquidationPriceLow,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
       ownerTokenAccount: userTokenAccount,
       treasury: treasury.publicKey,
@@ -583,9 +547,8 @@ describe('Liquidate Position', () => {
       positionId: highPositionId,
       entryPrice: ENTRY_PRICE,
       order: highOrderPDA,
-      position: highPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Should fail with invalid high liquidation price
@@ -593,7 +556,6 @@ describe('Liquidate Position', () => {
       await liquidatorClient.liquidatePosition({
         position: highPositionPDA,
         exitPrice: invalidLiquidationPriceHigh,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,
@@ -642,9 +604,8 @@ describe('Liquidate Position', () => {
       positionId: lowPositionId,
       entryPrice: ENTRY_PRICE,
       order: lowOrderPDA,
-      position: lowPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Should fail with invalid low liquidation price
@@ -652,7 +613,6 @@ describe('Liquidate Position', () => {
       await liquidatorClient.liquidatePosition({
         position: lowPositionPDA,
         exitPrice: invalidLiquidationPriceLow,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,
@@ -702,9 +662,8 @@ describe('Liquidate Position', () => {
       positionId: zeroPositionId,
       entryPrice: ENTRY_PRICE,
       order: zeroOrderPDA,
-      position: zeroPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Should fail with zero exit price
@@ -712,7 +671,6 @@ describe('Liquidate Position', () => {
       await liquidatorClient.liquidatePosition({
         position: zeroPositionPDA,
         exitPrice: new BN(0),
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,
@@ -767,9 +725,8 @@ describe('Liquidate Position', () => {
       positionId: testPositionId,
       entryPrice: strictBoundPrice, // 22% deviation - valid for open
       order: testOrderPDA,
-      position: testPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Verify position was created
@@ -781,7 +738,6 @@ describe('Liquidate Position', () => {
       await liquidatorClient.liquidatePosition({
         position: testPositionPDA,
         exitPrice: strictBoundPrice, // 22% deviation - invalid for liquidation
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,

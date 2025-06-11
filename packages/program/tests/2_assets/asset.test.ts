@@ -3,8 +3,6 @@ import { describe, it, before } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { TestClient } from '../utils/test-client';
 import { AccessControlRole, OnchainAssetPermissions } from '@baskt/types';
-import { initializeProtocolWithRegistry } from '../utils/protocol_setup';
-import { BN } from 'bn.js';
 
 describe('asset', () => {
   // Get the test client instance
@@ -12,13 +10,6 @@ describe('asset', () => {
 
   // Set up test roles before running tests
   before(async () => {
-    // Initialize protocol with registry
-    await initializeProtocolWithRegistry(client, {
-      depositFeeBps: 50,
-      withdrawalFeeBps: 50,
-      minDeposit: new BN(1 * 10 ** 6),
-    });
-
     // Verify roles were assigned correctly
     const hasAssetManagerRole = await client.hasRole(
       client.assetManager.publicKey,

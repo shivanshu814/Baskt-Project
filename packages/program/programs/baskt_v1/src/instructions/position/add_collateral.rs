@@ -1,10 +1,10 @@
 use {
+    crate::constants::{AUTHORITY_SEED, ESCROW_SEED, POSITION_SEED, PROTOCOL_SEED},
     crate::error::PerpetualsError,
     crate::events::*,
     crate::state::{
         position::{Position, PositionStatus, ProgramAuthority},
         protocol::Protocol,
-        registry::ProtocolRegistry,
     },
     anchor_lang::prelude::*,
     anchor_spl::token::{self, Token, TokenAccount, Transfer},
@@ -16,7 +16,6 @@ pub struct AddCollateralParams {
     pub additional_collateral: u64,
 }
 
-/// AddCollateral using ProtocolRegistry
 #[derive(Accounts)]
 #[instruction(params: AddCollateralParams)]
 pub struct AddCollateral<'info> {
@@ -25,7 +24,7 @@ pub struct AddCollateral<'info> {
 
     #[account(
         mut,
-        seeds = [b"position", owner.key().as_ref(), &position.position_id.to_le_bytes()],
+        seeds = [POSITION_SEED, owner.key().as_ref(), &position.position_id.to_le_bytes()],
         bump = position.bump,
         constraint = position.owner == owner.key() @ PerpetualsError::Unauthorized,
         constraint = position.status as u8 == PositionStatus::Open as u8 @ PerpetualsError::PositionAlreadyClosed,
@@ -35,7 +34,7 @@ pub struct AddCollateral<'info> {
     #[account(
         mut,
         constraint = owner_token.owner == owner.key() @ PerpetualsError::Unauthorized,
-        constraint = owner_token.mint == registry.escrow_mint @ PerpetualsError::InvalidMint,
+        constraint = owner_token.mint == protocol.escrow_mint @ PerpetualsError::InvalidMint,
         constraint = owner_token.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
         constraint = owner_token.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
     )]
@@ -43,35 +42,26 @@ pub struct AddCollateral<'info> {
 
     #[account(
         mut,
-        seeds = [b"escrow", position.key().as_ref()],
+        seeds = [ESCROW_SEED, position.key().as_ref()],
         bump,
-        constraint = escrow_token.mint == registry.escrow_mint @ PerpetualsError::InvalidMint,
+        constraint = escrow_token.mint == protocol.escrow_mint @ PerpetualsError::InvalidMint,
         constraint = escrow_token.owner == program_authority.key() @ PerpetualsError::InvalidProgramAuthority,
         constraint = escrow_token.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
         constraint = escrow_token.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
     )]
     pub escrow_token: Account<'info, TokenAccount>,
 
-    /// Protocol registry containing common addresses
-    #[account(
-        seeds = [ProtocolRegistry::SEED],
-        bump = registry.bump,
-    )]
-    pub registry: Account<'info, ProtocolRegistry>,
-
     /// PDA used for token authority over escrow
     #[account(
-        seeds = [b"authority"],
+        seeds = [AUTHORITY_SEED],
         bump,
-        constraint = program_authority.key() == registry.program_authority @ PerpetualsError::InvalidProgramAuthority
     )]
     pub program_authority: Account<'info, ProgramAuthority>,
 
     /// Protocol account - required for validating the feature flag
     #[account(
-        constraint = protocol.key() == registry.protocol @ PerpetualsError::Unauthorized,
         constraint = protocol.feature_flags.allow_add_collateral @ PerpetualsError::PositionOperationsDisabled,
-        seeds = [b"protocol"],
+        seeds = [PROTOCOL_SEED],
         bump
     )]
     pub protocol: Box<Account<'info, Protocol>>,

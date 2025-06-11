@@ -1,5 +1,8 @@
 use {
-    crate::constants::{BPS_DIVISOR, CLOSING_FEE_BPS},
+    crate::constants::{
+        AUTHORITY_SEED, BPS_DIVISOR, CLOSING_FEE_BPS, ESCROW_SEED, FUNDING_INDEX_SEED,
+        LIQUIDITY_POOL_SEED, ORDER_SEED, POOL_AUTHORITY_SEED, POSITION_SEED, PROTOCOL_SEED,
+    },
     crate::error::PerpetualsError,
     crate::events::*,
     crate::state::{
@@ -9,7 +12,6 @@ use {
         order::{Order, OrderAction, OrderStatus},
         position::{Position, PositionStatus, ProgramAuthority},
         protocol::{Protocol, Role},
-        registry::ProtocolRegistry,
     },
     anchor_lang::prelude::*,
     anchor_spl::token::{self, CloseAccount, Token, TokenAccount, Transfer},
@@ -43,7 +45,7 @@ impl<'info> ClosePositionRemainingAccounts<'info> {
     }
 }
 
-/// ClosePosition using ProtocolRegistry and remaining accounts
+/// ClosePosition
 ///
 /// Remaining accounts expected (in order):
 /// 0. owner_token account
@@ -56,7 +58,7 @@ pub struct ClosePosition<'info> {
 
     #[account(
         mut,
-        seeds = [b"order", order.owner.as_ref(), &order.order_id.to_le_bytes()],
+        seeds = [ORDER_SEED, order.owner.as_ref(), &order.order_id.to_le_bytes()],
         bump = order.bump,
         constraint = order.status as u8 == OrderStatus::Pending as u8 @ PerpetualsError::OrderAlreadyProcessed,
         constraint = order.action as u8 == OrderAction::Close as u8 @ PerpetualsError::InvalidOrderAction,
@@ -67,7 +69,7 @@ pub struct ClosePosition<'info> {
 
     #[account(
         mut,
-        seeds = [b"position", position.owner.as_ref(), &position.position_id.to_le_bytes()],
+        seeds = [POSITION_SEED, position.owner.as_ref(), &position.position_id.to_le_bytes()],
         bump = position.bump,
         constraint = position.owner == order.owner @ PerpetualsError::Unauthorized,
         constraint = position.status as u8 == PositionStatus::Open as u8 @ PerpetualsError::PositionAlreadyClosed,
@@ -81,7 +83,7 @@ pub struct ClosePosition<'info> {
 
     #[account(
         mut,
-        seeds = [b"funding_index", position.baskt_id.as_ref()],
+        seeds = [FUNDING_INDEX_SEED, position.baskt_id.as_ref()],
         bump = funding_index.bump
     )]
     pub funding_index: Account<'info, FundingIndex>,
@@ -92,44 +94,34 @@ pub struct ClosePosition<'info> {
     )]
     pub baskt: Box<Account<'info, BasktV1>>,
 
-    /// Protocol registry containing common addresses
-    #[account(
-        seeds = [ProtocolRegistry::SEED],
-        bump = registry.bump,
-    )]
-    pub registry: Account<'info, ProtocolRegistry>,
-
     /// Protocol for permission checks
     #[account(
-        constraint = protocol.key() == registry.protocol @ PerpetualsError::Unauthorized,
         constraint = protocol.feature_flags.allow_close_position && protocol.feature_flags.allow_trading @ PerpetualsError::PositionOperationsDisabled,
         constraint = protocol.has_permission(matcher.key(), Role::Matcher) @ PerpetualsError::Unauthorized,
-        seeds = [b"protocol"],
+        seeds = [PROTOCOL_SEED],
         bump
     )]
     pub protocol: Box<Account<'info, Protocol>>,
 
-    /// Liquidity pool (loaded from registry)
-    /// TODO: sidduHERE this can be seeds right?
     #[account(
         mut,
-        constraint = liquidity_pool.key() == registry.liquidity_pool @ PerpetualsError::InvalidLiquidityPool
+        seeds = [LIQUIDITY_POOL_SEED],
+        bump = liquidity_pool.bump
     )]
     pub liquidity_pool: Box<Account<'info, LiquidityPool>>,
 
-    /// Treasury account (loaded from registry)
-    /// CHECK: Validated via registry constraint
+    /// CHECK: Validated via protocol constraint
     #[account(
-        constraint = treasury.key() == registry.treasury @ PerpetualsError::Unauthorized
+        constraint = treasury.key() == protocol.treasury @ PerpetualsError::Unauthorized
     )]
     pub treasury: UncheckedAccount<'info>,
 
     /// Position escrow token account
     #[account(
         mut,
-        seeds = [b"escrow", position.key().as_ref()],
+        seeds = [ESCROW_SEED, position.key().as_ref()],
         bump,
-        constraint = escrow_token.mint == registry.escrow_mint @ PerpetualsError::InvalidMint,
+        constraint = escrow_token.mint == protocol.escrow_mint @ PerpetualsError::InvalidMint,
         constraint = escrow_token.owner == program_authority.key() @ PerpetualsError::InvalidProgramAuthority,
         constraint = escrow_token.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
         constraint = escrow_token.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
@@ -138,16 +130,15 @@ pub struct ClosePosition<'info> {
 
     /// PDA used for token authority over escrow - still needed for CPI signing
     #[account(
-        seeds = [b"authority"],
+        seeds = [AUTHORITY_SEED],
         bump,
-        constraint = program_authority.key() == registry.program_authority @ PerpetualsError::InvalidProgramAuthority
     )]
     pub program_authority: Account<'info, ProgramAuthority>,
 
-    /// CHECK: PDA authority for token_vault - validated via registry
-    /// TODO: sidduHERE this can be seeds right?
+    /// CHECK: PDA authority for token_vault - validated via protocol
     #[account(
-        constraint = pool_authority.key() == registry.pool_authority @ PerpetualsError::InvalidPoolAuthority
+        seeds = [POOL_AUTHORITY_SEED, liquidity_pool.key().as_ref(), protocol.key().as_ref()],
+        bump,
     )]
     pub pool_authority: UncheckedAccount<'info>,
 
@@ -161,7 +152,6 @@ pub fn close_position<'info>(
     let order = &ctx.accounts.order;
     let position = &mut ctx.accounts.position;
     let funding_index = &ctx.accounts.funding_index;
-    let registry = &ctx.accounts.registry;
     let clock = Clock::get()?;
 
     // Validate target position
@@ -201,17 +191,17 @@ pub fn close_position<'info>(
     let remaining_accounts = ClosePositionRemainingAccounts::parse(ctx.remaining_accounts)?;
 
     // Signer seeds
-    let authority_signer_seeds = [b"authority".as_ref(), &[ctx.bumps.program_authority]];
+    let authority_signer_seeds = [AUTHORITY_SEED.as_ref(), &[ctx.bumps.program_authority]];
     let authority_signer = &[&authority_signer_seeds[..]];
 
     // Pool authority signer seeds
     let lp_key = ctx.accounts.liquidity_pool.key();
     let proto_key = ctx.accounts.protocol.key();
     let pool_authority_signer_seeds = [
-        b"pool_authority".as_ref(),
+        POOL_AUTHORITY_SEED.as_ref(),
         lp_key.as_ref(),
         proto_key.as_ref(),
-        &[registry.pool_authority_bump],
+        &[ctx.bumps.pool_authority],
     ];
     let pool_authority_signer = &[&pool_authority_signer_seeds[..]];
 

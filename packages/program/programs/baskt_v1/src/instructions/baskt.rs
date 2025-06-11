@@ -1,4 +1,4 @@
-use crate::constants::{BPS_DIVISOR, PRICE_PRECISION, BASE_NAV};
+use crate::constants::{BPS_DIVISOR, PRICE_PRECISION, BASE_NAV,  BASKT_SEED, PROTOCOL_SEED};
 use crate::error::PerpetualsError;
 use crate::events::BasktCreatedEvent;
 use crate::state::asset::SyntheticAsset;
@@ -24,7 +24,7 @@ pub struct CreateBaskt<'info> {
         init,
         payer = creator,
         space = 8 + BasktV1::INIT_SPACE,
-        seeds = [b"baskt", &get_baskt_name_seed(&params.baskt_name)[..]], 
+        seeds = [BASKT_SEED, &get_baskt_name_seed(&params.baskt_name)[..]], 
         bump
     )]
     pub baskt: Account<'info, BasktV1>,
@@ -32,7 +32,7 @@ pub struct CreateBaskt<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
 
-    #[account(seeds = [b"protocol"], bump)]
+    #[account(seeds = [PROTOCOL_SEED], bump)]
     pub protocol: Account<'info, Protocol>,
 
     pub system_program: Program<'info, System>,
@@ -133,13 +133,13 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
 pub struct ActivateBaskt<'info> {
     #[account(
         mut,
-        seeds = [b"baskt", &get_baskt_name_seed(&baskt.baskt_name)[..]], 
+        seeds = [BASKT_SEED, &get_baskt_name_seed(&baskt.baskt_name)[..]], 
         bump = baskt.bump
     )]
     pub baskt: Account<'info, BasktV1>,
 
     /// @dev Requires either baskt creator or OracleManager role to activate baskts
-    #[account(seeds = [b"protocol"], bump)]
+    #[account(seeds = [PROTOCOL_SEED], bump)]
     pub protocol: Account<'info, Protocol>,
 
     #[account(mut, constraint = can_activate_baskt(&baskt, authority.key(), &protocol) @ PerpetualsError::Unauthorized)]

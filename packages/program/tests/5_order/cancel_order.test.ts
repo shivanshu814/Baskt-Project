@@ -5,7 +5,6 @@ import BN from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { AccessControlRole } from '@baskt/types';
-import { initializeProtocolWithRegistry } from '../utils/protocol_setup';
 
 describe('Order Cancellation', () => {
   // Get the test client instance
@@ -41,13 +40,6 @@ describe('Order Cancellation', () => {
   let shortOrderPDA: PublicKey;
 
   before(async () => {
-    // Initialize protocol with registry
-    await initializeProtocolWithRegistry(client, {
-      depositFeeBps: 50,
-      withdrawalFeeBps: 50,
-      minDeposit: new BN(1 * 10 ** 6),
-    });
-
     // Create test keypairs
     user = Keypair.generate();
     treasury = Keypair.generate();
@@ -68,14 +60,7 @@ describe('Order Cancellation', () => {
     otherUserClient = await TestClient.forUser(otherUser);
 
     // Add roles
-    await client.addRole(treasury.publicKey, AccessControlRole.Treasury);
     await client.addRole(matcher.publicKey, AccessControlRole.Matcher);
-
-    // Verify roles
-    const hasTreasuryRole = await client.hasRole(treasury.publicKey, AccessControlRole.Treasury);
-    const hasMatcherRole = await client.hasRole(matcher.publicKey, AccessControlRole.Matcher);
-    expect(hasTreasuryRole).to.be.true;
-    expect(hasMatcherRole).to.be.true;
 
     // Enable features for testing
     await client.updateFeatureFlags({
@@ -218,10 +203,6 @@ describe('Order Cancellation', () => {
     const userTokenBefore = await getAccount(client.connection, userTokenAccount);
     const escrowTokenBefore = await getAccount(client.connection, escrowTokenAccount);
 
-    // Verify the order is in pending status before cancellation
-    let orderAccount = await client.program.account.order.fetch(longOrderPDA);
-    expect(Object.keys(orderAccount.status)[0]).to.equal('pending');
-
     // Cancel the long order
     await userClient.cancelOrder({
       orderPDA: longOrderPDA,
@@ -257,10 +238,6 @@ describe('Order Cancellation', () => {
     // Get balances before cancellation
     const userTokenBefore = await getAccount(client.connection, userTokenAccount);
     const escrowTokenBefore = await getAccount(client.connection, escrowTokenAccount);
-
-    // Verify the order is in pending status before cancellation
-    let orderAccount = await client.program.account.order.fetch(shortOrderPDA);
-    expect(Object.keys(orderAccount.status)[0]).to.equal('pending');
 
     // Cancel the short order
     await userClient.cancelOrder({

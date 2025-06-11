@@ -2,17 +2,16 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import { TestClient, requestAirdrop } from './test-client';
 import { AccessControlRole } from '@baskt/types';
 import BN from 'bn.js';
-import { initializeProtocolRegistry } from './protocol_setup';
 
 // Global test accounts that persist across test files
-let globalTestAccounts: {
+const globalTestAccounts: {
   treasury?: Keypair;
   matcher?: Keypair;
   liquidator?: Keypair;
   fundingManager?: Keypair;
   initialized: boolean;
 } = {
-  initialized: false
+  initialized: false,
 };
 
 /**
@@ -27,12 +26,12 @@ export async function getGlobalTestAccounts() {
     globalTestAccounts.fundingManager = Keypair.generate();
     globalTestAccounts.initialized = true;
   }
-  
+
   return {
     treasury: globalTestAccounts.treasury!,
     matcher: globalTestAccounts.matcher!,
     liquidator: globalTestAccounts.liquidator!,
-    fundingManager: globalTestAccounts.fundingManager!
+    fundingManager: globalTestAccounts.fundingManager!,
   };
 }
 
@@ -41,19 +40,6 @@ export async function getGlobalTestAccounts() {
  * This prevents duplicate role assignments
  */
 export async function initializeProtocolAndRoles(client: TestClient) {
-  // Check if protocol is initialized
-  let protocolInitialized = false;
-  try {
-    await client.getProtocolAccount();
-    protocolInitialized = true;
-  } catch (error) {
-    // Protocol not initialized
-  }
-
-  if (!protocolInitialized) {
-    await client.initializeProtocol();
-  }
-
   // Initialize TestClient roles (AssetManager, OracleManager)
   await client.initializeRoles();
 
@@ -65,7 +51,8 @@ export async function initializeProtocolAndRoles(client: TestClient) {
   for (const account of accounts) {
     try {
       const balance = await client.connection.getBalance(account.publicKey);
-      if (balance < 1000000) { // Less than 0.001 SOL
+      if (balance < 1000000) {
+        // Less than 0.001 SOL
         await requestAirdrop(account.publicKey, client.connection);
       }
     } catch (error) {
@@ -75,7 +62,6 @@ export async function initializeProtocolAndRoles(client: TestClient) {
 
   // Add roles only if they don't exist
   const rolesToAdd = [
-    { account: treasury.publicKey, role: AccessControlRole.Treasury },
     { account: matcher.publicKey, role: AccessControlRole.Matcher },
     { account: liquidator.publicKey, role: AccessControlRole.Liquidator },
     { account: fundingManager.publicKey, role: AccessControlRole.FundingManager },
@@ -87,12 +73,12 @@ export async function initializeProtocolAndRoles(client: TestClient) {
     protocolAccount = await client.getProtocolAccount();
     const entryCount = protocolAccount.accessControl.entries.length;
     // console.log(`Current protocol access control entries: ${entryCount}/20`);
-    
+
     if (entryCount >= 18) {
       // console.warn(`WARNING: Protocol is near capacity (${entryCount}/20 entries). Tests may fail.`);
     }
   } catch (error) {
-    console.error("Failed to fetch protocol account:", error);
+    console.error('Failed to fetch protocol account:', error);
   }
 
   for (const { account, role } of rolesToAdd) {
@@ -101,7 +87,7 @@ export async function initializeProtocolAndRoles(client: TestClient) {
       if (!hasRole) {
         console.log(`Adding role ${role} to ${account.toString()}`);
         await client.addRole(account, role);
-        
+
         // Verify role was added
         const roleAdded = await client.hasRole(account, role);
         if (!roleAdded) {
@@ -110,20 +96,28 @@ export async function initializeProtocolAndRoles(client: TestClient) {
       }
     } catch (error: any) {
       // Check if it's the serialization error
-      if (error.toString().includes('AccountDidNotSerialize') || 
-          error.toString().includes('0xbbc')) {
-        throw new Error(`Protocol account is full (20 entry limit reached). Please restart the test validator.`);
+      if (
+        error.toString().includes('AccountDidNotSerialize') ||
+        error.toString().includes('0xbbc')
+      ) {
+        throw new Error(
+          `Protocol account is full (20 entry limit reached). Please restart the test validator.`,
+        );
       }
-      
+
       // If hasRole fails for another reason, try to add the role
       try {
         console.log(`Attempting to add role ${role} to ${account.toString()} after error`);
         await client.addRole(account, role);
       } catch (addError: any) {
         console.error(`ERROR: Could not add role ${role} to ${account.toString()}: ${addError}`);
-        if (addError.toString().includes('AccountDidNotSerialize') || 
-            addError.toString().includes('0xbbc')) {
-          throw new Error(`Protocol account is full (20 entry limit reached). Please restart the test validator.`);
+        if (
+          addError.toString().includes('AccountDidNotSerialize') ||
+          addError.toString().includes('0xbbc')
+        ) {
+          throw new Error(
+            `Protocol account is full (20 entry limit reached). Please restart the test validator.`,
+          );
         }
         throw addError;
       }
@@ -148,10 +142,10 @@ export async function setupLiquidityPoolTest(params: {
     initialLiquidity = new BN(1000_000_000), // 1000 USDC default
     depositFeeBps = 0,
     withdrawalFeeBps = 0,
-    minDeposit = new BN(0)
+    minDeposit = new BN(0),
   } = params;
 
-  const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+  const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
   // Initialize protocol and roles
   const { treasury } = await initializeProtocolAndRoles(client);
@@ -173,11 +167,8 @@ export async function setupLiquidityPoolTest(params: {
     depositFeeBps,
     withdrawalFeeBps,
     minDeposit,
-    collateralMint: USDC_MINT
+    collateralMint: USDC_MINT,
   });
-
-  // Initialize protocol registry after liquidity pool
-  const registry = await initializeProtocolRegistry(client);
 
   return {
     ...poolSetup,
@@ -187,6 +178,5 @@ export async function setupLiquidityPoolTest(params: {
     treasury,
     treasuryTokenAccount,
     collateralMint: USDC_MINT,
-    registry
   };
 }

@@ -1,5 +1,5 @@
 use {
-    crate::constants::MAX_FEE_BPS,
+    crate::constants::{MAX_FEE_BPS, LIQUIDITY_POOL_SEED, TOKEN_VAULT_SEED, POOL_AUTHORITY_SEED},
     crate::error::PerpetualsError,
     crate::events::*,
     crate::state::{
@@ -9,6 +9,7 @@ use {
     anchor_lang::prelude::*,
     anchor_spl::token::{self, Burn, Mint, MintTo, Token, TokenAccount, Transfer},
 };
+use crate::constants::*;
 
 /// Initializes the liquidity pool for the entire protocol
 #[derive(Accounts)]
@@ -25,7 +26,7 @@ pub struct InitializeLiquidityPool<'info> {
     /// Protocol account to verify admin role
     /// @dev Requires Owner role to initialize liquidity pool
     #[account(
-        seeds = [b"protocol"],
+        seeds = [PROTOCOL_SEED],
         bump,
         constraint = protocol.has_permission(admin.key(), Role::Owner) @ PerpetualsError::UnauthorizedRole
     )]
@@ -36,7 +37,7 @@ pub struct InitializeLiquidityPool<'info> {
         init,
         payer = payer,
         space = 8 + LiquidityPool::INIT_SPACE,
-        seeds = [b"liquidity_pool", protocol.key().as_ref()],
+        seeds = [LIQUIDITY_POOL_SEED],
         bump
     )]
     pub liquidity_pool: Account<'info, LiquidityPool>,
@@ -57,7 +58,7 @@ pub struct InitializeLiquidityPool<'info> {
         payer = payer,
         token::mint = token_mint,
         token::authority = pool_authority,
-        seeds = [b"token_vault", liquidity_pool.key().as_ref()],
+        seeds = [TOKEN_VAULT_SEED, liquidity_pool.key().as_ref()],
         bump
     )]
     pub token_vault: Account<'info, TokenAccount>,
@@ -67,7 +68,7 @@ pub struct InitializeLiquidityPool<'info> {
 
     /// CHECK: PDA used for pool operations authority
     #[account(
-        seeds = [b"pool_authority", liquidity_pool.key().as_ref(), protocol.key().as_ref()],
+        seeds = [POOL_AUTHORITY_SEED, liquidity_pool.key().as_ref(), protocol.key().as_ref()],
         bump
     )]
     pub pool_authority: UncheckedAccount<'info>,
@@ -88,14 +89,14 @@ pub struct AddLiquidity<'info> {
     /// The liquidity pool account
     #[account(
         mut,
-        seeds = [b"liquidity_pool", protocol.key().as_ref()],
+        seeds = [LIQUIDITY_POOL_SEED],
         bump = liquidity_pool.bump,
     )]
     pub liquidity_pool: Account<'info, LiquidityPool>,
 
     /// Protocol account to verify feature flags
     #[account(
-        seeds = [b"protocol"],
+        seeds = [PROTOCOL_SEED],
         bump,
         constraint = protocol.feature_flags.allow_add_liquidity @ PerpetualsError::LiquidityOperationsDisabled
     )]
@@ -118,7 +119,7 @@ pub struct AddLiquidity<'info> {
         constraint = token_vault.owner == pool_authority.key() @ PerpetualsError::InvalidProgramAuthority,
         constraint = token_vault.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
         constraint = token_vault.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority, 
-        seeds = [b"token_vault", liquidity_pool.key().as_ref()],
+        seeds = [TOKEN_VAULT_SEED, liquidity_pool.key().as_ref()],
         bump
     )]
     pub token_vault: Account<'info, TokenAccount>,
@@ -155,13 +156,13 @@ pub struct AddLiquidity<'info> {
 
     /// CHECK: Treasury account that receives fees
     #[account(
-        constraint = protocol.has_permission(treasury.key(), Role::Treasury) @ PerpetualsError::InvalidTreasuryAccount
+        constraint = treasury.key() == protocol.treasury @ PerpetualsError::Unauthorized
     )]
     pub treasury: UncheckedAccount<'info>,
 
     /// CHECK: PDA used for pool operations authority
     #[account(
-        seeds = [b"pool_authority", liquidity_pool.key().as_ref(), protocol.key().as_ref()],
+        seeds = [POOL_AUTHORITY_SEED, liquidity_pool.key().as_ref(), protocol.key().as_ref()],
         bump,
     )]
     pub pool_authority: UncheckedAccount<'info>,
@@ -180,14 +181,14 @@ pub struct RemoveLiquidity<'info> {
     /// The liquidity pool account
     #[account(
         mut,
-        seeds = [b"liquidity_pool", protocol.key().as_ref()],
+        seeds = [LIQUIDITY_POOL_SEED],
         bump = liquidity_pool.bump,
     )]
     pub liquidity_pool: Account<'info, LiquidityPool>,
 
     /// Protocol account to verify feature flags
     #[account(
-        seeds = [b"protocol"],
+        seeds = [PROTOCOL_SEED],
         bump,
         constraint = protocol.feature_flags.allow_remove_liquidity @ PerpetualsError::LiquidityOperationsDisabled
     )]
@@ -210,7 +211,7 @@ pub struct RemoveLiquidity<'info> {
         constraint = token_vault.owner == pool_authority.key() @ PerpetualsError::InvalidProgramAuthority,
         constraint = token_vault.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
         constraint = token_vault.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority, 
-        seeds = [b"token_vault", liquidity_pool.key().as_ref()],
+        seeds = [TOKEN_VAULT_SEED, liquidity_pool.key().as_ref()],
         bump
     )]
     pub token_vault: Account<'info, TokenAccount>,
@@ -247,15 +248,14 @@ pub struct RemoveLiquidity<'info> {
     pub treasury_token_account: Account<'info, TokenAccount>,
 
     /// CHECK: Treasury account that receives fees
-    ///    TODO sidduHERE where is the check for this. We should be setting this during init 
     #[account(
-        constraint = protocol.has_permission(treasury.key(), Role::Treasury) @ PerpetualsError::InvalidTreasuryAccount
+        constraint = treasury.key() == protocol.treasury @ PerpetualsError::Unauthorized
     )]
     pub treasury: UncheckedAccount<'info>,
 
     /// CHECK: PDA used for pool operations authority
     #[account(
-        seeds = [b"pool_authority", liquidity_pool.key().as_ref(), protocol.key().as_ref()],
+        seeds = [POOL_AUTHORITY_SEED, liquidity_pool.key().as_ref(), protocol.key().as_ref()],
         bump,
     )]
     pub pool_authority: UncheckedAccount<'info>,
@@ -363,7 +363,7 @@ pub fn add_liquidity(ctx: Context<AddLiquidity>, amount: u64, min_shares_out: u6
     let liquidity_pool_key = ctx.accounts.liquidity_pool.key();
     let protocol_key = ctx.accounts.protocol.key();
     let signer_seeds = [
-        b"pool_authority" as &[u8],
+        POOL_AUTHORITY_SEED,
         liquidity_pool_key.as_ref(),
         protocol_key.as_ref(),
         &[ctx.bumps.pool_authority],
@@ -387,7 +387,7 @@ pub fn add_liquidity(ctx: Context<AddLiquidity>, amount: u64, min_shares_out: u6
     if fee_amount > 0 {
         // Reuse the keys we already created
         let signer_seeds = [
-            b"pool_authority" as &[u8],
+            POOL_AUTHORITY_SEED,
             liquidity_pool_key.as_ref(),
             protocol_key.as_ref(),
             &[ctx.bumps.pool_authority],
@@ -482,7 +482,7 @@ pub fn remove_liquidity(
     let liquidity_pool_key = ctx.accounts.liquidity_pool.key();
     let protocol_key = ctx.accounts.protocol.key();
     let signer_seeds = [
-        b"pool_authority" as &[u8],
+        POOL_AUTHORITY_SEED,
         liquidity_pool_key.as_ref(),
         protocol_key.as_ref(),
         &[ctx.bumps.pool_authority],

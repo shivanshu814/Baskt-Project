@@ -222,38 +222,6 @@
           }
         },
         {
-          "name": "registry",
-          "docs": [
-            "Protocol registry containing common addresses"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  95,
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
           "name": "program_authority",
           "docs": [
             "PDA used for token authority over escrow"
@@ -363,10 +331,6 @@
                   111,
                   108
                 ]
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
               }
             ]
           }
@@ -768,7 +732,10 @@
           }
         },
         {
-          "name": "position_owner"
+          "name": "position_owner",
+          "docs": [
+            "TODO: sidduHERE why is this unchecked?"
+          ]
         },
         {
           "name": "funding_index",
@@ -805,38 +772,6 @@
           "name": "baskt"
         },
         {
-          "name": "registry",
-          "docs": [
-            "Protocol registry containing common addresses"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  95,
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
           "name": "protocol",
           "docs": [
             "Protocol for permission checks"
@@ -861,16 +796,33 @@
         },
         {
           "name": "liquidity_pool",
-          "docs": [
-            "Liquidity pool (loaded from registry)"
-          ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         },
         {
-          "name": "treasury",
-          "docs": [
-            "Treasury account (loaded from registry)"
-          ]
+          "name": "treasury"
         },
         {
           "name": "escrow_token",
@@ -923,7 +875,38 @@
           }
         },
         {
-          "name": "pool_authority"
+          "name": "pool_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
         },
         {
           "name": "token_program",
@@ -1338,10 +1321,6 @@
                   111,
                   108
                 ]
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
               }
             ]
           }
@@ -1494,6 +1473,12 @@
           }
         },
         {
+          "name": "escrow_mint",
+          "docs": [
+            "Escrow mint (USDC)"
+          ]
+        },
+        {
           "name": "program_authority",
           "docs": [
             "Program authority PDA - created during protocol initialization"
@@ -1523,233 +1508,12 @@
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
-    },
-    {
-      "name": "initialize_registry",
-      "discriminator": [
-        189,
-        181,
-        20,
-        17,
-        174,
-        57,
-        249,
-        59
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "docs": [
-            "Protocol owner who can initialize the registry"
-          ],
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "protocol",
-          "docs": [
-            "Protocol account"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "registry",
-          "docs": [
-            "Registry PDA to initialize"
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  95,
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
+      "args": [
         {
           "name": "treasury",
-          "docs": [
-            "Treasury account that receives fees"
-          ]
-        },
-        {
-          "name": "treasury_token",
-          "docs": [
-            "Treasury token account for USDC"
-          ]
-        },
-        {
-          "name": "liquidity_pool",
-          "docs": [
-            "Liquidity pool account"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  105,
-                  113,
-                  117,
-                  105,
-                  100,
-                  105,
-                  116,
-                  121,
-                  95,
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
-              }
-            ]
-          }
-        },
-        {
-          "name": "token_vault",
-          "docs": [
-            "Token vault for the liquidity pool"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "liquidity_pool"
-              }
-            ]
-          }
-        },
-        {
-          "name": "pool_authority",
-          "docs": [
-            "Pool authority PDA"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "liquidity_pool"
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
-              }
-            ]
-          }
-        },
-        {
-          "name": "program_authority",
-          "docs": [
-            "Program authority PDA"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "escrow_mint",
-          "docs": [
-            "Escrow mint (USDC)"
-          ]
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
+          "type": "pubkey"
         }
-      ],
-      "args": []
+      ]
     },
     {
       "name": "liquidate_position",
@@ -1838,38 +1602,6 @@
           "name": "baskt"
         },
         {
-          "name": "registry",
-          "docs": [
-            "Protocol registry containing common addresses"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  95,
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
           "name": "protocol",
           "docs": [
             "Protocol for permission checks"
@@ -1895,14 +1627,37 @@
         {
           "name": "liquidity_pool",
           "docs": [
-            "Liquidity pool (loaded from registry)"
+            "Liquidity pool"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "treasury",
           "docs": [
-            "Treasury account (loaded from registry)"
+            "CHECK Treasury account"
           ]
         },
         {
@@ -1956,7 +1711,38 @@
           }
         },
         {
-          "name": "pool_authority"
+          "name": "pool_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidity_pool"
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
         },
         {
           "name": "token_program",
@@ -2088,38 +1874,6 @@
           ]
         },
         {
-          "name": "registry",
-          "docs": [
-            "Protocol registry containing common addresses"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  95,
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
           "name": "protocol",
           "docs": [
             "Protocol account for checking permissions",
@@ -2222,7 +1976,7 @@
         {
           "name": "escrow_mint",
           "docs": [
-            "Escrow mint (USDC) - validated via registry"
+            "Escrow mint (USDC) - validated via protocol"
           ]
         },
         {
@@ -2399,10 +2153,6 @@
                   111,
                   108
                 ]
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
               }
             ]
           }
@@ -2491,10 +2241,7 @@
           "writable": true
         },
         {
-          "name": "treasury",
-          "docs": [
-            "TODO sidduHERE where is the check for this. We should be setting this during init"
-          ]
+          "name": "treasury"
         },
         {
           "name": "pool_authority",
@@ -2886,19 +2633,6 @@
         72,
         131,
         40
-      ]
-    },
-    {
-      "name": "ProtocolRegistry",
-      "discriminator": [
-        54,
-        93,
-        199,
-        192,
-        39,
-        46,
-        204,
-        190
       ]
     },
     {
@@ -4134,6 +3868,13 @@
               "Bump for this PDA"
             ],
             "type": "u8"
+          },
+          {
+            "name": "pool_authority_bump",
+            "docs": [
+              "Bump for pool authority PDA"
+            ],
+            "type": "u8"
           }
         ]
       }
@@ -4717,80 +4458,10 @@
                 "name": "FeatureFlags"
               }
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "ProtocolRegistry",
-      "docs": [
-        "Central registry for commonly used protocol addresses"
-      ],
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "docs": [
-              "Protocol account reference"
-            ],
-            "type": "pubkey"
           },
           {
             "name": "treasury",
-            "docs": [
-              "Treasury account that receives fees"
-            ],
             "type": "pubkey"
-          },
-          {
-            "name": "treasury_token",
-            "docs": [
-              "Treasury token account for USDC"
-            ],
-            "type": "pubkey"
-          },
-          {
-            "name": "liquidity_pool",
-            "docs": [
-              "Main liquidity pool"
-            ],
-            "type": "pubkey"
-          },
-          {
-            "name": "token_vault",
-            "docs": [
-              "Token vault for the liquidity pool"
-            ],
-            "type": "pubkey"
-          },
-          {
-            "name": "pool_authority",
-            "docs": [
-              "Pool authority PDA"
-            ],
-            "type": "pubkey"
-          },
-          {
-            "name": "pool_authority_bump",
-            "docs": [
-              "Pool authority bump"
-            ],
-            "type": "u8"
-          },
-          {
-            "name": "program_authority",
-            "docs": [
-              "Program authority PDA"
-            ],
-            "type": "pubkey"
-          },
-          {
-            "name": "program_authority_bump",
-            "docs": [
-              "Program authority bump"
-            ],
-            "type": "u8"
           },
           {
             "name": "escrow_mint",
@@ -4798,22 +4469,6 @@
               "Escrow mint (USDC)"
             ],
             "type": "pubkey"
-          },
-          {
-            "name": "bump",
-            "docs": [
-              "Registry bump"
-            ],
-            "type": "u8"
-          },
-          {
-            "name": "extra_space",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
-            }
           }
         ]
       }
@@ -4932,9 +4587,6 @@
           },
           {
             "name": "FundingManager"
-          },
-          {
-            "name": "Treasury"
           }
         ]
       }

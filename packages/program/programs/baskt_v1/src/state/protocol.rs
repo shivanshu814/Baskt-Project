@@ -18,8 +18,6 @@ pub enum Role {
     Liquidator,
     /// FundingManager role with permission to update funding rates and indices
     FundingManager,
-    /// Treasury role for receiving fees and penalties
-    Treasury,
 }
 
 /// Access control entry for a specific account
@@ -123,11 +121,20 @@ pub struct Protocol {
     pub owner: Pubkey,
     pub access_control: AccessControl,
     pub feature_flags: FeatureFlags,
+
+    pub treasury: Pubkey,
+    /// Escrow mint (USDC)
+    pub escrow_mint: Pubkey,
 }
 
 impl Protocol {
     /// Initialize a new protocol state
-    pub fn initialize(&mut self, owner: Pubkey) -> Result<()> {
+    pub fn initialize(
+        &mut self,
+        owner: Pubkey,
+        treasury: Pubkey,
+        escrow_mint: Pubkey,
+    ) -> Result<()> {
         self.is_initialized = true;
         self.owner = owner;
 
@@ -148,6 +155,9 @@ impl Protocol {
             allow_trading: true,
             allow_liquidations: true,
         };
+
+        self.treasury = treasury;
+        self.escrow_mint = escrow_mint;
 
         Ok(())
     }
@@ -210,10 +220,14 @@ mod tests {
             owner: Pubkey::default(),
             access_control: AccessControl::default(),
             feature_flags: FeatureFlags::default(),
+            treasury: Pubkey::default(),
+            escrow_mint: Pubkey::default(),
         };
         let owner = Pubkey::new_unique();
+        let treasury = Pubkey::new_unique();
+        let escrow_mint = Pubkey::new_unique();
 
-        state.initialize(owner).unwrap();
+        state.initialize(owner, treasury, escrow_mint).unwrap();
 
         assert!(state.is_initialized());
         assert_eq!(state.get_owner(), owner);
@@ -226,14 +240,18 @@ mod tests {
             owner: Pubkey::default(),
             access_control: AccessControl::default(),
             feature_flags: FeatureFlags::default(),
+            treasury: Pubkey::default(),
+            escrow_mint: Pubkey::default(),
         };
         let owner = Pubkey::new_unique();
+        let treasury = Pubkey::new_unique();
+        let escrow_mint = Pubkey::new_unique();
         let asset_manager = Pubkey::new_unique();
         let liquidator = Pubkey::new_unique();
         let random_user = Pubkey::new_unique();
 
         // Initialize protocol with owner
-        state.initialize(owner).unwrap();
+        state.initialize(owner, treasury, escrow_mint).unwrap();
 
         // Add roles to accounts
         state.add_role(asset_manager, Role::AssetManager).unwrap();
@@ -267,10 +285,14 @@ mod tests {
             owner: Pubkey::default(),
             access_control: AccessControl::default(),
             feature_flags: FeatureFlags::default(),
+            treasury: Pubkey::default(),
+            escrow_mint: Pubkey::default(),
         };
         let user = Pubkey::new_unique();
+        let treasury = Pubkey::new_unique();
+        let escrow_mint = Pubkey::new_unique();
 
-        state.initialize(user).unwrap();
+        state.initialize(user, treasury, escrow_mint).unwrap();
 
         // Try to remove a role that doesn't exist
         let random_user = Pubkey::new_unique();

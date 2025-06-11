@@ -54,3 +54,5 @@ pub const USER_ESCROW_SEED: &[u8] = b"user_escrow";
 pub const ESCROW_SEED: &[u8] = b"escrow";
 pub const FUNDING_INDEX_SEED: &[u8] = b"funding_index";
 pub const LIQUIDITY_POOL_SEED: &[u8] = b"liquidity_pool";
+pub const TOKEN_VAULT_SEED: &[u8] = b"token_vault";
+pub const POOL_AUTHORITY_SEED: &[u8] = b"pool_authority";

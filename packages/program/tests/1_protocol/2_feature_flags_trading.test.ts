@@ -4,7 +4,6 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { BN } from '@coral-xyz/anchor';
 import { AccessControlRole } from '@baskt/types';
-import { initializeProtocolWithRegistry } from '../utils/protocol_setup';
 
 describe('protocol feature flags - trading operations', () => {
   // Get the test client instance
@@ -17,7 +16,6 @@ describe('protocol feature flags - trading operations', () => {
   let matcher: Keypair;
   let liquidator: Keypair;
   let user: Keypair;
-  let treasury: Keypair;
 
   let matcherClient: TestClient;
   let liquidatorClient: TestClient;
@@ -33,25 +31,16 @@ describe('protocol feature flags - trading operations', () => {
   let collateralMint: PublicKey;
   let userTokenAccount: PublicKey;
   let assetId: PublicKey;
-  let fundingIndexPDA: PublicKey;
 
   before(async () => {
-    // Initialize protocol with registry
-    await initializeProtocolWithRegistry(client, {
-      depositFeeBps: 50,
-      withdrawalFeeBps: 50,
-      minDeposit: new BN(1 * 10 ** 6),
-    });
-
     // Create test keypairs
     user = Keypair.generate();
-    treasury = Keypair.generate();
     matcher = Keypair.generate();
     liquidator = Keypair.generate();
 
     // Fund the test accounts
     await requestAirdrop(user.publicKey, client.connection);
-    await requestAirdrop(treasury.publicKey, client.connection);
+    await requestAirdrop(client.treasury.publicKey, client.connection);
     await requestAirdrop(matcher.publicKey, client.connection);
     await requestAirdrop(liquidator.publicKey, client.connection);
 
@@ -61,7 +50,6 @@ describe('protocol feature flags - trading operations', () => {
     liquidatorClient = await TestClient.forUser(liquidator);
 
     // Add roles
-    await client.addRole(treasury.publicKey, AccessControlRole.Treasury);
     await client.addRole(matcher.publicKey, AccessControlRole.Matcher);
     await client.addRole(liquidator.publicKey, AccessControlRole.Liquidator);
 
@@ -108,12 +96,6 @@ describe('protocol feature flags - trading operations', () => {
       basktId,
       [new BN(100 * 1000000)], // NAV = 100 with 6 decimals (baskt oracle will be set to this)
       60, // maxPriceAgeSec
-    );
-
-    // Find the funding index PDA for the baskt
-    [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('funding_index'), basktId.toBuffer()],
-      client.program.programId,
     );
 
     // Initialize the funding index
@@ -186,7 +168,6 @@ describe('protocol feature flags - trading operations', () => {
       expect(orderAccount.owner.toString()).to.equal(user.publicKey.toString());
 
       // Cancel the order to clean up
-      // TODO:
       await userClient.cancelOrder({
         orderPDA,
         ownerTokenAccount: userTokenAccount,
@@ -355,30 +336,13 @@ describe('protocol feature flags - trading operations', () => {
       const positionId = new BN(Date.now());
       const entryPrice = new BN(100 * 1_000_000); // NAV is 100
 
-      // Derive position PDA
-      const [positionPDA] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from('position'),
-          user.publicKey.toBuffer(),
-          positionId.toArrayLike(Buffer, 'le', 8),
-        ],
-        client.program.programId,
-      );
-
-      // Find funding index PDA
-      const [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('funding_index'), basktId.toBuffer()],
-        client.program.programId,
-      );
-
       try {
         await matcherClient.openPosition({
           positionId,
           entryPrice,
           order: orderPDA,
-          position: positionPDA,
-          fundingIndex: fundingIndexPDA,
           baskt: basktId,
+          orderOwner: user.publicKey,
         });
         expect.fail('Should have failed due to disabled feature flag');
       } catch (error: any) {
@@ -405,30 +369,13 @@ describe('protocol feature flags - trading operations', () => {
       const positionId = new BN(Date.now() + 1);
       const entryPrice = new BN(100 * 1_000_000); // NAV is 100
 
-      // Derive position PDA
-      const [positionPDA] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from('position'),
-          user.publicKey.toBuffer(),
-          positionId.toArrayLike(Buffer, 'le', 8),
-        ],
-        client.program.programId,
-      );
-
-      // Find funding index PDA
-      const [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('funding_index'), basktId.toBuffer()],
-        client.program.programId,
-      );
-
       try {
         await matcherClient.openPosition({
           positionId,
           entryPrice,
           order: orderPDA,
-          position: positionPDA,
-          fundingIndex: fundingIndexPDA,
           baskt: basktId,
+          orderOwner: user.publicKey,
         });
         expect.fail('Should have failed due to disabled feature flag');
       } catch (error: any) {
@@ -492,19 +439,12 @@ describe('protocol feature flags - trading operations', () => {
         client.program.programId,
       );
 
-      // Find funding index PDA
-      const [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('funding_index'), basktId.toBuffer()],
-        client.program.programId,
-      );
-
       await matcherClient.openPosition({
         positionId,
         entryPrice,
         order: orderPDA,
-        position: positionPDA,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
+        orderOwner: user.publicKey,
       });
     });
 
@@ -525,12 +465,6 @@ describe('protocol feature flags - trading operations', () => {
       });
 
       const exitPrice = new BN(101 * 1_000_000); // Price moved up from NAV 100
-
-      // Find funding index PDA
-      const [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('funding_index'), basktId.toBuffer()],
-        client.program.programId,
-      );
 
       // Need to create a close order first
       const closeOrderId = new BN(Date.now() + 2002);
@@ -556,17 +490,16 @@ describe('protocol feature flags - trading operations', () => {
       );
 
       // Get treasury token account
-      const treasuryTokenAccount = await client.getOrCreateUSDCAccount(treasury.publicKey);
+      const treasuryTokenAccount = await client.getOrCreateUSDCAccount(client.treasury.publicKey);
 
       try {
         await matcherClient.closePosition({
           orderPDA: closeOrderPDA,
           position: positionPDA,
           exitPrice,
-          fundingIndex: fundingIndexPDA,
           baskt: basktId,
           ownerTokenAccount: userTokenAccount,
-          treasury: treasury.publicKey,
+          treasury: client.treasury.publicKey,
           treasuryTokenAccount: treasuryTokenAccount,
         });
         expect.fail('Should have failed due to disabled feature flag');
@@ -592,12 +525,6 @@ describe('protocol feature flags - trading operations', () => {
       });
 
       const exitPrice = new BN(101 * 1_000_000); // Price moved up from NAV 100
-
-      // Find funding index PDA
-      const [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('funding_index'), basktId.toBuffer()],
-        client.program.programId,
-      );
 
       // Need to create a close order first
       const closeOrderId = new BN(Date.now() + 2003);
@@ -654,17 +581,16 @@ describe('protocol feature flags - trading operations', () => {
       });
 
       // Get treasury token account
-      const treasuryTokenAccount = await client.getOrCreateUSDCAccount(treasury.publicKey);
+      const treasuryTokenAccount = await client.getOrCreateUSDCAccount(client.treasury.publicKey);
 
       try {
         await matcherClient.closePosition({
           orderPDA: closeOrderPDA,
           position: positionPDA,
           exitPrice,
-          fundingIndex: fundingIndexPDA,
           baskt: basktId,
           ownerTokenAccount: userTokenAccount,
-          treasury: treasury.publicKey,
+          treasury: client.treasury.publicKey,
           treasuryTokenAccount: treasuryTokenAccount,
         });
         expect.fail('Should have failed due to disabled feature flag');
@@ -729,19 +655,12 @@ describe('protocol feature flags - trading operations', () => {
         client.program.programId,
       );
 
-      // Find funding index PDA
-      const [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('funding_index'), basktId.toBuffer()],
-        client.program.programId,
-      );
-
       await matcherClient.openPosition({
         positionId,
         entryPrice: initialPrice,
         order: orderPDA,
-        position: positionPDA,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
+        orderOwner: user.publicKey,
       });
     });
 
@@ -764,23 +683,16 @@ describe('protocol feature flags - trading operations', () => {
       // Price drops significantly to make position liquidatable
       const liquidationPrice = new BN(60 * 1_000_000); // 40% drop from NAV 100 to ensure liquidation
 
-      // Find funding index PDA
-      const [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('funding_index'), basktId.toBuffer()],
-        client.program.programId,
-      );
-
       // Get treasury token account
-      const treasuryTokenAccount = await client.getOrCreateUSDCAccount(treasury.publicKey);
+      const treasuryTokenAccount = await client.getOrCreateUSDCAccount(client.treasury.publicKey);
 
       try {
         await liquidatorClient.liquidatePosition({
           position: positionPDA,
           exitPrice: liquidationPrice,
-          fundingIndex: fundingIndexPDA,
           baskt: basktId,
           ownerTokenAccount: userTokenAccount,
-          treasury: treasury.publicKey,
+          treasury: client.treasury.publicKey,
           treasuryTokenAccount: treasuryTokenAccount,
         });
         expect.fail('Should have failed due to disabled feature flag');

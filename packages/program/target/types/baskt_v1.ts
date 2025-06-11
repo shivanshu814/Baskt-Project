@@ -228,38 +228,6 @@ export type BasktV1 = {
           }
         },
         {
-          "name": "registry",
-          "docs": [
-            "Protocol registry containing common addresses"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  95,
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
           "name": "programAuthority",
           "docs": [
             "PDA used for token authority over escrow"
@@ -369,10 +337,6 @@ export type BasktV1 = {
                   111,
                   108
                 ]
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
               }
             ]
           }
@@ -774,7 +738,10 @@ export type BasktV1 = {
           }
         },
         {
-          "name": "positionOwner"
+          "name": "positionOwner",
+          "docs": [
+            "TODO: sidduHERE why is this unchecked?"
+          ]
         },
         {
           "name": "fundingIndex",
@@ -811,38 +778,6 @@ export type BasktV1 = {
           "name": "baskt"
         },
         {
-          "name": "registry",
-          "docs": [
-            "Protocol registry containing common addresses"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  95,
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
           "name": "protocol",
           "docs": [
             "Protocol for permission checks"
@@ -867,16 +802,33 @@ export type BasktV1 = {
         },
         {
           "name": "liquidityPool",
-          "docs": [
-            "Liquidity pool (loaded from registry)"
-          ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         },
         {
-          "name": "treasury",
-          "docs": [
-            "Treasury account (loaded from registry)"
-          ]
+          "name": "treasury"
         },
         {
           "name": "escrowToken",
@@ -929,7 +881,38 @@ export type BasktV1 = {
           }
         },
         {
-          "name": "poolAuthority"
+          "name": "poolAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
         },
         {
           "name": "tokenProgram",
@@ -1344,10 +1327,6 @@ export type BasktV1 = {
                   111,
                   108
                 ]
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
               }
             ]
           }
@@ -1500,6 +1479,12 @@ export type BasktV1 = {
           }
         },
         {
+          "name": "escrowMint",
+          "docs": [
+            "Escrow mint (USDC)"
+          ]
+        },
+        {
           "name": "programAuthority",
           "docs": [
             "Program authority PDA - created during protocol initialization"
@@ -1529,233 +1514,12 @@ export type BasktV1 = {
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
-    },
-    {
-      "name": "initializeRegistry",
-      "discriminator": [
-        189,
-        181,
-        20,
-        17,
-        174,
-        57,
-        249,
-        59
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "docs": [
-            "Protocol owner who can initialize the registry"
-          ],
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "protocol",
-          "docs": [
-            "Protocol account"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "registry",
-          "docs": [
-            "Registry PDA to initialize"
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  95,
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
+      "args": [
         {
           "name": "treasury",
-          "docs": [
-            "Treasury account that receives fees"
-          ]
-        },
-        {
-          "name": "treasuryToken",
-          "docs": [
-            "Treasury token account for USDC"
-          ]
-        },
-        {
-          "name": "liquidityPool",
-          "docs": [
-            "Liquidity pool account"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  105,
-                  113,
-                  117,
-                  105,
-                  100,
-                  105,
-                  116,
-                  121,
-                  95,
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
-              }
-            ]
-          }
-        },
-        {
-          "name": "tokenVault",
-          "docs": [
-            "Token vault for the liquidity pool"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "liquidityPool"
-              }
-            ]
-          }
-        },
-        {
-          "name": "poolAuthority",
-          "docs": [
-            "Pool authority PDA"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "liquidityPool"
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
-              }
-            ]
-          }
-        },
-        {
-          "name": "programAuthority",
-          "docs": [
-            "Program authority PDA"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "escrowMint",
-          "docs": [
-            "Escrow mint (USDC)"
-          ]
-        },
-        {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
+          "type": "pubkey"
         }
-      ],
-      "args": []
+      ]
     },
     {
       "name": "liquidatePosition",
@@ -1844,38 +1608,6 @@ export type BasktV1 = {
           "name": "baskt"
         },
         {
-          "name": "registry",
-          "docs": [
-            "Protocol registry containing common addresses"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  95,
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
           "name": "protocol",
           "docs": [
             "Protocol for permission checks"
@@ -1901,14 +1633,37 @@ export type BasktV1 = {
         {
           "name": "liquidityPool",
           "docs": [
-            "Liquidity pool (loaded from registry)"
+            "Liquidity pool"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "treasury",
           "docs": [
-            "Treasury account (loaded from registry)"
+            "CHECK Treasury account"
           ]
         },
         {
@@ -1962,7 +1717,38 @@ export type BasktV1 = {
           }
         },
         {
-          "name": "poolAuthority"
+          "name": "poolAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
         },
         {
           "name": "tokenProgram",
@@ -2094,38 +1880,6 @@ export type BasktV1 = {
           ]
         },
         {
-          "name": "registry",
-          "docs": [
-            "Protocol registry containing common addresses"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108,
-                  95,
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
           "name": "protocol",
           "docs": [
             "Protocol account for checking permissions",
@@ -2228,7 +1982,7 @@ export type BasktV1 = {
         {
           "name": "escrowMint",
           "docs": [
-            "Escrow mint (USDC) - validated via registry"
+            "Escrow mint (USDC) - validated via protocol"
           ]
         },
         {
@@ -2405,10 +2159,6 @@ export type BasktV1 = {
                   111,
                   108
                 ]
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
               }
             ]
           }
@@ -2497,10 +2247,7 @@ export type BasktV1 = {
           "writable": true
         },
         {
-          "name": "treasury",
-          "docs": [
-            "TODO sidduHERE where is the check for this. We should be setting this during init"
-          ]
+          "name": "treasury"
         },
         {
           "name": "poolAuthority",
@@ -2892,19 +2639,6 @@ export type BasktV1 = {
         72,
         131,
         40
-      ]
-    },
-    {
-      "name": "protocolRegistry",
-      "discriminator": [
-        54,
-        93,
-        199,
-        192,
-        39,
-        46,
-        204,
-        190
       ]
     },
     {
@@ -4140,6 +3874,13 @@ export type BasktV1 = {
               "Bump for this PDA"
             ],
             "type": "u8"
+          },
+          {
+            "name": "poolAuthorityBump",
+            "docs": [
+              "Bump for pool authority PDA"
+            ],
+            "type": "u8"
           }
         ]
       }
@@ -4723,80 +4464,10 @@ export type BasktV1 = {
                 "name": "featureFlags"
               }
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "protocolRegistry",
-      "docs": [
-        "Central registry for commonly used protocol addresses"
-      ],
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "docs": [
-              "Protocol account reference"
-            ],
-            "type": "pubkey"
           },
           {
             "name": "treasury",
-            "docs": [
-              "Treasury account that receives fees"
-            ],
             "type": "pubkey"
-          },
-          {
-            "name": "treasuryToken",
-            "docs": [
-              "Treasury token account for USDC"
-            ],
-            "type": "pubkey"
-          },
-          {
-            "name": "liquidityPool",
-            "docs": [
-              "Main liquidity pool"
-            ],
-            "type": "pubkey"
-          },
-          {
-            "name": "tokenVault",
-            "docs": [
-              "Token vault for the liquidity pool"
-            ],
-            "type": "pubkey"
-          },
-          {
-            "name": "poolAuthority",
-            "docs": [
-              "Pool authority PDA"
-            ],
-            "type": "pubkey"
-          },
-          {
-            "name": "poolAuthorityBump",
-            "docs": [
-              "Pool authority bump"
-            ],
-            "type": "u8"
-          },
-          {
-            "name": "programAuthority",
-            "docs": [
-              "Program authority PDA"
-            ],
-            "type": "pubkey"
-          },
-          {
-            "name": "programAuthorityBump",
-            "docs": [
-              "Program authority bump"
-            ],
-            "type": "u8"
           },
           {
             "name": "escrowMint",
@@ -4804,22 +4475,6 @@ export type BasktV1 = {
               "Escrow mint (USDC)"
             ],
             "type": "pubkey"
-          },
-          {
-            "name": "bump",
-            "docs": [
-              "Registry bump"
-            ],
-            "type": "u8"
-          },
-          {
-            "name": "extraSpace",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
-            }
           }
         ]
       }
@@ -4938,9 +4593,6 @@ export type BasktV1 = {
           },
           {
             "name": "fundingManager"
-          },
-          {
-            "name": "treasury"
           }
         ]
       }

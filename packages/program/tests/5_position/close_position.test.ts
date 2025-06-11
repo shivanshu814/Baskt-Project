@@ -1,11 +1,10 @@
 import { expect } from 'chai';
 import { describe, it, before } from 'mocha';
-import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { initializeProtocolAndRoles } from '../utils/test-setup';
-import { initializeProtocolRegistry } from '../utils/protocol_setup';
 
 describe('Close Position', () => {
   // Get the test client instance
@@ -35,13 +34,11 @@ describe('Close Position', () => {
   let userTokenAccount: PublicKey;
   let treasuryTokenAccount: PublicKey;
   let assetId: PublicKey;
-  let fundingIndexPDA: PublicKey;
 
   // Liquidity pool accounts for Closing tests
   let liquidityPool: PublicKey;
   let lpMint: PublicKey;
   let tokenVault: PublicKey;
-  let providerLpAccount: PublicKey;
 
   // Position state for profit scenario
   let openOrderId: BN;
@@ -65,7 +62,7 @@ describe('Close Position', () => {
   before(async () => {
     // Initialize protocol and roles using centralized setup
     const globalAccounts = await initializeProtocolAndRoles(client);
-    treasury = globalAccounts.treasury;
+    treasury = client.treasury;
     matcher = globalAccounts.matcher;
 
     // Create test-specific accounts
@@ -129,22 +126,12 @@ describe('Close Position', () => {
       60, // maxPriceAgeSec
     );
 
-    // Find the funding index PDA for the baskt
-    [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('funding_index'), basktId.toBuffer()],
-      client.program.programId,
-    );
-
     // Initialize the funding index
     await client.program.methods
       .initializeFundingIndex()
       .accounts({
         authority: client.getPublicKey(),
-        // @ts-ignore: fundingIndex matches IDL but TS types are out of sync
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
-        protocol: client.protocolPDA,
-        systemProgram: SystemProgram.programId,
       })
       .rpc();
 
@@ -154,12 +141,6 @@ describe('Close Position', () => {
     // Create token accounts for the test
     userTokenAccount = await client.getOrCreateUSDCAccount(user.publicKey);
     treasuryTokenAccount = await client.getOrCreateUSDCAccount(treasury.publicKey);
-
-    // Find the funding index PDA for the baskt
-    [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('funding_index'), basktId.toBuffer()],
-      client.program.programId,
-    );
 
     // Mint USDC tokens to user
     // Need enough for: 1000x collateral for pool liquidity + multiple test positions
@@ -177,7 +158,7 @@ describe('Close Position', () => {
     }));
 
     // Initialize the protocol registry after liquidity pool setup
-    await initializeProtocolRegistry(client);
+    await initializeProtocolAndRoles(client);
 
     // Create a separate provider for liquidity to avoid role conflicts
     const liquidityProvider = Keypair.generate();
@@ -280,9 +261,8 @@ describe('Close Position', () => {
       positionId: positionId,
       entryPrice: ENTRY_PRICE,
       order: openOrderPDA,
-      position: positionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Create a close order for the position
@@ -316,9 +296,8 @@ describe('Close Position', () => {
       positionId: positionIdLoss,
       entryPrice: ENTRY_PRICE,
       order: openOrderPDALoss,
-      position: positionPDALoss,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Create a close order for the loss position
@@ -353,7 +332,6 @@ describe('Close Position', () => {
       orderPDA: closeOrderPDA,
       position: positionPDA,
       exitPrice: EXIT_PRICE_PROFIT,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
       ownerTokenAccount: userTokenAccount,
       treasury: treasury.publicKey,
@@ -439,20 +417,10 @@ describe('Close Position', () => {
     // Get pool vault balance before closing
     const vaultBeforeLoss = await getAccount(client.connection, tokenVault);
 
-    // Try to get position escrow account if it exists
-    let positionEscrowBefore;
-    try {
-      positionEscrowBefore = await getAccount(client.connection, positionEscrowLoss);
-    } catch (error) {
-      // Position escrow might not exist yet, which is fine
-    }
-
-    // Close the position with loss
-    const txSignatureLoss = await matcherClient.closePosition({
+    await matcherClient.closePosition({
       orderPDA: closeOrderPDALoss,
       position: positionPDALoss,
       exitPrice: EXIT_PRICE_LOSS,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
       ownerTokenAccount: userTokenAccount,
       treasury: treasury.publicKey,
@@ -561,9 +529,8 @@ describe('Close Position', () => {
       positionId: newPositionId,
       entryPrice: ENTRY_PRICE,
       order: newOpenOrderPDA,
-      position: newPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Create a close order
@@ -584,7 +551,6 @@ describe('Close Position', () => {
         orderPDA: newCloseOrderPDA,
         position: newPositionPDA,
         exitPrice: EXIT_PRICE_PROFIT,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,
@@ -651,9 +617,8 @@ describe('Close Position', () => {
       positionId: highPositionId,
       entryPrice: ENTRY_PRICE,
       order: highOrderPDA,
-      position: highPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Create close order
@@ -674,7 +639,6 @@ describe('Close Position', () => {
       orderPDA: highCloseOrderPDA,
       position: highPositionPDA,
       exitPrice: validExitPriceHigh,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
       ownerTokenAccount: userTokenAccount,
       treasury: treasury.publicKey,
@@ -734,9 +698,8 @@ describe('Close Position', () => {
       positionId: lowPositionId,
       entryPrice: ENTRY_PRICE,
       order: lowOrderPDA,
-      position: lowPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Create close order
@@ -757,7 +720,6 @@ describe('Close Position', () => {
       orderPDA: lowCloseOrderPDA,
       position: lowPositionPDA,
       exitPrice: validExitPriceLow,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
       ownerTokenAccount: userTokenAccount,
       treasury: treasury.publicKey,
@@ -826,9 +788,8 @@ describe('Close Position', () => {
       positionId: highPositionId,
       entryPrice: ENTRY_PRICE,
       order: highOrderPDA,
-      position: highPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Create close order
@@ -850,7 +811,6 @@ describe('Close Position', () => {
         orderPDA: highCloseOrderPDA,
         position: highPositionPDA,
         exitPrice: invalidExitPriceHigh,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,
@@ -907,9 +867,8 @@ describe('Close Position', () => {
       positionId: lowPositionId,
       entryPrice: ENTRY_PRICE,
       order: lowOrderPDA,
-      position: lowPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Create close order
@@ -931,7 +890,6 @@ describe('Close Position', () => {
         orderPDA: lowCloseOrderPDA,
         position: lowPositionPDA,
         exitPrice: invalidExitPriceLow,
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,
@@ -989,9 +947,8 @@ describe('Close Position', () => {
       positionId: zeroPositionId,
       entryPrice: ENTRY_PRICE,
       order: zeroOrderPDA,
-      position: zeroPositionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
 
     // Create close order
@@ -1013,7 +970,6 @@ describe('Close Position', () => {
         orderPDA: zeroCloseOrderPDA,
         position: zeroPositionPDA,
         exitPrice: new BN(0),
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,

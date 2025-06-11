@@ -1,11 +1,10 @@
 import { expect } from 'chai';
 import { describe, it, before } from 'mocha';
-import { Keypair, PublicKey, SystemProgram } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { initializeProtocolAndRoles } from '../utils/test-setup';
-import { initializeProtocolRegistry } from '../utils/protocol_setup';
 
 describe('Add Collateral to Position', () => {
   // Get the test client instance
@@ -20,7 +19,6 @@ describe('Add Collateral to Position', () => {
 
   // Test accounts
   let user: Keypair;
-  let treasury: Keypair;
   let matcher: Keypair;
   let otherUser: Keypair;
   let userClient: TestClient;
@@ -32,7 +30,6 @@ describe('Add Collateral to Position', () => {
   let collateralMint: PublicKey;
   let userTokenAccount: PublicKey;
   let assetId: PublicKey;
-  let fundingIndexPDA: PublicKey;
 
   // Order and position state
   let orderId: BN;
@@ -41,12 +38,11 @@ describe('Add Collateral to Position', () => {
   let positionPDA: PublicKey;
 
   // USDC mint constant from the program
-  const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+  const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
   before(async () => {
     // Initialize protocol and roles using centralized setup
     const globalAccounts = await initializeProtocolAndRoles(client);
-    treasury = globalAccounts.treasury;
     matcher = globalAccounts.matcher;
 
     // Create test-specific accounts
@@ -98,7 +94,7 @@ describe('Add Collateral to Position', () => {
     const { basktId: createdBasktId } = await client.createBaskt(
       basktName,
       [formattedAssetConfig],
-      true // isPublic
+      true, // isPublic
     );
     basktId = createdBasktId;
 
@@ -107,13 +103,7 @@ describe('Add Collateral to Position', () => {
     await client.activateBaskt(
       basktId,
       [new BN(100_000_000)], // NAV = 100 with 6 decimals
-      60 // maxPriceAgeSec
-    );
-
-    // Find the funding index PDA for the baskt
-    [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('funding_index'), basktId.toBuffer()],
-      client.program.programId
+      60, // maxPriceAgeSec
     );
 
     // Initialize the funding index
@@ -121,11 +111,7 @@ describe('Add Collateral to Position', () => {
       .initializeFundingIndex()
       .accounts({
         authority: client.getPublicKey(),
-        // @ts-ignore: fundingIndex matches IDL but TS types are out of sync
-        fundingIndex: fundingIndexPDA,
         baskt: basktId,
-        protocol: client.protocolPDA,
-        systemProgram: SystemProgram.programId,
       })
       .rpc();
 
@@ -138,7 +124,7 @@ describe('Add Collateral to Position', () => {
     // Mint USDC tokens to user
     await client.mintUSDC(
       userTokenAccount,
-      INITIAL_COLLATERAL.add(ADDITIONAL_COLLATERAL).muln(5).toNumber() // 5x for multiple tests
+      INITIAL_COLLATERAL.add(ADDITIONAL_COLLATERAL).muln(5).toNumber(), // 5x for multiple tests
     );
 
     // Set up a minimal liquidity pool (required for registry initialization)
@@ -150,7 +136,7 @@ describe('Add Collateral to Position', () => {
     });
 
     // Initialize the protocol registry after liquidity pool setup
-    await initializeProtocolRegistry(client);
+    await initializeProtocolAndRoles(client);
 
     // Generate unique IDs for order and position
     orderId = new BN(Date.now());
@@ -159,12 +145,12 @@ describe('Add Collateral to Position', () => {
     // Find the order and position PDAs
     [orderPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('order'), user.publicKey.toBuffer(), orderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      client.program.programId,
     );
 
     [positionPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('position'), user.publicKey.toBuffer(), positionId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId
+      client.program.programId,
     );
 
     // Create an open order for testing
@@ -185,9 +171,8 @@ describe('Add Collateral to Position', () => {
       positionId: positionId,
       entryPrice: ENTRY_PRICE,
       order: orderPDA,
-      position: positionPDA,
-      fundingIndex: fundingIndexPDA,
       baskt: basktId,
+      orderOwner: user.publicKey,
     });
   });
 
@@ -198,7 +183,7 @@ describe('Add Collateral to Position', () => {
     // Derive the position escrow token account PDA
     const [positionEscrow] = PublicKey.findProgramAddressSync(
       [Buffer.from('escrow'), positionPDA.toBuffer()],
-      client.program.programId
+      client.program.programId,
     );
 
     // Get token balances before adding collateral
@@ -219,17 +204,23 @@ describe('Add Collateral to Position', () => {
     const positionEscrowAfter = await getAccount(client.connection, positionEscrow);
 
     // Verify position collateral was updated
-    const expectedCollateral = new BN(positionBefore.collateral.toString()).add(ADDITIONAL_COLLATERAL);
+    const expectedCollateral = new BN(positionBefore.collateral.toString()).add(
+      ADDITIONAL_COLLATERAL,
+    );
     expect(positionAfter.collateral.toString()).to.equal(expectedCollateral.toString());
 
     // Verify token balances changed correctly
-    const userBalanceDiff = new BN(userTokenBefore.amount.toString()).sub(new BN(userTokenAfter.amount.toString()));
+    const userBalanceDiff = new BN(userTokenBefore.amount.toString()).sub(
+      new BN(userTokenAfter.amount.toString()),
+    );
 
     // Verify user's token balance decreased by the additional collateral amount
     expect(userBalanceDiff.toString()).to.equal(ADDITIONAL_COLLATERAL.toString());
 
     // Verify position escrow has the additional collateral
-    expect(positionEscrowAfter.amount.toString()).to.equal(ADDITIONAL_COLLATERAL.add(INITIAL_COLLATERAL).toString());
+    expect(positionEscrowAfter.amount.toString()).to.equal(
+      ADDITIONAL_COLLATERAL.add(INITIAL_COLLATERAL).toString(),
+    );
   });
 
   it('Fails to add zero collateral', async () => {
@@ -241,7 +232,7 @@ describe('Add Collateral to Position', () => {
         ownerTokenAccount: userTokenAccount,
       });
 
-      expect.fail("Transaction should have failed due to zero collateral");
+      expect.fail('Transaction should have failed due to zero collateral');
     } catch (error: any) {
       expect(error.toString()).to.include('InsufficientCollateral.');
     }
@@ -256,7 +247,7 @@ describe('Add Collateral to Position', () => {
         ownerTokenAccount: userTokenAccount,
       });
 
-      expect.fail("Transaction should have failed due to unauthorized access");
+      expect.fail('Transaction should have failed due to unauthorized access');
     } catch (error: any) {
       expect(error.toString()).to.include('ConstraintSeeds.');
     }
@@ -286,7 +277,7 @@ describe('Add Collateral to Position', () => {
         ownerTokenAccount: userTokenAccount,
       });
 
-      expect.fail("Transaction should have failed due to disabled feature");
+      expect.fail('Transaction should have failed due to disabled feature');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('PositionOperationsDisabled');
     }

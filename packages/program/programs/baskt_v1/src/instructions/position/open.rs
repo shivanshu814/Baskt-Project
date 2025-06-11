@@ -1,4 +1,8 @@
 use {
+    crate::constants::{
+        AUTHORITY_SEED, ESCROW_SEED, FUNDING_INDEX_SEED, ORDER_SEED, POSITION_SEED, PROTOCOL_SEED,
+        USER_ESCROW_SEED,
+    },
     crate::error::PerpetualsError,
     crate::events::*,
     crate::state::{
@@ -7,7 +11,6 @@ use {
         order::{Order, OrderAction, OrderStatus},
         position::{Position, ProgramAuthority},
         protocol::{Protocol, Role},
-        registry::ProtocolRegistry,
     },
     anchor_lang::prelude::*,
     anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer},
@@ -20,7 +23,7 @@ pub struct OpenPositionParams {
     pub entry_price: u64,
 }
 
-/// OpenPosition using ProtocolRegistry
+/// OpenPosition
 #[derive(Accounts)]
 #[instruction(params: OpenPositionParams)]
 pub struct OpenPosition<'info> {
@@ -29,7 +32,7 @@ pub struct OpenPosition<'info> {
 
     #[account(
         mut,
-        seeds = [b"order", order.owner.as_ref(), &order.order_id.to_le_bytes()],
+        seeds = [ORDER_SEED, order.owner.as_ref(), &order.order_id.to_le_bytes()],
         bump = order.bump,
         constraint = order.status as u8 == OrderStatus::Pending as u8 @ PerpetualsError::OrderAlreadyProcessed,
         constraint = order.action as u8 == OrderAction::Open as u8 @ PerpetualsError::InvalidOrderAction,
@@ -41,14 +44,14 @@ pub struct OpenPosition<'info> {
         init,
         payer = matcher, // Matcher pays for position account creation
         space = Position::DISCRIMINATOR.len() + Position::INIT_SPACE,
-        seeds = [b"position", order.owner.as_ref(), &params.position_id.to_le_bytes()],
+        seeds = [POSITION_SEED, order.owner.as_ref(), &params.position_id.to_le_bytes()],
         bump
     )]
     pub position: Box<Account<'info, Position>>,
 
     #[account(
         mut,
-        seeds = [b"funding_index", order.baskt_id.as_ref()],
+        seeds = [FUNDING_INDEX_SEED, order.baskt_id.as_ref()],
         bump = funding_index.bump
     )]
     pub funding_index: Account<'info, FundingIndex>,
@@ -60,20 +63,12 @@ pub struct OpenPosition<'info> {
     )]
     pub baskt: Box<Account<'info, BasktV1>>,
 
-    /// Protocol registry containing common addresses
-    #[account(
-        seeds = [ProtocolRegistry::SEED],
-        bump = registry.bump,
-    )]
-    pub registry: Account<'info, ProtocolRegistry>,
-
     /// Protocol account for checking permissions
     /// @dev Requires Matcher role to open positions
     #[account(
-        constraint = protocol.key() == registry.protocol @ PerpetualsError::Unauthorized,
         constraint = protocol.feature_flags.allow_open_position && protocol.feature_flags.allow_trading @ PerpetualsError::PositionOperationsDisabled,
         constraint = protocol.has_permission(matcher.key(), Role::Matcher) @ PerpetualsError::Unauthorized,
-        seeds = [b"protocol"],
+        seeds = [PROTOCOL_SEED],
         bump
     )]
     pub protocol: Box<Account<'info, Protocol>>,
@@ -81,17 +76,17 @@ pub struct OpenPosition<'info> {
     //TODO: sidduHERE Does this mean we have cross margined account?
     #[account(
         mut,
-        seeds = [b"user_escrow", order.owner.as_ref()],
+        seeds = [USER_ESCROW_SEED, order.owner.as_ref()],
         bump,
         constraint = order_escrow.owner == program_authority.key() @ PerpetualsError::InvalidProgramAuthority,
-        constraint = order_escrow.mint == registry.escrow_mint @ PerpetualsError::InvalidMint
+        constraint = order_escrow.mint == protocol.escrow_mint @ PerpetualsError::InvalidMint
     )]
     pub order_escrow: Account<'info, TokenAccount>,
 
     #[account(
         init_if_needed,
         payer = matcher,
-        seeds = [b"escrow", position.key().as_ref()],
+        seeds = [ESCROW_SEED, position.key().as_ref()],
         bump,
         token::mint = escrow_mint,
         token::authority = program_authority,
@@ -100,15 +95,14 @@ pub struct OpenPosition<'info> {
 
     /// PDA used for token authority over escrow
     #[account(
-        seeds = [b"authority"],
+        seeds = [AUTHORITY_SEED],
         bump,
-        constraint = program_authority.key() == registry.program_authority @ PerpetualsError::InvalidProgramAuthority
     )]
     pub program_authority: Account<'info, ProgramAuthority>,
 
-    /// Escrow mint (USDC) - validated via registry
+    /// Escrow mint (USDC) - validated via protocol
     #[account(
-        constraint = escrow_mint.key() == registry.escrow_mint @ PerpetualsError::InvalidMint
+        constraint = escrow_mint.key() == protocol.escrow_mint @ PerpetualsError::InvalidMint
     )]
     pub escrow_mint: Account<'info, Mint>,
 

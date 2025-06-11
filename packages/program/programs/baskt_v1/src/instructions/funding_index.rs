@@ -1,6 +1,6 @@
 use anchor_lang::solana_program::keccak;
 use {
-    crate::constants::MAX_FUNDING_RATE_BPS,
+    crate::constants::{BASKT_SEED, FUNDING_INDEX_SEED, MAX_FUNDING_RATE_BPS, PROTOCOL_SEED},
     crate::error::PerpetualsError,
     crate::state::{
         baskt::BasktV1,
@@ -29,19 +29,19 @@ pub struct InitializeFundingIndex<'info> {
         init,
         payer = authority,
         space = 8 + FundingIndex::INIT_SPACE,
-        seeds = [b"funding_index", baskt.key().as_ref()],
+        seeds = [FUNDING_INDEX_SEED, baskt.key().as_ref()],
         bump
     )]
     pub funding_index: Account<'info, FundingIndex>,
 
     /// Baskt account to initialize funding index for.
     #[account(
-        seeds = [b"baskt", &get_baskt_name_seed(&baskt.baskt_name)[..]],
+        seeds = [BASKT_SEED, &get_baskt_name_seed(&baskt.baskt_name)[..]],
         bump = baskt.bump
     )]
     pub baskt: Account<'info, BasktV1>,
 
-    #[account(seeds = [b"protocol"], bump)]
+    #[account(seeds = [PROTOCOL_SEED], bump)]
     pub protocol: Account<'info, Protocol>,
 
     pub system_program: Program<'info, System>,
@@ -78,23 +78,22 @@ pub struct UpdateFundingIndex<'info> {
 
     #[account(
         mut,
-        seeds = [b"funding_index", baskt.key().as_ref()],
+        seeds = [FUNDING_INDEX_SEED, baskt.key().as_ref()],
         bump = funding_index.bump
     )]
     pub funding_index: Account<'info, FundingIndex>,
 
     /// Baskt account associated with the funding index. Used only for seed verification.
     #[account(
-        seeds = [b"baskt", &get_baskt_name_seed(&baskt.baskt_name)[..]],
+        seeds = [BASKT_SEED, &get_baskt_name_seed(&baskt.baskt_name)[..]],
         bump = baskt.bump
     )]
     pub baskt: Account<'info, BasktV1>, // Read-only access needed for seeds
 
-    #[account(seeds = [b"protocol"], bump)]
+    #[account(seeds = [PROTOCOL_SEED], bump)]
     pub protocol: Account<'info, Protocol>,
 }
 
-//TOOD: SidduHERE should we add the latest index to baskt account
 pub fn update_funding_index(ctx: Context<UpdateFundingIndex>, new_rate: i64) -> Result<()> {
     // Validate the new rate is within bounds
     require!(
