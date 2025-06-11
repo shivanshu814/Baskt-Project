@@ -90,7 +90,6 @@ export const useWithdraw = ({ poolData, liquidityPool, onSuccess }: UseWithdrawP
       setWithdrawAmount('');
       onSuccess?.();
     } catch (error) {
-      console.log(error);
       if (error instanceof Error) {
         if (error.message.includes('Treasury')) {
           toast({

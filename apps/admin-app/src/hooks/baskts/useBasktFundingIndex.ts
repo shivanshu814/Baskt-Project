@@ -3,22 +3,12 @@ import { useBasktClient } from '@baskt/ui';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 
-// Interface representing the FundingIndex structure from the Rust program
-export interface FundingIndex {
-  basktId: string;
-  cumulativeIndex: string; // i128 as string (scaled by FUNDING_PRECISION)
-  lastUpdateTimestamp: number;
-  currentRate: number; // Current hourly rate in BPS (can be positive or negative)
-  bump: number;
-}
-
 export function useBasktFundingIndex(basktId: string) {
   const { client } = useBasktClient();
-  const [fundingIndex, setFundingIndex] = useState<any>([]);
+  const [fundingIndex, setFundingIndex] = useState<any>([]); //eslint-disable-line
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // Function to fetch funding indexes
   const fetchFundingIndexes = async () => {
     setLoading(true);
     try {
@@ -32,8 +22,6 @@ export function useBasktFundingIndex(basktId: string) {
     }
   };
 
-  // Initialize funding index
-  // Note: The initializeFundingIndex method needs to be implemented in the TRPC router
   const initializeFundingIndex = async () => {
     try {
       await client?.initializeFundingIndex(new PublicKey(basktId));
@@ -43,8 +31,6 @@ export function useBasktFundingIndex(basktId: string) {
     }
   };
 
-  // Update funding index with new rate
-  // Note: The updateFundingIndex method needs to be implemented in the TRPC router
   const updateFundingIndex = async (newRate: number) => {
     try {
       await client?.updateFundingIndex(new PublicKey(basktId), new BN(newRate));
@@ -54,7 +40,6 @@ export function useBasktFundingIndex(basktId: string) {
     }
   };
 
-  // Fetch funding indexes on mount and when basktId changes
   useEffect(() => {
     fetchFundingIndexes();
   }, [basktId]);

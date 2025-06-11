@@ -5,10 +5,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useBasktFundingIndex } from '../../hooks/baskts/useBasktFundingIndex';
 import { formatTimestamp, formatNumber } from '../../utils/format';
-
-interface FundingIndexTableProps {
-  basktId: string;
-}
+import { FundingIndexTableProps } from '../../types/baskt';
 
 export function FundingIndexTable({ basktId }: FundingIndexTableProps) {
   const {

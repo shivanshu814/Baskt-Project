@@ -15,12 +15,11 @@ export function useOpenOrders(basktId?: string, userAddress?: string) {
   const ordersByBasktAndUserQuery = trpc.order.getOrdersByBasktAndUser.useQuery(
     { basktId: basktId || '', userId: userAddress || '' },
     {
-      // Only enable the query when we have both basktId and userAddress
       enabled: !!basktId && !!userAddress,
     },
   );
 
-  let orders = (ordersByBasktAndUserQuery.data as any)?.data;
+  let orders = (ordersByBasktAndUserQuery.data as any)?.data; //eslint-disable-line
 
   if (!orders) {
     return {

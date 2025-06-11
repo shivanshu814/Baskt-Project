@@ -36,12 +36,11 @@ export function useOpenPositions(basktId?: string, userAddress?: string) {
   const positionsByBasktAndUserQuery = trpc.position.getPositionsByUserAndBaskt.useQuery(
     { basktId: basktId || '', userId: userAddress || '' },
     {
-      // Only enable the query when we have both basktId and userAddress
       enabled: !!basktId && !!userAddress,
     },
   );
 
-  let positions = (positionsByBasktAndUserQuery.data as any)?.data;
+  let positions = (positionsByBasktAndUserQuery.data as any)?.data; //eslint-disable-line
 
   if (!positions) {
     return {

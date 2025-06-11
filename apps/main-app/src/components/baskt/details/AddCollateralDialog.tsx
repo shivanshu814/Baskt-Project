@@ -11,16 +11,9 @@ import {
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
-import { OnchainPosition } from '@baskt/types';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import BN from 'bn.js';
-
-interface AddCollateralDialogProps {
-  position: OnchainPosition | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onAddCollateral: (position: OnchainPosition, amount: BN) => Promise<void>;
-}
+import { AddCollateralDialogProps } from '../../../types/baskt';
 
 const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
   position,
@@ -32,7 +25,7 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { balance: usdcBalance, loading: balanceLoading } = useUSDCBalance();
-  
+
   // Reset form when dialog opens with new position
   useEffect(() => {
     if (isOpen && position) {
@@ -52,7 +45,7 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
     }
 
     const amount = parseFloat(collateralAmount);
-    
+
     // Check if the amount is more than the user's balance
     if (amount > parseFloat(usdcBalance)) {
       setError(`Insufficient balance. You have ${usdcBalance} USDC available`);
@@ -62,12 +55,12 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
     try {
       setError(null);
       setIsSubmitting(true);
-      
+
       // Convert to program units (adding 6 decimal places)
       const collateralBN = new BN(amount * 1e6);
-      
+
       await onAddCollateral(position, collateralBN);
-      
+
       // Close dialog on success
       onClose();
     } catch (error: unknown) {
@@ -78,7 +71,7 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
     }
   };
 
-  const currentCollateral = position?.collateral 
+  const currentCollateral = position?.collateral
     ? `$${(new BN(position.collateral).toNumber() / 1e6).toFixed(2)}`
     : '-';
 
@@ -157,8 +150,8 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
           <DialogClose asChild>
             <Button variant="outline" disabled={isSubmitting}>Cancel</Button>
           </DialogClose>
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={isSubmitting || !collateralAmount || parseFloat(collateralAmount) <= 0}
           >
             {isSubmitting ? 'Processing...' : 'Add Collateral'}

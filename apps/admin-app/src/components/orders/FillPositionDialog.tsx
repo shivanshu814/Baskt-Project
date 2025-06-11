@@ -8,21 +8,15 @@ import {
     DialogDescription,
     DialogFooter,
     DialogClose,
-} from '../ui/dialog'; // Assuming path to shadcn/ui Dialog
-import { Label } from '../ui/label'; // Assuming path to shadcn/ui Label
-import { Input } from '../ui/input'; // Assuming path to shadcn/ui Input
-import { Button } from '../ui/button'; // Assuming path to shadcn/ui Button
+} from '../ui/dialog';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
 import { useBasktClient } from '@baskt/ui';
 import { useToast } from '../../hooks/use-toast';
 import { PublicKey } from '@solana/web3.js';
 import { BN } from 'bn.js';
-import { OnchainOrder } from '@baskt/types';
-
-interface FillPositionDialogProps {
-    order: OnchainOrder | null;
-    isOpen: boolean;
-    onClose: () => void;
-}
+import { FillPositionDialogProps } from '../../types/orders';
 
 const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, onClose }) => {
     const [entryPrice, setEntryPrice] = useState('');
@@ -30,10 +24,9 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
     const positionId = new BN(Date.now());
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
-    const { client } = useBasktClient(); // Initialize your SDK client
+    const { client } = useBasktClient();
 
     useEffect(() => {
-        // Reset fields when a new order is selected or dialog is opened
         if (isOpen && order) {
             setEntryPrice('');
             setOraclePrice('');
@@ -51,7 +44,6 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
                 description: 'Client not initialized',
                 variant: 'destructive',
             });
-            console.error('Client not initialized');
             return;
         }
 
@@ -61,11 +53,9 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
                 description: 'Please fill in all fields.',
                 variant: 'destructive',
             });
-            console.error('Please fill in all fields.');
             return;
         }
 
-        // Convert prices to numeric values
         const entryPriceNum = parseFloat(entryPrice);
         const oraclePriceNum = parseFloat(oraclePrice);
 
@@ -75,7 +65,6 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
                 description: 'Invalid entry price.',
                 variant: 'destructive',
             });
-            console.error('Invalid entry price.');
             return;
         }
 
@@ -85,7 +74,6 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
                 description: 'Invalid oracle price.',
                 variant: 'destructive',
             });
-            console.error('Invalid oracle price.');
             return;
         }
 
@@ -96,10 +84,8 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
             const entryPriceBN = new BN(entryPriceNum);
             const oraclePriceBN = new BN(oraclePriceNum);
 
-            // First update the oracle price (Oracle Address == BasktId)
             await client.updateOraclePrice(basktId, oraclePriceBN);
 
-            // Then open the position
             await client.openPosition({
                 order: await client.getOrderPDA(new BN(order.orderId), new PublicKey(order.owner)),
                 positionId: positionId,
@@ -107,14 +93,12 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
                 baskt: basktId,
             });
 
-
             toast({
                 title: 'Success',
                 description: 'Position opened successfully!',
             });
             onClose();
         } catch (error) {
-            console.error('Failed to open position:', error);
             toast({
                 title: 'Error',
                 description: error instanceof Error ? error.message : String(error),

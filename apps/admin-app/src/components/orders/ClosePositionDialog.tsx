@@ -16,15 +16,10 @@ import { useBasktClient } from '@baskt/ui';
 import { useToast } from '../../hooks/use-toast';
 import { PublicKey } from '@solana/web3.js';
 import { BN } from 'bn.js';
-import { OnchainOrder, OnchainPosition } from '@baskt/types';
+import { OnchainPosition } from '@baskt/types';
 import { useProtocol } from '../../hooks/protocols/useProtocol';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
-
-interface ClosePositionDialogProps {
-    order: OnchainOrder | null;
-    isOpen: boolean;
-    onClose: () => void;
-}
+import { ClosePositionDialogProps } from '../../types/orders';
 
 const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen, onClose }) => {
     const [exitPrice, setExitPrice] = useState('');

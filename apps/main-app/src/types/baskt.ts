@@ -1,6 +1,7 @@
 import { BasktFormData } from '../hooks/baskt/create/useCreateBasktForm';
-import { AssetInfo, BasktInfo, BasktAssetInfo } from '@baskt/types';
+import { AssetInfo, BasktInfo, BasktAssetInfo, OnchainPosition } from '@baskt/types';
 import { SortOption } from '@baskt/ui/types/constants';
+import BN from 'bn.js';
 
 export interface UserBasktPositionInfo {
   type?: 'long' | 'short';
@@ -154,4 +155,10 @@ export interface CalculateSharesParams {
 
 export interface CalculateLiquidationPriceParams extends CalculateSharesParams {
   position: 'long' | 'short';
+}
+export interface AddCollateralDialogProps {
+  position: OnchainPosition | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onAddCollateral: (position: OnchainPosition, amount: BN) => Promise<void>;
 }

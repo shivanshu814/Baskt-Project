@@ -13,16 +13,14 @@ export const BasktPosition = ({ basktId }: BasktPositionProps) => {
   const { client } = useBasktClient();
   const userAddress = client?.wallet?.address?.toString();
   const { positions = [], closePosition, addCollateral } = useOpenPositions(basktId, userAddress);
-  
-  // State for the AddCollateralDialog
   const [isAddCollateralDialogOpen, setIsAddCollateralDialogOpen] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<OnchainPosition | null>(null);
-  
+
   const openAddCollateralDialog = (position: OnchainPosition) => {
     setSelectedPosition(position);
     setIsAddCollateralDialogOpen(true);
   };
-  
+
   const closeAddCollateralDialog = () => {
     setSelectedPosition(null);
     setIsAddCollateralDialogOpen(false);
@@ -110,7 +108,7 @@ export const BasktPosition = ({ basktId }: BasktPositionProps) => {
             </div>
           </div>
         )}
-        
+
         {/* Add Collateral Dialog */}
         {isAddCollateralDialogOpen && selectedPosition && (
           <AddCollateralDialog

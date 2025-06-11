@@ -9,8 +9,7 @@ export const usePositions = () => {
     queryKey: ['positions'],
     queryFn: async () => {
       if (!client) throw new Error('Client not initialized');
-      const positions = await client.getAllPositions(); // eslint-disable-line
-      // eslint-disable-next-line
+      const positions = await client.getAllPositions();
       return positions.map((position: OnchainPosition) => ({
         ...position,
         publicKey: position.address.toString(),

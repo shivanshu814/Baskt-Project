@@ -50,7 +50,6 @@ export function BasktTradingForm({ baskt, className }: BasktTradingFormProps) {
       await openPosition(position, size);
       // eslint-disable-next-line 
     } catch (error: any) {
-      console.log(error);
       toast({
         title: 'Error',
         description: error.message || 'Failed to open position',

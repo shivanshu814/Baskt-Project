@@ -41,7 +41,6 @@ export function useTokenBalance(
       // eslint-disable-next-line
     } catch (e: any) {
       setBalance('0');
-      console.error(e);
       setError(e?.message || 'Failed to fetch token balance');
       return null;
     } finally {

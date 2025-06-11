@@ -1,3 +1,5 @@
+import { OnchainOrder } from '@baskt/types';
+
 export interface Order {
   owner: string;
   orderId: string;
@@ -9,4 +11,14 @@ export interface Order {
   status: 'Pending' | 'Filled' | 'Cancelled';
   timestamp: number;
   targetPosition?: string;
+}
+export interface FillPositionDialogProps {
+  order: OnchainOrder | null;
+  isOpen: boolean;
+  onClose: () => void;
+}
+export interface ClosePositionDialogProps {
+  order: OnchainOrder | null;
+  isOpen: boolean;
+  onClose: () => void;
 }

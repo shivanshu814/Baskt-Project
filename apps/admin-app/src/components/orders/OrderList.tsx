@@ -13,16 +13,14 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from "../ui/dropdown-menu"; // Added DropdownMenu components
+} from "../ui/dropdown-menu";
 import { formatDate } from '../../utils/pool';
-import { Copy, Check, MoreHorizontal } from 'lucide-react'; // Added MoreHorizontal
+import { Copy, Check, MoreHorizontal } from 'lucide-react';
 import { useCopyWithTimeout } from '../../hooks/useCopyWithTimeout';
 import { getStatusColor, getActionColor } from '../../utils/orderUtils';
-import FillPositionDialog from './FillPositionDialog'; // Import the dialog
-import ClosePositionDialog from './ClosePositionDialog'; // Import the close position dialog
+import FillPositionDialog from './FillPositionDialog';
+import ClosePositionDialog from './ClosePositionDialog';
 import { OnchainOrder, OrderAction, OrderStatus } from '@baskt/types';
-
-
 
 const OrderList = () => {
     const { orders = [] } = useOrders();
@@ -30,7 +28,7 @@ const OrderList = () => {
 
     const [isFillDialogOpen, setIsFillDialogOpen] = useState(false);
     const [selectedOrderForFill, setSelectedOrderForFill] = useState<OnchainOrder | null>(null);
-    
+
     const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
     const [selectedOrderForClose, setSelectedOrderForClose] = useState<OnchainOrder | null>(null);
 
@@ -43,7 +41,7 @@ const OrderList = () => {
         setSelectedOrderForFill(null);
         setIsFillDialogOpen(false);
     };
-    
+
     const openCloseDialog = (order: OnchainOrder) => {
         setSelectedOrderForClose(order);
         setIsCloseDialogOpen(true);
@@ -69,13 +67,12 @@ const OrderList = () => {
                         <TableHead>Collateral</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Time</TableHead>
-                        <TableHead className="text-right">Actions</TableHead> {/* Added Actions header */}
+                        <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {orders.length === 0 ? (
                         <TableRow>
-                            {/* Updated colSpan to 9 */}
                             <TableCell colSpan={9} className="text-center text-gray-400 py-8">
                                 No orders found.
                             </TableCell>
@@ -138,7 +135,7 @@ const OrderList = () => {
                                 <TableCell>
                                     <p className="text-sm text-gray-500">{formatDate(order.timestamp.toNumber())}</p>
                                 </TableCell>
-                                <TableCell className="text-right"> {/* Added Actions cell */}
+                                <TableCell className="text-right">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <button className="p-1 rounded hover:bg-gray-700 focus:outline-none">

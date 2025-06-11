@@ -55,9 +55,8 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                       : 'Price Unavailable'}
                   </TableCell>
                   <TableCell
-                    className={`text-right ${
-                      changeFromCurrentPrice(asset) >= 0 ? 'text-[#16C784]' : 'text-[#EA3943]'
-                    }`}
+                    className={`text-right ${changeFromCurrentPrice(asset) >= 0 ? 'text-[#16C784]' : 'text-[#EA3943]'
+                      }`}
                   >
                     {changeFromCurrentPrice(asset) !== undefined ? (
                       <>{changeFromCurrentPrice(asset).toFixed(2)}%</>
