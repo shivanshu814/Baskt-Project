@@ -28,25 +28,30 @@ export function BasktList({ onActivate, activatingBasktId, onViewDetails }: Bask
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow>
+            <TableRow key="loading">
               <TableCell colSpan={3} className="h-32 text-center">
                 <div className="flex flex-col items-center justify-center gap-2">
                   <p className="text-white/60 text-sm">Loading baskts...</p>
                 </div>
               </TableCell>
             </TableRow>
-          ) : basktList.length ? (
-            basktList.map((baskt: BasktData) => (
-              <BasktRow
-                key={baskt.basktId}
-                baskt={baskt}
-                onActivate={onActivate}
-                isActivating={activatingBasktId === baskt.basktId}
-                onViewDetails={onViewDetails}
-              />
-            ))
+          ) : basktList?.length ? (
+            basktList
+              .filter((baskt): baskt is BasktData => baskt !== null)
+              .map((baskt) => {
+                const key = baskt.basktId || `baskt-${Math.random()}`;
+                return (
+                  <BasktRow
+                    key={key}
+                    baskt={baskt}
+                    onActivate={onActivate}
+                    isActivating={activatingBasktId === baskt.basktId}
+                    onViewDetails={onViewDetails}
+                  />
+                );
+              })
           ) : (
-            <TableRow>
+            <TableRow key="empty">
               <TableCell colSpan={3} className="text-center text-white/60">
                 No baskts found.
               </TableCell>
