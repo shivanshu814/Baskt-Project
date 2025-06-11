@@ -3,13 +3,14 @@ import BN from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
 import { useBasktClient, USDC_MINT } from '@baskt/ui';
 import { useToast } from '../common/use-toast';
-import { useTreasuryAccount } from './useTreasuryAccount';
 import type { UseWithdrawProps } from '../../types/pool';
+import { useProtocol } from '../protocol/useProtocol';
+import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 
 export const useWithdraw = ({ poolData, liquidityPool, onSuccess }: UseWithdrawProps) => {
   const { client, wallet } = useBasktClient();
   const { toast } = useToast();
-  const { setupTreasuryAccount } = useTreasuryAccount();
+  const { protocol } = useProtocol();
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
@@ -18,7 +19,14 @@ export const useWithdraw = ({ poolData, liquidityPool, onSuccess }: UseWithdrawP
   );
 
   const handleWithdraw = useCallback(async () => {
-    if (!isWithdrawValid || !client || !wallet?.address || !liquidityPool || !poolData) {
+    if (
+      !isWithdrawValid ||
+      !client ||
+      !wallet?.address ||
+      !liquidityPool ||
+      !poolData ||
+      !protocol
+    ) {
       return;
     }
 
@@ -56,24 +64,22 @@ export const useWithdraw = ({ poolData, liquidityPool, onSuccess }: UseWithdrawP
       }
 
       const minUsdcOut = new BN(0);
-      const treasurySetup = await setupTreasuryAccount();
-      if (!treasurySetup) {
-        setIsWithdrawing(false);
-        return;
-      }
 
-      const { poolAuthority, treasuryTokenAccount } = treasurySetup;
+      const treasuryTokenAccount = await getAssociatedTokenAddressSync(
+        new PublicKey(protocol?.escrowMint),
+        protocol?.treasury,
+      );
 
       await client.removeLiquidity(
         liquidityPool,
         withdrawAmountBN,
         minUsdcOut,
-        userLpAccount.address,
-        new PublicKey(poolData.lpMint),
         userTokenAccount.address,
         new PublicKey(poolData.tokenVault),
+        userLpAccount.address,
+        new PublicKey(poolData.lpMint),
         treasuryTokenAccount,
-        poolAuthority,
+        protocol?.treasury,
       );
 
       toast({
@@ -84,6 +90,7 @@ export const useWithdraw = ({ poolData, liquidityPool, onSuccess }: UseWithdrawP
       setWithdrawAmount('');
       onSuccess?.();
     } catch (error) {
+      console.log(error);
       if (error instanceof Error) {
         if (error.message.includes('Treasury')) {
           toast({
@@ -110,17 +117,7 @@ export const useWithdraw = ({ poolData, liquidityPool, onSuccess }: UseWithdrawP
     } finally {
       setIsWithdrawing(false);
     }
-  }, [
-    client,
-    wallet,
-    liquidityPool,
-    poolData,
-    withdrawAmount,
-    isWithdrawValid,
-    onSuccess,
-    toast,
-    setupTreasuryAccount,
-  ]);
+  }, [client, wallet, liquidityPool, poolData, withdrawAmount, isWithdrawValid, onSuccess, toast]);
 
   return {
     withdrawAmount,

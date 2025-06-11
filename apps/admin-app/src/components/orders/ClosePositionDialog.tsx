@@ -17,6 +17,8 @@ import { useToast } from '../../hooks/use-toast';
 import { PublicKey } from '@solana/web3.js';
 import { BN } from 'bn.js';
 import { OnchainOrder, OnchainPosition } from '@baskt/types';
+import { useProtocol } from '../../hooks/protocols/useProtocol';
+import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 
 interface ClosePositionDialogProps {
     order: OnchainOrder | null;
@@ -29,6 +31,7 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
     const [oraclePrice, setOraclePrice] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [position, setPosition] = useState<OnchainPosition | null>(null);
+    const { protocol } = useProtocol();
     const { toast } = useToast();
     const { client } = useBasktClient();
 
@@ -84,6 +87,15 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
             return;
         }
 
+        if (!protocol) {
+            toast({
+                title: 'Error',
+                description: 'Protocol not initialized',
+                variant: 'destructive',
+            });
+            return;
+        }
+
         try {
             setIsSubmitting(true);
 
@@ -100,43 +112,29 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
             // First update the oracle price (Oracle Address == BasktId)
             await client.updateOraclePrice(basktId, oraclePriceBN);
 
-            // Get protocol registry for treasury address
-            const registry = await client.getProtocolRegistry();
-            if (!registry) {
-                throw new Error('Protocol registry not found');
-            }
-
-            // Find funding index PDA
-            const [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-                [Buffer.from('funding_index'), basktId.toBuffer()],
-                client.program.programId
-            );
 
             // Get treasury token account (USDC account owned by treasury)
-            const { value: treasuryTokenAccount } = await client.program.provider.connection.getTokenAccountsByOwner(
-                registry.treasury,
-                { mint: registry.escrowMint }
+            const treasuryTokenAccount = await getAssociatedTokenAddressSync(
+                protocol.escrowMint,
+                protocol.treasury,
             );
 
             // Get owner token account (we'll use the matcher's token account)
-            const { value: ownerTokenAccounts } = await client.program.provider.connection.getTokenAccountsByOwner(
+            const ownerTokenAccount = await getAssociatedTokenAddressSync(
+                protocol.escrowMint,
                 position?.owner || client.getPublicKey(),
-                { mint: registry.escrowMint }
             );
 
-            const ownerTokenAccount = ownerTokenAccounts[0]?.pubkey;
-            const treasuryTokenAccountPubkey = treasuryTokenAccount[0]?.pubkey;
 
             // Then close the position
             await client.closePosition({
                 orderPDA: new PublicKey(order.address),
                 position: positionPDA,
                 exitPrice: exitPriceBN,
-                fundingIndex: fundingIndexPDA,
                 baskt: basktId,
                 ownerTokenAccount,
-                treasury: registry.treasury,
-                treasuryTokenAccount: treasuryTokenAccountPubkey,
+                treasury: protocol.treasury,
+                treasuryTokenAccount,
             });
 
             toast({

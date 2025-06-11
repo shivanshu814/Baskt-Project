@@ -58,19 +58,12 @@ export interface OnchainProtocolInterface {
   accessControl: OnchainAccessControl;
   /** Feature flags */
   featureFlags: OnchainFeatureFlags;
+  /** The treasury of the protocol */
+  treasury: PublicKey;
+  /** The escrow mint of the protocol */
+  escrowMint: PublicKey;
 }
 
 /**
  * Raw protocol account data as returned by the program
  */
-export interface OnchainRawProtocolAccount {
-  isInitialized: boolean;
-  owner: PublicKey;
-  accessControl: {
-    entries: Array<{
-      account: PublicKey;
-      role: Record<string, unknown>; // Using unknown instead of {} for better type safety
-    }>;
-  };
-  featureFlags: OnchainFeatureFlags;
-}

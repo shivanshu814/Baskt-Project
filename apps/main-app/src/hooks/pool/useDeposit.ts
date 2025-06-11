@@ -4,15 +4,14 @@ import { PublicKey } from '@solana/web3.js';
 import { useBasktClient, USDC_MINT } from '@baskt/ui';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { createAssociatedTokenAccountInstruction } from '@solana/spl-token';
-import { Transaction } from '@solana/web3.js';
 import { useToast } from '../common/use-toast';
-import { useTreasuryAccount } from './useTreasuryAccount';
 import type { UseDepositProps } from '../../types/pool';
+import { useProtocol } from '../protocol/useProtocol';
 
 export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositProps) => {
   const { client, wallet } = useBasktClient();
   const { toast } = useToast();
-  const { setupTreasuryAccount } = useTreasuryAccount();
+  const { protocol } = useProtocol();
   const [depositAmount, setDepositAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
 
@@ -21,7 +20,14 @@ export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositPro
   );
 
   const handleDeposit = useCallback(async () => {
-    if (!isDepositValid || !client || !wallet?.address || !liquidityPool || !poolData) {
+    if (
+      !isDepositValid ||
+      !client ||
+      !wallet?.address ||
+      !liquidityPool ||
+      !poolData ||
+      !protocol
+    ) {
       return;
     }
 
@@ -43,9 +49,13 @@ export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositPro
         USDC_MINT,
       );
 
-      let userLpAccount;
+      const itx = [];
+      const userLPAta = getAssociatedTokenAddressSync(
+        new PublicKey(poolData.lpMint),
+        new PublicKey(wallet.address),
+      );
       try {
-        userLpAccount = await client.getUserTokenAccount(
+        await client.getUserTokenAccount(
           new PublicKey(wallet.address),
           new PublicKey(poolData.lpMint),
         );
@@ -53,21 +63,11 @@ export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositPro
         try {
           const createAtaIx = createAssociatedTokenAccountInstruction(
             new PublicKey(wallet.address),
-            getAssociatedTokenAddressSync(
-              new PublicKey(poolData.lpMint),
-              new PublicKey(wallet.address),
-            ),
+            userLPAta,
             new PublicKey(wallet.address),
             new PublicKey(poolData.lpMint),
           );
-
-          const tx = new Transaction().add(createAtaIx);
-          await client.provider.sendAndConfirmLegacy(tx);
-
-          userLpAccount = await client.getUserTokenAccount(
-            new PublicKey(wallet.address),
-            new PublicKey(poolData.lpMint),
-          );
+          itx.push(createAtaIx);
         } catch (createError) {
           toast({
             title: 'Failed to create LP token account. Please try again.',
@@ -79,24 +79,23 @@ export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositPro
       }
 
       const minSharesOut = new BN(0);
-      const treasurySetup = await setupTreasuryAccount();
-      if (!treasurySetup) {
-        setIsDepositing(false);
-        return;
-      }
 
-      const { poolAuthority, treasuryTokenAccount } = treasurySetup;
+      const treasuryTokenAccount = await getAssociatedTokenAddressSync(
+        new PublicKey(protocol?.escrowMint),
+        protocol?.treasury,
+      );
 
-      await client.addLiquidity(
+      await client.addLiquidityWithItx(
         liquidityPool,
         depositAmountBN,
         minSharesOut,
         userTokenAccount.address,
         new PublicKey(poolData.tokenVault),
-        userLpAccount.address,
+        userLPAta,
         new PublicKey(poolData.lpMint),
         treasuryTokenAccount,
-        poolAuthority,
+        protocol?.treasury,
+        itx,
       );
 
       toast({
@@ -133,17 +132,7 @@ export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositPro
     } finally {
       setIsDepositing(false);
     }
-  }, [
-    client,
-    wallet,
-    liquidityPool,
-    poolData,
-    depositAmount,
-    isDepositValid,
-    onSuccess,
-    toast,
-    setupTreasuryAccount,
-  ]);
+  }, [client, wallet, liquidityPool, poolData, depositAmount, isDepositValid, onSuccess, toast]);
 
   return {
     depositAmount,

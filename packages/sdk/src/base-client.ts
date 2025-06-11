@@ -203,6 +203,8 @@ export abstract class BaseClient {
         allowTrading: rawProtocol.featureFlags.allowTrading,
         allowLiquidations: rawProtocol.featureFlags.allowLiquidations,
       },
+      treasury: rawProtocol.treasury,
+      escrowMint: rawProtocol.escrowMint,
     };
   }
 
@@ -760,14 +762,6 @@ export abstract class BaseClient {
       })
       .rpc();
 
-    // const transaction = new Transaction().add(tx);
-    // transaction.feePayer = this.getPublicKey();
-
-    // const { blockhash } = await this.connection.getLatestBlockhash();
-    // transaction.recentBlockhash = blockhash;
-
-    // transaction.sign(lpMintKeypair);
-
     return tx;
   }
 
@@ -806,6 +800,35 @@ export abstract class BaseClient {
         treasury,
         treasuryTokenAccount,
       })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  public async addLiquidityWithItx(
+    liquidityPool: PublicKey,
+    amount: anchor.BN,
+    minSharesOut: anchor.BN,
+    providerTokenAccount: PublicKey,
+    tokenVault: PublicKey,
+    providerLpAccount: PublicKey,
+    lpMint: PublicKey,
+    treasuryTokenAccount: PublicKey,
+    treasury: PublicKey,
+    itx: TransactionInstruction[],
+  ): Promise<string> {
+    // Build the transaction
+    const tx = await this.program.methods
+      .addLiquidity(amount, minSharesOut)
+      .accounts({
+        provider: this.getPublicKey(),
+        lpMint,
+        providerTokenAccount,
+        providerLpAccount,
+        treasury,
+        treasuryTokenAccount,
+      })
+      .preInstructions(itx)
       .transaction();
 
     return await this.provider.sendAndConfirmLegacy(tx);

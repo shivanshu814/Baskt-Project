@@ -114,12 +114,35 @@ async function createFakePrices(assetConfig: any[]) {
 }
 
 async function main() {
+  const usdcMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+
   const { program, wallet, provider } = getProvider();
 
   const client = new TestClient(program);
   client.setPublicKey(wallet.publicKey);
 
-  await client.initializeProtocol();
+  await client.initializeProtocol(wallet.publicKey);
+
+  // Create ATA for the treasury
+  const treasuryATA = await getOrCreateAssociatedTokenAccount(
+    provider.connection,
+    wallet.payer,
+    usdcMint,
+    wallet.publicKey,
+  );
+
+  const lpMintKeypair = Keypair.generate();
+  console.log('LP Mint:', lpMintKeypair.publicKey.toString());
+  console.log('LP Mint Secret Key', lpMintKeypair.secretKey.toString());
+
+  await client.initializeLiquidityPool(
+    100,
+    100,
+    new anchor.BN(1e6),
+    lpMintKeypair.publicKey,
+    usdcMint,
+    lpMintKeypair,
+  );
 
   const assetsWithAddress = [];
 
@@ -153,11 +176,7 @@ async function main() {
 
   await client.addRole(fundingAccount, AccessControlRole.Owner);
 
-  console.log('Has Role', await client.hasRole(fundingAccount, AccessControlRole.Owner));
-
   if (program.provider.sendAndConfirm) await program.provider.sendAndConfirm(transaction);
-
-  // === Create LP Mint and Token Vault for Liquidity Pool ===
 
   // 1. Derive PDAs
   const protocolPDA = await client.protocolPDA;
@@ -166,32 +185,6 @@ async function main() {
   console.log('Protocol PDA:', protocolPDA.toBase58());
   console.log('Liquidity Pool PDA:', liquidityPoolPDA.toBase58());
   console.log('Pool Authority PDA:', poolAuthorityPDA.toBase58());
-
-  // 2. Use USDC as the collateral mint
-  const usdcMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
-
-  // 3. Create LP Mint (poolAuthorityPDA as mint authority)
-  // const lpMintKeypair = Keypair.generate();
-  // const lpMint = await createMint(
-  //   provider.connection,
-  //   wallet.payer,
-  //   poolAuthorityPDA,
-  //   null, // Freeze authority (optional)
-  //   6, // Decimals (match USDC)
-  //   lpMintKeypair,
-  // );
-  // console.log('LP Mint:', lpMintKeypair.publicKey.toBase58());
-
-  // 4. Create Token Vault (owned by poolAuthorityPDA)
-  // const tokenVault = await getOrCreateAssociatedTokenAccount(
-  //   provider.connection,
-  //   wallet.payer,
-  //   usdcMint,
-  //   poolAuthorityPDA,
-  //   true,
-  // );
-
-  // console.log('Token Vault:', tokenVault.address.toBase58());
 
   // Give USDC to the funding account
   const usdcAta = await getOrCreateAssociatedTokenAccount(

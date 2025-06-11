@@ -3,10 +3,8 @@
 import React from 'react';
 import { useProtocol } from '../../hooks/protocols/useProtocol';
 import { ProtocolDetailsProps } from '../../types/protocol';
-import { ProtocolInitialization } from '../protocol/ProtocolInitialization';
 import { ProtocolGeneralInfo } from '../protocol/ProtocolGeneralInfo';
 import { FeatureFlags } from '../protocol/FeatureFlags';
-import { RegistryInfo } from '../protocol/RegistryInfo';
 
 export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
   const { protocol, error } = useProtocol();
@@ -20,16 +18,15 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
   }
 
   if (!protocol) {
-    return <ProtocolInitialization />;
+    return <>No protocol</>;
   }
 
   return (
     <div className={className}>
       <h2 className="text-2xl font-semibold my-6">Protocol Details</h2>
       <div className="grid gap-6">
-        <ProtocolGeneralInfo owner={protocol.owner} />
+        <ProtocolGeneralInfo owner={protocol.owner} treasury={protocol.treasury.toString()} escrowMint={protocol.escrowMint.toString()} />
         <FeatureFlags flags={protocol.featureFlags} />
-        <RegistryInfo />
       </div>
     </div>
   );
