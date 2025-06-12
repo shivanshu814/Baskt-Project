@@ -6,6 +6,7 @@ import { useBasktClient } from '@baskt/ui';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import { OnchainOrder, OrderAction, OrderStatus } from '@baskt/types';
 import { BN } from 'bn.js';
+import { BASIS_POINT } from '../../../constants/pool';
 
 export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
   const { client } = useBasktClient();
@@ -13,22 +14,23 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
   const { orders = [], cancelOrder } = useOpenOrders(basktId, userAddress);
   const publicKey = client?.wallet?.address;
   const { account: userUSDCAccount } = useUSDCBalance(publicKey);
+
   return (
-    <Card className="rounded-none">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-medium">Open Orders</CardTitle>
+    <Card>
+      <CardHeader>
+        <CardTitle>Open Orders</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Order Type</TableHead>
+                <TableHead>Action</TableHead>
                 <TableHead>Size</TableHead>
                 <TableHead>Collateral</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Date</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -45,10 +47,10 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
                       {order.action === OrderAction.Open ? 'Open' : 'Close'}
                     </TableCell>
                     <TableCell>
-                      {order.size ? `${(new BN(order.size).toNumber() / 1e6).toFixed(2)}` : '-'}
+                      {order.size ? `${(new BN(order.size).toNumber() / BASIS_POINT).toFixed(2)}` : '-'}
                     </TableCell>
                     <TableCell>
-                      {order.collateral ? `$${(new BN(order.collateral).toNumber() / 1e6).toFixed(2)}` : '-'}
+                      {order.collateral ? `$${(new BN(order.collateral).toNumber() / BASIS_POINT).toFixed(2)}` : '-'}
                     </TableCell>
                     <TableCell className="text-[#16C784]">
                       {order.status === OrderStatus.PENDING ? 'Active' : order.status === OrderStatus.FILLED ? 'Filled' : 'Cancelled'}

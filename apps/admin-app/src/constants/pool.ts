@@ -1,5 +1,6 @@
 export const BPS_TO_PERCENT = 100;
 export const USDC_DECIMALS = 1_000_000;
+export const BASIS_POINT = 1_000_000;
 export const MIN_FEE_BPS = 0;
 export const MAX_FEE_BPS = 1000;
 export const MIN_DEPOSIT_AMOUNT = 100_000;

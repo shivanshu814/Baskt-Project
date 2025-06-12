@@ -5,11 +5,11 @@ import { Button } from '../../ui/button';
 import { useOpenPositions } from '../../../hooks/baskt/trade/useOpenPositions';
 import { useBasktClient } from '@baskt/ui';
 import { OnchainPosition, PositionStatus } from '@baskt/types';
-import BN from 'bn.js';
-import { BasktPositionProps } from '../../../types/baskt';
+import { BN } from 'bn.js';
+import { BASIS_POINT } from '../../../constants/pool';
 import AddCollateralDialog from './AddCollateralDialog';
 
-export const BasktPosition = ({ basktId }: BasktPositionProps) => {
+export const BasktPosition = ({ basktId }: { basktId: string }) => {
   const { client } = useBasktClient();
   const userAddress = client?.wallet?.address?.toString();
   const { positions = [], closePosition, addCollateral } = useOpenPositions(basktId, userAddress);
@@ -25,7 +25,6 @@ export const BasktPosition = ({ basktId }: BasktPositionProps) => {
     setSelectedPosition(null);
     setIsAddCollateralDialogOpen(false);
   };
-
 
   return (
     <Card className="rounded-none">
@@ -61,13 +60,13 @@ export const BasktPosition = ({ basktId }: BasktPositionProps) => {
                         {position.positionId.toString().substring(0, 8)}...
                       </TableCell>
                       <TableCell>
-                        {position.size ? `${(new BN(position.size).toNumber() / 1e6).toFixed(2)}` : '-'}
+                        {position.size ? `${(new BN(position.size).toNumber() / BASIS_POINT).toFixed(2)}` : '-'}
                       </TableCell>
                       <TableCell>
-                        {position.collateral ? `$${(new BN(position.collateral).toNumber() / 1e6).toFixed(2)}` : '-'}
+                        {position.collateral ? `$${(new BN(position.collateral).toNumber() / BASIS_POINT).toFixed(2)}` : '-'}
                       </TableCell>
                       <TableCell>
-                        {position.entryPrice ? `$${(new BN(position.entryPrice).toNumber() / 1e6).toFixed(2)}` : '-'}
+                        {position.entryPrice ? `$${(new BN(position.entryPrice).toNumber() / BASIS_POINT).toFixed(2)}` : '-'}
                       </TableCell>
                       <TableCell className="text-[#16C784]">
                         {position.status === PositionStatus.OPEN ? 'Open' : position.status === PositionStatus.CLOSED ? 'Closed' : 'Liquidated'}

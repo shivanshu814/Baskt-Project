@@ -2,6 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { BasktAssetInfo } from '@baskt/types';
 import { IndexCompositionProps } from '../../../types/baskt';
+import { BASIS_POINT } from '../../../constants/pool';
 
 export function changeFromCurrentPrice(asset: BasktAssetInfo) {
   const change = asset.price - (asset.baselinePrice || asset.price);
@@ -46,7 +47,7 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                   <TableCell>{asset.weight}%</TableCell>
                   <TableCell>
                     {asset.baselinePrice !== undefined
-                      ? `$${(asset.baselinePrice / 1e9).toFixed(8)}`
+                      ? `$${(asset.baselinePrice / BASIS_POINT).toFixed(8)}`
                       : 'Price Unavailable'}
                   </TableCell>
                   <TableCell>

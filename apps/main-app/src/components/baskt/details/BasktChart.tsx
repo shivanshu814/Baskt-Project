@@ -7,6 +7,7 @@ import { BasktChartProps } from '../../../types/baskt';
 import { useBasktList } from '../../../hooks/baskt/useBasktList';
 import { Popover, PopoverTrigger, PopoverContent } from '../../ui/popover';
 import { SearchBar } from '../../shared/SearchBar';
+import { BASIS_POINT } from '../../../constants/pool';
 
 export const BasktChart = ({
   baskt,
@@ -55,9 +56,8 @@ export const BasktChart = ({
                     <div className="flex items-center">
                       <span className="font-semibold text-xl">{baskt.name}</span>
                       <span
-                        className={`font-semibold text-base ml-3 ${
-                          currentBaskt?.change24h >= 0 ? 'text-green-400' : 'text-red-400'
-                        }`}
+                        className={`font-semibold text-base ml-3 ${currentBaskt?.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+                          }`}
                       >
                         {currentBaskt?.change24h !== undefined
                           ? `${Math.abs(currentBaskt.change24h).toFixed(2)}%`
@@ -67,7 +67,7 @@ export const BasktChart = ({
                     </div>
                     <span className="font-semibold text-lg text-white -mt-2">
                       {currentBaskt?.price !== undefined
-                        ? `$${currentBaskt.price.toLocaleString()}`
+                        ? `$${(currentBaskt.price / BASIS_POINT).toLocaleString()}`
                         : '-'}
                     </span>
                   </div>
@@ -80,11 +80,10 @@ export const BasktChart = ({
                     filtered.map((b) => (
                       <button
                         key={b.basktId?.toString()}
-                        className={`flex items-center gap-3 w-full px-3 py-2 rounded hover:bg-muted/40 transition text-left ${
-                          b.basktId?.toString() === baskt.basktId?.toString()
+                        className={`flex items-center gap-3 w-full px-3 py-2 rounded hover:bg-muted/40 transition text-left ${b.basktId?.toString() === baskt.basktId?.toString()
                             ? 'bg-muted/20 font-bold'
                             : ''
-                        }`}
+                          }`}
                         onClick={() => {
                           setPopoverOpen(false);
                           onBasktChange(b.basktId?.toString());
@@ -158,11 +157,10 @@ export const BasktChart = ({
             <Button
               variant="ghost"
               size="sm"
-              className={`rounded-md px-3 py-1 text-xs ${
-                chartType === 'line'
+              className={`rounded-md px-3 py-1 text-xs ${chartType === 'line'
                   ? 'bg-background text-primary'
                   : 'text-muted-foreground hover:text-primary'
-              }`}
+                }`}
               onClick={() => setChartType('line')}
             >
               <LineChart className="h-4 w-4" />
@@ -175,11 +173,10 @@ export const BasktChart = ({
                 key={period}
                 variant="ghost"
                 size="sm"
-                className={`rounded-md px-3 py-1 text-xs ${
-                  chartPeriod === period
+                className={`rounded-md px-3 py-1 text-xs ${chartPeriod === period
                     ? 'bg-background text-primary'
                     : 'text-muted-foreground hover:text-primary'
-                }`}
+                  }`}
                 onClick={() => setChartPeriod(period)}
               >
                 {period}

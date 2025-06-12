@@ -13,6 +13,7 @@ import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import BN from 'bn.js';
+import { BASIS_POINT } from '../../../constants/pool';
 import { AddCollateralDialogProps } from '../../../types/baskt';
 
 const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
@@ -57,7 +58,7 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
       setIsSubmitting(true);
 
       // Convert to program units (adding 6 decimal places)
-      const collateralBN = new BN(amount * 1e6);
+      const collateralBN = new BN(amount * BASIS_POINT);
 
       await onAddCollateral(position, collateralBN);
 
@@ -72,31 +73,20 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
   };
 
   const currentCollateral = position?.collateral
-    ? `$${(new BN(position.collateral).toNumber() / 1e6).toFixed(2)}`
+    ? `$${(new BN(position.collateral).toNumber() / BASIS_POINT).toFixed(2)}`
     : '-';
 
   return (
-    <Dialog open={isOpen} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-md">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Collateral to Position</DialogTitle>
+          <DialogTitle>Add Collateral</DialogTitle>
           <DialogDescription>
-            Enter the amount of collateral (USDC) to add to your position.
+            Add more collateral to your position to reduce the risk of liquidation.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="positionIdDisplay" className="text-right col-span-1">
-              Position ID
-            </Label>
-            <Input
-              id="positionIdDisplay"
-              value={position.positionId.toString()}
-              readOnly
-              className="col-span-3 bg-muted"
-            />
-          </div>
+        <div className="space-y-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="currentCollateral" className="text-right col-span-1">
               Current Collateral
@@ -108,17 +98,7 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
               className="col-span-3 bg-muted"
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="availableBalance" className="text-right col-span-1">
-              Available USDC
-            </Label>
-            <Input
-              id="availableBalance"
-              value={balanceLoading ? 'Loading...' : `$${usdcBalance}`}
-              readOnly
-              className="col-span-3 bg-muted"
-            />
-          </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="collateralAmount" className="text-right col-span-1">
               Amount to Add*

@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useBasktFundingIndex } from '../../hooks/baskts/useBasktFundingIndex';
 import { formatTimestamp, formatNumber } from '../../utils/format';
+import { BASIS_POINT } from '../../constants/pool';
 import { FundingIndexTableProps } from '../../types/baskt';
 
 export function FundingIndexTable({ basktId }: FundingIndexTableProps) {
@@ -72,8 +73,8 @@ export function FundingIndexTable({ basktId }: FundingIndexTableProps) {
           <tbody>
             <tr className="border-b border-white/5">
               <td className="py-2 font-mono text-xs">{fundingIndex.basktId.toString()}</td>
-              <td className="py-2 text-right">{formatNumber(Number(fundingIndex.cumulativeIndex) || 0)}</td>
-              <td className="py-2 text-right">{fundingIndex.currentRate.toString()} BPS</td>
+              <td className="py-2 text-right">{formatNumber(Number(fundingIndex.cumulativeIndex) / BASIS_POINT || 0)}</td>
+              <td className="py-2 text-right">{formatNumber(fundingIndex.currentRate / BASIS_POINT)} BPS</td>
               <td className="py-2 text-right">{formatTimestamp(fundingIndex.lastUpdateTimestamp)}</td>
             </tr>
           </tbody>
@@ -83,7 +84,7 @@ export function FundingIndexTable({ basktId }: FundingIndexTableProps) {
       <div className="flex items-center gap-2 pt-4">
         <Input
           type="number"
-          placeholder="New rate in BPS (e.g., 50 for 0.5%)"
+          placeholder="New rate (e.g., 0.5 for 0.5%)"
           value={newRate}
           onChange={(e) => setNewRate(e.target.value)}
           className="flex-grow"
@@ -92,9 +93,7 @@ export function FundingIndexTable({ basktId }: FundingIndexTableProps) {
           onClick={handleUpdateRate}
           disabled={!newRate}
         >
-          {
-            'Update Rate'
-          }
+          Update Rate
         </Button>
       </div>
     </div>

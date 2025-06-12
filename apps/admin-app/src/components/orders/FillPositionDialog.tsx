@@ -16,6 +16,7 @@ import { useBasktClient } from '@baskt/ui';
 import { useToast } from '../../hooks/use-toast';
 import { PublicKey } from '@solana/web3.js';
 import { BN } from 'bn.js';
+import { BASIS_POINT } from '../../constants/pool';
 import { FillPositionDialogProps } from '../../types/orders';
 
 const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, onClose }) => {
@@ -81,8 +82,8 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
             setIsSubmitting(true);
 
             const basktId = new PublicKey(order.basktId);
-            const entryPriceBN = new BN(entryPriceNum);
-            const oraclePriceBN = new BN(oraclePriceNum);
+            const entryPriceBN = new BN(entryPriceNum * BASIS_POINT);
+            const oraclePriceBN = new BN(oraclePriceNum * BASIS_POINT);
 
             await client.updateOraclePrice(basktId, oraclePriceBN);
 

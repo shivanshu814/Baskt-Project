@@ -15,6 +15,7 @@ import { useBasktClient } from '@baskt/ui';
 import { toast } from 'sonner';
 import { trpc } from '../../../utils/trpc';
 import { AssetSelectionModalProps } from '../../../types/baskt';
+import { BASIS_POINT } from '../../../constants/pool';
 
 export function AssetSelectionModal({
   open,
@@ -99,14 +100,16 @@ export function AssetSelectionModal({
 
                   <div className="flex flex-col items-end">
                     <span>
-                      {asset.price < 0.0001 ? asset.price.toFixed(8) : asset.price.toFixed(4)}
+                      {asset.price < 0.0001
+                        ? (asset.price / BASIS_POINT).toFixed(8)
+                        : (asset.price / BASIS_POINT).toFixed(4)}
                     </span>
                     <span
                       className={
                         asset.change24h >= 0 ? 'text-success text-xs' : 'text-destructive text-xs'
                       }
                     >
-                      {(asset.change24h / 1e9).toFixed(2)}%
+                      {(asset.change24h / BASIS_POINT).toFixed(2)}%
                     </span>
                   </div>
                 </div>

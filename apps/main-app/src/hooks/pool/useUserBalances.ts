@@ -3,6 +3,7 @@ import { PublicKey } from '@solana/web3.js';
 import { useBasktClient, USDC_MINT } from '@baskt/ui';
 import { useToast } from '../common/use-toast';
 import { UseUserBalancesProps } from '../../types/pool';
+import { BASIS_POINT } from '../../constants/pool';
 
 export const useUserBalances = ({ poolData }: UseUserBalancesProps) => {
   const { client, wallet } = useBasktClient();
@@ -30,8 +31,8 @@ export const useUserBalances = ({ poolData }: UseUserBalancesProps) => {
       );
       const lpBalanceBN = await client.connection.getTokenAccountBalance(userLpAccount.address);
 
-      setUsdcBalance((Number(usdcBalanceBN.value.amount) / 1e6).toFixed(2));
-      setLpBalance((Number(lpBalanceBN.value.amount) / 1e6).toFixed(2));
+      setUsdcBalance((Number(usdcBalanceBN.value.amount) / BASIS_POINT).toFixed(2));
+      setLpBalance((Number(lpBalanceBN.value.amount) / BASIS_POINT).toFixed(2));
     } catch (error) {
       if (error instanceof Error) {
         if (error.message.includes('TokenAccountNotFoundError')) {
