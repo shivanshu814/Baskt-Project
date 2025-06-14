@@ -740,6 +740,7 @@ export type BasktV1 = {
         {
           "name": "positionOwner",
           "docs": [
+            "TODO: sidduHERE why is this unchecked?",
             "TODO: sidduHERE why is this unchecked?"
           ]
         },

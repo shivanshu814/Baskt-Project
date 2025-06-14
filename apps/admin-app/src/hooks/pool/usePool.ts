@@ -84,6 +84,7 @@ export function usePool({
     withdrawalFeeBps: initialFormValues?.withdrawalFeeBps || '30',
     minDeposit: initialFormValues?.minDeposit || '1000000',
   });
+
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   // Pagination state
@@ -188,6 +189,7 @@ export function usePool({
 
         onInitializationSuccess?.();
       } catch (error: unknown) {
+        console.error(error);
         toast({
           title: 'Error',
           description:

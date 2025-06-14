@@ -32,4 +32,12 @@ export const ASSET_TABLE_CONFIG = [
     id: ASSET_TABLE_IDS.STATUS,
     label: 'Status',
   },
+  {
+    id: ASSET_TABLE_IDS.LATEST_PRICE,
+    label: 'Latest Price',
+  },
+  {
+    id: ASSET_TABLE_IDS.LATEST_PRICE_TIME,
+    label: 'Latest Price Time',
+  },
 ] as const;

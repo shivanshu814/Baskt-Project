@@ -7,6 +7,7 @@ import { Toaster } from '../components/ui/toaster';
 import { PrivyProvider, BasktClientProvider } from '@baskt/ui';
 import { ReactNode } from 'react';
 import { TRPCProvider } from '../providers/TRPCProvider';
+import { TooltipProvider } from '../components/ui/tooltip';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -25,10 +26,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className={`${inter.className} bg-background`}>
         <PrivyProvider>
           <BasktClientProvider>
-            <TRPCProvider>
-              {children}
-              <Toaster />
-            </TRPCProvider>
+            <TooltipProvider>
+              <TRPCProvider>
+                {children}
+                <Toaster />
+              </TRPCProvider>
+            </TooltipProvider>
           </BasktClientProvider>
         </PrivyProvider>
       </body>

@@ -41,9 +41,8 @@ export const PoolInitializationForm: React.FC<PoolInitializationFormProps> = ({
                 value={formData.depositFeeBps}
                 onChange={onInputChange('depositFeeBps')}
                 placeholder="e.g., 10 for 0.1%"
-                className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${
-                  formErrors.depositFeeBps ? 'border-red-500' : ''
-                }`}
+                className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${formErrors.depositFeeBps ? 'border-red-500' : ''
+                  }`}
               />
               <div className="flex justify-between text-sm">
                 <span className="text-white/60">
@@ -65,9 +64,8 @@ export const PoolInitializationForm: React.FC<PoolInitializationFormProps> = ({
                 value={formData.withdrawalFeeBps}
                 onChange={onInputChange('withdrawalFeeBps')}
                 placeholder="e.g., 30 for 0.3%"
-                className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${
-                  formErrors.withdrawalFeeBps ? 'border-red-500' : ''
-                }`}
+                className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${formErrors.withdrawalFeeBps ? 'border-red-500' : ''
+                  }`}
               />
               <div className="flex justify-between text-sm">
                 <span className="text-white/60">
@@ -89,9 +87,8 @@ export const PoolInitializationForm: React.FC<PoolInitializationFormProps> = ({
                 value={formData.minDeposit}
                 onChange={onInputChange('minDeposit')}
                 placeholder="e.g., 1000000 for 1 USDC"
-                className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${
-                  formErrors.minDeposit ? 'border-red-500' : ''
-                }`}
+                className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${formErrors.minDeposit ? 'border-red-500' : ''
+                  }`}
               />
               <div className="flex justify-between text-sm">
                 <span className="text-white/60">

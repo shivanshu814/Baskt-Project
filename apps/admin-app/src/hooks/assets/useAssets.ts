@@ -15,6 +15,7 @@ export function useAssets() {
     logo: asset.logo,
     price: asset.price,
     account: asset.account,
+    latestPrice: asset.latestPrice,
   }));
 
   const handleViewPrices = (asset: Asset) => {

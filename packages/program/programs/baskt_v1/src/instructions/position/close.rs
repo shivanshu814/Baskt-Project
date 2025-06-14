@@ -79,6 +79,7 @@ pub struct ClosePosition<'info> {
 
     /// CHECK: Position owner, for token transfers
     /// TODO: sidduHERE why is this unchecked?
+    /// TODO: sidduHERE why is this unchecked?
     pub position_owner: UncheckedAccount<'info>,
 
     #[account(
@@ -187,7 +188,6 @@ pub fn close_position<'info>(
         .ok_or(PerpetualsError::MathOverflow)? as u64;
 
     // Parse remaining accounts
-    // TODO: sidduHERE why are these remaining accounts and not simple context accounts
     let remaining_accounts = ClosePositionRemainingAccounts::parse(ctx.remaining_accounts)?;
 
     // Signer seeds

@@ -43,6 +43,16 @@ export function AssetTableCell({ asset, id }: AssetTableCellProps) {
     case ASSET_TABLE_IDS.STATUS:
       return <TableCell>{asset.account.isActive ? 'Active' : 'Inactive'}</TableCell>;
 
+    case ASSET_TABLE_IDS.LATEST_PRICE:
+      return <TableCell>{asset.latestPrice.price}</TableCell>;
+
+    case ASSET_TABLE_IDS.LATEST_PRICE_TIME:
+      return (
+        <TableCell>
+          {new Date(asset.latestPrice.time * 1000).toLocaleString('en-US', DATE_FORMAT_OPTIONS)}
+        </TableCell>
+      );
+
     default:
       return <TableCell />;
   }

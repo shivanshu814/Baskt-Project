@@ -4,6 +4,7 @@ import { AssetMetadataModel } from '../utils/models';
 import { OnchainAsset } from '@baskt/types';
 import { router, publicProcedure } from '../trpc/trpc';
 import { z } from 'zod';
+import { getLatestAssetPriceInternal } from './assetPrice';
 
 const sdkClientInstance = sdkClient();
 const assetIdCache: Map<string, string> = new Map();
@@ -57,6 +58,9 @@ async function getAllAssetsInternal(config: boolean) {
   try {
     const assetConfigs = await AssetMetadataModel.find().sort({ createdAt: -1 });
     const assets = await sdkClientInstance.getAllAssets();
+    const latestPrices = await Promise.all(
+      assetConfigs.map((assetConfig) => getLatestAssetPriceInternal(assetConfig._id.toString())),
+    );
 
     assetConfigs.forEach((assetConfig) => {
       assetIdCache.set(assetConfig.assetAddress, assetConfig._id.toString());
@@ -75,6 +79,7 @@ async function getAllAssetsInternal(config: boolean) {
       return combineAsset(
         assets.find((asset) => asset.ticker.toString() === assetConfig.ticker.toString())!,
         assetConfig,
+        latestPrices.find((price) => price?.id === assetConfig._id.toString())!,
         config,
       );
     });
@@ -114,6 +119,7 @@ export async function getAssetIdFromAddress(assetAddress: string) {
 export function combineAsset(
   onchainAsset: OnchainAsset,
   config: any,
+  latestPrice: any,
   shouldPassConfig: boolean = false,
 ) {
   if (!onchainAsset) {
@@ -150,5 +156,6 @@ export function combineAsset(
     account: onchainAsset,
     weight: 0,
     config: shouldPassConfig ? config.priceConfig : undefined,
+    latestPrice: latestPrice,
   };
 }
