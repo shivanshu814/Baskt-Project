@@ -1,106 +1,60 @@
-// import * as anchor from '@coral-xyz/anchor';
-// import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
-// import { AnchorProvider } from '@coral-xyz/anchor';
-// import { TestClient } from '../../tests/utils/test-client';
-// import { BN } from 'bn.js';
-// import dotenv from 'dotenv';
-// import readline from 'readline';
+import { BN } from 'bn.js';
+import { client } from '../client';
 
-// dotenv.config();
+const openPosition = async (args: string[]) => {
+  try {
+    if (args.length < 2) {
+      throw new Error('Usage: open-position <orderId> <entryPrice>');
+    }
 
-// const rl = readline.createInterface({
-//   input: process.stdin,
-//   output: process.stdout,
-// });
+    const orderId = new BN(args[0]);
+    const entryPrice = new BN(args[1]);
 
-// async function askQuestion(query: string): Promise<string> {
-//   return new Promise((resolve) => {
-//     rl.question(query, (answer) => {
-//       resolve(answer);
-//     });
-//   });
-// }
+    // Fetch the order by ID
+    const orders = await client.getAllOrders();
+    const order = orders.find((o) => o.orderId.eq(orderId));
+    if (!order) {
+      throw new Error('Order not found');
+    }
 
-// async function main() {
-//   const connection = new Connection(
-//     process.env.ANCHOR_PROVIDER_URL || 'http://localhost:8899',
-//     'confirmed',
-//   );
+    const orderPDA = order.address;
+    const basktId = order.basktId;
 
-//   const walletKeypair = Keypair.fromSecretKey(
-//     Buffer.from(
-//       JSON.parse(require('fs').readFileSync('/Users/shivanshu814/.config/solana/id.json', 'utf-8')),
-//     ),
-//   );
-//   const wallet = new anchor.Wallet(walletKeypair);
+    // Initialize funding index if it doesn't exist
+    const fundingIndex = await client.getFundingIndex(basktId);
+    if (!fundingIndex) {
+      await client.initializeFundingIndex(basktId);
+    }
 
-//   const provider = new AnchorProvider(connection, wallet, {
-//     commitment: 'confirmed',
-//   });
+    // Update oracle price
+    await client.updateOraclePrice(basktId, entryPrice);
 
-//   anchor.setProvider(provider);
+    // Generate position ID
+    const positionId = new BN(Date.now());
 
-//   const program = anchor.workspace.BasktV1;
+    // Open the position
+    const protocolAccount = await client.getProtocolAccount();
+    if (!protocolAccount) {
+      throw new Error('Protocol account not found');
+    }
 
-//   const client = new TestClient(program);
-//   client.setPublicKey(wallet.publicKey);
+    // The following fields are not used in openPosition: ownerTokenAccount, treasuryTokenAccount, size, collateral, isLong, treasury
+    // Only the required fields are passed as per BaseClient.openPosition
+    const openTx = await client.openPosition({
+      order: orderPDA,
+      positionId,
+      entryPrice,
+      baskt: basktId,
+      orderOwner: order.owner,
+    });
 
-//   try {
-//     const signature = await connection.requestAirdrop(wallet.publicKey, LAMPORTS_PER_SOL * 50);
-//     await connection.confirmTransaction(signature, 'confirmed');
+    console.log('Position opened with transaction:', openTx);
+  } catch (err) {
+    console.error('Failed to open position:', err);
+  }
+};
 
-//     const orders = await client.getAllOrders();
-//     console.log('Available orders:');
-//     orders.forEach((order, index) => {
-//       console.log(
-//         `${index + 1}. Order ID: ${order.orderId.toString()}, Basket: ${order.basktId.toString()}`,
-//       );
-//     });
+openPosition.description = 'Opens a position for an order. Usage: open-position <orderId> <entryPrice> <size> <collateral> <isLong>';
+openPosition.aliases = ['op'];
 
-//     const orderIndexInput = await askQuestion(
-//       'Enter the number of the order you want to open a position for: ',
-//     );
-//     const orderIndex = parseInt(orderIndexInput) - 1;
-
-//     if (isNaN(orderIndex) || orderIndex < 0 || orderIndex >= orders.length) {
-//       throw new Error('Invalid order selection.');
-//     }
-
-//     const selectedOrder = orders[orderIndex];
-//     const orderPDA = selectedOrder.address;
-//     const basktId = selectedOrder.basktId;
-
-//     const fundingIndex = await client.getFundingIndex(basktId);
-//     if (!fundingIndex) {
-//       await client.initializeFundingIndex(basktId);
-//     }
-
-//     const oraclePrice = new BN(1000000);
-//     await client.updateOraclePrice(basktId, oraclePrice);
-
-//     const positionId = new BN(Date.now() + 1);
-//     const entryPrice = new BN(1000000);
-
-//     const positionTx = await client.openPosition({
-//       order: orderPDA,
-//       positionId: positionId,
-//       entryPrice: entryPrice,
-//       baskt: basktId,
-//     });
-
-//     console.log('Position opened with transaction:', positionTx);
-//     console.log('Position opening completed successfully!');
-//   } catch (error) {
-//     console.error('Error:', error);
-//   } finally {
-//     rl.close();
-//   }
-// }
-
-// main().then(
-//   () => process.exit(0),
-//   (err) => {
-//     console.error(err);
-//     process.exit(1);
-//   },
-// );
+export default openPosition;

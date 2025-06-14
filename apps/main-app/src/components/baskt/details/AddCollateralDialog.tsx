@@ -25,7 +25,7 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
   const [collateralAmount, setCollateralAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { balance: usdcBalance, loading: balanceLoading } = useUSDCBalance();
+  const { balance: usdcBalance } = useUSDCBalance();
 
   // Reset form when dialog opens with new position
   useEffect(() => {

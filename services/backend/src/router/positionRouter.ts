@@ -5,10 +5,48 @@ import { z } from 'zod';
 import { sdkClient } from '../utils';
 import { PublicKey } from '@solana/web3.js';
 import { OnchainPosition } from '@baskt/types';
+import { PositionModel } from '../utils/models';
+import { PositionStatus } from '@baskt/types';
 
 const sdkClientInstance = sdkClient();
 
 export const positionRouter = router({
+  // Create a new position
+  createPosition: publicProcedure
+    .input(
+      z.object({
+        address: z.string(),
+        order: z.string(),
+        owner: z.string(),
+        size: z.string(),
+        basktId: z.string(),
+        collateral: z.string(),
+        isLong: z.boolean(),
+        entryPrice: z.string(),
+        entryPriceExponent: z.number(),
+        status: z.enum(['OPEN', 'CLOSED', 'LIQUIDATED']),
+        timestampOpen: z.string(),
+        bump: z.number(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const position = new PositionModel(input);
+        await position.save();
+        return {
+          success: true,
+          data: position,
+        };
+      } catch (error) {
+        console.error('Error creating position:', error);
+        return {
+          success: false,
+          message: 'Failed to create position',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    }),
+
   // 1. Get All positions
   getAllPositions: publicProcedure.query(async () => {
     try {
@@ -102,6 +140,43 @@ export const positionRouter = router({
         return {
           success: false,
           message: 'Failed to fetch positions for the specified baskt and user',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    }),
+
+  // Close a position
+  closePosition: publicProcedure
+    .input(
+      z.object({
+        positionId: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const { positionId } = input;
+        const position = await PositionModel.findOne({ address: positionId });
+
+        if (!position) {
+          return {
+            success: false,
+            message: 'Position not found',
+          };
+        }
+
+        position.status = PositionStatus.CLOSED;
+        position.timestampClose = new Date().toISOString();
+        await position.save();
+
+        return {
+          success: true,
+          data: position,
+        };
+      } catch (error) {
+        console.error('Error closing position:', error);
+        return {
+          success: false,
+          message: 'Failed to close position',
           error: error instanceof Error ? error.message : 'Unknown error',
         };
       }

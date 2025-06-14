@@ -583,9 +583,24 @@ importers:
 
   services/event-engine:
     dependencies:
+      '@baskt/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@baskt/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@coral-xyz/anchor':
+        specifier: 0.31.0
+        version: 0.31.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
       '@solana/web3.js':
         specifier: 1.98.0
         version: 1.98.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
+      '@trpc/client':
+        specifier: ^10.45.1
+        version: 10.45.2(@trpc/server@10.45.2)
+      bn.js:
+        specifier: ^5.2.1
+        version: 5.2.1
       bullmq:
         specifier: ^5.49.1
         version: 5.49.1
@@ -595,7 +610,16 @@ importers:
       ioredis:
         specifier: ^5.6.1
         version: 5.6.1
+      mongoose:
+        specifier: ^8.13.2
+        version: 8.13.2(@aws-sdk/credential-providers@3.798.0)(socks@2.8.4)
     devDependencies:
+      '@types/bn.js':
+        specifier: ^5.2.0
+        version: 5.2.0
+      tsx:
+        specifier: ^4.19.4
+        version: 4.19.4
       typescript:
         specifier: ^5.3.3
         version: 5.8.3
@@ -3356,6 +3380,9 @@ packages:
 
   '@types/bn.js@5.1.6':
     resolution: {integrity: sha512-Xh8vSwUeMKeYYrj3cX4lGQgFSF/N03r+tv4AiLl1SucqV+uTQpxRcnM8AkXKHwYP9ZPXOYXRr2KPXpVlIvqh9w==}
+
+  '@types/bn.js@5.2.0':
+    resolution: {integrity: sha512-DLbJ1BPqxvQhIGbeu8VbUC1DiAiahHtAYvA0ZEAa4P31F7IaArc8z3C3BRQdWX4mtLQuABG4yzp76ZrS02Ui1Q==}
 
   '@types/body-parser@1.19.5':
     resolution: {integrity: sha512-fB3Zu92ucau0iQ0JMCFQE7b/dv8Ot07NI3KaZIkIUNXq82k4eBAqUaneXfleGY9JWskeS9y+u0nXMyspcuQrCg==}
@@ -11032,6 +11059,10 @@ snapshots:
     optional: true
 
   '@types/bn.js@5.1.6':
+    dependencies:
+      '@types/node': 22.13.14
+
+  '@types/bn.js@5.2.0':
     dependencies:
       '@types/node': 22.13.14
 

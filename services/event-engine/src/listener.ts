@@ -1,35 +1,27 @@
-import { eventsQueue, connection as redis } from './utilts/queue';
-import { EVENT_MAPPINGS, PROGRAM_ID, solanaConnection } from './utilts/const';
+import { EVENT_MAPPINGS_HANDLER, PROGRAM_ID, solanaConnection } from './utils/const';
+import { basktClient } from './utils/config';
 
-
-console.log('event engine initialized and listening for logs...');
-
-solanaConnection.onLogs(
+console.log(
+  'event engine initialized and listening for logs...',
   PROGRAM_ID,
-  async (logs, logCtx) => {
-    for (const logLine of logs.logs) {
-      for (const [eventName, jobName] of Object.entries(EVENT_MAPPINGS)) {
-        if (logLine.includes(`Program log: Event: ${eventName}`)) {
-          const jsonMatch = logLine.match(/{.*}/);
-          if (!jsonMatch) {
-            console.warn(`unable to parse JSON payload from ${eventName}:`, logLine);
-            continue;
-          }
-
-          try {
-            const eventData = JSON.parse(jsonMatch[0]);
-            await eventsQueue.add(jobName, {
-              tx: (logCtx as any).signature,
-              ...eventData,
-              received_at: Date.now(),
-            });
-          } catch (err) {
-            console.error(`failed to parse JSON from ${eventName}:`, err);
-          }
-        }
-      }
-    }
-  },
-  'confirmed',
+  solanaConnection.rpcEndpoint,
 );
 
+const eventHandler = (handler: any) => (event: any, slot: number, signature: string) => {
+  try {
+    console.log('Adding event to queue', event, slot, signature);
+    // eventsQueue.add(event, {
+    //   event,
+    //   slot,
+    //   signature,
+    // });
+    handler(event, slot, signature);
+  } catch (error) {
+    console.error('Error adding event to queue', event, error);
+  }
+};
+
+for (const [eventName, handler] of Object.entries(EVENT_MAPPINGS_HANDLER)) {
+  console.log('Listening for event', eventName);
+  basktClient.program.addEventListener(eventName as any, eventHandler(handler), 'confirmed');
+}

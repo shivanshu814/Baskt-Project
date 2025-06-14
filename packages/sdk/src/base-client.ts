@@ -1,5 +1,6 @@
 import * as anchor from '@coral-xyz/anchor';
 import {
+  Commitment,
   Connection,
   PublicKey,
   Transaction,
@@ -385,9 +386,14 @@ export abstract class BaseClient {
     return await this.program.account.basktV1.all();
   }
 
-  public async getOrder(orderPublicKey: PublicKey) {
-    const order = await this.program.account.order.fetch(orderPublicKey);
+  public async getOrder(orderPublicKey: PublicKey, commitment?: Commitment) {
+    const order = await this.program.account.order.fetch(orderPublicKey, commitment);
     return this.convertOrder(order, orderPublicKey);
+  }
+
+  public async getOrderById(orderId: BN, owner: PublicKey, commitment?: Commitment) {
+    const orderPublicKey = await this.getOrderPDA(orderId, owner);
+    return this.getOrder(orderPublicKey, commitment);
   }
 
   public async getPosition(positionPublicKey: PublicKey) {
@@ -601,8 +607,8 @@ export abstract class BaseClient {
    * @param basktPubkey The public key of the baskt account
    * @returns The baskt account data
    */
-  public async getBaskt(basktPubkey: PublicKey) {
-    return await this.program.account.basktV1.fetch(basktPubkey);
+  public async getBaskt(basktPubkey: PublicKey, commitment?: Commitment) {
+    return await this.program.account.basktV1.fetch(basktPubkey, commitment);
   }
 
   /**
@@ -1097,6 +1103,8 @@ export abstract class BaseClient {
       params.positionId,
     );
 
+    const orderEscrowPDA = await this.getOrderEscrowPDA(params.orderOwner || this.getPublicKey());
+
     return await this.program.methods
       .openPosition({ positionId: params.positionId, entryPrice: params.entryPrice })
       .accountsPartial({
@@ -1104,6 +1112,7 @@ export abstract class BaseClient {
         baskt: params.baskt,
         escrowMint: USDC_MINT,
         order: params.order,
+        orderEscrow: orderEscrowPDA,
         fundingIndex: fundinIndexPDA,
         position: position,
       })
@@ -1229,5 +1238,30 @@ export abstract class BaseClient {
       })
       .remainingAccounts(remainingAccounts)
       .rpc();
+  }
+
+  public async readWithRetry(fn: any, retries: number = 5, delay: number = 500) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const data = await fn();
+        if (data) {
+          return data;
+        } else {
+          throw new Error('Data not found');
+        }
+      } catch (error) {
+        console.error(`Attempt ${i + 1} failed:`, error);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+    throw new Error('Failed to read after multiple attempts');
+  }
+
+  public newIdForPosition() {
+    return new BN(Date.now());
+  }
+
+  public newIdForOrder() {
+    return new BN(Date.now());
   }
 }

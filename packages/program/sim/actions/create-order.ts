@@ -1,138 +1,100 @@
-// import * as anchor from '@coral-xyz/anchor';
-// import { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
-// import { AnchorProvider } from '@coral-xyz/anchor';
-// import { TestClient } from '../../tests/utils/test-client';
-// import { BN } from 'bn.js';
-// import dotenv from 'dotenv';
-// import readline from 'readline';
-// import {
-//   getAssociatedTokenAddressSync,
-//   createAssociatedTokenAccountInstruction,
-// } from '@solana/spl-token';
+import { BN } from 'bn.js';
+import { PublicKey } from '@solana/web3.js';
+import { client } from '../client';
+import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 
-// dotenv.config();
+const createOrderOpen = async (args: string[]) => {
+  const basktId = new PublicKey(args[1]);
+  const size = new BN(parseInt(args[2]));
+  const isLong = args[3] === 'true';
+  const collateral = size.muln(110).divn(100);
 
-// const RPC_URL = process.env.ANCHOR_PROVIDER_URL || 'http://localhost:8899';
+  const protocolAccount = await client.getProtocolAccount();
 
-// const rl = readline.createInterface({
-//   input: process.stdin,
-//   output: process.stdout,
-// });
+  if (!protocolAccount) {
+    throw new Error('Protocol not found. Please run init:protocol first.');
+  }
 
-// async function askQuestion(query: string): Promise<string> {
-//   return new Promise((resolve) => {
-//     rl.question(query, (answer) => {
-//       resolve(answer);
-//     });
-//   });
-// }
+  const ownerTokenAccount = getAssociatedTokenAddressSync(
+    protocolAccount.escrowMint,
+    client.getPublicKey(),
+  );
 
-// async function main() {
-//   const connection = new Connection(RPC_URL, 'confirmed');
+  const orderId = client.newIdForOrder();
+  const action = { open: {} };
+  const targetPosition = null;
 
-//   const walletKeypair = Keypair.fromSecretKey(
-//     Buffer.from(JSON.parse(require('fs').readFileSync(process.env.ANCHOR_WALLET || '', 'utf-8'))),
-//   );
-//   const wallet = new anchor.Wallet(walletKeypair);
+  const orderTx = await client.createOrderTx(
+    orderId,
+    size,
+    collateral,
+    isLong,
+    action,
+    targetPosition,
+    basktId,
+    ownerTokenAccount,
+    protocolAccount.escrowMint,
+  );
 
-//   const provider = new AnchorProvider(connection, wallet, {
-//     commitment: 'confirmed',
-//   });
+  console.log('Order creation completed successfully! ', orderTx);
+};
 
-//   anchor.setProvider(provider);
+const createOrderClose = async (args: string[]) => {
+  const positionId = new PublicKey(args[1]);
+  const protocolAccount = await client.getProtocolAccount();
 
-//   const program = anchor.workspace.BasktV1;
+  if (!protocolAccount) {
+    throw new Error('Protocol not found. Please run init:protocol first.');
+  }
 
-//   const client = new TestClient(program);
-//   client.setPublicKey(wallet.publicKey);
+  const positionAccount = await client.getPosition(positionId);
 
-//   try {
-//     console.log('Requesting airdrop for wallet:', wallet.publicKey.toString());
-//     const signature = await connection.requestAirdrop(wallet.publicKey, LAMPORTS_PER_SOL * 50);
-//     await connection.confirmTransaction(signature, 'confirmed');
-//     console.log('Airdrop successful');
+  if (!positionAccount) {
+    throw new Error('Position not found');
+  }
 
-//     const protocolAccount = await client.getProtocolAccount();
-//     if (!protocolAccount) {
-//       throw new Error('Protocol not found. Please run init:protocol first.');
-//     }
-//     console.log('Got protocol account');
+  const ownerTokenAccount = getAssociatedTokenAddressSync(
+    protocolAccount.escrowMint,
+    client.getPublicKey(),
+  );
 
-//     const baskets = await client.getAllBaskts();
-//     console.log('Available baskets:');
-//     baskets.forEach((basket, index) => {
-//       console.log(`${index + 1}. ${basket.publicKey.toString()}`);
-//     });
+  const orderId = client.newIdForOrder();
+  const isLong = true;
+  const action = { close: {} };
 
-//     const basketIndexInput = await askQuestion(
-//       'Enter the number of the basket you want to create an order for: ',
-//     );
-//     const basketIndex = parseInt(basketIndexInput) - 1;
+  const orderTx = await client.createOrderTx(
+    orderId,
+    new BN(1),
+    new BN(1),
+    isLong,
+    action,
+    positionId,
+    positionAccount.basktId,
+    ownerTokenAccount,
+    protocolAccount.escrowMint,
+  );
 
-//     if (isNaN(basketIndex) || basketIndex < 0 || basketIndex >= baskets.length) {
-//       throw new Error('Invalid basket selection.');
-//     }
+  console.log('Order creation completed successfully! ', orderTx);
+};
 
-//     const selectedBasket = baskets[basketIndex];
-//     const basktId = selectedBasket.publicKey;
+const createOrder = async (args: string[]) => {
+  try {
+    if (args.length < 2) {
+      throw new Error('Usage: create-order <open|close> <basktId|positionId> <size>');
+    }
+    const action = args[0];
+    if (action === 'open') {
+      await createOrderOpen(args);
+    } else if (action === 'close') {
+      await createOrderClose(args);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    throw error;
+  }
+};
 
-//     const ownerTokenAccount = getAssociatedTokenAddressSync(
-//       protocolAccount.escrowMint,
-//       wallet.publicKey,
-//     );
+createOrder.description = 'Creates a new order for a basket. Usage: create-order <basktId> <size>';
+createOrder.aliases = ['co'];
 
-//     try {
-//       const createAtaIx = createAssociatedTokenAccountInstruction(
-//         wallet.publicKey,
-//         ownerTokenAccount,
-//         wallet.publicKey,
-//         protocolAccount.escrowMint,
-//       );
-
-//       const tx = new anchor.web3.Transaction().add(createAtaIx);
-//       await provider.sendAndConfirm(tx);
-//     } catch (error) {
-//       console.log('Token account might already exist, continuing...');
-//     }
-
-//     console.log('Creating order for baskt:', basktId.toString());
-//     const orderId = new BN(Date.now());
-//     const size = new BN(1000000);
-//     const collateral = new BN(10000000);
-//     const isLong = true;
-//     const action = { open: {} };
-//     const targetPosition = null;
-
-//     await client.mintUSDC(ownerTokenAccount, collateral.muln(2).toNumber());
-
-//     const orderTx = await client.createOrderTx(
-//       orderId,
-//       size,
-//       collateral,
-//       isLong,
-//       action,
-//       targetPosition,
-//       basktId,
-//       ownerTokenAccount,
-//       protocolAccount.escrowMint,
-//     );
-
-//     console.log('Order created with transaction:', orderTx);
-
-//     // Initialize funding index for the basket
-//     await client.initializeFundingIndex(basktId);
-//     console.log('Order creation completed successfully!');
-//   } catch (error) {
-//     console.error('Error:', error);
-//   } finally {
-//     rl.close();
-//   }
-// }
-
-// main().then(
-//   () => process.exit(0),
-//   (err) => {
-//     console.error(err);
-//     process.exit(1);
-//   },
-// );
+export default createOrder;

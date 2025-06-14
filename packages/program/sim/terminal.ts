@@ -78,7 +78,7 @@ async function main() {
     }
     try {
       await actions[cmd].fn(args);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error:', err?.message || err);
     }
     rl.prompt();

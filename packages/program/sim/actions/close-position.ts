@@ -1,49 +1,68 @@
-import * as anchor from '@coral-xyz/anchor';
-import { PublicKey } from '@solana/web3.js';
+import { BN } from 'bn.js';
 import { client } from '../client';
 
-const closePosition = async (positionId: string) => {
+const closePosition = async (args: string[]) => {
   try {
-    const selectedPosition = await client.getPosition(new PublicKey(positionId));
-    const positionPDA = selectedPosition.address;
-    const basktId = selectedPosition.basktId;
-
-    const positionAccount = await client.program.account.position.fetch(positionPDA);
-    console.log(`Opening Price: ${positionAccount.entryPrice.toString()} lamports`);
-    console.log(`Position Size: ${positionAccount.size.toString()} units`);
-    console.log(`Is Long: ${positionAccount.isLong ? 'Yes' : 'No'}`);
-    console.log(`Collateral: ${positionAccount.collateral.toString()} lamports`);
-
-    const ownerTokenAccount = (await client.getUSDCAccount(client.getPublicKey())).address;
-    const protocolAccount = await client.getProtocolAccount();
-    if (!protocolAccount) {
-      throw new Error('Protocol account not found!');
+    if (args.length < 2) {
+      throw new Error('Usage: close-position <positionId> <exitPrice>');
     }
 
-    const orderId = new anchor.BN(Date.now());
-    const size = positionAccount.size;
-    const collateral = positionAccount.collateral;
-    const isLong = positionAccount.isLong;
-    const action = { close: {} };
-    const targetPosition = positionPDA;
+    const positionId = new BN(args[0]);
+    const exitPrice = new BN(args[1]);
 
+    const positions = await client.getAllPositions();
+    const position = positions.find((p) => p.positionId.eq(positionId));
+
+    if (!position) {
+      throw new Error('Position not found');
+    }
+
+    console.log('Closing position:', positionId.toString());
+    console.log('Baskt ID:', position.basktId.toString());
+    console.log('Size:', position.size.toString());
+    console.log('Collateral:', position.collateral.toString());
+    console.log('Entry Price:', position.entryPrice.toString());
+    console.log('Exit Price:', exitPrice.toString());
+
+    const protocolAccount = await client.getProtocolAccount();
+    if (!protocolAccount) {
+      throw new Error('Protocol account not found');
+    }
+
+    await client.updateOraclePrice(position.basktId, exitPrice);
+
+    const treasuryTokenAccount = (await client.getUSDCAccount(protocolAccount.treasury)).address;
+    const ownerTokenAccount = (await client.getUSDCAccount(position.owner)).address;
+
+    const orderId = new BN(Date.now());
     const orderTx = await client.createOrderTx(
       orderId,
-      size,
-      collateral,
-      isLong,
-      action,
-      targetPosition,
-      basktId,
+      position.size,
+      position.collateral,
+      position.isLong,
+      { close: {} },
+      position.address,
+      position.basktId,
       ownerTokenAccount,
       protocolAccount.escrowMint,
     );
+
     console.log('Close order created with transaction:', orderTx);
 
-    const orderPDA = await client.getOrderPDA(orderId, positionAccount.owner);
+    const orderPDA = await client.getOrderPDA(orderId, position.owner);
+    await client.updateOraclePrice(position.basktId, exitPrice);
 
-    console.log('Position closed with transaction:', orderPDA);
-    console.log('Position closing completed successfully!');
+    const closeTx = await client.closePosition({
+      orderPDA,
+      position: position.address,
+      exitPrice,
+      baskt: position.basktId,
+      ownerTokenAccount,
+      treasury: protocolAccount.treasury,
+      treasuryTokenAccount,
+    });
+
+    console.log('Position closed successfully! Transaction:', closeTx);
   } catch (error) {
     console.error('Error:', error);
     throw error;
@@ -51,7 +70,7 @@ const closePosition = async (positionId: string) => {
 };
 
 closePosition.description =
-  'Closes a position by index and exit price. Usage: close-position [positionIndex] [exitPrice]';
+  'Closes a position by ID and exit price. Usage: close-position <positionId> <exitPrice>';
 closePosition.aliases = ['clp'];
 
 export default closePosition;

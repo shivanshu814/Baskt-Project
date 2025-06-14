@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { sdkClient } from '../utils';
 import { PublicKey } from '@solana/web3.js';
 import { OnchainOrder } from '@baskt/types';
+import { OrderModel } from '../utils/models';
+import { BN } from 'bn.js';
 
 const sdkClientInstance = sdkClient();
 
@@ -100,6 +102,82 @@ export const orderRouter = router({
         return {
           success: false,
           message: 'Failed to fetch orders for the specified baskt and user',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    }),
+
+  createOrder: publicProcedure
+    .input(
+      z.object({
+        address: z.string(),
+        owner: z.string(),
+        orderId: z.string(),
+        basktId: z.string(),
+        userPublicKey: z.string(),
+        size: z.string(),
+        collateral: z.string(),
+        isLong: z.boolean(),
+        action: z.number(),
+        status: z.string(),
+        timestamp: z.string(),
+        targetPosition: z.string().nullable(),
+        bump: z.number(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const order = new OrderModel(input);
+        await order.save();
+        return {
+          success: true,
+          data: order,
+        };
+      } catch (error) {
+        console.error('Error creating order:', error);
+        return {
+          success: false,
+          message: 'Failed to create order',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      }
+    }),
+
+  closeOrder: publicProcedure
+    .input(
+      z.object({
+        orderPDA: z.string(),
+        position: z.string(),
+        exitPrice: z.string(),
+        baskt: z.string(),
+        ownerTokenAccount: z.string(),
+        treasury: z.string(),
+        treasuryTokenAccount: z.string(),
+        orderOwner: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const tx = await sdkClientInstance.closePosition({
+          orderPDA: new PublicKey(input.orderPDA),
+          position: new PublicKey(input.position),
+          exitPrice: new BN(input.exitPrice),
+          baskt: new PublicKey(input.baskt),
+          ownerTokenAccount: new PublicKey(input.ownerTokenAccount),
+          treasury: new PublicKey(input.treasury),
+          treasuryTokenAccount: new PublicKey(input.treasuryTokenAccount),
+          orderOwner: input.orderOwner ? new PublicKey(input.orderOwner) : undefined,
+        });
+
+        return {
+          success: true,
+          data: tx,
+        };
+      } catch (error) {
+        console.error('Error closing order:', error);
+        return {
+          success: false,
+          message: 'Failed to close order',
           error: error instanceof Error ? error.message : 'Unknown error',
         };
       }

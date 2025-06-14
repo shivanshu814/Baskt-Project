@@ -10,7 +10,8 @@
     "test": "anchor build && pnpm --filter @baskt/sdk build && anchor test",
     "test:file": "anchor build && pnpm --filter @baskt/sdk build && anchor test --run",
     "lint": "eslint tests --ext test.ts",
-    "deploy:local": "npx tsx scripts/deploy-local.ts"
+    "deploy:local": "npx tsx scripts/deploy-local.ts",
+    "terminal": "npx tsx sim/terminal.ts"
   },
   "dependencies": {
     "@baskt/sdk": "workspace:*",

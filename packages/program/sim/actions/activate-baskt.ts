@@ -5,11 +5,21 @@ import { PublicKey } from '@solana/web3.js';
 
 dotenv.config();
 
-const activateBaskt = async (basktId: string, prices: number[], maxPriceAgeSec: number = 60) => {
+const activateBaskt = async (args: string[]) => {
   try {
-    const pricesBN = prices.map((price) => new BN(price * 1e6));
-    console.log('Activating basket...');
-    const activateTx = await client.activateBaskt(new PublicKey(basktId), pricesBN, maxPriceAgeSec);
+    if (args.length < 3) {
+      throw new Error('Usage: activate-baskt <basktId> <price1> <price2> [maxPriceAgeSec]');
+    }
+
+    const basktId = args[0];
+    const prices = args.slice(1, args.length - 1).map((price) => new BN(price));
+    const maxPriceAgeSec = parseInt(args[args.length - 1]) || 60;
+
+    console.log(
+      'Activating basket with prices:',
+      prices.map((p) => p.toString()),
+    );
+    const activateTx = await client.activateBaskt(new PublicKey(basktId), prices, maxPriceAgeSec);
     console.log('Basket activated with transaction:', activateTx);
   } catch (error) {
     console.error('Error:', error);
@@ -18,7 +28,7 @@ const activateBaskt = async (basktId: string, prices: number[], maxPriceAgeSec: 
 };
 
 activateBaskt.description =
-  'Activates a basket by index usage, prices are multiplied by 1e6: activate-baskt <basktId> <prices> <maxPriceAgeSec>';
+  'Activates a basket by index usage, prices are multiplied by 1e6: activate-baskt <basktId> <price1> <price2> [maxPriceAgeSec]';
 activateBaskt.aliases = ['ab'];
 
 export default activateBaskt;
