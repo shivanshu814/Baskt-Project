@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '../../ui/button';
 import { Card, CardContent, CardHeader } from '../../ui/card';
-import { LineChart, ChevronDown, Image as LucideImage } from 'lucide-react';
+import { LineChart, ChevronDown } from 'lucide-react';
 import { TradingViewChart } from './TradingViewChart';
 import { BasktChartProps } from '../../../types/baskt';
 import { useBasktList } from '../../../hooks/baskt/useBasktList';
@@ -76,11 +76,6 @@ export const BasktChart = ({
                           onBasktChange(b.basktId?.toString());
                         }}
                       >
-                        {b.image ? (
-                          <img src={b.image} alt={b.name} className="h-6 w-6 rounded-full border" />
-                        ) : (
-                          <LucideImage className="h-6 w-6 text-muted-foreground" />
-                        )}
                         <span>{b.name}</span>
                       </button>
                     ))
