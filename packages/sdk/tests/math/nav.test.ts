@@ -174,7 +174,7 @@ describe('calculateNav', () => {
     runNavSimulation({
       assets: [{ baselinePrice: 10000, currentPrice: 10001, weight: 10000, direction: 1 }],
       initialNav: 1,
-      expectedNav: new BN('1000100000'),
+      expectedNav: new BN('1000100'),
     });
   });
 

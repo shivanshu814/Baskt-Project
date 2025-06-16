@@ -41,7 +41,7 @@ pub const SECONDS_IN_HOUR: i64 = 3600;
 pub const ESCROW_MINT: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
 // Baskt constants
-pub const BASE_NAV: u64 = 100; // Base NAV value for new baskts
+pub const BASE_NAV: u64 = 1; // Base NAV value for new baskts
 
 // PDA Seeds
 pub const PROTOCOL_SEED: &[u8] = b"protocol";

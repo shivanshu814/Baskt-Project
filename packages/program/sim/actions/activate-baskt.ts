@@ -7,12 +7,12 @@ dotenv.config();
 
 const activateBaskt = async (args: string[]) => {
   try {
-    if (args.length < 3) {
-      throw new Error('Usage: activate-baskt <basktId> <price1> <price2> [maxPriceAgeSec]');
+    if (args.length < 4) {
+      throw new Error('Usage: activate-baskt <basktId> <price1> <price2> <maxPriceAgeSec>');
     }
 
     const basktId = args[0];
-    const prices = args.slice(1, args.length - 1).map((price) => new BN(price));
+    const prices = args.slice(1, args.length - 1).map((price) => new BN(price).muln(1e6));
     const maxPriceAgeSec = parseInt(args[args.length - 1]) || 60;
 
     console.log(

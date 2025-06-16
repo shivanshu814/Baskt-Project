@@ -5,7 +5,7 @@ import { Loading } from '../../ui/loading';
 import { formatDate } from '../../../utils/date';
 import { formatTableValue, getTableRowKey } from '../../../utils/table';
 import { PriceHistoryTableProps } from '../../../types/assets';
-import { BASIS_POINT } from '../../../constants/pool';
+import { PRICE_PRECISION } from '@baskt/ui';
 
 export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({ data, isLoading, error }) => {
   return (
@@ -44,8 +44,8 @@ export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({ data, isLo
             data.map((row: any, i: number) => (
               <TableRow key={getTableRowKey(i)} className="border-white/10">
                 <TableCell className="text-[#E5E7EB]">{formatDate(row.time)}</TableCell>
-                <TableCell className="text-[#E5E7EB]">{formatTableValue(row.price / BASIS_POINT)}</TableCell>
-                <TableCell className="text-[#E5E7EB]">{formatTableValue(row.rawPrice / BASIS_POINT)}</TableCell>
+                <TableCell className="text-[#E5E7EB]">{formatTableValue(row.price / PRICE_PRECISION)}</TableCell>
+                <TableCell className="text-[#E5E7EB]">{formatTableValue(row.rawPrice / PRICE_PRECISION)}</TableCell>
               </TableRow>
             ))
           )}

@@ -7,7 +7,7 @@ import { BasktChartProps } from '../../../types/baskt';
 import { useBasktList } from '../../../hooks/baskt/useBasktList';
 import { Popover, PopoverTrigger, PopoverContent } from '../../ui/popover';
 import { SearchBar } from '../../shared/SearchBar';
-import { BASIS_POINT } from '../../../constants/pool';
+import { PRICE_PRECISION } from '@baskt/ui';
 
 export const BasktChart = ({
   baskt,
@@ -67,7 +67,7 @@ export const BasktChart = ({
                     </div>
                     <span className="font-semibold text-lg text-white -mt-2">
                       {currentBaskt?.price !== undefined
-                        ? `$${(currentBaskt.price / BASIS_POINT).toLocaleString()}`
+                        ? `$${(currentBaskt.price / PRICE_PRECISION).toLocaleString()}`
                         : '-'}
                     </span>
                   </div>
@@ -81,8 +81,8 @@ export const BasktChart = ({
                       <button
                         key={b.basktId?.toString()}
                         className={`flex items-center gap-3 w-full px-3 py-2 rounded hover:bg-muted/40 transition text-left ${b.basktId?.toString() === baskt.basktId?.toString()
-                            ? 'bg-muted/20 font-bold'
-                            : ''
+                          ? 'bg-muted/20 font-bold'
+                          : ''
                           }`}
                         onClick={() => {
                           setPopoverOpen(false);
@@ -158,8 +158,8 @@ export const BasktChart = ({
               variant="ghost"
               size="sm"
               className={`rounded-md px-3 py-1 text-xs ${chartType === 'line'
-                  ? 'bg-background text-primary'
-                  : 'text-muted-foreground hover:text-primary'
+                ? 'bg-background text-primary'
+                : 'text-muted-foreground hover:text-primary'
                 }`}
               onClick={() => setChartType('line')}
             >
@@ -174,8 +174,8 @@ export const BasktChart = ({
                 variant="ghost"
                 size="sm"
                 className={`rounded-md px-3 py-1 text-xs ${chartPeriod === period
-                    ? 'bg-background text-primary'
-                    : 'text-muted-foreground hover:text-primary'
+                  ? 'bg-background text-primary'
+                  : 'text-muted-foreground hover:text-primary'
                   }`}
                 onClick={() => setChartPeriod(period)}
               >

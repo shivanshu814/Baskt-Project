@@ -7,7 +7,7 @@ import { BN } from 'bn.js';
 import { formatTimestamp, formatNumber } from '../../utils/format';
 import { BasktData } from '../../types/baskt';
 import { FundingIndexTable } from './FundingIndexTable';
-import { BASIS_POINT } from '../../constants/pool';
+import { PRICE_PRECISION } from '@baskt/ui';
 
 interface BasktDetailPageProps {
   baskt: BasktData;
@@ -29,7 +29,7 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-white/60">Price:</span>
-          <span className="text-lg font-medium">{formatNumber((baskt.price || 0) / BASIS_POINT)}</span>
+          <span className="text-lg font-medium">{formatNumber((baskt.price || 0) / PRICE_PRECISION)}</span>
           <span className={(baskt.change24h || 0) >= 0 ? 'text-green-500' : 'text-red-500'}>
             {formatNumber(baskt.change24h || 0, { suffix: '%' })}
           </span>
@@ -85,7 +85,7 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Baseline NAV:</span>
-                <span>{formatNumber(new BN(account.baselineNav).toNumber() / BASIS_POINT)}</span>
+                <span>{formatNumber(new BN(account.baselineNav).toNumber() / PRICE_PRECISION)}</span>
               </div>
             </div>
           </CardContent>
@@ -100,7 +100,7 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
             <div className="grid grid-cols-1 gap-2">
               <div className="flex justify-between">
                 <span className="text-white/60">Price:</span>
-                <span>{account.oracle?.price ? formatNumber(new BN(account.oracle.price).toNumber() / BASIS_POINT) : 'N/A'}</span>
+                <span>{account.oracle?.price ? formatNumber(new BN(account.oracle.price).toNumber() / PRICE_PRECISION) : 'N/A'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Max Price Age (sec):</span>
@@ -146,7 +146,7 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
                           {asset.direction ? 'Long' : 'Short'}
                         </td>
                         <td className="py-2 text-right">
-                          {formatNumber(new BN(asset.baselinePrice).toNumber() / BASIS_POINT)}
+                          {formatNumber(new BN(asset.baselinePrice).toNumber() / PRICE_PRECISION)}
                         </td>
                       </tr>
                     ))}

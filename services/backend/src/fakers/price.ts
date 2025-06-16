@@ -8,17 +8,18 @@ export function generateDailyNavHistory(baselineconfig: OnchainAssetConfig[], ba
     .map((_, i) => ({
       // format as yyyy-mm-dd
       date: new Date(Date.now() - (365 - i) * 86400000).toISOString().split('T')[0],
-      price: calculateNav(
-        baselineconfig.map((asset) => ({
-          ...asset,
-          baselinePrice: new BN(1e9),
-        })),
-        baselineconfig.map((asset) => ({
-          ...asset,
-          baselinePrice: new BN(Math.random() * 2 * 1e9),
-        })),
-        baselineNav,
-      ),
+      // price: calculateNav(
+      //   baselineconfig.map((asset) => ({
+      //     ...asset,
+      //     baselinePrice: new BN(1e6),
+      //   })),
+      //   baselineconfig.map((asset) => ({
+      //     ...asset,
+      //     baselinePrice: new BN(Math.random() * 2 * 1e6),
+      //   })),
+      //   baselineNav,
+      // ),
+      price: new BN(Math.random() * 2 * 1e6),
     }));
 }
 

@@ -5,3 +5,5 @@ export { BaseClient } from './base-client';
 export * from './utils/';
 
 export * from './math/nav';
+
+export * from './constants';

@@ -18,6 +18,10 @@ export const assetRouter = router({
     return getAllAssetsInternal(true);
   }),
 
+  getAssetsByAddress: publicProcedure.input(z.array(z.string())).query(async ({ input }) => {
+    return getAssetsByAddressInternal(input);
+  }),
+
   createAsset: publicProcedure
     .input(
       z.object({
@@ -93,6 +97,16 @@ async function getAllAssetsInternal(config: boolean) {
   }
 }
 
+export async function getAssetsByAddressInternal(assetAddresses: string[]) {
+  try {
+    const assets = await AssetMetadataModel.find({ assetAddress: { $in: assetAddresses } }).exec();
+    return assets;
+  } catch (error) {
+    console.error('Error fetching assets:', error);
+    throw new Error('Failed to fetch assets');
+  }
+}
+
 export async function getAssetFromAddress(assetAddress: string) {
   try {
     const asset = await AssetMetadataModel.findOne({ assetAddress }).exec();
@@ -150,7 +164,7 @@ export function combineAsset(
     assetAddress: onchainAsset.address.toString(),
     logo: config.logo || '',
     name: config.name || onchainAsset.ticker,
-    price: price / 1e9,
+    price: price / 1e6,
     priceRaw: price,
     change24h,
     account: onchainAsset,

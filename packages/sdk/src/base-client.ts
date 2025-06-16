@@ -29,10 +29,11 @@ import {
   OrderAction,
   OrderStatus,
   PositionStatus,
+  OnchainRebalanceHistory,
 } from '@baskt/types';
 import { getAccount, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { toU64LeBytes } from './utils';
-import { USDC_MINT } from './utils/const';
+import { USDC_MINT } from './constants';
 
 /**
  * Abstract base client for Solana programs
@@ -176,9 +177,11 @@ export abstract class BaseClient {
    * Fetch the protocol account
    * @returns Protocol account data in a standardized format
    */
-  public async getProtocolAccount(): Promise<OnchainProtocolInterface> {
+  public async getProtocolAccount(
+    commitment: Commitment = 'confirmed',
+  ): Promise<OnchainProtocolInterface> {
     // Fetch the raw protocol account data
-    const rawProtocol = await this.program.account.protocol.fetch(this.protocolPDA);
+    const rawProtocol = await this.program.account.protocol.fetch(this.protocolPDA, commitment);
 
     // Convert the raw protocol account to our standardized ProtocolInterface
     return {
@@ -352,8 +355,8 @@ export abstract class BaseClient {
    * @param assetPublicKey Public key of the asset account
    * @returns Asset account data
    */
-  public async getAssetRaw(assetPublicKey: PublicKey) {
-    return await this.program.account.syntheticAsset.fetch(assetPublicKey);
+  public async getAssetRaw(assetPublicKey: PublicKey, commitment: Commitment = 'confirmed') {
+    return await this.program.account.syntheticAsset.fetch(assetPublicKey, commitment);
   }
 
   /**
@@ -386,18 +389,18 @@ export abstract class BaseClient {
     return await this.program.account.basktV1.all();
   }
 
-  public async getOrder(orderPublicKey: PublicKey, commitment?: Commitment) {
+  public async getOrder(orderPublicKey: PublicKey, commitment: Commitment = 'confirmed') {
     const order = await this.program.account.order.fetch(orderPublicKey, commitment);
     return this.convertOrder(order, orderPublicKey);
   }
 
-  public async getOrderById(orderId: BN, owner: PublicKey, commitment?: Commitment) {
+  public async getOrderById(orderId: BN, owner: PublicKey, commitment: Commitment = 'confirmed') {
     const orderPublicKey = await this.getOrderPDA(orderId, owner);
     return this.getOrder(orderPublicKey, commitment);
   }
 
-  public async getPosition(positionPublicKey: PublicKey) {
-    const position = await this.program.account.position.fetch(positionPublicKey);
+  public async getPosition(positionPublicKey: PublicKey, commitment: Commitment = 'confirmed') {
+    const position = await this.program.account.position.fetch(positionPublicKey, commitment);
     return this.convertPosition(position, positionPublicKey);
   }
 
@@ -607,7 +610,7 @@ export abstract class BaseClient {
    * @param basktPubkey The public key of the baskt account
    * @returns The baskt account data
    */
-  public async getBaskt(basktPubkey: PublicKey, commitment?: Commitment) {
+  public async getBaskt(basktPubkey: PublicKey, commitment: Commitment = 'confirmed') {
     return await this.program.account.basktV1.fetch(basktPubkey, commitment);
   }
 
@@ -712,13 +715,23 @@ export abstract class BaseClient {
     return txSignature;
   }
 
-  public async getRebalanceHistory(basktId: PublicKey, index: number): Promise<any> {
-    return await this.program.account.rebalanceHistory.fetch(
-      PublicKey.findProgramAddressSync(
-        [Buffer.from('rebalance_history'), basktId.toBuffer(), toU64LeBytes(index)],
-        this.program.programId,
-      )[0],
+  public async getRebalanceHistoryPDA(
+    basktId: PublicKey,
+    index: number,
+  ): Promise<[PublicKey, number]> {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from('rebalance_history'), basktId.toBuffer(), toU64LeBytes(index)],
+      this.program.programId,
     );
+  }
+
+  public async getRebalanceHistory(
+    basktId: PublicKey,
+    index: number,
+    commitment: Commitment = 'confirmed',
+  ): Promise<OnchainRebalanceHistory> {
+    const [pda] = await this.getRebalanceHistoryPDA(basktId, index);
+    return await this.program.account.rebalanceHistory.fetch(pda, commitment);
   }
   /**
    * Check if a baskt name already exists
@@ -909,9 +922,9 @@ export abstract class BaseClient {
    * Get a liquidity pool account by its public key
    * @returns The liquidity pool account data
    */
-  public async getLiquidityPool() {
+  public async getLiquidityPool(commitment: Commitment = 'confirmed') {
     const liquidityPool = await this.findLiquidityPoolPDA();
-    return await this.program.account.liquidityPool.fetch(liquidityPool);
+    return await this.program.account.liquidityPool.fetch(liquidityPool, commitment);
   }
 
   public async createOrderTx(
@@ -1039,10 +1052,10 @@ export abstract class BaseClient {
    * @param basktId The public key of the baskt
    * @returns The funding index account data
    */
-  public async getFundingIndex(basktId: PublicKey) {
+  public async getFundingIndex(basktId: PublicKey, commitment: Commitment = 'confirmed') {
     const [fundingIndexPda] = this.getFundingIndexPda(basktId);
     try {
-      return await this.program.account.fundingIndex.fetch(fundingIndexPda);
+      return await this.program.account.fundingIndex.fetch(fundingIndexPda, commitment);
     } catch (error) {
       // Return null if the account doesn't exist
       return null;
@@ -1054,10 +1067,13 @@ export abstract class BaseClient {
    * @param basktId The public key of the baskt
    * @returns Array of funding index accounts with their public keys
    */
-  public async getAllFundingIndexes(basktId: PublicKey) {
+  public async getAllFundingIndexes(basktId: PublicKey, commitment: Commitment = 'confirmed') {
     const [fundingIndexPda] = this.getFundingIndexPda(basktId);
     try {
-      const fundingIndex = await this.program.account.fundingIndex.fetch(fundingIndexPda);
+      const fundingIndex = await this.program.account.fundingIndex.fetch(
+        fundingIndexPda,
+        commitment,
+      );
       return [{ publicKey: fundingIndexPda, account: fundingIndex }];
     } catch (error) {
       return [];
@@ -1153,7 +1169,7 @@ export abstract class BaseClient {
     orderOwner?: PublicKey;
   }): Promise<string> {
     // Fetch the position to get the owner
-    const positionAccount = await this.program.account.position.fetch(params.position);
+    const positionAccount = await this.getPosition(params.position);
 
     // Prepare remaining accounts in the correct order
     const remainingAccounts = [
@@ -1196,15 +1212,14 @@ export abstract class BaseClient {
     treasuryTokenAccount: PublicKey;
   }): Promise<string> {
     // Fetch the position to get the owner
-    const positionAccount = await this.program.account.position.fetch(params.position);
+    const positionAccount = await this.getPosition(params.position);
     const [escrowToken] = PublicKey.findProgramAddressSync(
       [Buffer.from('escrow'), params.position.toBuffer()],
       this.program.programId,
     );
 
     // Find liquidity pool and get token vault
-    const liquidityPoolPDA = await this.findLiquidityPoolPDA();
-    const liquidityPool = await this.program.account.liquidityPool.fetch(liquidityPoolPDA);
+    const liquidityPool = await this.getLiquidityPool();
     const tokenVault = liquidityPool.tokenVault;
 
     // Prepare remaining accounts in the correct order

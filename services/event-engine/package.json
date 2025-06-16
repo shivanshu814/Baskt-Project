@@ -4,11 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev:listener": "tsx watch src/listener.ts",
-    "dev:worker": "tsx watch src/worker.ts",
+    "dev": "tsx watch src/listener.ts",
     "build": "tsc",
-    "start:listener": "node dist/listener.js",
-    "start:worker": "node dist/worker.js",
+    "start": "node dist/listener.js",
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
 import { BasktFormData } from '../hooks/baskt/create/useCreateBasktForm';
 import { AssetInfo, BasktInfo, BasktAssetInfo, OnchainPosition } from '@baskt/types';
-import { SortOption } from '@baskt/ui/types/constants';
+import { SortOption } from '@baskt/ui/';
 import BN from 'bn.js';
 
 export interface UserBasktPositionInfo {

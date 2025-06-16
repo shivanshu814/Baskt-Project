@@ -13,8 +13,8 @@ import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import BN from 'bn.js';
-import { BASIS_POINT } from '../../../constants/pool';
 import { AddCollateralDialogProps } from '../../../types/baskt';
+import { PRICE_PRECISION } from '@baskt/ui';
 
 const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
   position,
@@ -58,7 +58,7 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
       setIsSubmitting(true);
 
       // Convert to program units (adding 6 decimal places)
-      const collateralBN = new BN(amount * BASIS_POINT);
+      const collateralBN = new BN(amount * PRICE_PRECISION);
 
       await onAddCollateral(position, collateralBN);
 
@@ -73,7 +73,7 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
   };
 
   const currentCollateral = position?.collateral
-    ? `$${(new BN(position.collateral).toNumber() / BASIS_POINT).toFixed(2)}`
+    ? `$${(new BN(position.collateral).toNumber() / PRICE_PRECISION).toFixed(2)}`
     : '-';
 
   return (

@@ -86,14 +86,20 @@ export const basktRouter = router({
       }
 
       const combinedBaskts = await Promise.all(
-        onchainBaskts.map(async (basktConfig) => {
-          const basktMetadata = baskts.find(
-            (b) => b.basktId === basktConfig.account.basktId.toString(),
-          );
-          if (!basktMetadata) return null;
+        onchainBaskts
+          .map(async (basktConfig) => {
+            console.log(basktConfig.account.basktId.toString());
+            const basktMetadata = baskts.find(
+              (b) => b.basktId === basktConfig.account.basktId.toString(),
+            );
+            if (!basktMetadata) {
+              console.log('Baskt metadata not found', basktConfig.account.basktId.toString());
+              return;
+            }
 
-          return await convertToBasktInfo(basktConfig.account, basktMetadata);
-        }),
+            return await convertToBasktInfo(basktConfig.account, basktMetadata);
+          })
+          .filter((baskt) => !!baskt),
       );
 
       return { success: true, data: combinedBaskts };
@@ -116,7 +122,7 @@ export const basktRouter = router({
       return {
         success: true,
         data: {
-          nav: 1,
+          nav: basktInfo.price,
         },
       };
     } catch (error) {
@@ -176,7 +182,7 @@ export const basktRouter = router({
         })
         .map((item) => ({
           time: Math.floor(new Date(item.date).getTime() / 1000),
-          value: item.price.toNumber() / 1e9,
+          value: item.price.toNumber() / 1e6,
         }));
 
       return {
@@ -223,7 +229,7 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
         assetId: new PublicKey(asset.id),
         direction: asset.direction,
         weight: new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100),
-        baselinePrice: new BN(asset.price),
+        baselinePrice: new BN(asset.priceRaw),
       } as OnchainAssetConfig),
   );
   try {
@@ -241,7 +247,9 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     price = new BN(0);
   }
 
-  const account = onchainBaskt.account || onchainBaskt;
+  const account = (onchainBaskt.account || onchainBaskt) as OnchainBasktAccount;
+
+  console.log('Account', account.basktId);
 
   return {
     id: basktId,
@@ -253,7 +261,7 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     txSignature: basktMetadata?.txSignature,
     assets,
     totalAssets: assets.length,
-    price: price.toNumber() / NAV_PRECISION.toNumber(),
+    price: price.toNumber(),
     change24h: 0,
     aum: 0,
     sparkline: [],
@@ -262,7 +270,7 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
       creationTime: account.creationTime.toString(),
       lastRebalanceTime: account.lastRebalanceTime.toString(),
       baselineNav: account.baselineNav.toString(),
-      currentAssetConfigs: formattedAssets.map((asset) => ({
+      currentAssetConfigs: account.currentAssetConfigs.map((asset: any) => ({
         ...asset,
         weight: asset.weight.toString(),
         baselinePrice: asset.baselinePrice.toString(),
@@ -271,10 +279,10 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
         ...account.oracle,
         price: account.oracle.price.toString(),
         publishTime: account.oracle.publishTime.toString(),
-      } as OnchainOracleParams,
-    } as OnchainBasktAccount,
+      },
+    },
     creationDate: basktMetadata?.creationDate || new Date().toISOString(),
-    priceHistory: generateNavHistory(onchainBaskt.currentAssetConfigs, new BN(1e9)),
+    priceHistory: generateNavHistory(onchainBaskt.currentAssetConfigs, new BN(1e6)),
     performance: {
       daily: 2.5,
       weekly: 5.2,

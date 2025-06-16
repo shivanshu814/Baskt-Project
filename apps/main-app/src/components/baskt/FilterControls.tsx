@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { SortOption, SORT_OPTIONS } from '@baskt/ui/types/constants';
+import { SortOption, SORT_OPTIONS } from '@baskt/ui';
 import { FilterControlsProps } from '../../types/baskt';
 
 export const FilterControls = memo(({ sortBy, setSortBy }: FilterControlsProps) => (
@@ -15,8 +15,8 @@ export const FilterControls = memo(({ sortBy, setSortBy }: FilterControlsProps) 
             {option === 'popular'
               ? 'Most Popular'
               : option === 'newest'
-              ? 'Newest'
-              : 'Best Performance'}
+                ? 'Newest'
+                : 'Best Performance'}
           </SelectItem>
         ))}
       </SelectContent>

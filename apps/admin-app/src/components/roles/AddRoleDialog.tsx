@@ -10,7 +10,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { ROLE_DISPLAY_MAP } from '@baskt/ui/types/constants';
+import { ROLE_DISPLAY_MAP } from '@baskt/ui';
 import { AddRoleDialogProps } from '../../types/roles';
 
 export function AddRoleDialog({

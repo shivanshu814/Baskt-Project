@@ -1,13 +1,12 @@
 import { useState, useCallback } from 'react';
 import BN from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
-import { useBasktClient, USDC_MINT } from '@baskt/ui';
+import { useBasktClient, USDC_MINT, PRICE_PRECISION } from '@baskt/ui';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { createAssociatedTokenAccountInstruction } from '@solana/spl-token';
 import { useToast } from '../common/use-toast';
 import type { UseDepositProps } from '../../types/pool';
 import { useProtocol } from '../protocol/useProtocol';
-import { BASIS_POINT } from '../../constants/pool';
 
 export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositProps) => {
   const { client, wallet } = useBasktClient();
@@ -44,7 +43,7 @@ export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositPro
         setIsDepositing(false);
         return;
       }
-      const depositAmountBN = new BN(depositAmountNum * BASIS_POINT);
+      const depositAmountBN = new BN(depositAmountNum * PRICE_PRECISION);
       const userTokenAccount = await client.getUserTokenAccount(
         new PublicKey(wallet.address),
         USDC_MINT,

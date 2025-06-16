@@ -10,7 +10,7 @@ async function updatePrices() {
 
   const prices = assetConfig.map((a) => ({
     ticker: a.ticker,
-    price: (Math.random() * a.price * 1e9).toString(),
+    price: (Math.random() * a.price * 1e6).toString(),
     timestamp: Date.now(),
   }));
 

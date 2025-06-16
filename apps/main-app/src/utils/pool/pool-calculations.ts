@@ -1,5 +1,5 @@
 import { PoolData } from '../../types/pool';
-import { BASIS_POINT } from '../../constants/pool';
+import { PRICE_PRECISION } from '@baskt/ui';
 
 export const getFeeInUSDC = (amount: string, bps: number) => {
   const amt = Number(amount);
@@ -11,7 +11,7 @@ export const getFeeInUSDC = (amount: string, bps: number) => {
 export const getDepositOutputBLP = (amount: string, poolData: PoolData | null) => {
   if (!poolData || !amount) return '0.00 BLP';
   const amt = Number(amount);
-  const totalLiquidity = Number(poolData.totalLiquidity) / BASIS_POINT;
+  const totalLiquidity = Number(poolData.totalLiquidity) / PRICE_PRECISION;
   if (isNaN(amt) || totalLiquidity <= 0) return '0.00 BLP';
   // Simplified: 1:1 for demo, real logic should use pool share math
   return `${amt.toFixed(2)} BLP`;
@@ -20,8 +20,8 @@ export const getDepositOutputBLP = (amount: string, poolData: PoolData | null) =
 export const getWithdrawOutputUSDC = (amount: string, poolData: PoolData | null) => {
   if (!poolData || !amount) return '0.00 USDC';
   const amt = Number(amount);
-  const totalShares = Number(poolData.totalShares) / BASIS_POINT;
-  const totalLiquidity = Number(poolData.totalLiquidity) / BASIS_POINT;
+  const totalShares = Number(poolData.totalShares) / PRICE_PRECISION;
+  const totalLiquidity = Number(poolData.totalLiquidity) / PRICE_PRECISION;
   if (isNaN(amt) || totalShares <= 0) return '0.00 USDC';
   const usdcOut = (amt / totalShares) * totalLiquidity;
   return `${usdcOut.toFixed(2)} USDC`;

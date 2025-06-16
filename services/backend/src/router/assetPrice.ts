@@ -25,7 +25,33 @@ export const assetPriceRouter = router({
     .query(async ({ input }) => {
       return getLatestAssetPriceInternal(input.assetId);
     }),
+
+  getLatestAssetPrices: publicProcedure
+    .input(z.array(z.object({ assetId: z.string().min(1) })))
+    .query(async ({ input }) => {
+      return getLatestAssetPricesInternal(input.map((asset) => asset.assetId));
+    }),
 });
+
+export async function getLatestAssetPricesInternal(assetIds: string[]) {
+  try {
+    const assetPriceRows = await AssetPrice.findAll({
+      where: {
+        asset_id: {
+          [Op.in]: assetIds,
+        },
+      },
+      order: [['time', 'DESC']],
+    });
+    return assetPriceRows.map((row: any) => {
+      const plain = row.toJSON();
+      return formatAssetPrice(plain);
+    });
+  } catch (error) {
+    console.error('Error fetching assets:', error);
+    throw new Error('Failed to fetch assets');
+  }
+}
 
 export async function getLatestAssetPriceInternal(assetId: string) {
   try {
@@ -51,12 +77,15 @@ async function getAssetPriceInternal(assetId: string, startDate: number, endDate
     const assetPriceRows = await AssetPrice.findAll({
       where: {
         asset_id: assetId,
-        time: {
-          [Op.gte]: new Date(startDate * 1000),
-          [Op.lte]: new Date(endDate * 1000),
-        },
+        // time: {
+        //   [Op.gte]: new Date(startDate * 1000),
+        //   [Op.lte]: new Date(endDate * 1000),
+        // },
       },
+      order: [['time', 'DESC']],
     });
+    console.log(assetPriceRows[0].toJSON().time);
+    console.log(assetPriceRows.length);
     return assetPriceRows.map((row: any) => {
       const plain = row.toJSON();
       return formatAssetPrice(plain);
@@ -72,7 +101,7 @@ function formatAssetPrice(assetPrice: any) {
     id: assetPrice.asset_id,
     time: assetPrice.time ? Math.floor(new Date(assetPrice.time).getTime() / 1000) : null,
     price:
-      assetPrice.price && !isNaN(Number(assetPrice.price)) ? Number(assetPrice.price) / 1e9 : null,
+      assetPrice.price && !isNaN(Number(assetPrice.price)) ? Number(assetPrice.price) / 1e6 : null,
     rawPrice: assetPrice.price,
   };
 }

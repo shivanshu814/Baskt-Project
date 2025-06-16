@@ -19,8 +19,8 @@ import { BN } from 'bn.js';
 import { OnchainPosition } from '@baskt/types';
 import { useProtocol } from '../../hooks/protocols/useProtocol';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
-import { BASIS_POINT } from '../../constants/pool';
 import { ClosePositionDialogProps } from '../../types/orders';
+import { PRICE_PRECISION } from '@baskt/ui';
 
 const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen, onClose }) => {
     const [exitPrice, setExitPrice] = useState('');
@@ -96,8 +96,8 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
             setIsSubmitting(true);
 
             const basktId = new PublicKey(order.basktId);
-            const exitPriceBN = new BN(parseFloat(exitPrice) * BASIS_POINT); // Convert to basis points
-            const oraclePriceBN = new BN(parseFloat(oraclePrice) * BASIS_POINT); // Convert to basis points
+            const exitPriceBN = new BN(parseFloat(exitPrice) * PRICE_PRECISION); // Convert to basis points
+            const oraclePriceBN = new BN(parseFloat(oraclePrice) * PRICE_PRECISION); // Convert to basis points
 
             // Ensure targetPosition is not null or undefined before creating PublicKey
             if (!order.targetPosition) {

@@ -17,11 +17,31 @@ export interface OrderCreatedEvent {
   timestamp: InstanceType<typeof BN>;
 }
 
+async function getCurrentNavForBaskt(basktId: PublicKey) {
+  const baskt = await trpcClient.baskt.getBasktNAV.query({
+    basktId: basktId.toString(),
+  });
+
+  if (!baskt.success) {
+    throw new Error('Failed to fetch baskt metadata');
+  }
+
+  // @ts-expect-error data should be there when success is true
+  if (!baskt.data) {
+    throw new Error('Baskt metadata not found');
+  }
+
+  // @ts-expect-error data should be there when success is true
+  return new BN(baskt.data.nav);
+}
+
 async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder: OnchainOrder) {
   try {
     const positionId = basktClient.newIdForPosition();
 
-    const price = new BN(100 + Math.random() * 900).muln(1e6);
+    const price = await getCurrentNavForBaskt(onchainOrder.basktId);
+
+    console.log(price);
 
     await basktClient.updateOraclePrice(onchainOrder.basktId, price);
 
@@ -36,6 +56,7 @@ async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder
 
     // open position in db
     await trpcClient.position.createPosition.mutate({
+      //TOOD Shivanshu Store the positionId, orderID, tx when we opened it
       address: basktClient.getPositionPDA(onchainOrder.owner, positionId).toString(),
       order: onchainOrder.address.toString(),
       owner: onchainOrder.owner.toString(),
@@ -63,12 +84,7 @@ async function handleCloseOrder(orderCreatedData: OrderCreatedEvent, onchainOrde
     const protocolAccount = await basktClient.getProtocolAccount();
     const positionAccount = await basktClient.getPosition(onchainOrder.targetPosition!);
 
-    const entryPrice = positionAccount.entryPrice;
-
-    const randomPercent = Math.random() * 6 - 3;
-    const delta = entryPrice.muln(Math.round(randomPercent * 10000)).divn(1000000);
-    const exitPrice = entryPrice.add(delta);
-
+    const exitPrice = await getCurrentNavForBaskt(onchainOrder.basktId);
     await basktClient.updateOraclePrice(onchainOrder.basktId, exitPrice);
 
     const ownerTokenAccount = await basktClient.getUSDCAccount(onchainOrder.owner);
@@ -95,6 +111,7 @@ async function handleCloseOrder(orderCreatedData: OrderCreatedEvent, onchainOrde
 
     // close order in db
     await trpcClient.order.closeOrder.mutate({
+      //TOOD Shivanshu Store the positionId, orderID, tx when we opened it
       orderPDA: onchainOrder.address.toString(),
       position: positionAccount.toString(),
       exitPrice: exitPrice.toString(),

@@ -6,7 +6,7 @@ import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { cn } from '@baskt/ui';
 import { useMemo } from 'react';
 import { BasktCardProps } from '../../types/baskt';
-import { BASIS_POINT } from '../../constants/pool';
+import { PRICE_PRECISION } from '@baskt/ui';
 
 const DEFAULT_SPARKLINE = Array(24).fill(0);
 
@@ -41,7 +41,7 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
         value,
         index,
       })),
-      formattedAum: ((baskt.aum || 0) / BASIS_POINT).toFixed(1),
+      formattedAum: ((baskt.aum || 0) / PRICE_PRECISION).toFixed(1),
       image: baskt?.image,
       initials: baskt?.name,
     };

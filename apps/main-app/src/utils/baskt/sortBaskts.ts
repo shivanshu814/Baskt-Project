@@ -1,5 +1,5 @@
 import { BasktInfo } from '@baskt/types';
-import { SortOption } from '@baskt/ui/types/constants';
+import { SortOption } from '@baskt/ui';
 
 export const sortBaskts = (baskts: BasktInfo[], sortBy: SortOption): BasktInfo[] => {
   const sorted = [...baskts];

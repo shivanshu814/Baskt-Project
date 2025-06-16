@@ -9,7 +9,7 @@ import {
   calculateCollateralAmount,
   calculateLiquidationPrice,
 } from '../../../utils/baskt/trade/calculate';
-import { BASIS_POINT } from '../../../constants/pool';
+import { PRICE_PRECISION } from '@baskt/ui';
 
 export const useOpenPosition = ({ baskt, size }: UseOpenPositionProps) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -57,8 +57,8 @@ export const useOpenPosition = ({ baskt, size }: UseOpenPositionProps) => {
 
       const tx = await client.createOrderTx(
         orderId,
-        new BN(size).mul(new BN(BASIS_POINT)),
-        collateral.mul(new BN(BASIS_POINT)),
+        new BN(size).mul(new BN(PRICE_PRECISION)),
+        collateral.mul(new BN(PRICE_PRECISION)),
         position === 'long',
         { open: {} },
         null,

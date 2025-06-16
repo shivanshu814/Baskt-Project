@@ -6,7 +6,7 @@ import { useBasktClient } from '@baskt/ui';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import { OnchainOrder, OrderAction, OrderStatus } from '@baskt/types';
 import { BN } from 'bn.js';
-import { BASIS_POINT } from '../../../constants/pool';
+import { PRICE_PRECISION } from '@baskt/ui';
 
 export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
   const { client } = useBasktClient();
@@ -47,10 +47,10 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
                       {order.action === OrderAction.Open ? 'Open' : 'Close'}
                     </TableCell>
                     <TableCell>
-                      {order.size ? `${(new BN(order.size).toNumber() / BASIS_POINT).toFixed(2)}` : '-'}
+                      {order.size ? `${(new BN(order.size).toNumber() / PRICE_PRECISION).toFixed(2)}` : '-'}
                     </TableCell>
                     <TableCell>
-                      {order.collateral ? `$${(new BN(order.collateral).toNumber() / BASIS_POINT).toFixed(2)}` : '-'}
+                      {order.collateral ? `$${(new BN(order.collateral).toNumber() / PRICE_PRECISION).toFixed(2)}` : '-'}
                     </TableCell>
                     <TableCell className="text-[#16C784]">
                       {order.status === OrderStatus.PENDING ? 'Active' : order.status === OrderStatus.FILLED ? 'Filled' : 'Cancelled'}

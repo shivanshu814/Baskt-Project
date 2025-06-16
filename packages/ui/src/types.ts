@@ -36,4 +36,3 @@ export interface SuggestedBasktsProps {
 export type Category = (typeof CATEGORIES)[number];
 export type SortOption = (typeof SORT_OPTIONS)[number];
 export type RoleType = keyof typeof ROLE_DISPLAY_MAP;
-

@@ -2,35 +2,40 @@ import path from 'path';
 import fs from 'fs';
 import readline from 'readline';
 
-const actionsDir = path.join(__dirname, 'actions');
+const dirs = ['actions', 'read'];
 
 async function loadActions() {
-  const files = fs.readdirSync(actionsDir).filter((f) => f.endsWith('.ts'));
   const actions: Record<
     string,
     { fn: Function; description: string; mainName: string; aliases?: string[] }
   > = {};
-  for (const file of files) {
-    const actionPath = path.join(actionsDir, file);
-    let mod;
-    try {
-      mod = await import(actionPath);
-    } catch (e) {
-      mod = require(actionPath);
-    }
-    const fn = mod.default;
-    const description = fn && fn.description ? fn.description : 'No description';
-    if (typeof fn === 'function') {
-      const mainName = file.replace(/\.ts$/, '');
-      const aliases: string[] = Array.isArray(fn.aliases) ? fn.aliases : [];
-      actions[mainName] = { fn, description, mainName, aliases };
-      for (const alias of aliases) {
-        actions[alias] = {
-          fn,
-          description: `(alias for ${mainName}) ${description}`,
-          mainName,
-          aliases,
-        };
+
+  for (const dir of dirs) {
+    const dirPath = path.join(__dirname, dir);
+    const files = fs.readdirSync(dirPath).filter((f) => f.endsWith('.ts'));
+
+    for (const file of files) {
+      const actionPath = path.join(dirPath, file);
+      let mod;
+      try {
+        mod = await import(actionPath);
+      } catch (e) {
+        mod = require(actionPath);
+      }
+      const fn = mod.default;
+      const description = fn && fn.description ? fn.description : 'No description';
+      if (typeof fn === 'function') {
+        const mainName = file.replace(/\.ts$/, '');
+        const aliases: string[] = Array.isArray(fn.aliases) ? fn.aliases : [];
+        actions[mainName] = { fn, description, mainName, aliases };
+        for (const alias of aliases) {
+          actions[alias] = {
+            fn,
+            description: `(alias for ${mainName}) ${description}`,
+            mainName,
+            aliases,
+          };
+        }
       }
     }
   }

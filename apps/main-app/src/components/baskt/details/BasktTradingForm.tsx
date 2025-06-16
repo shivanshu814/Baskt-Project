@@ -8,6 +8,7 @@ import { BasktTradingFormProps } from '../../../types/baskt';
 import { useBasktClient } from '@baskt/ui';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import { useOpenPosition } from '../../../hooks/baskt/trade/openPosition';
+import { PRICE_PRECISION } from '@baskt/ui';
 
 export function BasktTradingForm({ baskt, className }: BasktTradingFormProps) {
   const [size, setSize] = useState<number>(0);
@@ -115,7 +116,7 @@ export function BasktTradingForm({ baskt, className }: BasktTradingFormProps) {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Current Price:</span>
-              <span>${baskt.price.toFixed(2)}</span>
+              <span>${(baskt.price / PRICE_PRECISION).toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Size:</span>

@@ -1,8 +1,9 @@
 import { PublicKey } from '@solana/web3.js';
 import { basktClient } from '../utils/config';
-import { BN } from 'bn.js';
-import { OnchainAssetConfig } from '@baskt/types';
+import { OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
 import { trpcClient } from '../utils/config';
+import { MAX_ASSET_PRICE_AGE_MS } from '@baskt/sdk/dist';
+import { BN } from 'bn.js';
 
 export interface BasktCreatedEvent {
   basktId: string;
@@ -13,31 +14,20 @@ export interface BasktCreatedEvent {
   timestamp: number;
 }
 
-export default async function basktCreatedHandler(data: any) {
-  const basktEventCreatedData = data as BasktCreatedEvent;
-  const basktId = basktEventCreatedData.basktId;
-
-  const onchainBaskt = await basktClient.readWithRetry(
-    async () => await basktClient.getBaskt(new PublicKey(basktId), 'confirmed'),
-    2,
-    100,
-  );
-
-  //TODO We should for each of these
-  // assets fetch their current price and put that as the baseline price
-  const randomBaselinePrices = onchainBaskt.currentAssetConfigs.map(
-    () => new BN(Math.floor(Math.random() * 1000) * 1e6),
-  );
-
+async function createBasktMutation(
+  basktId: string,
+  onchainBaskt: OnchainBasktAccount,
+  basktCreatedData: BasktCreatedEvent,
+) {
   try {
     const result = await trpcClient.baskt.createBasktMetadata.mutate({
       basktId: basktId,
-      name: basktEventCreatedData.basktName,
-      creator: basktEventCreatedData.creator,
+      name: basktCreatedData.basktName,
+      creator: basktCreatedData.creator,
       assets: onchainBaskt.currentAssetConfigs.map((config: OnchainAssetConfig) =>
         config.assetId.toString(),
       ),
-      image: `https://api.dicebear.com/7.x/shapes/svg?seed=${basktEventCreatedData.basktName}&backgroundColor=4F46E5&shape1Color=6366F1&shape2Color=818CF8`,
+      image: `https://api.dicebear.com/7.x/shapes/svg?seed=${basktCreatedData.basktName}&backgroundColor=4F46E5&shape1Color=6366F1&shape2Color=818CF8`,
       rebalancePeriod: {
         value: 24,
         unit: 'hour',
@@ -51,25 +41,50 @@ export default async function basktCreatedHandler(data: any) {
   } catch (error) {
     console.error('Error storing baskt metadata:', error);
   }
+}
+
+export default async function basktCreatedHandler(data: any) {
+  const basktEventCreatedData = data as BasktCreatedEvent;
+  const basktId = basktEventCreatedData.basktId;
+
+  const onchainBaskt = (await basktClient.readWithRetry(
+    async () => await basktClient.getBaskt(new PublicKey(basktId), 'confirmed'),
+    2,
+    100,
+  )) as OnchainBasktAccount;
+  const onchainAssetList = onchainBaskt.currentAssetConfigs;
+
+  const assets = await trpcClient.asset.getAssetsByAddress.query(
+    onchainAssetList.map((assetConfig: OnchainAssetConfig) => assetConfig.assetId.toString()),
+  );
+
+  if (!assets || assets.length === 0) {
+    return;
+  }
+
+  const currentTime = Math.floor(Date.now());
+
+  const activeAssets = assets.filter(
+    (asset: any) =>
+      asset.priceMetrics?.price > 0 &&
+      asset.priceMetrics?.timestamp + MAX_ASSET_PRICE_AGE_MS > currentTime,
+  );
+
+  if (activeAssets.length !== onchainAssetList.length) {
+    return;
+  }
+
+  // Make the assets in that order
+
+  const randomBaselinePrices = activeAssets.map(
+    (asset: any) => new BN(Math.floor(asset.priceMetrics.price)),
+  );
 
   try {
     let tx = await basktClient.activateBaskt(new PublicKey(basktId), randomBaselinePrices);
     console.log('Baskt activated successfully with tx:', tx);
 
-    await trpcClient.baskt.createBasktMetadata.mutate({
-      basktId: basktId,
-      name: basktEventCreatedData.basktName,
-      creator: basktEventCreatedData.creator,
-      assets: onchainBaskt.currentAssetConfigs.map((config: OnchainAssetConfig) =>
-        config.assetId.toString(),
-      ),
-      image: `https://api.dicebear.com/7.x/shapes/svg?seed=${basktEventCreatedData.basktName}&backgroundColor=4F46E5&shape1Color=6366F1&shape2Color=818CF8`,
-      rebalancePeriod: {
-        value: 24,
-        unit: 'hour',
-      },
-      txSignature: tx,
-    });
+    await createBasktMutation(basktId, onchainBaskt, basktEventCreatedData);
 
     console.log('Initializing funding index...');
     tx = await basktClient.initializeFundingIndex(new PublicKey(basktId));

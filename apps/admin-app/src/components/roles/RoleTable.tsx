@@ -2,7 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Loading } from '../ui/loading';
 import { Copy, Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { ROLE_DISPLAY_MAP } from '@baskt/ui/types/constants';
+import { ROLE_DISPLAY_MAP } from '@baskt/ui';
 import { RoleActions } from './RoleActions';
 import { RoleTableProps } from '../../types/roles';
 

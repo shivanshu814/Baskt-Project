@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { trpc } from '../../utils/trpc';
-import { SortOption } from '@baskt/ui/types/constants';
+import { SortOption } from '@baskt/ui';
 import { BasktInfo } from '@baskt/types';
 import { processBasktData } from '../../utils/baskt/processBasktData';
 import { filterBaskts } from '../../utils/baskt/filterBaskts';

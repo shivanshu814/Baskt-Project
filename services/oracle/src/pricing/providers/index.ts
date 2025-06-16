@@ -3,10 +3,12 @@ import getOxFunData from './oxfun';
 import getDexScreenerData from './dexscreener';
 import getBinanceData from './binance';
 
+const PRICE_PRECISION = 1e6;
+
 // Function to call oxfun API
 async function callOxfunAPI(id: string) {
   const price = await getOxFunData(id);
-  const priceUSD = new BN(price * 1e9);
+  const priceUSD = new BN(price * PRICE_PRECISION);
   return {
     priceUSD,
   };
@@ -19,7 +21,7 @@ async function callDexscreenerAPI(id: string, chain: string) {
     return null;
   }
   return {
-    priceUSD: new BN(prices.priceUSD * 1e9),
+    priceUSD: new BN(prices.priceUSD * PRICE_PRECISION),
   };
 }
 
@@ -28,7 +30,7 @@ async function callBinanceAPI(id: string) {
   if (!price) {
     return null;
   }
-  const priceUSD = new BN(price.price * 1e9);
+  const priceUSD = new BN(price.price * PRICE_PRECISION);
   return {
     priceUSD,
   };
