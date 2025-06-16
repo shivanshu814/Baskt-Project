@@ -6,6 +6,7 @@ import { useToast } from '../common/use-toast';
 import type { UseWithdrawProps } from '../../types/pool';
 import { useProtocol } from '../protocol/useProtocol';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
+import { useUSDCBalance } from '../pool/useUSDCBalance';
 
 export const useWithdraw = ({ poolData, liquidityPool, onSuccess }: UseWithdrawProps) => {
   const { client, wallet } = useBasktClient();
@@ -13,6 +14,7 @@ export const useWithdraw = ({ poolData, liquidityPool, onSuccess }: UseWithdrawP
   const { protocol } = useProtocol();
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const { refetch: refetchUSDCBalance } = useUSDCBalance();
 
   const isWithdrawValid = Boolean(
     withdrawAmount && !isNaN(Number(withdrawAmount)) && Number(withdrawAmount) > 0,
@@ -81,6 +83,8 @@ export const useWithdraw = ({ poolData, liquidityPool, onSuccess }: UseWithdrawP
         treasuryTokenAccount,
         protocol?.treasury,
       );
+
+      refetchUSDCBalance();
 
       toast({
         title: 'Withdrawal successful!',

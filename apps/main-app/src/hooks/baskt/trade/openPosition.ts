@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { BN } from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
 import { useBasktClient } from '@baskt/ui';
-import { useUSDCBalance } from '../../pool/useUSDCBalance';
 import { toast } from '../../common/use-toast';
 import { UseOpenPositionProps } from '../../../types/baskt';
 import {
@@ -10,12 +9,17 @@ import {
   calculateLiquidationPrice,
 } from '../../../utils/baskt/trade/calculate';
 import { PRICE_PRECISION } from '@baskt/ui';
+import { useUSDCBalance } from '../../pool/useUSDCBalance';
 
 export const useOpenPosition = ({ baskt, size }: UseOpenPositionProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { client } = useBasktClient();
   const publicKey = client?.wallet?.address;
-  const { balance: usdcBalance, account: userUSDCAccount } = useUSDCBalance(publicKey);
+  const {
+    balance: usdcBalance,
+    account: userUSDCAccount,
+    refetch: refetchUSDCBalance,
+  } = useUSDCBalance(publicKey);
   const collateral = calculateCollateralAmount(new BN(size));
 
   const getLiquidationPrice = (collateral: number, position: 'long' | 'short') => {
@@ -72,6 +76,8 @@ export const useOpenPosition = ({ baskt, size }: UseOpenPositionProps) => {
       if (confirmation.value.err) {
         throw new Error(`Transaction failed: ${confirmation.value.err}`);
       }
+
+      refetchUSDCBalance();
 
       toast({
         title: `${position === 'long' ? 'Long' : 'Short'} position opened`,

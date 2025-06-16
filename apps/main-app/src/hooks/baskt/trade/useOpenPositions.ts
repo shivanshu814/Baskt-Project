@@ -7,7 +7,7 @@ import { useUSDCBalance } from '../../pool/useUSDCBalance';
 
 export function useOpenPositions(basktId?: string, userAddress?: string) {
   const { client } = useBasktClient();
-  const { account: userUSDCAccount } = useUSDCBalance();
+  const { account: userUSDCAccount, refetch: refetchUSDCBalance } = useUSDCBalance();
 
   const closePosition = async (position: OnchainPosition) => {
     if (!client || !userUSDCAccount || !basktId) return;
@@ -22,6 +22,7 @@ export function useOpenPositions(basktId?: string, userAddress?: string) {
       userUSDCAccount.address,
       USDC_MINT,
     );
+    refetchUSDCBalance();
   };
 
   const addCollateral = async (position: OnchainPosition, additionalCollateral: BN) => {
@@ -31,6 +32,7 @@ export function useOpenPositions(basktId?: string, userAddress?: string) {
       additionalCollateral,
       ownerTokenAccount: userUSDCAccount.address,
     });
+    refetchUSDCBalance();
   };
 
   const positionsByBasktAndUserQuery = trpc.position.getPositionsByUserAndBaskt.useQuery(

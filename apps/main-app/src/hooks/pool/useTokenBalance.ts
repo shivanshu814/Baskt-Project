@@ -8,6 +8,7 @@ export function useTokenBalance(
   mint: string | PublicKey,
   address?: string | PublicKey,
   decimals: number = 6,
+  refetchInterval: number = 30 * 1000,
 ) {
   const { authenticated } = usePrivy();
   const { client, wallet } = useBasktClient();
@@ -50,7 +51,11 @@ export function useTokenBalance(
 
   useEffect(() => {
     fetchBalance();
-  }, [fetchBalance]);
+    const interval = setInterval(() => {
+      fetchBalance();
+    }, refetchInterval);
+    return () => clearInterval(interval);
+  }, [fetchBalance, refetchInterval]);
 
   return { balance, account, loading, error, refetch: fetchBalance };
 }

@@ -7,6 +7,7 @@ import { createAssociatedTokenAccountInstruction } from '@solana/spl-token';
 import { useToast } from '../common/use-toast';
 import type { UseDepositProps } from '../../types/pool';
 import { useProtocol } from '../protocol/useProtocol';
+import { useUSDCBalance } from '../pool/useUSDCBalance';
 
 export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositProps) => {
   const { client, wallet } = useBasktClient();
@@ -14,6 +15,7 @@ export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositPro
   const { protocol } = useProtocol();
   const [depositAmount, setDepositAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
+  const { refetch: refetchUSDCBalance } = useUSDCBalance();
 
   const isDepositValid = Boolean(
     depositAmount && !isNaN(Number(depositAmount)) && Number(depositAmount) > 0,
@@ -97,6 +99,7 @@ export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositPro
         protocol?.treasury,
         itx,
       );
+      refetchUSDCBalance();
 
       toast({
         title: 'Deposit successful!',
