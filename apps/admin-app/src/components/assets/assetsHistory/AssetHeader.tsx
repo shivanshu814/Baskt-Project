@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card } from '../../ui/card';
 import { AssetHeaderProps } from '../../../types/assets';
+import { PublicKeyText } from '@baskt/ui';
 
 export const AssetHeader: React.FC<AssetHeaderProps> = ({
   assetName,
@@ -23,7 +24,7 @@ export const AssetHeader: React.FC<AssetHeaderProps> = ({
             {assetName} {ticker && <span className="text-sm text-[#E5E7EB]/60">({ticker})</span>}
           </div>
           <div className="text-xs text-[#E5E7EB]/60">
-            Address: <span className="font-mono">{assetAddress}</span>
+            Address: <PublicKeyText publicKey={assetAddress} noFormat={true} />
           </div>
         </div>
       </div>

@@ -4,11 +4,10 @@ import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { BN } from 'bn.js';
-import { formatTimestamp, formatNumber } from '../../utils/format';
+import { formatTimestamp } from '../../utils/format';
 import { BasktData } from '../../types/baskt';
 import { FundingIndexTable } from './FundingIndexTable';
-import { PRICE_PRECISION } from '@baskt/ui';
-
+import { NumberFormat, PublicKeyText } from '@baskt/ui';
 interface BasktDetailPageProps {
   baskt: BasktData;
   onBack: () => void;
@@ -29,9 +28,11 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-white/60">Price:</span>
-          <span className="text-lg font-medium">{formatNumber((baskt.price || 0) / PRICE_PRECISION)}</span>
+          <span className="text-lg font-medium">
+            <NumberFormat value={baskt.price || 0} isPrice={true} />
+          </span>
           <span className={(baskt.change24h || 0) >= 0 ? 'text-green-500' : 'text-red-500'}>
-            {formatNumber(baskt.change24h || 0, { suffix: '%' })}
+            <NumberFormat value={baskt.change24h || 0} />%
           </span>
         </div>
       </div>
@@ -46,11 +47,15 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
             <div className="grid grid-cols-1 gap-2">
               <div className="flex justify-between">
                 <span className="text-white/60">Baskt ID:</span>
-                <span className="font-mono text-sm">{baskt.basktId}</span>
+                <span className="font-mono text-sm">
+                  <PublicKeyText publicKey={baskt.basktId} isCopy={true} noFormat={true} />
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Creator:</span>
-                <span className="font-mono text-sm">{account.creator.toString()}</span>
+                <span className="font-mono text-sm">
+                  <PublicKeyText publicKey={account.creator.toString()} isCopy={true} noFormat={true} />
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Public:</span>
@@ -85,7 +90,9 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Baseline NAV:</span>
-                <span>{formatNumber(new BN(account.baselineNav).toNumber() / PRICE_PRECISION)}</span>
+                <span>
+                  <NumberFormat value={new BN(account.baselineNav).toNumber()} isPrice={true} />
+                </span>
               </div>
             </div>
           </CardContent>
@@ -100,7 +107,7 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
             <div className="grid grid-cols-1 gap-2">
               <div className="flex justify-between">
                 <span className="text-white/60">Price:</span>
-                <span>{account.oracle?.price ? formatNumber(new BN(account.oracle.price).toNumber() / PRICE_PRECISION) : 'N/A'}</span>
+                <span>${account.oracle?.price ? <NumberFormat value={new BN(account.oracle.price).toNumber()} /> : 'N/A'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Max Price Age (sec):</span>
@@ -139,14 +146,14 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
                     {account.currentAssetConfigs.map((asset, index) => (
                       <tr key={index} className="border-b border-white/5">
                         <td className="py-2 font-mono text-xs">
-                          {asset.assetId.toString()}
+                          <PublicKeyText publicKey={asset.assetId.toString()} isCopy={true} noFormat={true} />
                         </td>
                         <td className="py-2 text-right">{asset.weight.toString()}</td>
                         <td className="py-2 text-right">
                           {asset.direction ? 'Long' : 'Short'}
                         </td>
                         <td className="py-2 text-right">
-                          {formatNumber(new BN(asset.baselinePrice).toNumber() / PRICE_PRECISION)}
+                          <NumberFormat value={new BN(asset.baselinePrice).toNumber()} isPrice={true} />
                         </td>
                       </tr>
                     ))}

@@ -34,9 +34,6 @@ export interface BasicInfoFormProps {
   formData: BasktFormData;
   errors: Record<string, string>;
   fileInputRef: React.RefObject<HTMLInputElement>;
-  previewImage: string | null;
-  onImageClick: () => void;
-  onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onNameChange: (value: string) => void;
   onRebalancePeriodChange: (value: number, unit: 'day' | 'hour') => void;
   onVisibilityChange: (value: boolean) => void;
@@ -55,6 +52,7 @@ export interface TransactionStatusModalProps {
   onRetry?: () => void;
   status: TransactionStatus;
   error?: string;
+  signature?: string;
 }
 
 export interface BasktChartProps {

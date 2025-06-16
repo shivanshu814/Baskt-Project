@@ -15,7 +15,6 @@ const createBasktSchema = z.object({
   name: z.string().min(1).max(30),
   creator: z.string(),
   assets: z.array(z.string()),
-  image: z.string().optional(),
   rebalancePeriod: z.object({
     value: z.number().min(1),
     unit: z.enum(['day', 'hour']),
@@ -256,7 +255,6 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     basktId: basktId,
     name: basktMetadata?.name || '',
     creator: basktMetadata?.creator || '',
-    image: basktMetadata?.image || '',
     rebalancePeriod: basktMetadata?.rebalancePeriod,
     txSignature: basktMetadata?.txSignature,
     assets,

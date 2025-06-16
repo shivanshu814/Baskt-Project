@@ -9,6 +9,7 @@ import {
 } from "../../components/ui/table";
 import { formatDate } from '../../utils/date';
 import { PositionStatus } from '@baskt/types';
+import { NumberFormat, PublicKeyText } from '@baskt/ui';
 
 const PositionList = () => {
     const { data: positions = [], isLoading, error } = usePositions();
@@ -57,27 +58,31 @@ const PositionList = () => {
                             <TableRow key={position.address.toString()}>
                                 <TableCell>
                                     <p className="text-sm font-medium text-gray-200 truncate cursor-pointer">
-                                        {position.positionId.toString()}
+                                        <PublicKeyText publicKey={position.positionId.toString()} isCopy={true} noFormat={true} />
                                     </p>
                                 </TableCell>
                                 <TableCell>
                                     <p className="text-sm text-gray-500 cursor-pointer">
-                                        {position.owner.toString().slice(0, 8)}...{position.owner.toString().slice(-8)}
+                                        <PublicKeyText publicKey={position.owner.toString()} isCopy={true} />
                                     </p>
                                 </TableCell>
                                 <TableCell>
                                     <p className="text-sm text-gray-200">
-                                        {position.basktId.toString().slice(0, 8)}...{position.basktId.toString().slice(-8)}
+                                        <PublicKeyText publicKey={position.basktId.toString()} isCopy={true} />
                                     </p>
                                 </TableCell>
                                 <TableCell>
                                     <p className={`text-sm font-medium ${position.isLong ? 'text-green-500' : 'text-red-500'}`}>{position.isLong ? 'Long' : 'Short'}</p>
                                 </TableCell>
                                 <TableCell>
-                                    <p className="text-sm text-gray-200">{position.size.toString()}</p>
+                                    <p className="text-sm text-gray-200">
+                                        <NumberFormat value={position.size.toNumber()} isPrice={true} />
+                                    </p>
                                 </TableCell>
                                 <TableCell>
-                                    <p className="text-sm text-gray-200">{position.collateral.toString()}</p>
+                                    <p className="text-sm text-gray-200">
+                                        <NumberFormat value={position.collateral.toNumber()} isPrice={true} />
+                                    </p>
                                 </TableCell>
                                 <TableCell>
                                     <p className="text-sm text-gray-200">{position.entryPrice.toString()}</p>

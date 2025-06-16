@@ -84,6 +84,10 @@ export const useOpenPosition = ({ baskt, size }: UseOpenPositionProps) => {
         description: `Your ${position} position with ${collateral.toLocaleString()} USDT collateral has been opened`,
       });
 
+      if (window.dispatchEvent) {
+        window.dispatchEvent(new Event('position-opened'));
+      }
+
       return true;
       // eslint-disable-next-line
     } catch (error: any) {

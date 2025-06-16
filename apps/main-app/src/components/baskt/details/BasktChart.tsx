@@ -7,7 +7,7 @@ import { BasktChartProps } from '../../../types/baskt';
 import { useBasktList } from '../../../hooks/baskt/useBasktList';
 import { Popover, PopoverTrigger, PopoverContent } from '../../ui/popover';
 import { SearchBar } from '../../shared/SearchBar';
-import { PRICE_PRECISION } from '@baskt/ui';
+import { NumberFormat } from '@baskt/ui';
 
 export const BasktChart = ({
   baskt,
@@ -43,15 +43,6 @@ export const BasktChart = ({
                   variant="ghost"
                   className="flex items-center px-2 py-1 rounded hover:bg-muted/30 transition min-w-[220px]"
                 >
-                  {baskt.image ? (
-                    <img
-                      src={baskt.image}
-                      alt={baskt.name}
-                      className="h-10 w-10 rounded-full border mr-1"
-                    />
-                  ) : (
-                    <LucideImage className="h-10 w-10 text-muted-foreground mr-4" />
-                  )}
                   <div className="flex flex-col items-start">
                     <div className="flex items-center">
                       <span className="font-semibold text-xl">{baskt.name}</span>
@@ -59,16 +50,12 @@ export const BasktChart = ({
                         className={`font-semibold text-base ml-3 ${currentBaskt?.change24h >= 0 ? 'text-green-400' : 'text-red-400'
                           }`}
                       >
-                        {currentBaskt?.change24h !== undefined
-                          ? `${Math.abs(currentBaskt.change24h).toFixed(2)}%`
-                          : '-'}
+                        <NumberFormat value={currentBaskt?.change24h} />%
                       </span>
                       <ChevronDown className="h-6 w-6 text-muted-foreground ml-2" />
                     </div>
                     <span className="font-semibold text-lg text-white -mt-2">
-                      {currentBaskt?.price !== undefined
-                        ? `$${(currentBaskt.price / PRICE_PRECISION).toLocaleString()}`
-                        : '-'}
+                      <NumberFormat value={currentBaskt?.price} isPrice={true} />
                     </span>
                   </div>
                 </Button>

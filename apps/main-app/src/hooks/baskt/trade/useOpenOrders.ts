@@ -7,18 +7,21 @@ import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 export function useOpenOrders(basktId?: string, userAddress?: string) {
   const { client } = useBasktClient();
   const { account: userUSDCAccount, refetch: refetchUSDCBalance } = useUSDCBalance();
-  const cancelOrder = async (order: OnchainOrder) => {
-    if (!client || !userUSDCAccount?.address) return;
-    await client.cancelOrderTx(order.address, new BN(order.orderId), userUSDCAccount.address);
-    refetchUSDCBalance();
-  };
 
   const ordersByBasktAndUserQuery = trpc.order.getOrdersByBasktAndUser.useQuery(
     { basktId: basktId || '', userId: userAddress || '' },
     {
       enabled: !!basktId && !!userAddress,
+      refetchInterval: 30 * 1000,
     },
   );
+
+  const cancelOrder = async (order: OnchainOrder) => {
+    if (!client || !userUSDCAccount?.address) return;
+    await client.cancelOrderTx(order.address, new BN(order.orderId), userUSDCAccount.address);
+    refetchUSDCBalance();
+    ordersByBasktAndUserQuery.refetch();
+  };
 
   let orders = (ordersByBasktAndUserQuery.data as any)?.data; //eslint-disable-line
 

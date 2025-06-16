@@ -189,7 +189,6 @@ export function usePool({
 
         onInitializationSuccess?.();
       } catch (error: unknown) {
-        console.error(error);
         toast({
           title: 'Error',
           description:

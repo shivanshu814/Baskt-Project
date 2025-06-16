@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev:manager": "tsx watch src/manager.ts",
-    "dev:worker": "tsx watch src/oracle-oracle-worker.ts",
+    "dev:worker": "tsx watch src/oracle-worker.ts",
     "build": "tsc",
     "start:manager": "node dist/manager.js",
-    "start:worker": "node dist/oracle-oracle-worker.js",
+    "start:worker": "node dist/oracle-worker.js",
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {

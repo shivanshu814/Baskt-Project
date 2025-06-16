@@ -2,11 +2,10 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { useOpenOrders } from '../../../hooks/baskt/trade/useOpenOrders';
-import { useBasktClient } from '@baskt/ui';
+import { NumberFormat, useBasktClient } from '@baskt/ui';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import { OnchainOrder, OrderAction, OrderStatus } from '@baskt/types';
 import { BN } from 'bn.js';
-import { PRICE_PRECISION } from '@baskt/ui';
 
 export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
   const { client } = useBasktClient();
@@ -47,10 +46,10 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
                       {order.action === OrderAction.Open ? 'Open' : 'Close'}
                     </TableCell>
                     <TableCell>
-                      {order.size ? `${(new BN(order.size).toNumber() / PRICE_PRECISION).toFixed(2)}` : '-'}
+                      {order.size ? <NumberFormat value={new BN(order.size).toNumber()} isPrice={true} /> : '-'}
                     </TableCell>
                     <TableCell>
-                      {order.collateral ? `$${(new BN(order.collateral).toNumber() / PRICE_PRECISION).toFixed(2)}` : '-'}
+                      {order.collateral ? <NumberFormat value={new BN(order.collateral).toNumber()} isPrice={true} /> : '-'}
                     </TableCell>
                     <TableCell className="text-[#16C784]">
                       {order.status === OrderStatus.PENDING ? 'Active' : order.status === OrderStatus.FILLED ? 'Filled' : 'Cancelled'}

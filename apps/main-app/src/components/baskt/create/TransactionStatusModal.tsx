@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Loader2, Info } from 'lucide-react';
+import { CheckCircle2, Loader2, Info, ExternalLink } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { Button } from '../../ui/button';
 import { motion } from 'framer-motion';
 import { TransactionStatusModalProps } from '../../../types/baskt';
+import { getSolscanAddressUrl } from '@baskt/ui';
 
 export const TransactionStatusModal = ({
   open,
@@ -18,6 +19,7 @@ export const TransactionStatusModal = ({
   onRetry,
   status,
   error,
+  signature,
 }: TransactionStatusModalProps) => {
   const glowRing = (colorHex: string) => (
     <motion.div
@@ -68,7 +70,21 @@ export const TransactionStatusModal = ({
 
     case 'success':
       title = 'Success!';
-      description = 'Your Baskt is live—go explore it now.';
+      description = (
+        <div className="space-y-4">
+          <p>Your Baskt is live—go explore it now.</p>
+          {signature && (
+            <a
+              href={getSolscanAddressUrl(signature)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              View on Explorer <ExternalLink className="w-4 h-4" />
+            </a>
+          )}
+        </div>
+      );
       icon = (
         <div className="relative w-16 h-16">
           {glowRing('#10B981')}

@@ -11,7 +11,6 @@ import { AssetManagementForm } from '../../components/baskt/create/AssetManageme
 import { Button } from '../../components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { useCreateBasktForm } from '../../hooks/baskt/create/useCreateBasktForm';
-import { useBasktImageUpload } from '../../hooks/baskt/create/useBasktImageUpload';
 import { useAssetManagement } from '../../hooks/baskt/create/useAssetManagement';
 import { useBasktCreation } from '../../hooks/baskt/create/useBasktCreation';
 
@@ -30,7 +29,6 @@ const CreateBasktPage = () => {
     validateForm,
     totalWeightage,
   } = useCreateBasktForm();
-  const { previewImage, handleImageUpload } = useBasktImageUpload();
   const { handleAddAsset, handleRemoveAsset, handleAssetPositionChange, handleAssetWeightChange } =
     useAssetManagement(formData, setFormData);
   const {
@@ -43,6 +41,7 @@ const CreateBasktPage = () => {
     authenticated,
     ready,
     login,
+    signature,
   } = useBasktCreation();
 
   // eslint-disable-next-line
@@ -122,9 +121,6 @@ const CreateBasktPage = () => {
               formData={formData}
               errors={errors}
               fileInputRef={fileInputRef}
-              previewImage={previewImage}
-              onImageClick={() => fileInputRef.current?.click()}
-              onImageUpload={handleImageUpload}
               onNameChange={(value) => handleChange('name', value)}
               onRebalancePeriodChange={handleRebalancePeriodChange}
               onVisibilityChange={(value) => handleChange('isPublic', value)}
@@ -162,6 +158,7 @@ const CreateBasktPage = () => {
         status={transactionStatus}
         onRetry={handleRetry}
         error={error || undefined}
+        signature={signature || undefined}
       />
 
       <Footer />

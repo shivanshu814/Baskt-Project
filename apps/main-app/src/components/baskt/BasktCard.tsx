@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from '../ui/card';
 import { Button } from '../ui/button';
 import { ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
-import { cn } from '@baskt/ui';
+import { cn, NumberFormat } from '@baskt/ui';
 import { useMemo } from 'react';
 import { BasktCardProps } from '../../types/baskt';
 import { PRICE_PRECISION } from '@baskt/ui';
@@ -17,10 +17,7 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
     isPositive,
     changeColor,
     changeIcon,
-    formattedPrice,
     sparklineData,
-    formattedAum,
-    initials,
   } = useMemo(() => {
     const change24h = baskt.change24h || 0;
     const isPositive = change24h >= 0;
@@ -42,7 +39,6 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
         index,
       })),
       formattedAum: ((baskt.aum || 0) / PRICE_PRECISION).toFixed(1),
-      image: baskt?.image,
       initials: baskt?.name,
     };
   }, [baskt]);
@@ -53,21 +49,18 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
     <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
-          <div className="bg-primary/10 p-2 rounded-full">
-            <img src={baskt.image} alt={initials} className="h-8 w-8 rounded-full" />
-          </div>
           <div>
             <h3 className="font-semibold">{baskt.name || 'Unnamed Baskt'}</h3>
           </div>
         </div>
         <div className={cn('flex items-center text-sm font-medium', changeColor)}>
           {changeIcon}
-          {`${isPositive ? '+' : ''}${Math.abs(baskt.change24h || 0).toFixed(2)}%`}
+          <NumberFormat value={baskt.change24h} />%
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4 pt-0">
-        <div className="text-2xl font-bold">${formattedPrice}</div>
+        <div className="text-2xl font-bold"><NumberFormat value={baskt.price} isPrice={true} /></div>
 
         <div className="h-16 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -99,7 +92,7 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
 
         <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
           <div>Assets: {baskt.totalAssets || 0}</div>
-          <div className="text-right">AUM: ${formattedAum}M</div>
+          <div className="text-right">AUM: <NumberFormat value={baskt.aum} isPrice={true} />M</div>
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-sm text-muted-foreground">

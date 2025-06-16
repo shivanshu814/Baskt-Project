@@ -12,7 +12,6 @@ export interface BasktMetadataModel {
   creator: string;
   creationDate: Date;
   assets: string[];
-  image?: string;
   rebalancePeriod: {
     value: number;
     unit: TimeUnit;
@@ -53,9 +52,6 @@ export const BasktMetadataSchema = new mongoose.Schema(
       type: [mongoose.Schema.Types.ObjectId],
       ref: 'AssetMetadata',
       required: true,
-    },
-    image: {
-      type: String,
     },
     rebalancePeriod: {
       value: {

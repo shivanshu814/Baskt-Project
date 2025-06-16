@@ -20,6 +20,7 @@ export const useBasktCreation = () => {
   const [transactionStatus, setTransactionStatus] = useState<TransactionStatus>('waiting');
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [signature, setSignature] = useState<string | null>(null);
 
   const createBaskt = async (basktData: BasktFormData) => {
     if (!wallet) return;
@@ -51,6 +52,7 @@ export const useBasktCreation = () => {
         throw new Error('Failed to create baskt');
       }
 
+      setSignature(txSignature);
       setTransactionStatus('success');
       router.push(`/baskts/${basktId}`);
     } catch (error) {
@@ -65,6 +67,7 @@ export const useBasktCreation = () => {
 
   const handleRetry = () => {
     setTransactionStatus('waiting');
+    setSignature(null);
   };
 
   return {
@@ -81,5 +84,6 @@ export const useBasktCreation = () => {
     authenticated,
     ready,
     login,
+    signature,
   };
 };

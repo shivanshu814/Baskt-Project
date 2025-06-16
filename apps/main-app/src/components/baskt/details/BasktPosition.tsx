@@ -3,10 +3,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { useOpenPositions } from '../../../hooks/baskt/trade/useOpenPositions';
-import { useBasktClient } from '@baskt/ui';
+import { NumberFormat, PublicKeyText, useBasktClient } from '@baskt/ui';
 import { OnchainPosition, PositionStatus } from '@baskt/types';
 import { BN } from 'bn.js';
-import { PRICE_PRECISION } from '@baskt/ui';
 import AddCollateralDialog from './AddCollateralDialog';
 
 export const BasktPosition = ({ basktId }: { basktId: string }) => {
@@ -57,16 +56,16 @@ export const BasktPosition = ({ basktId }: { basktId: string }) => {
                   positions.map((position: OnchainPosition) => (
                     <TableRow key={position.address.toString()}>
                       <TableCell className="font-medium">
-                        {position.positionId.toString().substring(0, 8)}...
+                        <PublicKeyText publicKey={position.address.toString()} isCopy={true} />
                       </TableCell>
                       <TableCell>
-                        {position.size ? `${(new BN(position.size).toNumber() / PRICE_PRECISION).toFixed(2)}` : '-'}
+                        {position.size ? <NumberFormat value={new BN(position.size).toNumber()} isPrice={true} /> : '-'}
                       </TableCell>
                       <TableCell>
-                        {position.collateral ? `$${(new BN(position.collateral).toNumber() / PRICE_PRECISION).toFixed(2)}` : '-'}
+                        {position.collateral ? <NumberFormat value={new BN(position.collateral).toNumber()} isPrice={true} /> : '-'}
                       </TableCell>
                       <TableCell>
-                        {position.entryPrice ? `$${(new BN(position.entryPrice).toNumber() / PRICE_PRECISION).toFixed(2)}` : '-'}
+                        {position.entryPrice ? <NumberFormat value={new BN(position.entryPrice).toNumber()} isPrice={true} /> : '-'}
                       </TableCell>
                       <TableCell className="text-[#16C784]">
                         {position.status === PositionStatus.OPEN ? 'Open' : position.status === PositionStatus.CLOSED ? 'Closed' : 'Liquidated'}

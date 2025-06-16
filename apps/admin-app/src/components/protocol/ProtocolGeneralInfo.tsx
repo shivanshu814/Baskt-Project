@@ -1,4 +1,5 @@
 import { ProtocolGeneralInfoProps } from '../../types/protocol';
+import { PublicKeyText } from '@baskt/ui';
 
 export function ProtocolGeneralInfo({ owner, treasury, escrowMint }: ProtocolGeneralInfoProps) {
   return (
@@ -11,13 +12,19 @@ export function ProtocolGeneralInfo({ owner, treasury, escrowMint }: ProtocolGen
         </div>
 
         <div className="text-muted-foreground">Owner:</div>
-        <div className="font-medium text-sm break-all text-foreground">{owner}</div>
+        <div className="font-medium text-sm break-all text-foreground">
+          <PublicKeyText publicKey={owner} isCopy={true} noFormat={true} />
+        </div>
 
         <div className="text-muted-foreground">Treasury:</div>
-        <div className="font-medium text-sm break-all text-foreground">{treasury}</div>
+        <div className="font-medium text-sm break-all text-foreground">
+          <PublicKeyText publicKey={treasury} isCopy={true} noFormat={true} />
+        </div>
 
         <div className="text-muted-foreground">Escrow Mint:</div>
-        <div className="font-medium text-sm break-all text-foreground">{escrowMint}</div>
+        <div className="font-medium text-sm break-all text-foreground">
+          <PublicKeyText publicKey={escrowMint} isCopy={true} noFormat={true} />
+        </div>
       </div>
     </div>
   );

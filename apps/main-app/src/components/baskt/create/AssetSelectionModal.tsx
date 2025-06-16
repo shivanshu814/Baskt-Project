@@ -11,11 +11,10 @@ import {
 import { Input } from '../../ui/input';
 import { Search } from 'lucide-react';
 import { Loading } from '../../ui/loading';
-import { useBasktClient } from '@baskt/ui';
+import { NumberFormat, useBasktClient } from '@baskt/ui';
 import { toast } from 'sonner';
 import { trpc } from '../../../utils/trpc';
 import { AssetSelectionModalProps } from '../../../types/baskt';
-import { PRICE_PRECISION } from '@baskt/ui';
 
 export function AssetSelectionModal({
   open,
@@ -100,16 +99,14 @@ export function AssetSelectionModal({
 
                   <div className="flex flex-col items-end">
                     <span>
-                      {asset.priceRaw / PRICE_PRECISION < 0.0001
-                        ? (asset.priceRaw / PRICE_PRECISION).toFixed(8)
-                        : (asset.priceRaw / PRICE_PRECISION).toFixed(4)}
+                      <NumberFormat value={asset.priceRaw} isPrice={true} />
                     </span>
                     <span
                       className={
                         asset.change24h >= 0 ? 'text-success text-xs' : 'text-destructive text-xs'
                       }
                     >
-                      {(asset.change24h / PRICE_PRECISION).toFixed(2)}%
+                      <NumberFormat value={asset.change24h} />%
                     </span>
                   </div>
                 </div>

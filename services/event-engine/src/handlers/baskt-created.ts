@@ -27,7 +27,6 @@ async function createBasktMutation(
       assets: onchainBaskt.currentAssetConfigs.map((config: OnchainAssetConfig) =>
         config.assetId.toString(),
       ),
-      image: `https://api.dicebear.com/7.x/shapes/svg?seed=${basktCreatedData.basktName}&backgroundColor=4F46E5&shape1Color=6366F1&shape2Color=818CF8`,
       rebalancePeriod: {
         value: 24,
         unit: 'hour',

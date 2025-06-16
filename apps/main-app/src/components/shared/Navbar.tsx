@@ -18,6 +18,8 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { toast } from 'sonner';
+import { PublicKeyText } from '@baskt/ui';
+
 interface NavbarProps {
   setSidebarOpen?: (open: boolean) => void;
 }
@@ -37,11 +39,6 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
       navigator.clipboard.writeText(user.wallet.address);
       toast.success('Address copied to clipboard');
     }
-  };
-
-  const formatWalletAddress = (address: string) => {
-    if (!address) return '';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
   return (
@@ -99,7 +96,7 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
               <DropdownMenuTrigger asChild>
                 <button className="bg-[#1a1f2e] text-white hover:bg-[#1a1f2e]/90 h-10 px-4 rounded-lg text-sm font-medium border border-white/10 flex items-center gap-2">
                   <Wallet className="h-4 w-4" />
-                  {formatWalletAddress(user.wallet.address)}
+                  <PublicKeyText publicKey={user.wallet.address} />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">

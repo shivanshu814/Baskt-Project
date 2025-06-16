@@ -2,7 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { BasktAssetInfo } from '@baskt/types';
 import { IndexCompositionProps } from '../../../types/baskt';
-import { PRICE_PRECISION } from '@baskt/ui';
+import { NumberFormat } from '@baskt/ui';
 
 export function changeFromCurrentPrice(asset: BasktAssetInfo) {
   const change = asset.price - (asset.baselinePrice || asset.price);
@@ -44,26 +44,22 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                     </div>
                   </TableCell>
                   <TableCell className="capitalize">{asset.direction ? 'long' : 'short'}</TableCell>
-                  <TableCell>{asset.weight}%</TableCell>
+                  <TableCell><NumberFormat value={asset.weight} />%</TableCell>
                   <TableCell>
                     {asset.baselinePrice !== undefined
-                      ? `$${(asset.baselinePrice / PRICE_PRECISION).toFixed(8)}`
+                      ? <NumberFormat value={asset.baselinePrice} isPrice={true} />
                       : 'Price Unavailable'}
                   </TableCell>
                   <TableCell>
                     {asset.price !== undefined
-                      ? `$${(asset.price / PRICE_PRECISION).toFixed(asset.price < 0.0001 ? 8 : 4)}`
+                      ? <NumberFormat value={asset.price} isPrice={true} />
                       : 'Price Unavailable'}
                   </TableCell>
                   <TableCell
                     className={`text-right ${changeFromCurrentPrice(asset) >= 0 ? 'text-[#16C784]' : 'text-[#EA3943]'
                       }`}
                   >
-                    {changeFromCurrentPrice(asset) !== undefined ? (
-                      <>{changeFromCurrentPrice(asset).toFixed(2)}%</>
-                    ) : (
-                      'N/A'
-                    )}
+                    <NumberFormat value={changeFromCurrentPrice(asset)} />%
                   </TableCell>
                 </TableRow>
               ))}

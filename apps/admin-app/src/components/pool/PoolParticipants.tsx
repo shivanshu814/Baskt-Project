@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { ChevronLeft, ChevronRight, Copy, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PoolParticipantsProps } from '../../types/pool';
 import { PAGE_SIZE_OPTIONS } from '../../constants/pool';
+import { PublicKeyText } from '@baskt/ui';
 
 export function PoolParticipants({
   participants,
@@ -14,8 +15,6 @@ export function PoolParticipants({
   onPageChange,
   onPageSizeChange,
 }: PoolParticipantsProps) {
-  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
-
   const handlePageSizeChange = (size: (typeof PAGE_SIZE_OPTIONS)[number]) => {
     onPageSizeChange(size);
   };
@@ -76,24 +75,8 @@ export function PoolParticipants({
                     <td className="py-3 px-4 text-white/80 font-mono text-sm">
                       <div className="flex items-center gap-2">
                         <span>
-                          {participant.address.slice(0, 4)}...{participant.address.slice(-4)}
+                          <PublicKeyText publicKey={participant.address} isCopy={true} noFormat={true} />
                         </span>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(participant.address);
-                            setCopiedAddress(participant.address);
-                            setTimeout(() => setCopiedAddress(null), 1200);
-                          }}
-                          className="p-1 rounded hover:bg-white/10 transition"
-                          title="Copy address"
-                          type="button"
-                        >
-                          {copiedAddress === participant.address ? (
-                            <Check className="h-4 w-4 text-green-400" />
-                          ) : (
-                            <Copy className="h-4 w-4 text-white/40" />
-                          )}
-                        </button>
                       </div>
                     </td>
                     <td className="py-3 px-4 text-white/80">

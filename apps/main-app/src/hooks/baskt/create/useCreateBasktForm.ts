@@ -31,7 +31,6 @@ const BasktFormSchema = z.object({
       },
     ),
   isPublic: z.boolean(),
-  image: z.string().optional(),
 });
 
 export type BasktFormData = z.infer<typeof BasktFormSchema>;
@@ -49,7 +48,6 @@ export const useCreateBasktForm = () => {
     },
     assets: [],
     isPublic: true,
-    image: '',
   });
 
   const handleChange = (field: string, value: string | boolean) => {

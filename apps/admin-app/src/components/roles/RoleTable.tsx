@@ -1,8 +1,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Loading } from '../ui/loading';
-import { Copy, Check } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { ROLE_DISPLAY_MAP } from '@baskt/ui';
+import { ROLE_DISPLAY_MAP, PublicKeyText } from '@baskt/ui';
 import { RoleActions } from './RoleActions';
 import { RoleTableProps } from '../../types/roles';
 
@@ -10,7 +8,6 @@ export function RoleTable({
   roles,
   isLoading,
   isOwner,
-  copiedAddress,
   onCopyAddress,
   onRemoveRole,
 }: RoleTableProps) {
@@ -44,26 +41,9 @@ export function RoleTable({
               <TableRow key={index}>
                 <TableCell className="font-mono text-xs">
                   <div className="flex items-center gap-2">
-                    <span>{role.account}</span>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            className="p-1 hover:bg-white/10 rounded-md"
-                            onClick={() => onCopyAddress(role.account)}
-                          >
-                            {copiedAddress === role.account ? (
-                              <Check className="w-4 h-4 text-green-500" />
-                            ) : (
-                              <Copy className="w-4 h-4 text-white/60" />
-                            )}
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{copiedAddress === role.account ? 'Copied!' : 'Copy address'}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <span>
+                      <PublicKeyText publicKey={role.account} isCopy={true} noFormat={true} />
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell>

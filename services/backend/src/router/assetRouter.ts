@@ -164,7 +164,7 @@ export function combineAsset(
     assetAddress: onchainAsset.address.toString(),
     logo: config.logo || '',
     name: config.name || onchainAsset.ticker,
-    price: price / 1e6,
+    price: price,
     priceRaw: price,
     change24h,
     account: onchainAsset,

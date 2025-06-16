@@ -4,10 +4,30 @@ import { USDC_MINT, useBasktClient } from '@baskt/ui';
 import BN from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
 import { useUSDCBalance } from '../../pool/useUSDCBalance';
+import { useEffect } from 'react';
 
 export function useOpenPositions(basktId?: string, userAddress?: string) {
   const { client } = useBasktClient();
   const { account: userUSDCAccount, refetch: refetchUSDCBalance } = useUSDCBalance();
+
+  const positionsByBasktAndUserQuery = trpc.position.getPositionsByUserAndBaskt.useQuery(
+    { basktId: basktId || '', userId: userAddress || '' },
+    {
+      enabled: !!basktId && !!userAddress,
+      refetchInterval: 10 * 1000,
+    },
+  );
+
+  useEffect(() => {
+    const handlePositionOpened = () => {
+      positionsByBasktAndUserQuery.refetch();
+    };
+
+    window.addEventListener('position-opened', handlePositionOpened);
+    return () => {
+      window.removeEventListener('position-opened', handlePositionOpened);
+    };
+  }, [positionsByBasktAndUserQuery]);
 
   const closePosition = async (position: OnchainPosition) => {
     if (!client || !userUSDCAccount || !basktId) return;
@@ -23,6 +43,7 @@ export function useOpenPositions(basktId?: string, userAddress?: string) {
       USDC_MINT,
     );
     refetchUSDCBalance();
+    positionsByBasktAndUserQuery.refetch();
   };
 
   const addCollateral = async (position: OnchainPosition, additionalCollateral: BN) => {
@@ -33,14 +54,8 @@ export function useOpenPositions(basktId?: string, userAddress?: string) {
       ownerTokenAccount: userUSDCAccount.address,
     });
     refetchUSDCBalance();
+    positionsByBasktAndUserQuery.refetch();
   };
-
-  const positionsByBasktAndUserQuery = trpc.position.getPositionsByUserAndBaskt.useQuery(
-    { basktId: basktId || '', userId: userAddress || '' },
-    {
-      enabled: !!basktId && !!userAddress,
-    },
-  );
 
   let positions = (positionsByBasktAndUserQuery.data as any)?.data; //eslint-disable-line
 
@@ -52,6 +67,7 @@ export function useOpenPositions(basktId?: string, userAddress?: string) {
       error: null,
       closePosition,
       addCollateral,
+      refetch: positionsByBasktAndUserQuery.refetch,
     };
   }
 
@@ -66,5 +82,6 @@ export function useOpenPositions(basktId?: string, userAddress?: string) {
     isLoading: positionsByBasktAndUserQuery.isLoading,
     isError: positionsByBasktAndUserQuery.isError,
     error: positionsByBasktAndUserQuery.error,
+    refetch: positionsByBasktAndUserQuery.refetch,
   };
 }

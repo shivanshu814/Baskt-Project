@@ -7,7 +7,7 @@ import {
 } from '../ui/dropdown-menu';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
-import { cn } from '@baskt/ui';
+import { cn, PublicKeyText } from '@baskt/ui';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
@@ -93,7 +93,7 @@ export function AdminNavbar({ className }: AdminNavbarProps) {
                   {activeWallet ? (
                     <>
                       <Wallet className="h-4 w-4 mr-2" />
-                      {formatWalletAddress(activeWallet?.address || '')}
+                      <PublicKeyText publicKey={activeWallet?.address || ''} />
                     </>
                   ) : (
                     'Connect Wallet'
@@ -111,30 +111,32 @@ export function AdminNavbar({ className }: AdminNavbarProps) {
               )}
             </Tooltip>
           </TooltipProvider>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="bg-[#1a1f2e] !text-white hover:!bg-[#1a1f2e]/90 !h-10 !w-10 !rounded-full border border-white/10"
+          {activeWallet && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="bg-[#1a1f2e] !text-white hover:!bg-[#1a1f2e]/90 !h-10 !w-10 !rounded-full border border-white/10"
+                >
+                  <User className="h-4 w-4" />
+                  <span className="sr-only">Profile</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="bg-[#0d1117] text-white border border-white/10 rounded-xl shadow-xl w-48 py-2 px-2"
               >
-                <User className="h-4 w-4" />
-                <span className="sr-only">Profile</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="bg-[#0d1117] text-white border border-white/10 rounded-xl shadow-xl w-48 py-2 px-2"
-            >
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="hover:!bg-[#1a1f2e] cursor-pointer px-4 py-2.5 text-red-400 [&:hover]:text-red-400"
-              >
-                <LogOut className="h-4 w-4 mr-2 text-red-400" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="hover:!bg-[#1a1f2e] cursor-pointer px-4 py-2.5 text-red-400 [&:hover]:text-red-400"
+                >
+                  <LogOut className="h-4 w-4 mr-2 text-red-400" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
     </header>

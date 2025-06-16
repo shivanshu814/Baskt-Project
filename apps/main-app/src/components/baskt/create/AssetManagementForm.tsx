@@ -1,5 +1,5 @@
 import { Plus, Search, Trash2 } from 'lucide-react';
-import { cn } from '@baskt/ui';
+import { cn, NumberFormat } from '@baskt/ui';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
@@ -83,7 +83,7 @@ export const AssetManagementForm = ({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>${asset.price.toLocaleString()}</TableCell>
+                    <TableCell><NumberFormat value={asset.price} isPrice={true} /></TableCell>
                     <TableCell>
                       <Input
                         type="number"

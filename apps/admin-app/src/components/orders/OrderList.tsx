@@ -15,16 +15,17 @@ import {
     DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { formatDate } from '../../utils/pool';
-import { Copy, Check, MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import { useCopyWithTimeout } from '../../hooks/useCopyWithTimeout';
 import { getStatusColor, getActionColor } from '../../utils/orderUtils';
 import FillPositionDialog from './FillPositionDialog';
 import ClosePositionDialog from './ClosePositionDialog';
 import { OnchainOrder, OrderAction, OrderStatus } from '@baskt/types';
+import { PublicKeyText } from '@baskt/ui';
 
 const OrderList = () => {
     const { orders = [] } = useOrders();
-    const { copiedKey, handleCopy } = useCopyWithTimeout();
+    const { handleCopy } = useCopyWithTimeout();
 
     const [isFillDialogOpen, setIsFillDialogOpen] = useState(false);
     const [selectedOrderForFill, setSelectedOrderForFill] = useState<OnchainOrder | null>(null);
@@ -83,39 +84,19 @@ const OrderList = () => {
                                 <TableCell>
                                     <div className="flex items-center gap-2">
                                         <p className="text-sm font-medium text-gray-200 truncate cursor-pointer" onClick={() => handleCopy(order.orderId.toString(), `orderId-${order.orderId}`)}>
-                                            {order.orderId.toString()}
+                                            <PublicKeyText publicKey={order.orderId.toString()} isCopy={true} noFormat={true} />
                                         </p>
-                                        <button
-                                            className="p-1 hover:bg-gray-700 rounded"
-                                            onClick={() => handleCopy(order.orderId.toString(), `orderId-${order.orderId}`)}
-                                            title={copiedKey === `orderId-${order.orderId}` ? 'Copied!' : 'Copy Order ID'}
-                                        >
-                                            {copiedKey === `orderId-${order.orderId}` ? (
-                                                <Check size={14} className="text-green-400" />
-                                            ) : (
-                                                <Copy size={14} className="text-gray-400" />
-                                            )}
-                                        </button>
                                     </div>
                                     <div className="flex items-center gap-2 mt-1">
                                         <p className="text-sm text-gray-500 cursor-pointer" onClick={() => handleCopy(order.owner.toBase58(), `owner-${order.orderId}`)}>
-                                            {order.owner.toBase58().slice(0, 8)}...{order.owner.toBase58().slice(-8)}
+                                            <PublicKeyText publicKey={order.owner.toBase58()} isCopy={true} />
                                         </p>
-                                        <button
-                                            className="p-1 hover:bg-gray-700 rounded"
-                                            onClick={() => handleCopy(order.owner.toBase58(), `owner-${order.orderId}`)}
-                                            title={copiedKey === `owner-${order.orderId}` ? 'Copied!' : 'Copy Owner'}
-                                        >
-                                            {copiedKey === `owner-${order.orderId}` ? (
-                                                <Check size={14} className="text-green-400" />
-                                            ) : (
-                                                <Copy size={14} className="text-gray-400" />
-                                            )}
-                                        </button>
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <p className="text-sm text-gray-200">{order.basktId.toBase58().slice(0, 8)}...{order.basktId.toBase58().slice(-8)}</p>
+                                    <p className="text-sm text-gray-200">
+                                        <PublicKeyText publicKey={order.basktId.toBase58()} isCopy={true} />
+                                    </p>
                                 </TableCell>
                                 <TableCell>
                                     <p className={`text-sm font-medium ${getActionColor(order.isLong)}`}>{order.isLong ? 'Long' : 'Short'}</p>

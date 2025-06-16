@@ -5,10 +5,10 @@ import { Slider } from '../../ui/slider';
 import { useState } from 'react';
 import { toast } from '../../../hooks/common/use-toast';
 import { BasktTradingFormProps } from '../../../types/baskt';
-import { useBasktClient } from '@baskt/ui';
+import { NumberFormat, useBasktClient } from '@baskt/ui';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import { useOpenPosition } from '../../../hooks/baskt/trade/openPosition';
-import { PRICE_PRECISION } from '@baskt/ui';
+import { BN } from '@coral-xyz/anchor';
 
 export function BasktTradingForm({ baskt, className }: BasktTradingFormProps) {
   const [size, setSize] = useState<number>(0);
@@ -116,11 +116,11 @@ export function BasktTradingForm({ baskt, className }: BasktTradingFormProps) {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Current Price:</span>
-              <span>${(baskt.price / PRICE_PRECISION).toFixed(2)}</span>
+              <span><NumberFormat value={new BN(baskt.price).toNumber()} isPrice={true} /></span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Size:</span>
-              <span>{size}</span>
+              <span><NumberFormat value={new BN(size).toNumber()} /></span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Collateral:</span>
