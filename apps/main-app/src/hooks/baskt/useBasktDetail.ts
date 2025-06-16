@@ -19,7 +19,35 @@ export const useBasktDetail = (basktId: string) => {
   });
 
   const { data: basktInfo, isSuccess: isBasktDataLoaded } =
-    trpc.baskt.getBasktMetadataById.useQuery({ basktId });
+    trpc.baskt.getBasktMetadataById.useQuery(
+      { basktId },
+      {
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+      },
+    );
+
+  const { data: basktNavData, isSuccess: isBasktNavDataLoaded } = trpc.baskt.getBasktNAV.useQuery(
+    { basktId },
+    {
+      refetchInterval: 2 * 1000,
+    },
+  );
+
+  useEffect(() => {
+    if (!isBasktNavDataLoaded) return;
+    if (!baskt) return;
+    // @ts-expect-error data is expected to be present
+    if (!basktNavData?.data?.nav) return;
+    const basktCopy = baskt;
+    if (!basktCopy) return;
+    setBaskt({
+      ...basktCopy,
+      // @ts-expect-error data is expected to be present
+      price: basktNavData?.data?.nav,
+    });
+  }, [baskt, isBasktNavDataLoaded, basktNavData]);
 
   useEffect(() => {
     const fetchBasktData = async () => {

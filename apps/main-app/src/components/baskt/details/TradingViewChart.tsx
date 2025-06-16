@@ -49,7 +49,6 @@ const CHART_OPTIONS = {
   },
 } as const;
 
-const REFRESH_INTERVAL = 30 * 1000; // 30 seconds
 
 const AREA_SERIES_OPTIONS = {
   topColor: 'rgba(0, 82, 255, 0.56)',
@@ -83,7 +82,9 @@ export function TradingViewChart({
       basktId,
     },
     {
-      refetchInterval: REFRESH_INTERVAL,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
       enabled: Boolean(period && basktId),
     },
   );
