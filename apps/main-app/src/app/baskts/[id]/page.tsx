@@ -8,11 +8,13 @@ import { Button } from '../../../components/ui/button';
 import { useBasktDetail } from '../../../hooks/baskt/useBasktDetail';
 import { BasktChart } from '../../../components/baskt/details/BasktChart';
 import { BasktTabs } from '../../../components/baskt/details/BasktTabs';
+import { useState } from 'react';
 
 export default function BasktDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const basktId = params.id as string;
+
+  const [basktId, setBasktId] = useState(params.id as string);
 
   const {
     baskt,
@@ -57,7 +59,7 @@ export default function BasktDetailPage() {
               setChartPeriod={setChartPeriod}
               chartType={chartType}
               setChartType={setChartType}
-              onBasktChange={(id) => router.push(`/baskts/${id}`)}
+              onBasktChange={(id) => setBasktId(id)}
             />
 
             <BasktTabs baskt={baskt} />
