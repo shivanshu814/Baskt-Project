@@ -166,7 +166,6 @@ export const BasktChart = ({
             ))}
           </div>
         </div>
-
         <TradingViewChart
           className="h-[500px]"
           dailyData={baskt.priceHistory?.daily || []}
