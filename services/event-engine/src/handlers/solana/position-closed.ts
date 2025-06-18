@@ -1,6 +1,7 @@
-import { trpcClient } from '../utils/config';
+import { trpcClient } from '../../utils/config';
 import BN from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
+import { EventSource, ObserverEvent } from '../../types';
 
 export type PositionClosedEvent = {
   orderId: BN;
@@ -16,9 +17,10 @@ export type PositionClosedEvent = {
   exitPrice: BN;
 };
 
-export default async function positionClosedHandler(data: any, slot: number, tx: string) {
-  console.log('Position closed event:', data);
-  const positionClosedData = data as PositionClosedEvent;
+async function positionClosedHandler(event: ObserverEvent) {
+  console.log('Position closed event:', event);
+  const positionClosedData = event.payload.event as PositionClosedEvent;
+  const tx = event.payload.signature;
 
   // close position in DB
   await trpcClient.position.closePosition.mutate({
@@ -26,6 +28,12 @@ export default async function positionClosedHandler(data: any, slot: number, tx:
     exitPrice: positionClosedData.exitPrice.toString(),
     tx,
     ts: positionClosedData.timestamp.toString(),
-    //TODO add the orderId as well in which we closed it
+    //TODO add the order in which it was closed
   });
 }
+
+export default {
+  source: EventSource.SOLANA,
+  type: 'positionClosedEvent',
+  handler: positionClosedHandler,
+};

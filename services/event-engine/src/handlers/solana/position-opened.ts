@@ -1,9 +1,10 @@
-import { trpcClient } from '../utils/config';
-import { basktClient } from '../utils/config';
+import { trpcClient } from '../../utils/config';
+import { basktClient } from '../../utils/config';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { OnchainPosition } from '@baskt/types';
 import { PositionStatus } from '@baskt/types';
+import { EventSource, ObserverEvent } from '../../types';
 
 interface PositionOpenedEvent {
   orderId: BN;
@@ -18,9 +19,10 @@ interface PositionOpenedEvent {
   timestamp: BN;
 }
 
-async function positionOpenedHandler(data: any, slot: number, tx: string) {
-  console.log('Received position opened event data: ', data);
-  const positionOpenedData = data as PositionOpenedEvent;
+async function positionOpenedHandler(event: ObserverEvent) {
+  console.log('Received position opened event data: ', event);
+  const positionOpenedData = event.payload.event as PositionOpenedEvent;
+  const tx = event.payload.signature;
 
   try {
     if (!positionOpenedData.positionId) {
@@ -52,35 +54,13 @@ async function positionOpenedHandler(data: any, slot: number, tx: string) {
     }
 
     console.log('Found Order PDA: ', orderPDA.toString());
-
-    const order = await trpcClient.order.getOrders.query({ orderPDA: orderPDA.toString() });
-    if (
-      !order.success ||
-      !('data' in order) ||
-      !order.data ||
-      !order.data.length ||
-      !(order.data[0] as any)._id
-    ) {
-      throw new Error('Order metadata not found');
-    }
-    const orderMetadata = order.data[0];
-
-    const baskt = await trpcClient.baskt.getBasktMetadataById.query({
-      basktId: onchainPosition.basktId.toString(),
-    });
-    if (!baskt.success || !('data' in baskt) || !(baskt.data as any)._id) {
-      throw new Error(
-        `Failed to get baskt metadata: ${'message' in baskt ? baskt.message : 'Unknown error'}`,
-      );
-    }
-
-    console.log('Found Order Metadata');
+    console.log('Found Position PDA: ', positionPDA.toString());
 
     const positionResult = await trpcClient.position.createPosition.mutate({
       positionPDA: onchainPosition.address.toString(),
       positionId: onchainPosition.positionId.toString(),
       basktId: onchainPosition.basktId.toString(),
-      openOrder: (orderMetadata as any)._id,
+      openOrder: orderPDA.toString(),
       openPosition: {
         tx: tx,
         ts: onchainPosition.timestampOpen.toString(),
@@ -103,13 +83,7 @@ async function positionOpenedHandler(data: any, slot: number, tx: string) {
 
     console.log('Position created successfully in DB');
 
-    return {
-      success: true,
-      data: {
-        position: positionResult.data,
-        baskt: baskt.data,
-      },
-    };
+    return;
   } catch (error) {
     console.error(
       'Error in positionOpenedHandler:',
@@ -119,4 +93,8 @@ async function positionOpenedHandler(data: any, slot: number, tx: string) {
   }
 }
 
-export default positionOpenedHandler;
+export default {
+  source: EventSource.SOLANA,
+  type: 'positionOpenedEvent',
+  handler: positionOpenedHandler,
+};

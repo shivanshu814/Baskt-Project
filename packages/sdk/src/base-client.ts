@@ -1171,6 +1171,8 @@ export abstract class BaseClient {
     // Fetch the position to get the owner
     const positionAccount = await this.getPosition(params.position);
 
+    const [fundingIndex] = await this.getFundingIndexPda(params.baskt);
+
     // Prepare remaining accounts in the correct order
     const remainingAccounts = [
       {
@@ -1199,6 +1201,7 @@ export abstract class BaseClient {
         positionOwner: positionAccount.owner,
         baskt: params.baskt,
         treasury: params.treasury,
+        fundingIndex: fundingIndex,
       })
       .remainingAccounts(remainingAccounts)
       .rpc();

@@ -1,32 +1,35 @@
-import { EVENT_MAPPINGS_HANDLER, PROGRAM_ID, solanaConnection } from './utils/const';
-import { basktClient } from './utils/config';
+// Event Engine Listener Entrypoint
+// Wires up adapters and handlers using the observer pattern
 
-console.log(
-  'event engine initialized and listening for logs...',
-  PROGRAM_ID,
-  solanaConnection.rpcEndpoint,
-);
+import { ObserverRouter } from './observer-router';
+import { initSolanaAdapter } from './adapters/solana';
+import registerAllHandlers from './handlers/solana';
 
-const eventHandler =
-  (eventName: string, handler: any) => (event: any, slot: number, signature: string) => {
-    try {
-      console.log('Adding event to queue', eventName, signature);
-      // eventsQueue.add(event, {
-      //   event,
-      //   slot,
-      //   signature,
-      // });
-      handler(event, slot, signature);
-    } catch (error) {
-      console.error('Error adding event to queue', event, error);
-    }
-  };
+/**
+ * Initialize the event engine with all adapters and handlers
+ */
+export async function initEventEngine(): Promise<void> {
+  try {
+    // Create the observer router
+    const router = new ObserverRouter();
 
-for (const [eventName, handler] of Object.entries(EVENT_MAPPINGS_HANDLER)) {
-  console.log('Listening for event', eventName);
-  basktClient.program.addEventListener(
-    eventName as any,
-    eventHandler(eventName, handler),
-    'confirmed',
-  );
+    // Register all handlers
+    registerAllHandlers(router);
+
+    // Add more handlers here as needed
+    // router.register(otherHandler.source, otherHandler.type, otherHandler.handler);
+
+    // Initialize all adapters
+    await Promise.all([initSolanaAdapter(router)]);
+
+    console.log('Event engine initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize event engine:', error);
+    throw error;
+  }
 }
+
+initEventEngine().catch((error) => {
+  console.error('Event engine initialization failed:', error);
+  process.exit(1);
+});

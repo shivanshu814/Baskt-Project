@@ -1,13 +1,13 @@
 import dotenv from 'dotenv';
 import { Connection, PublicKey } from '@solana/web3.js';
 
-import basktCreatedHandler from '../handlers/baskt-created';
-import orderCreatedHandler from '../handlers/order-created';
-import orderCancelledHandler from '../handlers/order-cancelled';
-import positionOpenedHandler from '../handlers/position-opened';
-import collateralAddedHandler from '../handlers/collateral-added';
-import positionClosedHandler from '../handlers/position-closed';
-import positionLiquidatedHandler from '../handlers/position-liquidated';
+// import basktCreatedHandler from '../handlers/solana/baskt-created';
+// import orderCreatedHandler from '../handlers/solana/order-created';
+// import orderCancelledHandler from '../handlers/solana/order-cancelled';
+// import positionOpenedHandler from '../handlers/solana/position-opened';
+// import collateralAddedHandler from '../handlers/solana/collateral-added';
+// import positionClosedHandler from '../handlers/solana/position-closed';
+// import positionLiquidatedHandler from '../handlers/solana/position-liquidated';
 
 dotenv.config();
 
@@ -18,12 +18,12 @@ export const PROGRAM_ID = new PublicKey(
 );
 export const solanaConnection = new Connection(SOLANA_RPC_URL, 'confirmed');
 
-export const EVENT_MAPPINGS_HANDLER: Record<string, any> = {
-  basktCreatedEvent: basktCreatedHandler,
-  orderCreatedEvent: orderCreatedHandler,
-  orderCancelledEvent: orderCancelledHandler,
-  positionOpenedEvent: positionOpenedHandler,
-  collateralAddedEvent: collateralAddedHandler,
-  positionClosedEvent: positionClosedHandler,
-  positionLiquidatedEvent: positionLiquidatedHandler,
-};
+// export const EVENT_MAPPINGS_HANDLER: Record<string, any> = {
+//   basktCreatedEvent: basktCreatedHandler,
+//   orderCreatedEvent: orderCreatedHandler,
+//   orderCancelledEvent: orderCancelledHandler,
+//   positionOpenedEvent: positionOpenedHandler,
+//   collateralAddedEvent: collateralAddedHandler,
+//   positionClosedEvent: positionClosedHandler,
+//   positionLiquidatedEvent: positionLiquidatedHandler,
+// };

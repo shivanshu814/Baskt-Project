@@ -2,9 +2,10 @@
 
 import { PublicKey } from '@solana/web3.js';
 import { OnchainOrder, OrderAction, OrderStatus } from '@baskt/types';
-import { basktClient } from '../utils/config';
+import { basktClient } from '../../utils/config';
 import { BN } from 'bn.js';
-import { trpcClient } from '../utils/config';
+import { trpcClient } from '../../utils/config';
+import { EventSource, ObserverEvent } from '../../types';
 
 export interface OrderCreatedEvent {
   owner: PublicKey;
@@ -116,8 +117,9 @@ async function handleCloseOrder(orderCreatedData: OrderCreatedEvent, onchainOrde
   }
 }
 
-export default async function orderCreatedHandler(data: any, slot: number, signature: string) {
-  const orderCreatedData = data as OrderCreatedEvent;
+async function orderCreatedHandler(event: ObserverEvent) {
+  const orderCreatedData = event.payload.event as OrderCreatedEvent;
+  const signature = event.payload.signature;
 
   try {
     if (!orderCreatedData.orderId) {
@@ -195,3 +197,9 @@ export default async function orderCreatedHandler(data: any, slot: number, signa
     throw error;
   }
 }
+
+export default {
+  source: EventSource.SOLANA,
+  type: 'orderCreatedEvent',
+  handler: orderCreatedHandler,
+};
