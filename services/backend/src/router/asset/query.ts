@@ -1,72 +1,39 @@
-import { PublicKey } from '@solana/web3.js';
-import { sdkClient } from '../utils';
-import { AssetMetadataModel } from '../utils/models';
-import { OnchainAsset } from '@baskt/types';
-import { router, publicProcedure } from '../trpc/trpc';
+import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
-import { getLatestAssetPriceInternal } from './assetPrice';
+import { sdkClient } from '../../utils';
+import { AssetMetadataModel } from '../../utils/models';
+import { getLatestAssetPriceInternal } from '../assetPrice/query';
+import { PublicKey } from '@solana/web3.js';
 
 const sdkClientInstance = sdkClient();
 const assetIdCache: Map<string, string> = new Map();
 
-export const assetRouter = router({
-  getAllAssets: publicProcedure.query(async () => {
-    return getAllAssetsInternal(false);
-  }),
-
-  getAllAssetsWithConfig: publicProcedure.query(async () => {
-    return getAllAssetsInternal(true);
-  }),
-
-  getAssetsByAddress: publicProcedure.input(z.array(z.string())).query(async ({ input }) => {
-    return getAssetsByAddressInternal(input);
-  }),
-
-  createAsset: publicProcedure
-    .input(
-      z.object({
-        ticker: z.string().min(1),
-        name: z.string().min(1),
-        assetAddress: z.string().min(1),
-        logo: z.string().min(1),
-        priceConfig: z.object({
-          provider: z.object({
-            id: z.string().min(1),
-            chain: z.string().min(0).optional().default(''),
-            name: z.string().min(1),
-          }),
-          twp: z.object({
-            seconds: z.number().positive(),
-          }),
-          updateFrequencySeconds: z.number().positive(),
-        }),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      try {
-        const existingAsset = await AssetMetadataModel.findOne({ ticker: input.ticker });
-        if (existingAsset) {
-          return { success: false, message: 'Ticker already exists' };
-        }
-        const asset = new AssetMetadataModel(input);
-        await asset.save();
-        return { success: true, data: asset };
-      } catch (error) {
-        console.error('Error creating asset:', error);
-        return { success: false, message: 'Failed to create asset' };
-      }
-    }),
+export const getAllAssets = publicProcedure.query(async () => {
+  return getAllAssetsInternal(false);
 });
 
+export const getAllAssetsWithConfig = publicProcedure.query(async () => {
+  return getAllAssetsInternal(true);
+});
+
+export const getAssetsByAddress = publicProcedure
+  .input(z.array(z.string()))
+  .query(async ({ input }) => {
+    return getAssetsByAddressInternal(input);
+  });
+
+// Internal helpers (shared with mutation if needed)
 async function getAllAssetsInternal(config: boolean) {
   try {
     const assetConfigs = await AssetMetadataModel.find().sort({ createdAt: -1 });
     const assets = await sdkClientInstance.getAllAssets();
     const latestPrices = await Promise.all(
-      assetConfigs.map((assetConfig) => getLatestAssetPriceInternal(assetConfig._id.toString())),
+      assetConfigs.map((assetConfig: any) =>
+        getLatestAssetPriceInternal(assetConfig._id.toString()),
+      ),
     );
 
-    assetConfigs.forEach((assetConfig) => {
+    assetConfigs.forEach((assetConfig: any) => {
       assetIdCache.set(assetConfig.assetAddress, assetConfig._id.toString());
     });
 
@@ -78,18 +45,17 @@ async function getAllAssetsInternal(config: boolean) {
       };
     }
 
-    // Map Asset to the configs and combine then backend + onchain
-    const combinedAssets = assetConfigs.map((assetConfig) => {
+    const combinedAssets = assetConfigs.map((assetConfig: any) => {
       return combineAsset(
-        assets.find((asset) => asset.ticker.toString() === assetConfig.ticker.toString())!,
+        assets.find((asset: any) => asset.ticker.toString() === assetConfig.ticker.toString())!,
         assetConfig,
-        latestPrices.find((price) => price?.id === assetConfig._id.toString())!,
+        latestPrices.find((price: any) => price?.id === assetConfig._id.toString())!,
         config,
       );
     });
     return {
       success: true,
-      data: combinedAssets.filter((asset) => asset),
+      data: combinedAssets.filter((asset: any) => asset),
     };
   } catch (error) {
     console.error('Error fetching assets:', error);
@@ -131,7 +97,7 @@ export async function getAssetIdFromAddress(assetAddress: string) {
 }
 
 export function combineAsset(
-  onchainAsset: OnchainAsset,
+  onchainAsset: any,
   config: any,
   latestPrice: any,
   shouldPassConfig: boolean = false,
@@ -152,12 +118,12 @@ export function combineAsset(
       account: onchainAsset,
       weight: 0,
       config: shouldPassConfig ? undefined : undefined,
+      basktIds: config?.basktIds,
     };
   }
 
   const price = config.priceMetrics?.price ?? 0;
   const change24h = config.priceMetrics?.change24h ?? 0;
-  //TODO a big concern is how we store BN price in the database
   return {
     _id: config._id,
     ticker: onchainAsset.ticker,
@@ -171,5 +137,6 @@ export function combineAsset(
     weight: 0,
     config: shouldPassConfig ? config.priceConfig : undefined,
     latestPrice: latestPrice,
+    basktIds: config.basktIds,
   };
 }

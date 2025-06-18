@@ -1,37 +1,35 @@
-import { AssetPrice } from '../config/timescale';
+import { AssetPrice } from '../../config/timescale';
 import { Op } from 'sequelize';
-import { router, publicProcedure } from '../trpc/trpc';
+import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
 
-export const assetPriceRouter = router({
-  getAssetPrice: publicProcedure
-    .input(
-      z.object({
-        assetId: z.string().min(1),
-        startDate: z.number().min(1),
-        endDate: z.number().min(1),
-      }),
-    )
-    .query(async ({ input }) => {
-      return getAssetPriceInternal(input.assetId, input.startDate, input.endDate);
+export const getAssetPrice = publicProcedure
+  .input(
+    z.object({
+      assetId: z.string().min(1),
+      startDate: z.number().min(1),
+      endDate: z.number().min(1),
     }),
+  )
+  .query(async ({ input }) => {
+    return getAssetPriceInternal(input.assetId, input.startDate, input.endDate);
+  });
 
-  getLatestAssetPrice: publicProcedure
-    .input(
-      z.object({
-        assetId: z.string().min(1),
-      }),
-    )
-    .query(async ({ input }) => {
-      return getLatestAssetPriceInternal(input.assetId);
+export const getLatestAssetPrice = publicProcedure
+  .input(
+    z.object({
+      assetId: z.string().min(1),
     }),
+  )
+  .query(async ({ input }) => {
+    return getLatestAssetPriceInternal(input.assetId);
+  });
 
-  getLatestAssetPrices: publicProcedure
-    .input(z.array(z.object({ assetId: z.string().min(1) })))
-    .query(async ({ input }) => {
-      return getLatestAssetPricesInternal(input.map((asset) => asset.assetId));
-    }),
-});
+export const getLatestAssetPrices = publicProcedure
+  .input(z.array(z.object({ assetId: z.string().min(1) })))
+  .query(async ({ input }) => {
+    return getLatestAssetPricesInternal(input.map((asset) => asset.assetId));
+  });
 
 export async function getLatestAssetPricesInternal(assetIds: string[]) {
   try {
@@ -72,7 +70,7 @@ export async function getLatestAssetPriceInternal(assetId: string) {
   }
 }
 
-async function getAssetPriceInternal(assetId: string, startDate: number, endDate: number) {
+export async function getAssetPriceInternal(assetId: string, startDate: number, endDate: number) {
   try {
     const assetPriceRows = await AssetPrice.findAll({
       where: {
@@ -84,8 +82,8 @@ async function getAssetPriceInternal(assetId: string, startDate: number, endDate
       },
       order: [['time', 'DESC']],
     });
-    console.log(assetPriceRows[0].toJSON().time);
-    console.log(assetPriceRows.length);
+    // console.log(assetPriceRows[0].toJSON().time);
+    // console.log(assetPriceRows.length);
     return assetPriceRows.map((row: any) => {
       const plain = row.toJSON();
       return formatAssetPrice(plain);
@@ -96,7 +94,7 @@ async function getAssetPriceInternal(assetId: string, startDate: number, endDate
   }
 }
 
-function formatAssetPrice(assetPrice: any) {
+export function formatAssetPrice(assetPrice: any) {
   return {
     id: assetPrice.asset_id,
     time: assetPrice.time ? Math.floor(new Date(assetPrice.time).getTime() / 1000) : null,
@@ -105,3 +103,9 @@ function formatAssetPrice(assetPrice: any) {
     rawPrice: assetPrice.price,
   };
 }
+
+export const getRouter = {
+  getAssetPrice,
+  getLatestAssetPrice,
+  getLatestAssetPrices,
+};

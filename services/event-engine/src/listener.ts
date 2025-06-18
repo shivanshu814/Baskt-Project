@@ -7,21 +7,26 @@ console.log(
   solanaConnection.rpcEndpoint,
 );
 
-const eventHandler = (handler: any) => (event: any, slot: number, signature: string) => {
-  try {
-    console.log('Adding event to queue', event, slot, signature);
-    // eventsQueue.add(event, {
-    //   event,
-    //   slot,
-    //   signature,
-    // });
-    handler(event, slot, signature);
-  } catch (error) {
-    console.error('Error adding event to queue', event, error);
-  }
-};
+const eventHandler =
+  (eventName: string, handler: any) => (event: any, slot: number, signature: string) => {
+    try {
+      console.log('Adding event to queue', eventName, signature);
+      // eventsQueue.add(event, {
+      //   event,
+      //   slot,
+      //   signature,
+      // });
+      handler(event, slot, signature);
+    } catch (error) {
+      console.error('Error adding event to queue', event, error);
+    }
+  };
 
 for (const [eventName, handler] of Object.entries(EVENT_MAPPINGS_HANDLER)) {
   console.log('Listening for event', eventName);
-  basktClient.program.addEventListener(eventName as any, eventHandler(handler), 'confirmed');
+  basktClient.program.addEventListener(
+    eventName as any,
+    eventHandler(eventName, handler),
+    'confirmed',
+  );
 }

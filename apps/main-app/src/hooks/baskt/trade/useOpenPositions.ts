@@ -10,7 +10,7 @@ export function useOpenPositions(basktId?: string, userAddress?: string) {
   const { client } = useBasktClient();
   const { account: userUSDCAccount, refetch: refetchUSDCBalance } = useUSDCBalance();
 
-  const positionsByBasktAndUserQuery = trpc.position.getPositionsByUserAndBaskt.useQuery(
+  const positionsByBasktAndUserQuery = trpc.position.getPositions.useQuery(
     { basktId: basktId || '', userId: userAddress || '' },
     {
       enabled: !!basktId && !!userAddress,

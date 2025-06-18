@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-
 export interface AssetPriceProviderConfig {
   provider: {
     id: string;
@@ -19,6 +18,7 @@ export interface AssetMetadataModel {
   logo: string;
   _id?: string;
   createdAt?: Date;
+  basktIds?: string[];
 }
 
 export const AssetMetadataSchema = new mongoose.Schema({
@@ -72,5 +72,10 @@ export const AssetMetadataSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
+  },
+  basktIds: {
+    type: [String],
+    default: [],
+    ref: 'BasktMetadata',
   },
 });

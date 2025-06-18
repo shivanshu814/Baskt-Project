@@ -12,7 +12,13 @@ const faucet = async (args: string[]) => {
   }
 
   const [token, recipientStr, amountStr] = args;
-  const recipient = new PublicKey(recipientStr);
+  let recipient: PublicKey;
+  if (recipientStr === 'me') {
+    recipient = client.getPublicKey();
+  } else {
+    recipient = new PublicKey(recipientStr);
+  }
+
   const amount = parseFloat(amountStr);
   if (isNaN(amount) || amount <= 0) {
     throw new Error('Amount must be a positive number');

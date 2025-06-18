@@ -37,8 +37,11 @@ async function createBasktMutation(
     if (!result.success) {
       throw new Error('Failed to create baskt metadata');
     }
+
+    return result;
   } catch (error) {
     console.error('Error storing baskt metadata:', error);
+    throw error;
   }
 }
 
@@ -46,22 +49,23 @@ export default async function basktCreatedHandler(data: any) {
   const basktEventCreatedData = data as BasktCreatedEvent;
   const basktId = basktEventCreatedData.basktId;
 
+  console.log('basktid', basktId);
+
   const onchainBaskt = (await basktClient.readWithRetry(
     async () => await basktClient.getBaskt(new PublicKey(basktId), 'confirmed'),
     2,
     100,
   )) as OnchainBasktAccount;
-  const onchainAssetList = onchainBaskt.currentAssetConfigs;
 
+  const onchainAssetList = onchainBaskt.currentAssetConfigs;
   const assets = await trpcClient.asset.getAssetsByAddress.query(
     onchainAssetList.map((assetConfig: OnchainAssetConfig) => assetConfig.assetId.toString()),
   );
+  const currentTime = Math.floor(Date.now());
 
   if (!assets || assets.length === 0) {
     return;
   }
-
-  const currentTime = Math.floor(Date.now());
 
   const activeAssets = assets.filter(
     (asset: any) =>
@@ -70,10 +74,9 @@ export default async function basktCreatedHandler(data: any) {
   );
 
   if (activeAssets.length !== onchainAssetList.length) {
+    console.log('Assets not found which are active', activeAssets.length, onchainAssetList.length);
     return;
   }
-
-  // Make the assets in that order
 
   const randomBaselinePrices = activeAssets.map(
     (asset: any) => new BN(Math.floor(asset.priceMetrics.price)),

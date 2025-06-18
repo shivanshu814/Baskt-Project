@@ -138,13 +138,16 @@ export interface RawBasktData {
   categories?: string[];
   creator?: string;
 }
+
 export interface BasktTabsProps {
   baskt: any; // eslint-disable-line
 }
+
 export interface UseOpenPositionProps {
   baskt: BasktInfo;
   size: number;
 }
+
 export interface CalculateSharesParams {
   collateral: number;
   price: number;
@@ -154,6 +157,7 @@ export interface CalculateSharesParams {
 export interface CalculateLiquidationPriceParams extends CalculateSharesParams {
   position: 'long' | 'short';
 }
+
 export interface AddCollateralDialogProps {
   position: OnchainPosition | null;
   isOpen: boolean;

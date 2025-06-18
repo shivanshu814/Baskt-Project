@@ -17,7 +17,7 @@ export interface BasktMetadataModel {
     unit: TimeUnit;
   };
   txSignature: string;
-  _id?: string;
+  _id?: ObjectId;
   createdAt?: Date;
   updatedAt?: Date;
   isActive: boolean;
@@ -47,11 +47,6 @@ export const BasktMetadataSchema = new mongoose.Schema(
     creationDate: {
       type: Date,
       default: Date.now,
-    },
-    assets: {
-      type: [mongoose.Schema.Types.ObjectId],
-      ref: 'AssetMetadata',
-      required: true,
     },
     rebalancePeriod: {
       value: {

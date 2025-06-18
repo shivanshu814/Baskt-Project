@@ -8,7 +8,7 @@ export function useOpenOrders(basktId?: string, userAddress?: string) {
   const { client } = useBasktClient();
   const { account: userUSDCAccount, refetch: refetchUSDCBalance } = useUSDCBalance();
 
-  const ordersByBasktAndUserQuery = trpc.order.getOrdersByBasktAndUser.useQuery(
+  const ordersByBasktAndUserQuery = trpc.order.getOrders.useQuery(
     { basktId: basktId || '', userId: userAddress || '' },
     {
       enabled: !!basktId && !!userAddress,

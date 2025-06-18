@@ -4268,6 +4268,10 @@ export type BasktV1 = {
         "kind": "struct",
         "fields": [
           {
+            "name": "orderId",
+            "type": "u64"
+          },
+          {
             "name": "owner",
             "type": "pubkey"
           },
@@ -4371,6 +4375,10 @@ export type BasktV1 = {
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "orderId",
+            "type": "u64"
+          },
           {
             "name": "owner",
             "type": "pubkey"

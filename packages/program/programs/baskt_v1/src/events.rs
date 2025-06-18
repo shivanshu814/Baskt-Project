@@ -47,6 +47,7 @@ pub struct OrderCancelledEvent {
 #[event]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PositionOpenedEvent {
+    pub order_id: u64,
     pub owner: Pubkey,
     pub position_id: u64,
     pub baskt_id: Pubkey,
@@ -61,6 +62,7 @@ pub struct PositionOpenedEvent {
 #[event]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PositionClosedEvent {
+    pub order_id: u64,
     pub owner: Pubkey,
     pub position_id: u64,
     pub baskt_id: Pubkey,

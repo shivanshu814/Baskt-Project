@@ -160,6 +160,7 @@ pub fn open_position(ctx: Context<OpenPosition>, params: OpenPositionParams) -> 
 
     // Emit event
     emit!(PositionOpenedEvent {
+        order_id: order.order_id,
         owner: position.owner,
         position_id: params.position_id,
         baskt_id: position.baskt_id,

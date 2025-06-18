@@ -2,8 +2,8 @@ import BN from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
 
 export enum OrderAction {
-  Open,
-  Close,
+  Open = 'OPEN',
+  Close = 'CLOSE',
 }
 
 export enum OrderStatus {

@@ -4262,6 +4262,10 @@
         "kind": "struct",
         "fields": [
           {
+            "name": "order_id",
+            "type": "u64"
+          },
+          {
             "name": "owner",
             "type": "pubkey"
           },
@@ -4365,6 +4369,10 @@
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "order_id",
+            "type": "u64"
+          },
           {
             "name": "owner",
             "type": "pubkey"

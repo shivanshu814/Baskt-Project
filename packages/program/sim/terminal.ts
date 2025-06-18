@@ -75,6 +75,11 @@ async function main() {
       rl.prompt();
       return;
     }
+    if (input === 'clear') {
+      process.stdout.write('\x1Bc');
+      rl.prompt();
+      return;
+    }
     const [cmd, ...args] = input.split(/\s+/);
     if (!actions[cmd]) {
       console.error(`Unknown command: ${cmd}`);

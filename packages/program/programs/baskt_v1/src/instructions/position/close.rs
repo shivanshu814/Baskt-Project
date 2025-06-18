@@ -343,6 +343,7 @@ pub fn close_position<'info>(
 
     // Emit event
     emit!(PositionClosedEvent {
+        order_id: order.order_id,
         owner: position.owner,
         position_id: position.position_id,
         baskt_id: position.baskt_id.key(),

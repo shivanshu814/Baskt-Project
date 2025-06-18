@@ -14,7 +14,6 @@ export const processBasktData = (
       ...baskt,
       basktId: baskt.basktId?.toString() || '',
       name: baskt.name || '',
-      image: baskt.image || '',
       price: baskt.price ?? 0,
       change24h: baskt.change24h ?? 0,
       aum: baskt.aum ?? 0,

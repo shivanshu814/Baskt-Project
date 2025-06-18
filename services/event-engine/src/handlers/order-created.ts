@@ -1,13 +1,14 @@
 //OrderCreatedEvent
 
 import { PublicKey } from '@solana/web3.js';
-import { OnchainOrder, OrderAction } from '@baskt/types';
+import { OnchainOrder, OrderAction, OrderStatus } from '@baskt/types';
 import { basktClient } from '../utils/config';
 import { BN } from 'bn.js';
 import { trpcClient } from '../utils/config';
+
 export interface OrderCreatedEvent {
   owner: PublicKey;
-  orderId: InstanceType<typeof BN>;
+  orderId: InstanceType<typeof BN> | number | string;
   basktId: PublicKey;
   size: InstanceType<typeof BN>;
   collateral: InstanceType<typeof BN>;
@@ -23,25 +24,30 @@ async function getCurrentNavForBaskt(basktId: PublicKey) {
   });
 
   if (!baskt.success) {
+    const errorMessage =
+      'error' in baskt ? baskt.error : 'message' in baskt ? baskt.message : 'Unknown error';
+    console.error('Failed to fetch baskt metadata:', errorMessage);
     throw new Error('Failed to fetch baskt metadata');
   }
 
-  // @ts-expect-error data should be there when success is true
-  if (!baskt.data) {
+  if (!('data' in baskt)) {
+    console.error('Baskt metadata not found for baskt:', basktId.toString());
     throw new Error('Baskt metadata not found');
   }
 
-  // @ts-expect-error data should be there when success is true
-  return new BN(baskt.data.nav);
+  const nav = baskt.data.nav === 0 ? 1000000 : baskt.data.nav;
+  return new BN(nav);
 }
 
 async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder: OnchainOrder) {
   try {
     const positionId = basktClient.newIdForPosition();
-
     const price = await getCurrentNavForBaskt(onchainOrder.basktId);
 
-    console.log(price);
+    if (price.isZero()) {
+      console.error('Invalid NAV price: Price is zero for baskt:', onchainOrder.basktId.toString());
+      throw new Error('Invalid NAV price: Price is zero');
+    }
 
     await basktClient.updateOraclePrice(onchainOrder.basktId, price);
 
@@ -54,28 +60,21 @@ async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder
       orderOwner: onchainOrder.owner,
     });
 
-    // open position in db
-    await trpcClient.position.createPosition.mutate({
-      //TOOD Shivanshu Store the positionId, orderID, tx when we opened it
-      address: basktClient.getPositionPDA(onchainOrder.owner, positionId).toString(),
-      order: onchainOrder.address.toString(),
-      owner: onchainOrder.owner.toString(),
-      size: onchainOrder.size.toString(),
-      basktId: onchainOrder.basktId.toString(),
-      collateral: onchainOrder.collateral.toString(),
-      isLong: onchainOrder.isLong,
-      entryPrice: price.toString(),
-      entryPriceExponent: 6,
-      status: 'OPEN',
-      timestampOpen: onchainOrder.timestamp.toString(),
-      bump: onchainOrder.bump,
+    const positionPDA = await basktClient.getPositionPDA(onchainOrder.owner, positionId);
+
+    // update order status in db
+    await trpcClient.order.updateOrderStatus.mutate({
+      orderPDA: onchainOrder.address.toString(),
+      orderStatus: 'FILLED',
+      orderFullFillTx: tx,
+      orderFullfillTs: onchainOrder.timestamp.toString(),
+      position: positionPDA.toString(),
     });
 
-    console.log('Position opened:', tx);
-    console.log('Position PDA', basktClient.getPositionPDA(onchainOrder.owner, positionId));
-    console.log('Position opened:', tx);
+    console.log('Position Opened', positionId.toString(), tx);
   } catch (error) {
-    console.error('Error fetching order:', error);
+    console.error('Error in handleOpenOrder:', error);
+    throw error;
   }
 }
 
@@ -83,8 +82,8 @@ async function handleCloseOrder(orderCreatedData: OrderCreatedEvent, onchainOrde
   try {
     const protocolAccount = await basktClient.getProtocolAccount();
     const positionAccount = await basktClient.getPosition(onchainOrder.targetPosition!);
-
     const exitPrice = await getCurrentNavForBaskt(onchainOrder.basktId);
+
     await basktClient.updateOraclePrice(onchainOrder.basktId, exitPrice);
 
     const ownerTokenAccount = await basktClient.getUSDCAccount(onchainOrder.owner);
@@ -102,60 +101,97 @@ async function handleCloseOrder(orderCreatedData: OrderCreatedEvent, onchainOrde
       orderOwner: onchainOrder.owner,
     });
 
-    // close position in db
-    await trpcClient.position.closePosition.mutate({
-      positionId: onchainOrder.targetPosition!.toString(),
-    });
-
-    console.log('Position closed:', tx);
-
-    // close order in db
-    await trpcClient.order.closeOrder.mutate({
-      //TOOD Shivanshu Store the positionId, orderID, tx when we opened it
+    // update order status in db
+    await trpcClient.order.updateOrderStatus.mutate({
       orderPDA: onchainOrder.address.toString(),
-      position: positionAccount.toString(),
-      exitPrice: exitPrice.toString(),
-      baskt: onchainOrder.basktId.toString(),
-      ownerTokenAccount: ownerTokenAccount.address.toString(),
-      treasury: protocolAccount.treasury.toString(),
-      treasuryTokenAccount: treasuryTokenAccount.address.toString(),
-      orderOwner: onchainOrder.owner.toString(),
+      orderStatus: 'FILLED',
+      orderFullFillTx: tx,
+      orderFullfillTs: onchainOrder.timestamp.toString(),
     });
+
+    console.log('Position closed successfully:', tx);
   } catch (error) {
-    console.error('Error fetching order:', error);
+    console.error('Error in handleCloseOrder:', error);
+    throw error;
   }
 }
 
-export default async function orderCreatedHandler(data: any) {
+export default async function orderCreatedHandler(data: any, slot: number, signature: string) {
   const orderCreatedData = data as OrderCreatedEvent;
 
-  const onchainOrder: OnchainOrder = await basktClient.readWithRetry(
-    async () =>
-      await basktClient.getOrderById(orderCreatedData.orderId, orderCreatedData.owner, 'confirmed'),
-    2,
-    100,
-  );
+  try {
+    if (!orderCreatedData.orderId) {
+      throw new Error('orderId is undefined in the event data');
+    }
 
-  // create order in db
-  await trpcClient.order.createOrder.mutate({
-    address: onchainOrder.address.toString(),
-    owner: onchainOrder.owner.toString(),
-    orderId: onchainOrder.orderId.toString(),
-    basktId: onchainOrder.basktId.toString(),
-    userPublicKey: onchainOrder.owner.toString(),
-    size: onchainOrder.size.toString(),
-    collateral: onchainOrder.collateral.toString(),
-    isLong: onchainOrder.isLong,
-    action: onchainOrder.action,
-    status: onchainOrder.status,
-    timestamp: onchainOrder.timestamp.toString(),
-    targetPosition: onchainOrder.targetPosition?.toString() || null,
-    bump: onchainOrder.bump,
-  });
+    const orderId =
+      orderCreatedData.orderId instanceof BN
+        ? orderCreatedData.orderId
+        : new BN(orderCreatedData.orderId.toString());
 
-  if (onchainOrder.action === OrderAction.Open) {
-    handleOpenOrder(orderCreatedData, onchainOrder);
-  } else {
-    handleCloseOrder(orderCreatedData, onchainOrder);
+    const onchainOrder: OnchainOrder = await basktClient.readWithRetry(
+      async () => await basktClient.getOrderById(orderId, orderCreatedData.owner, 'confirmed'),
+      2,
+      100,
+    );
+
+    const baskt = await trpcClient.baskt.getBasktMetadataById.query({
+      basktId: onchainOrder.basktId.toString(),
+    });
+
+    if (!baskt.success || !('data' in baskt) || !baskt.data) {
+      throw new Error('Baskt metadata not found or invalid response');
+    }
+
+    console.log('Baskt metadata found');
+
+    // Create the order
+    try {
+      const orderResult = await trpcClient.order.createOrder.mutate({
+        orderPDA: onchainOrder.address.toString(),
+        orderId: onchainOrder.orderId.toString(),
+        basktId: onchainOrder.basktId.toString(),
+        orderStatus: OrderStatus.PENDING,
+        orderAction: onchainOrder.action,
+        owner: onchainOrder.owner.toString(),
+        size: onchainOrder.size.toString(),
+        collateral: onchainOrder.collateral.toString(),
+        isLong: onchainOrder.isLong,
+        createOrder: {
+          tx: signature,
+          ts: onchainOrder.timestamp.toString(),
+        },
+      });
+
+      console.log('Order created successfully in DB');
+
+      if (!orderResult.success) {
+        console.error('Failed to create order:', orderResult);
+        throw new Error(
+          `Failed to create order: ${'error' in orderResult ? orderResult.error : 'Unknown error'}`,
+        );
+      }
+
+      try {
+        if (onchainOrder.action === OrderAction.Open) {
+          await handleOpenOrder(orderCreatedData, onchainOrder);
+        } else {
+          await handleCloseOrder(orderCreatedData, onchainOrder);
+        }
+      } catch (error) {
+        console.error('Error handling order:', error);
+        await trpcClient.order.updateOrderStatus.mutate({
+          orderPDA: onchainOrder.address.toString(),
+          orderStatus: 'FAILED',
+        });
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error in order creation process:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error in orderCreatedHandler:', error);
+    throw error;
   }
 }
