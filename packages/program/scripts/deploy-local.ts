@@ -225,7 +225,6 @@ async function main() {
     name: 'Test Basket',
     creator: wallet.publicKey.toString(),
     assets: assetsConfig.map((asset) => asset.assetId.toString()),
-    image: '',
     rebalancePeriod: {
       value: 1,
       unit: 'day',

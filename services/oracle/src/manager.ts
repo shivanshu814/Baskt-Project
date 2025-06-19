@@ -20,7 +20,9 @@ async function scheduleOracleConfigs() {
       },
     });
     console.log(
-      `Scheduled job: ${oracleConfig.ticker}, every ${oracleConfig.priceConfig.updateFrequencySeconds / 60} mins`,
+      `Scheduled job: ${oracleConfig.ticker}, every ${
+        oracleConfig.priceConfig.updateFrequencySeconds / 60
+      } mins`,
     );
   }
 }

@@ -1,6 +1,6 @@
 import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
-import { AssetMetadataModel, BasktMetadataModel } from '../../utils/models';
+import { BasktMetadataModel } from '../../utils/models';
 import { sdkClient } from '../../utils';
 import { PublicKey } from '@solana/web3.js';
 import { getAssetFromAddress } from '../asset/query';

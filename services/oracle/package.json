@@ -6,6 +6,8 @@
   "scripts": {
     "dev:manager": "tsx watch src/manager.ts",
     "dev:worker": "tsx watch src/oracle-worker.ts",
+    "rebalance:manager": "tsx watch src/rebalance/manager.ts",
+    "rebalance:worker": "tsx watch src/rebalance/worker.ts",
     "build": "tsc",
     "start:manager": "node dist/manager.js",
     "start:worker": "node dist/oracle-worker.js",
@@ -14,6 +16,9 @@
   "dependencies": {
     "@baskt/types": "workspace:*",
     "@solana/web3.js": "1.98.0",
+    "@coral-xyz/anchor": "0.31.0",
+    "@baskt/sdk": "workspace:*",
+    "@trpc/client": "^10.45.1",
     "axios": "^1.8.4",
     "bn.js": "^5.2.1",
     "bullmq": "^5.49.1",
