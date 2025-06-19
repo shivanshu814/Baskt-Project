@@ -29,8 +29,6 @@ export default function AdminDashboard() {
     (tabId: TabId) => {
       const tab = TAB_CONFIG.find((t) => t.id === tabId);
       if (!tab?.actionButton) return null;
-
-      // checks the permissions for action button
       if (tab.requiresOwner && !isOwner) return null;
       if (tab.requiresPermission && tab.permissionKey && !hasPermission(tab.permissionKey))
         return null;

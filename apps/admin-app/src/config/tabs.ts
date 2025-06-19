@@ -13,6 +13,7 @@ import { TabConfig, TabProps } from '../types';
 
 import { TAB_IDS } from '../constants/tabs';
 import PositionList from '../components/position/PositionList';
+import HistoryList from '../components/history/HistoryList';
 
 export const TAB_CONFIG: TabConfig[] = [
   {
@@ -50,5 +51,10 @@ export const TAB_CONFIG: TabConfig[] = [
     id: TAB_IDS.LIQUIDITY,
     label: 'BLP',
     component: LiquidityPoolManagement,
+  },
+  {
+    id: TAB_IDS.HISTORY,
+    label: 'History',
+    component: HistoryList,
   },
 ];
