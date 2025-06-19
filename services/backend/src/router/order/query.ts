@@ -58,9 +58,10 @@ export const getOrders = publicProcedure
           data: orderMetadatas,
         };
       }
+      const filteredOrders = combinedOrders.filter((order) => order !== null);
       return {
         success: true,
-        data: combinedOrders,
+        data: filteredOrders,
       };
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -73,6 +74,7 @@ export const getOrders = publicProcedure
   });
 
 function convertOrder(onchainOrder: OnchainOrder, orderMetadata: any) {
+  if (!orderMetadata || !onchainOrder) return null;
   return {
     orderId: onchainOrder.orderId.toString(),
     orderPDA: onchainOrder.address.toString(),

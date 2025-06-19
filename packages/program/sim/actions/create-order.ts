@@ -5,7 +5,7 @@ import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 
 const createOrderOpen = async (args: string[]) => {
   const basktId = new PublicKey(args[1]);
-  const size = new BN(parseInt(args[2]));
+  const size = new BN(parseInt(args[2]) * 1e6);
   const isLong = args[3] === 'true';
   const collateral = size.muln(110).divn(100);
 

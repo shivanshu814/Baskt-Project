@@ -8,6 +8,7 @@ import { assetPriceRouter } from './assetPrice';
 import { poolRouter } from './pool';
 import { orderRouter } from './order';
 import { positionRouter } from './position';
+import { metricsRouter } from './metrics';
 
 export const appRouter = router({
   health: publicProcedure.query(() => {
@@ -23,6 +24,7 @@ export const appRouter = router({
   pool: poolRouter,
   order: orderRouter,
   position: positionRouter,
+  metrics: metricsRouter,
 });
 
 export type AppRouter = typeof appRouter;

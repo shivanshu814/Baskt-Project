@@ -29,6 +29,7 @@ async function createBasktMutation(
       assets: onchainBaskt.currentAssetConfigs.map((config: OnchainAssetConfig) =>
         config.assetId.toString(),
       ),
+      //TODO user submitted value. Eventually a config will be added to the event
       rebalancePeriod: {
         value: 24,
         unit: 'hour',
