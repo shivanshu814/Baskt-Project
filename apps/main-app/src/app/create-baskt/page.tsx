@@ -5,7 +5,6 @@ import { AlertCircle } from 'lucide-react';
 import { Footer } from '../../components/shared/Footer';
 import { CreateBasktGuideDialog } from '../../components/baskt/create/CreateBasktGuideDialog';
 import { AssetSelectionModal } from '../../components/baskt/create/AssetSelectionModal';
-import { TransactionStatusModal } from '../../components/baskt/create/TransactionStatusModal';
 import { BasicInfoForm } from '../../components/baskt/create/BasicInfoForm';
 import { AssetManagementForm } from '../../components/baskt/create/AssetManagementForm';
 import { Button } from '../../components/ui/button';
@@ -34,8 +33,6 @@ const CreateBasktPage = () => {
   const {
     isSubmitting,
     transactionStatus,
-    isTransactionModalOpen,
-    setIsTransactionModalOpen,
     createBaskt,
     handleRetry,
     authenticated,
@@ -97,26 +94,26 @@ const CreateBasktPage = () => {
   };
 
   return (
-    <div>
-      <div className="container mx-auto py-8">
-        <div className="grid grid-cols-1 gap-6">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold">Create a New Baskt</h1>
-            <Button variant="outline" onClick={() => setIsGuideDialogOpen(true)}>
-              <AlertCircle className="h-4 w-4 mr-2" />
-              Creation Guide
+    <div className="min-h-screen flex flex-col">
+      <div className="container mx-auto py-6 flex-grow">
+        <div className="max-w-full mx-auto space-y-4">
+          <div className="flex justify-between items-center mb-2">
+            <h1 className="text-2xl font-semibold">Create a New Baskt</h1>
+            <Button variant="outline" size="sm" onClick={() => setIsGuideDialogOpen(true)}>
+              <AlertCircle className="h-4 w-4 mr-1" />
+              Guide
             </Button>
           </div>
 
           {error && (
-            <Alert variant="destructive" className="mb-4">
+            <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-8">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <BasicInfoForm
               formData={formData}
               errors={errors}
@@ -135,7 +132,7 @@ const CreateBasktPage = () => {
               onAssetWeightChange={handleAssetWeightChange}
             />
 
-            <div className="grid grid-cols-[auto_auto] gap-4 justify-end">
+            <div className="flex justify-end">
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Creating...' : 'Create Baskt'}
               </Button>
@@ -150,15 +147,6 @@ const CreateBasktPage = () => {
         open={isAssetModalOpen}
         onOpenChange={setIsAssetModalOpen}
         onAssetSelect={handleAssetSelect}
-      />
-
-      <TransactionStatusModal
-        open={isTransactionModalOpen}
-        onOpenChange={setIsTransactionModalOpen}
-        status={transactionStatus}
-        onRetry={handleRetry}
-        error={error || undefined}
-        signature={signature || undefined}
       />
 
       <Footer />

@@ -1,5 +1,5 @@
 import { Clock } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
+import { Card, CardContent } from '../../ui/card';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
@@ -14,26 +14,23 @@ export const BasicInfoForm = ({
 }: BasicInfoFormProps) => {
   return (
     <Card className="w-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Basic Information</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 gap-2">
-          <Label htmlFor="name" className="flex items-center justify-between">
-            <span>Baskt Name</span>
-            <span className="text-xs text-muted-foreground">{formData.name.length}/10 characters</span>
-          </Label>
-          <Input
-            id="name"
-            placeholder="e.g. DeFi Index"
-            value={formData.name}
-            onChange={(e) => onNameChange(e.target.value)}
-            maxLength={10}
-          />
-          {errors['name'] && <p className="text-xs text-destructive">{errors['name']}</p>}
-        </div>
+      <CardContent className="pt-4">
+        <div className="grid grid-cols-[450px_auto_auto] items-center gap-[16rem]">
+          <div className="space-y-2">
+            <Label htmlFor="name" className="flex items-center justify-between">
+              <span>Baskt Name</span>
+              <span className="text-xs text-muted-foreground">{formData.name.length}/10</span>
+            </Label>
+            <Input
+              id="name"
+              placeholder="e.g. DeFi Index"
+              value={formData.name}
+              onChange={(e) => onNameChange(e.target.value)}
+              maxLength={10}
+            />
+            {errors['name'] && <p className="text-xs text-destructive">{errors['name']}</p>}
+          </div>
 
-        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="flex items-center gap-1" htmlFor="rebalancing">
               Rebalancing Period

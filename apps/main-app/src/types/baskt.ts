@@ -46,13 +46,27 @@ export interface CreateBasktGuideDialogProps {
 
 export type TransactionStatus = 'waiting' | 'confirmed' | 'processing' | 'success' | 'failed';
 
-export interface TransactionStatusModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onRetry?: () => void;
-  status: TransactionStatus;
-  error?: string;
-  signature?: string;
+export interface TransactionToastConfig {
+  waiting?: {
+    title?: string;
+    description?: string;
+  };
+  confirmed?: {
+    title?: string;
+    description?: string;
+  };
+  processing?: {
+    title?: string;
+    description?: string;
+  };
+  success?: {
+    title?: string;
+    description?: string;
+  };
+  failed?: {
+    title?: string;
+    description?: string;
+  };
 }
 
 export interface BasktChartProps {
@@ -163,4 +177,13 @@ export interface AddCollateralDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onAddCollateral: (position: OnchainPosition, amount: BN) => Promise<void>;
+}
+export interface TransactionToastProps {
+  status: TransactionStatus;
+  title?: string;
+  description?: string;
+  signature?: string;
+  error?: string;
+  onRetry?: () => void;
+  onClose?: () => void;
 }

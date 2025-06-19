@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
-import { useToast } from '../../common/use-toast';
+import { useTransactionToast, getTransactionToastConfig } from '../../common/use-transaction-toast';
 import { useBasktClient } from '@baskt/ui';
 import * as anchor from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
@@ -12,21 +12,24 @@ export type TransactionStatus = 'waiting' | 'confirmed' | 'processing' | 'succes
 
 export const useBasktCreation = () => {
   const router = useRouter();
-  const { toast } = useToast();
+  const { showTransactionToast } = useTransactionToast();
   const { authenticated, ready, login } = usePrivy();
   const { client: basktClient, wallet } = useBasktClient();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState<TransactionStatus>('waiting');
-  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
 
   const createBaskt = async (basktData: BasktFormData) => {
     if (!wallet) return;
     try {
-      setIsTransactionModalOpen(true);
+      setIsSubmitting(true);
       setTransactionStatus('waiting');
+
+      const config = getTransactionToastConfig('basktCreation');
+
+      showTransactionToast('waiting', config);
 
       const result = await basktClient?.createBaskt(
         basktData.name,
@@ -53,21 +56,40 @@ export const useBasktCreation = () => {
       }
 
       setSignature(txSignature);
+
+      setTransactionStatus('confirmed');
+      showTransactionToast('confirmed', config, txSignature);
+
+      setTransactionStatus('processing');
+      showTransactionToast('processing', config, txSignature);
+
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       setTransactionStatus('success');
+
+      showTransactionToast('success', config, txSignature);
+
       router.push(`/baskts/${basktId}`);
     } catch (error) {
       setTransactionStatus('failed');
-      toast({
-        title: 'Warning',
-        description: 'Failed to create baskt',
-        variant: 'destructive',
-      });
+      setError(error instanceof Error ? error.message : 'Failed to create baskt');
+
+      const config = getTransactionToastConfig('basktCreation');
+      showTransactionToast(
+        'failed',
+        config,
+        signature || undefined,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleRetry = () => {
     setTransactionStatus('waiting');
     setSignature(null);
+    setError(null);
   };
 
   return {
@@ -75,8 +97,6 @@ export const useBasktCreation = () => {
     setIsSubmitting,
     transactionStatus,
     setTransactionStatus,
-    isTransactionModalOpen,
-    setIsTransactionModalOpen,
     error,
     setError,
     createBaskt,
