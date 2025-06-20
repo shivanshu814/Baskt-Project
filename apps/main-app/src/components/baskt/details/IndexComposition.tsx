@@ -1,8 +1,18 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { BasktAssetInfo } from '@baskt/types';
 import { IndexCompositionProps } from '../../../types/baskt';
-import { NumberFormat } from '@baskt/ui';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  NumberFormat,
+} from '@baskt/ui';
 
 export function changeFromCurrentPrice(asset: BasktAssetInfo) {
   const change = asset.price - (asset.baselinePrice || asset.price);
@@ -44,20 +54,27 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                     </div>
                   </TableCell>
                   <TableCell className="capitalize">{asset.direction ? 'long' : 'short'}</TableCell>
-                  <TableCell><NumberFormat value={asset.weight} />%</TableCell>
                   <TableCell>
-                    {asset.baselinePrice !== undefined
-                      ? <NumberFormat value={asset.baselinePrice} isPrice={true} />
-                      : 'Price Unavailable'}
+                    <NumberFormat value={asset.weight} />%
                   </TableCell>
                   <TableCell>
-                    {asset.price !== undefined
-                      ? <NumberFormat value={asset.price} isPrice={true} />
-                      : 'Price Unavailable'}
+                    {asset.baselinePrice !== undefined ? (
+                      <NumberFormat value={asset.baselinePrice} isPrice={true} />
+                    ) : (
+                      'Price Unavailable'
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {asset.price !== undefined ? (
+                      <NumberFormat value={asset.price} isPrice={true} />
+                    ) : (
+                      'Price Unavailable'
+                    )}
                   </TableCell>
                   <TableCell
-                    className={`text-right ${changeFromCurrentPrice(asset) >= 0 ? 'text-[#16C784]' : 'text-[#EA3943]'
-                      }`}
+                    className={`text-right ${
+                      changeFromCurrentPrice(asset) >= 0 ? 'text-[#16C784]' : 'text-[#EA3943]'
+                    }`}
                   >
                     <NumberFormat value={changeFromCurrentPrice(asset)} />%
                   </TableCell>

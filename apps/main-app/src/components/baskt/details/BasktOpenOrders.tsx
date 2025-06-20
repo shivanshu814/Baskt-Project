@@ -1,8 +1,19 @@
 import React from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { useOpenOrders } from '../../../hooks/baskt/trade/useOpenOrders';
-import { NumberFormat, useBasktClient } from '@baskt/ui';
+import {
+  NumberFormat,
+  useBasktClient,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@baskt/ui';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import { OnchainOrder, OrderAction, OrderStatus } from '@baskt/types';
 import { BN } from 'bn.js';
@@ -46,13 +57,25 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
                       {order.action === OrderAction.Open ? 'Open' : 'Close'}
                     </TableCell>
                     <TableCell>
-                      {order.size ? <NumberFormat value={new BN(order.size).toNumber()} isPrice={true} /> : '-'}
+                      {order.size ? (
+                        <NumberFormat value={new BN(order.size).toNumber()} isPrice={true} />
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell>
-                      {order.collateral ? <NumberFormat value={new BN(order.collateral).toNumber()} isPrice={true} /> : '-'}
+                      {order.collateral ? (
+                        <NumberFormat value={new BN(order.collateral).toNumber()} isPrice={true} />
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell className="text-[#16C784]">
-                      {order.status === OrderStatus.PENDING ? 'Active' : order.status === OrderStatus.FILLED ? 'Filled' : 'Cancelled'}
+                      {order.status === OrderStatus.PENDING
+                        ? 'Active'
+                        : order.status === OrderStatus.FILLED
+                        ? 'Filled'
+                        : 'Cancelled'}
                     </TableCell>
                     <TableCell className="text-right">
                       {order.timestamp

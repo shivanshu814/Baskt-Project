@@ -1,7 +1,6 @@
-import { Button } from '../ui/button';
+import { Button, Loading } from '@baskt/ui';
 import Link from 'next/link';
 import { BasktCard } from '../baskt/BasktCard';
-import { Loading } from '../ui/loading';
 import { BasktInfo } from '@baskt/types';
 import { useMemo } from 'react';
 import { trpc } from '../../utils/trpc';

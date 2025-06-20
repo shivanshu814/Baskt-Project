@@ -1,6 +1,6 @@
 import { router } from '../../trpc/trpc';
 import { getAllAssets, getAllAssetsWithConfig, getAssetsByAddress } from './query';
-import { createAsset, updateAssetBasktIds } from './mutation';
+import { createAsset, updateAssetBasktIds, updateAssetPriceConfig, deleteAsset } from './mutation';
 
 export const assetRouter = router({
   getAllAssets,
@@ -8,4 +8,6 @@ export const assetRouter = router({
   getAssetsByAddress,
   createAsset,
   updateAssetBasktIds,
+  updateAssetPriceConfig,
+  deleteAsset,
 });

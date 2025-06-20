@@ -10,6 +10,13 @@ export interface Asset {
   name?: string;
   logo?: string;
   price: number;
+  config: {
+    provider: {
+      id: string;
+      chain: string;
+      name: string;
+    };
+  };
   account: {
     address: string;
     listingTime: number;
@@ -30,6 +37,8 @@ export interface AssetTableProps {
   assets: Asset[];
   isLoading: boolean;
   onViewPrices: (asset: Asset) => void;
+  onEdit: (asset: Asset) => void;
+  onDelete: (asset: Asset) => void;
 }
 
 export interface AssetTableCellProps {
@@ -136,4 +145,18 @@ export interface AssetHeaderProps {
   assetAddress: string;
   assetLogo?: string;
   ticker?: string;
+}
+
+export interface EditAssetDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (assetId: string, provider: { id: string; name: string; chain: string }) => void;
+  asset: Asset | null;
+}
+
+export interface DeleteAssetDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (assetId: string) => void;
+  asset: Asset | null;
 }

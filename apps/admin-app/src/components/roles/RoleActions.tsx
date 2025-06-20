@@ -1,11 +1,11 @@
-import { Button } from '../ui/button';
 import { MoreVertical, Copy, SquareArrowOutUpRight, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuItem,
-} from '../ui/dropdown-menu';
+  Button,
+} from '@baskt/ui';
 import { RoleActionsProps } from '../../types/roles';
 
 export function RoleActions({

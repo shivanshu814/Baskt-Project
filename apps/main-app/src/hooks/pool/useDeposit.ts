@@ -4,14 +4,13 @@ import { PublicKey } from '@solana/web3.js';
 import { useBasktClient, USDC_MINT, PRICE_PRECISION } from '@baskt/ui';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { createAssociatedTokenAccountInstruction } from '@solana/spl-token';
-import { useToast } from '../common/use-toast';
+import { toast } from 'sonner';
 import type { UseDepositProps } from '../../types/pool';
 import { useProtocol } from '../protocol/useProtocol';
 import { useUSDCBalance } from '../pool/useUSDCBalance';
 
 export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositProps) => {
   const { client, wallet } = useBasktClient();
-  const { toast } = useToast();
   const { protocol } = useProtocol();
   const [depositAmount, setDepositAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
@@ -38,10 +37,7 @@ export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositPro
 
       const depositAmountNum = Number(depositAmount);
       if (isNaN(depositAmountNum)) {
-        toast({
-          title: 'Invalid deposit amount',
-          variant: 'destructive',
-        });
+        toast.error('Invalid deposit amount');
         setIsDepositing(false);
         return;
       }
@@ -71,10 +67,7 @@ export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositPro
           );
           itx.push(createAtaIx);
         } catch (createError) {
-          toast({
-            title: 'Failed to create LP token account. Please try again.',
-            variant: 'destructive',
-          });
+          toast.error('Failed to create LP token account. Please try again.');
           setIsDepositing(false);
           return;
         }
@@ -101,41 +94,35 @@ export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositPro
       );
       refetchUSDCBalance();
 
-      toast({
-        title: 'Deposit successful!',
-        description: 'Your deposit has been processed',
-        variant: 'default',
-      });
+      toast.success('Deposit successful! Your deposit has been processed');
       setDepositAmount('');
       onSuccess?.();
     } catch (error) {
       if (error instanceof Error) {
         if (error.message.includes('Treasury')) {
-          toast({
-            title: 'Treasury account error. Please contact support.',
-            variant: 'destructive',
-          });
+          toast.error('Treasury account error. Please contact support.');
         } else if (error.message.includes('insufficient funds')) {
-          toast({
-            title: 'Insufficient USDC balance for deposit',
-            variant: 'destructive',
-          });
+          toast.error('Insufficient USDC balance for deposit');
         } else {
-          toast({
-            title: 'Failed to deposit. Please try again.',
-            variant: 'destructive',
-          });
+          toast.error('Failed to deposit. Please try again.');
         }
       } else {
-        toast({
-          title: 'Failed to deposit. Please try again.',
-          variant: 'destructive',
-        });
+        toast.error('Failed to deposit. Please try again.');
       }
     } finally {
       setIsDepositing(false);
     }
-  }, [client, wallet, liquidityPool, poolData, depositAmount, isDepositValid, onSuccess, toast]);
+  }, [
+    client,
+    wallet,
+    liquidityPool,
+    poolData,
+    depositAmount,
+    isDepositValid,
+    onSuccess,
+    refetchUSDCBalance,
+    protocol,
+  ]);
 
   return {
     depositAmount,

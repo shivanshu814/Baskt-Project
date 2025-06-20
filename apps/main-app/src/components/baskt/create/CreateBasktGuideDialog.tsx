@@ -1,7 +1,15 @@
-import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../ui/dialog';
-import { Dialog } from '../../ui/dialog';
-import { Button } from '../../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
+import {
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  Dialog,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@baskt/ui';
 import { PlusCircle, Layers, BarChart, Share2, Shield } from 'lucide-react';
 import { CreateBasktGuideDialogProps } from '../../../types/baskt';
 

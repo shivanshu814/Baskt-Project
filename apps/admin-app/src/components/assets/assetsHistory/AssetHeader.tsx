@@ -1,7 +1,6 @@
 import React from 'react';
-import { Card } from '../../ui/card';
 import { AssetHeaderProps } from '../../../types/assets';
-import { PublicKeyText } from '@baskt/ui';
+import { PublicKeyText, Card } from '@baskt/ui';
 
 export const AssetHeader: React.FC<AssetHeaderProps> = ({
   assetName,

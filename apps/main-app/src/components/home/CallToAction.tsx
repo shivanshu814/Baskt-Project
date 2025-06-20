@@ -1,4 +1,4 @@
-import { Button } from '../ui/button';
+import { Button } from '@baskt/ui';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 

@@ -1,6 +1,14 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Loading } from '../ui/loading';
-import { ROLE_DISPLAY_MAP, PublicKeyText } from '@baskt/ui';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Loading,
+  ROLE_DISPLAY_MAP,
+  PublicKeyText,
+} from '@baskt/ui';
 import { RoleActions } from './RoleActions';
 import { RoleTableProps } from '../../types/roles';
 

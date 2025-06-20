@@ -3,10 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { memo } from 'react';
 import { Plus, TrendingUp } from 'lucide-react';
-import { Button } from '../../components/ui/button';
+import { Button, Loading, Tabs, TabsList, TabsTrigger, TabsContent } from '@baskt/ui';
 import { Footer } from '../../components/shared/Footer';
-import { Loading } from '../../components/ui/loading';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
 import { SearchBar } from '../../components/shared/SearchBar';
 import { FilterControls } from '../../components/baskt/FilterControls';
 import { BasktGrid } from '../../components/baskt/BasktGrid';

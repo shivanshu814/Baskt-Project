@@ -1,5 +1,5 @@
 import React from 'react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@baskt/ui';
 import { ChevronDown } from 'lucide-react';
 import { formatFeatureFlagName } from '../../utils/protocol';
 import { FeatureFlagsProps } from '../../types/protocol';

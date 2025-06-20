@@ -1,6 +1,6 @@
 'use client';
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@baskt/ui';
 import { BasktListProps, BasktData } from '../../types/baskt';
 import { BasktRow } from './BasktRow';
 import { useBaskts } from '../../hooks/baskts/useBaskts';

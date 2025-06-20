@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { USDC_MINT } from '@baskt/ui';
-import { Button } from '../ui/button';
+import { Button, useBasktClient, USDC_MINT } from '@baskt/ui';
 import { usePrivy } from '@privy-io/react-auth';
-import { useBasktClient } from '@baskt/ui';
 import {
   getAssociatedTokenAddressSync,
   createAssociatedTokenAccountInstruction,

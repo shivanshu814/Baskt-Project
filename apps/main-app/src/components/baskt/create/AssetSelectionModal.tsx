@@ -7,11 +7,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from '../../ui/dialog';
-import { Input } from '../../ui/input';
+  Input,
+  Loading,
+  NumberFormat,
+  useBasktClient,
+} from '@baskt/ui';
 import { Search } from 'lucide-react';
-import { Loading } from '../../ui/loading';
-import { NumberFormat, useBasktClient } from '@baskt/ui';
 import { toast } from 'sonner';
 import { trpc } from '../../../utils/trpc';
 import { AssetSelectionModalProps } from '../../../types/baskt';

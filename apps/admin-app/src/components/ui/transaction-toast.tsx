@@ -1,7 +1,7 @@
 'use client';
 
 import { ExternalLink } from 'lucide-react';
-import { toast } from '../../hooks/use-toast';
+import { toast } from '@baskt/ui';
 import { getSolscanAddressUrl, getSolscanTxUrl } from '@baskt/ui';
 
 interface TransactionToastProps {

@@ -5,7 +5,7 @@ import { BasktInfo } from '@baskt/types';
 import { processBasktData } from '../../utils/baskt/processBasktData';
 import { filterBaskts } from '../../utils/baskt/filterBaskts';
 import { sortBaskts } from '../../utils/baskt/sortBaskts';
-import { useDebounce } from '../common/use-debounce';
+import { useDebounce } from '@baskt/ui';
 
 export const useBasktList = () => {
   const [searchQuery, setSearchQuery] = useState('');

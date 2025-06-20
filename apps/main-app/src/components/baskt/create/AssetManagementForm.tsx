@@ -1,10 +1,25 @@
 import { Plus, Search, Trash2 } from 'lucide-react';
-import { cn, NumberFormat } from '@baskt/ui';
-import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
-import { Button } from '../../ui/button';
-import { Input } from '../../ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  NumberFormat,
+  cn,
+} from '@baskt/ui';
 import { AssetManagementFormProps } from '../../../types/baskt';
 
 export const AssetManagementForm = ({
@@ -83,7 +98,9 @@ export const AssetManagementForm = ({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell><NumberFormat value={asset.price} isPrice={true} /></TableCell>
+                    <TableCell>
+                      <NumberFormat value={asset.price} isPrice={true} />
+                    </TableCell>
                     <TableCell>
                       <Input
                         type="number"

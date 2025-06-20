@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { useToast } from '../use-toast';
+import { toast } from 'sonner';
 import { trpc } from '../../utils/trpc';
 import { useBasktClient, USDC_MINT } from '@baskt/ui';
 import { Keypair } from '@solana/web3.js';
@@ -73,7 +73,6 @@ export function usePool({
   initialFormValues,
   onInitializationSuccess,
 }: UsePoolProps = {}): UsePoolReturn {
-  const { toast } = useToast();
   const { client } = useBasktClient();
   const { user } = usePrivy();
   const [isLoading, setIsLoading] = useState(false);
@@ -104,13 +103,9 @@ export function usePool({
 
   useEffect(() => {
     if (liquidityPool && 'error' in liquidityPool && liquidityPool.error) {
-      toast({
-        title: 'Error',
-        description: `Failed to fetch pool data: ${liquidityPool.error}`,
-        variant: 'destructive',
-      });
+      toast.error(`Failed to fetch pool data: ${liquidityPool.error}`);
     }
-  }, [liquidityPool, toast]);
+  }, [liquidityPool]);
 
   const isInitialized = liquidityPool?.success === true && 'data' in liquidityPool;
 
@@ -155,11 +150,7 @@ export function usePool({
   const initializePool = useCallback(
     async (formData: FormData) => {
       if (!client || !user?.wallet) {
-        toast({
-          title: 'Error',
-          description: 'Baskt client or wallet not initialized',
-          variant: 'destructive',
-        });
+        toast.error('Baskt client or wallet not initialized');
         return;
       }
 
@@ -182,24 +173,16 @@ export function usePool({
           lpMintKeypair,
         );
 
-        toast({
-          title: 'Success',
-          description: 'Liquidity pool initialized successfully',
-        });
+        toast.success('Liquidity pool initialized successfully');
 
         onInitializationSuccess?.();
       } catch (error: unknown) {
-        toast({
-          title: 'Error',
-          description:
-            error instanceof Error ? error.message : 'Failed to initialize liquidity pool',
-          variant: 'destructive',
-        });
+        toast.error(error instanceof Error ? error.message : 'Failed to initialize liquidity pool');
       } finally {
         setIsLoading(false);
       }
     },
-    [client, user, toast, onInitializationSuccess],
+    [client, user, onInitializationSuccess],
   );
 
   // Pagination

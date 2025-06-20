@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { z } from 'zod';
-import { useToast } from '../../common/use-toast';
+import { toast } from 'sonner';
 
 const BasktFormSchema = z.object({
   name: z.string().min(1, 'Name is required').max(30, 'Name must be 30 characters or less'),
@@ -36,7 +36,6 @@ const BasktFormSchema = z.object({
 export type BasktFormData = z.infer<typeof BasktFormSchema>;
 
 export const useCreateBasktForm = () => {
-  const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -82,11 +81,7 @@ export const useCreateBasktForm = () => {
         setErrors(newErrors);
 
         const firstError = error.errors[0];
-        toast({
-          title: 'Validation Error',
-          description: firstError.message,
-          variant: 'destructive',
-        });
+        toast.error(firstError.message);
       }
       return false;
     }

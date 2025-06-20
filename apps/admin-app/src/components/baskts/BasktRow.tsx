@@ -1,10 +1,8 @@
 'use client';
 
-import { TableCell, TableRow } from '../ui/table';
-import { Button } from '../ui/button';
+import { TableCell, TableRow, Button, PublicKeyText } from '@baskt/ui';
 import { Eye, Power } from 'lucide-react';
 import { BasktRowProps } from '../../types/baskt';
-import { PublicKeyText } from '@baskt/ui';
 
 export function BasktRow({ baskt, onActivate, isActivating, onViewDetails }: BasktRowProps) {
   const { account } = baskt;
@@ -17,23 +15,19 @@ export function BasktRow({ baskt, onActivate, isActivating, onViewDetails }: Bas
         <PublicKeyText publicKey={baskt.basktId} isCopy={true} noFormat={true} />
       </TableCell>
       <TableCell className="flex justify-end gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onViewDetails?.(baskt.basktId)}
-        >
+        <Button variant="outline" size="sm" onClick={() => onViewDetails?.(baskt.basktId)}>
           <Eye className="h-4 w-4 mr-1" />
           View
         </Button>
 
         <Button
-          variant={account.isActive ? "secondary" : "default"}
+          variant={account.isActive ? 'secondary' : 'default'}
           size="sm"
           onClick={() => onActivate(baskt.basktId)}
           disabled={isActivating || account.isActive}
         >
           <Power className="h-4 w-4 mr-1" />
-          {isActivating ? 'Activating...' : (account.isActive ? 'Active' : 'Activate')}
+          {isActivating ? 'Activating...' : account.isActive ? 'Active' : 'Activate'}
         </Button>
       </TableCell>
     </TableRow>

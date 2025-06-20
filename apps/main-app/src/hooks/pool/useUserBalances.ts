@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { useBasktClient, USDC_MINT, PRICE_PRECISION } from '@baskt/ui';
-import { useToast } from '../common/use-toast';
+import { toast } from 'sonner';
 import { UseUserBalancesProps } from '../../types/pool';
 
 export const useUserBalances = ({ poolData }: UseUserBalancesProps) => {
   const { client, wallet } = useBasktClient();
-  const { toast } = useToast();
   const [usdcBalance, setUsdcBalance] = useState<string>('0.00');
   const [lpBalance, setLpBalance] = useState<string>('0.00');
   const [isLoading, setIsLoading] = useState(false);
@@ -38,16 +37,13 @@ export const useUserBalances = ({ poolData }: UseUserBalancesProps) => {
           setUsdcBalance('0.00');
           setLpBalance('0.00');
         } else {
-          toast({
-            title: 'Failed to fetch balances',
-            variant: 'destructive',
-          });
+          toast.error('Failed to fetch balances');
         }
       }
     } finally {
       setIsLoading(false);
     }
-  }, [client, wallet, poolData, toast]);
+  }, [client, wallet, poolData]);
 
   useEffect(() => {
     fetchBalances();

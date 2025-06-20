@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@baskt/ui';
 import { TAB_CONFIG } from '../../config/tabs';
 import { TAB_IDS } from '../../constants/tabs';
 import { AdminTabsProps } from '../../types';

@@ -1,21 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
+import { Button, Input } from '@baskt/ui';
 import { useBasktFundingIndex } from '../../hooks/baskts/useBasktFundingIndex';
 import { formatTimestamp, formatNumber } from '../../utils/format';
 import { BASIS_POINT } from '../../constants/pool';
 import { FundingIndexTableProps } from '../../types/baskt';
 
 export function FundingIndexTable({ basktId }: FundingIndexTableProps) {
-  const {
-    fundingIndex,
-    loading,
-    error,
-    initializeFundingIndex,
-    updateFundingIndex,
-  } = useBasktFundingIndex(basktId);
+  const { fundingIndex, loading, error, initializeFundingIndex, updateFundingIndex } =
+    useBasktFundingIndex(basktId);
 
   const [newRate, setNewRate] = useState<string>('');
 
@@ -47,13 +41,7 @@ export function FundingIndexTable({ basktId }: FundingIndexTableProps) {
     return (
       <div className="text-center py-8">
         <p className="text-white/60 mb-4">No funding indices available for this Baskt</p>
-        <Button
-          onClick={initializeFundingIndex}
-        >
-          {
-            'Initialize Funding Index'
-          }
-        </Button>
+        <Button onClick={initializeFundingIndex}>{'Initialize Funding Index'}</Button>
       </div>
     );
   }
@@ -73,9 +61,15 @@ export function FundingIndexTable({ basktId }: FundingIndexTableProps) {
           <tbody>
             <tr className="border-b border-white/5">
               <td className="py-2 font-mono text-xs">{fundingIndex.basktId.toString()}</td>
-              <td className="py-2 text-right">{formatNumber(Number(fundingIndex.cumulativeIndex) / BASIS_POINT || 0)}</td>
-              <td className="py-2 text-right">{formatNumber(fundingIndex.currentRate / BASIS_POINT)} BPS</td>
-              <td className="py-2 text-right">{formatTimestamp(fundingIndex.lastUpdateTimestamp)}</td>
+              <td className="py-2 text-right">
+                {formatNumber(Number(fundingIndex.cumulativeIndex) / BASIS_POINT || 0)}
+              </td>
+              <td className="py-2 text-right">
+                {formatNumber(fundingIndex.currentRate / BASIS_POINT)} BPS
+              </td>
+              <td className="py-2 text-right">
+                {formatTimestamp(fundingIndex.lastUpdateTimestamp)}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -89,10 +83,7 @@ export function FundingIndexTable({ basktId }: FundingIndexTableProps) {
           onChange={(e) => setNewRate(e.target.value)}
           className="flex-grow"
         />
-        <Button
-          onClick={handleUpdateRate}
-          disabled={!newRate}
-        >
+        <Button onClick={handleUpdateRate} disabled={!newRate}>
           Update Rate
         </Button>
       </div>

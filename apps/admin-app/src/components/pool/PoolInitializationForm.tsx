@@ -1,9 +1,16 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Input,
+  Label,
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@baskt/ui';
 import { AlertCircle } from 'lucide-react';
 import type { PoolInitializationFormProps } from '../../types/pool';
 import { BPS_TO_PERCENT, USDC_DECIMALS } from '../../constants/pool';
@@ -41,8 +48,9 @@ export const PoolInitializationForm: React.FC<PoolInitializationFormProps> = ({
                 value={formData.depositFeeBps}
                 onChange={onInputChange('depositFeeBps')}
                 placeholder="e.g., 10 for 0.1%"
-                className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${formErrors.depositFeeBps ? 'border-red-500' : ''
-                  }`}
+                className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${
+                  formErrors.depositFeeBps ? 'border-red-500' : ''
+                }`}
               />
               <div className="flex justify-between text-sm">
                 <span className="text-white/60">
@@ -64,8 +72,9 @@ export const PoolInitializationForm: React.FC<PoolInitializationFormProps> = ({
                 value={formData.withdrawalFeeBps}
                 onChange={onInputChange('withdrawalFeeBps')}
                 placeholder="e.g., 30 for 0.3%"
-                className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${formErrors.withdrawalFeeBps ? 'border-red-500' : ''
-                  }`}
+                className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${
+                  formErrors.withdrawalFeeBps ? 'border-red-500' : ''
+                }`}
               />
               <div className="flex justify-between text-sm">
                 <span className="text-white/60">
@@ -87,8 +96,9 @@ export const PoolInitializationForm: React.FC<PoolInitializationFormProps> = ({
                 value={formData.minDeposit}
                 onChange={onInputChange('minDeposit')}
                 placeholder="e.g., 1000000 for 1 USDC"
-                className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${formErrors.minDeposit ? 'border-red-500' : ''
-                  }`}
+                className={`bg-[#181c27] border-[#23263a] focus:border-primary rounded-xl ${
+                  formErrors.minDeposit ? 'border-red-500' : ''
+                }`}
               />
               <div className="flex justify-between text-sm">
                 <span className="text-white/60">

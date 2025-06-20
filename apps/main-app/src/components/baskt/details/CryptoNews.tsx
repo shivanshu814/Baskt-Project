@@ -1,6 +1,5 @@
-import { Card, CardContent } from '../../ui/card';
 import { ArrowUpRight } from 'lucide-react';
-import { CryptoNewsProps } from '@baskt/ui';
+import { CryptoNewsProps, Card, CardContent } from '@baskt/ui';
 
 export function CryptoNews({ news }: CryptoNewsProps) {
   return (
@@ -10,8 +9,9 @@ export function CryptoNews({ news }: CryptoNewsProps) {
         {news.map((item, index) => (
           <Card
             key={item.id}
-            className={`${index > 0 ? 'mt-[0.7rem]' : ''
-              } hover:bg-muted/50 transition-colors cursor-pointer group`}
+            className={`${
+              index > 0 ? 'mt-[0.7rem]' : ''
+            } hover:bg-muted/50 transition-colors cursor-pointer group`}
             onClick={() => window.open(item.url, '_blank')}
           >
             <CardContent className="p-[0.7rem]">

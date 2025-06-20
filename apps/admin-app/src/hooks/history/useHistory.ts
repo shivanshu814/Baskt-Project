@@ -30,7 +30,7 @@ export const useHistory = (filters?: {
       offset: filters?.offset || 0,
     },
     {
-      refetchInterval: 10000,
+      refetchInterval: 10 * 1000, // 10 seconds
     },
   );
 

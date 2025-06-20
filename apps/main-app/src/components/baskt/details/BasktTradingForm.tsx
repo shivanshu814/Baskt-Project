@@ -1,21 +1,32 @@
-import { Button } from '../../ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
-import { Input } from '../../ui/input';
-import { Slider } from '../../ui/slider';
+import {
+  Button,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  Input,
+  Slider,
+  NumberFormat,
+  useBasktClient,
+} from '@baskt/ui';
 import { useState } from 'react';
-import { toast } from '../../../hooks/common/use-toast';
+import { toast } from 'sonner';
 import { BasktTradingFormProps } from '../../../types/baskt';
-import { NumberFormat, useBasktClient } from '@baskt/ui';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
-import { useOpenPosition } from '../../../hooks/baskt/trade/openPosition';
+import { useOpenPosition } from '../../../hooks/baskt/trade/useOpenPositions';
 import { BN } from '@coral-xyz/anchor';
 
 export function BasktTradingForm({ baskt, className }: BasktTradingFormProps) {
   const [size, setSize] = useState<number>(0);
-  const { isLoading, openPosition, getLiquidationPrice, collateral } = useOpenPosition({ baskt, size });
+  const { isLoading, openPosition, getLiquidationPrice, collateral, usdcBalance } = useOpenPosition(
+    {
+      baskt,
+      size,
+    },
+  );
   const { client } = useBasktClient();
   const publicKey = client?.wallet?.address;
-  const { account: userUSDCAccount, balance } = useUSDCBalance(publicKey);
+  const { account: userUSDCAccount } = useUSDCBalance(publicKey);
 
   const handlesizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
@@ -30,32 +41,20 @@ export function BasktTradingForm({ baskt, className }: BasktTradingFormProps) {
 
   const handleTrade = async (position: 'long' | 'short') => {
     if (!publicKey || !client || !userUSDCAccount) {
-      toast({
-        title: 'Error',
-        description: 'Please connect your wallet first',
-        variant: 'destructive',
-      });
+      toast.error('Please connect your wallet first');
       return;
     }
 
     if (!baskt.isActive) {
-      toast({
-        title: 'Error',
-        description: 'This baskt is not active yet. Please try again later.',
-        variant: 'destructive',
-      });
+      toast.error('This baskt is not active yet. Please try again later.');
       return;
     }
 
     try {
       await openPosition(position, size);
-      // eslint-disable-next-line 
+      // eslint-disable-next-line
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to open position',
-        variant: 'destructive',
-      });
+      toast.error(error.message || 'Failed to open position');
     }
   };
 
@@ -86,9 +85,7 @@ export function BasktTradingForm({ baskt, className }: BasktTradingFormProps) {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <label className="text-sm font-medium">Size</label>
-              <span className="text-sm text-muted-foreground">
-                Balance: ${balance}
-              </span>
+              <span className="text-sm text-muted-foreground">Balance: ${usdcBalance}</span>
             </div>
             <Input
               type="number"
@@ -100,7 +97,7 @@ export function BasktTradingForm({ baskt, className }: BasktTradingFormProps) {
             <Slider
               defaultValue={[1500]}
               min={100}
-              max={parseFloat(balance)}
+              max={parseFloat(usdcBalance)}
               step={100}
               value={[size]}
               onValueChange={handlesizeSliderChange}
@@ -108,19 +105,23 @@ export function BasktTradingForm({ baskt, className }: BasktTradingFormProps) {
             />
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>$100</span>
-              <span>${parseFloat(balance) / 2}</span>
-              <span>${balance.toLocaleString()}</span>
+              <span>${parseFloat(usdcBalance) / 2}</span>
+              <span>${usdcBalance.toLocaleString()}</span>
             </div>
           </div>
 
           <div className="space-y-2 text-sm">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Current Price:</span>
-              <span><NumberFormat value={new BN(baskt.price).toNumber()} isPrice={true} /></span>
+              <span>
+                <NumberFormat value={new BN(baskt.price).toNumber()} isPrice={true} />
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Size:</span>
-              <span><NumberFormat value={new BN(size).toNumber()} /></span>
+              <span>
+                <NumberFormat value={new BN(size).toNumber()} />
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Collateral:</span>
@@ -130,10 +131,14 @@ export function BasktTradingForm({ baskt, className }: BasktTradingFormProps) {
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Liquidation Price:</span>
               <TabsContent value="long" className="m-0 p-0">
-                <span className="text-[#EA3943]">${getLiquidationPrice(size, 'long').toFixed(2)}</span>
+                <span className="text-[#EA3943]">
+                  ${getLiquidationPrice(size, 'long').toFixed(2)}
+                </span>
               </TabsContent>
               <TabsContent value="short" className="m-0 p-0">
-                <span className="text-[#EA3943]">${getLiquidationPrice(size, 'short').toFixed(2)}</span>
+                <span className="text-[#EA3943]">
+                  ${getLiquidationPrice(size, 'short').toFixed(2)}
+                </span>
               </TabsContent>
             </div>
           </div>

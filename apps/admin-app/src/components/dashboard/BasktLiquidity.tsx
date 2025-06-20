@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '../ui/button';
+import { Button } from '@baskt/ui';
 import { RefreshCw } from 'lucide-react';
 import { PoolInitializationForm } from '../pool/PoolInitializationForm';
 import { PoolInformation } from '../pool/PoolInformation';

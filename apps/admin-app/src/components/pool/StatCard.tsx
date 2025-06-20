@@ -1,6 +1,6 @@
 import React from 'react';
 import { Info, ChevronUp, ChevronDown } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@baskt/ui';
 import type { StatCardProps } from '../../types/pool';
 
 export const StatCard = React.memo(

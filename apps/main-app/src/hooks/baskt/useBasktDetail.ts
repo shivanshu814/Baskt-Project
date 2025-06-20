@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { trpc } from '../../utils/trpc';
 import { BasktInfo } from '@baskt/types';
 import { processBasktData } from '../../utils/baskt/processBasktData';
-import { useToast } from '../common/use-toast';
+import { toast } from 'sonner';
 
 export const useBasktDetail = (basktId: string) => {
   const [baskt, setBaskt] = useState<BasktInfo | null>(null);
@@ -10,7 +10,6 @@ export const useBasktDetail = (basktId: string) => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [chartPeriod, setChartPeriod] = useState('1W');
   const [chartType, setChartType] = useState<'line' | 'candle'>('line');
-  const { toast } = useToast();
   const { data: cryptoNews = [] } = trpc.crypto.getCryptoNews.useQuery(undefined, {
     staleTime: 120 * 60 * 1000, // 2 hours
     refetchOnMount: false,
@@ -67,11 +66,7 @@ export const useBasktDetail = (basktId: string) => {
           throw new Error('Failed to process baskt data');
         }
       } catch (error) {
-        toast({
-          title: 'Warning',
-          description: 'Failed to fetch baskt data',
-          variant: 'destructive',
-        });
+        toast.error('Failed to fetch baskt data');
         setBaskt(null);
       } finally {
         setIsLoading(false);

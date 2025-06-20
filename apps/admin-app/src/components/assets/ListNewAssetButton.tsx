@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '../ui/button';
 import { Plus } from 'lucide-react';
-import { useToast } from '../../hooks/use-toast';
+import { toast } from 'sonner';
 import { usePrivy } from '@privy-io/react-auth';
-import { useBasktClient } from '@baskt/ui';
+import { useBasktClient, Button } from '@baskt/ui';
 import { ListNewAssetDialog } from './ListNewAssetDialog';
 
 export function ListNewAssetButton() {
@@ -13,7 +12,6 @@ export function ListNewAssetButton() {
   const [hasPermission, setHasPermission] = useState(false);
   const { client } = useBasktClient();
   const { authenticated } = usePrivy();
-  const { toast } = useToast();
 
   useEffect(() => {
     const checkPermission = async () => {
@@ -34,15 +32,11 @@ export function ListNewAssetButton() {
         setHasPermission(hasPermission);
       } catch (error) {
         setHasPermission(false);
-        toast({
-          title: 'Permission Error',
-          description: 'Could not check asset listing permissions',
-          variant: 'destructive',
-        });
+        toast.error('Could not check asset listing permissions');
       }
     };
     checkPermission();
-  }, [client, authenticated, toast]);
+  }, [client, authenticated]);
 
   if (!hasPermission) return null;
 

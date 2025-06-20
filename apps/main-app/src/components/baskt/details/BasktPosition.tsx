@@ -1,9 +1,21 @@
 import React, { useState } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
-import { Button } from '../../ui/button';
 import { useOpenPositions } from '../../../hooks/baskt/trade/useOpenPositions';
-import { NumberFormat, PublicKeyText, useBasktClient } from '@baskt/ui';
+import {
+  NumberFormat,
+  PublicKeyText,
+  useBasktClient,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Button,
+} from '@baskt/ui';
 import { OnchainPosition, PositionStatus } from '@baskt/types';
 import { BN } from 'bn.js';
 import AddCollateralDialog from './AddCollateralDialog';
@@ -59,26 +71,54 @@ export const BasktPosition = ({ basktId }: { basktId: string }) => {
                         <PublicKeyText publicKey={position.address.toString()} isCopy={true} />
                       </TableCell>
                       <TableCell>
-                        {position.size ? <NumberFormat value={new BN(position.size).toNumber()} isPrice={true} /> : '-'}
+                        {position.size ? (
+                          <NumberFormat value={new BN(position.size).toNumber()} isPrice={true} />
+                        ) : (
+                          '-'
+                        )}
                       </TableCell>
                       <TableCell>
-                        {position.collateral ? <NumberFormat value={new BN(position.collateral).toNumber()} isPrice={true} /> : '-'}
+                        {position.collateral ? (
+                          <NumberFormat
+                            value={new BN(position.collateral).toNumber()}
+                            isPrice={true}
+                          />
+                        ) : (
+                          '-'
+                        )}
                       </TableCell>
                       <TableCell>
-                        {position.entryPrice ? <NumberFormat value={new BN(position.entryPrice).toNumber()} isPrice={true} /> : '-'}
+                        {position.entryPrice ? (
+                          <NumberFormat
+                            value={new BN(position.entryPrice).toNumber()}
+                            isPrice={true}
+                          />
+                        ) : (
+                          '-'
+                        )}
                       </TableCell>
                       <TableCell className="text-[#16C784]">
-                        {position.status === PositionStatus.OPEN ? 'Open' : position.status === PositionStatus.CLOSED ? 'Closed' : 'Liquidated'}
+                        {position.status === PositionStatus.OPEN
+                          ? 'Open'
+                          : position.status === PositionStatus.CLOSED
+                          ? 'Closed'
+                          : 'Liquidated'}
                       </TableCell>
                       <TableCell className="text-right">
                         {position.timestampOpen
-                          ? new Date(new BN(position.timestampOpen).toNumber() * 1000).toLocaleDateString()
+                          ? new Date(
+                              new BN(position.timestampOpen).toNumber() * 1000,
+                            ).toLocaleDateString()
                           : '-'}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" className="px-2 py-1 h-auto text-xs"
-                            onClick={() => openAddCollateralDialog(position)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="px-2 py-1 h-auto text-xs"
+                            onClick={() => openAddCollateralDialog(position)}
+                          >
                             Add Collateral
                           </Button>
                           <Button

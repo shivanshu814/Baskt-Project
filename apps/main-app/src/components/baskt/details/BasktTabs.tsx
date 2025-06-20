@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent } from '../../ui/card';
+import { Card, CardContent } from '@baskt/ui';
 import { BasktPosition } from './BasktPosition';
 import { BasktOpenOrders } from './BasktOpenOrders';
 import { BasktOrderHistory } from './BasktOrderHistory';
@@ -32,37 +32,41 @@ export const BasktTabs = ({ baskt }: BasktTabsProps) => {
         <div className="flex items-center border-b">
           <div className="flex items-center space-x-8 mx-4">
             <button
-              className={`px-1 py-2 text-[14px] ${activeTab === 'composition'
-                ? 'text-primary border-b-2 border-primary'
-                : 'text-muted-foreground hover:text-primary'
-                }`}
+              className={`px-1 py-2 text-[14px] ${
+                activeTab === 'composition'
+                  ? 'text-primary border-b-2 border-primary'
+                  : 'text-muted-foreground hover:text-primary'
+              }`}
               onClick={() => setActiveTab('composition')}
             >
               Composition
             </button>
             <button
-              className={`px-1 py-2 text-[14px] ${activeTab === 'position'
-                ? 'text-primary border-b-2 border-primary'
-                : 'text-muted-foreground hover:text-primary'
-                }`}
+              className={`px-1 py-2 text-[14px] ${
+                activeTab === 'position'
+                  ? 'text-primary border-b-2 border-primary'
+                  : 'text-muted-foreground hover:text-primary'
+              }`}
               onClick={() => setActiveTab('position')}
             >
               Position
             </button>
             <button
-              className={`px-1 py-2 text-[14px] ${activeTab === 'openOrders'
-                ? 'text-primary border-b-2 border-primary'
-                : 'text-muted-foreground hover:text-primary'
-                }`}
+              className={`px-1 py-2 text-[14px] ${
+                activeTab === 'openOrders'
+                  ? 'text-primary border-b-2 border-primary'
+                  : 'text-muted-foreground hover:text-primary'
+              }`}
               onClick={() => setActiveTab('openOrders')}
             >
               Open Orders
             </button>
             <button
-              className={`px-1 py-2 text-[14px] ${activeTab === 'orderHistory'
-                ? 'text-primary border-b-2 border-primary'
-                : 'text-muted-foreground hover:text-primary'
-                }`}
+              className={`px-1 py-2 text-[14px] ${
+                activeTab === 'orderHistory'
+                  ? 'text-primary border-b-2 border-primary'
+                  : 'text-muted-foreground hover:text-primary'
+              }`}
               onClick={() => setActiveTab('orderHistory')}
             >
               Order History

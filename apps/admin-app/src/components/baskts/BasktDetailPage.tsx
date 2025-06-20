@@ -1,20 +1,27 @@
 'use client';
 
-import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '@baskt/ui';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  NumberFormat,
+  PublicKeyText,
+} from '@baskt/ui';
 import { ArrowLeft } from 'lucide-react';
 import { BN } from 'bn.js';
 import { formatTimestamp } from '../../utils/format';
-import { BasktData } from '../../types/baskt';
 import { FundingIndexTable } from './FundingIndexTable';
-import { NumberFormat, PublicKeyText } from '@baskt/ui';
-interface BasktDetailPageProps {
-  baskt: BasktData;
-  onBack: () => void;
-}
+import { BasktDetailPageProps } from '../../types/baskt';
 
 export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
-
   const { account } = baskt;
 
   return (
@@ -24,7 +31,9 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
           <Button onClick={onBack} variant="outline" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h2 className="text-2xl font-bold">{baskt.name || account.basktName || 'Unnamed Baskt'}</h2>
+          <h2 className="text-2xl font-bold">
+            {baskt.name || account.basktName || 'Unnamed Baskt'}
+          </h2>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-white/60">Price:</span>
@@ -54,7 +63,11 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
               <div className="flex justify-between">
                 <span className="text-white/60">Creator:</span>
                 <span className="font-mono text-sm">
-                  <PublicKeyText publicKey={account.creator.toString()} isCopy={true} noFormat={true} />
+                  <PublicKeyText
+                    publicKey={account.creator.toString()}
+                    isCopy={true}
+                    noFormat={true}
+                  />
                 </span>
               </div>
               <div className="flex justify-between">
@@ -107,7 +120,14 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
             <div className="grid grid-cols-1 gap-2">
               <div className="flex justify-between">
                 <span className="text-white/60">Price:</span>
-                <span>${account.oracle?.price ? <NumberFormat value={new BN(account.oracle.price).toNumber()} /> : 'N/A'}</span>
+                <span>
+                  $
+                  {account.oracle?.price ? (
+                    <NumberFormat value={new BN(account.oracle.price).toNumber()} />
+                  ) : (
+                    'N/A'
+                  )}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Max Price Age (sec):</span>
@@ -115,7 +135,11 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Publish Time:</span>
-                <span>{account.oracle?.publishTime ? formatTimestamp(new BN(account.oracle.publishTime).toNumber()) : 'N/A'}</span>
+                <span>
+                  {account.oracle?.publishTime
+                    ? formatTimestamp(new BN(account.oracle.publishTime).toNumber())
+                    : 'N/A'}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Bump:</span>
@@ -133,32 +157,39 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
           <CardContent>
             {account.currentAssetConfigs?.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="text-left py-2">Asset</th>
-                      <th className="text-right py-2">Weight</th>
-                      <th className="text-right py-2">Direction</th>
-                      <th className="text-right py-2">Baseline Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Asset</TableHead>
+                      <TableHead className="text-right">Weight</TableHead>
+                      <TableHead className="text-right">Direction</TableHead>
+                      <TableHead className="text-right">Baseline Price</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {account.currentAssetConfigs.map((asset, index) => (
-                      <tr key={index} className="border-b border-white/5">
-                        <td className="py-2 font-mono text-xs">
-                          <PublicKeyText publicKey={asset.assetId.toString()} isCopy={true} noFormat={true} />
-                        </td>
-                        <td className="py-2 text-right">{asset.weight.toString()}</td>
-                        <td className="py-2 text-right">
+                      <TableRow key={index}>
+                        <TableCell className="font-mono text-xs">
+                          <PublicKeyText
+                            publicKey={asset.assetId.toString()}
+                            isCopy={true}
+                            noFormat={true}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">{asset.weight.toString()}</TableCell>
+                        <TableCell className="text-right">
                           {asset.direction ? 'Long' : 'Short'}
-                        </td>
-                        <td className="py-2 text-right">
-                          <NumberFormat value={new BN(asset.baselinePrice).toNumber()} isPrice={true} />
-                        </td>
-                      </tr>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <NumberFormat
+                            value={new BN(asset.baselinePrice).toNumber()}
+                            isPrice={true}
+                          />
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             ) : (
               <div className="text-center text-white/60 py-4">No assets configured</div>

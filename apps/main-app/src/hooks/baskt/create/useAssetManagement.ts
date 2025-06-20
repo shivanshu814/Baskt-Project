@@ -1,20 +1,14 @@
 import { AssetInfo, BasktAssetInfo } from '@baskt/types';
 import { BasktFormData } from './useCreateBasktForm';
-import { useToast } from '../../common/use-toast';
+import { toast } from 'sonner';
 
 export const useAssetManagement = (
   formData: BasktFormData,
   setFormData: (data: BasktFormData) => void,
 ) => {
-  const { toast } = useToast();
-
   const handleAddAsset = (asset: AssetInfo) => {
     if (formData.assets.some((a) => a.assetAddress === asset.assetAddress)) {
-      toast({
-        title: 'Asset already in Baskt',
-        description: `${asset.ticker} has already been added to your Baskt.`,
-        variant: 'destructive',
-      });
+      toast.error(`${asset.ticker} has already been added to your Baskt.`);
       return;
     }
 

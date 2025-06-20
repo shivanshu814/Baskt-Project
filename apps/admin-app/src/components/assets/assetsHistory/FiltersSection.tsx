@@ -1,8 +1,5 @@
 import React from 'react';
-import { Card } from '../../ui/card';
-import { Button } from '../../ui/button';
-import { Input } from '../../ui/input';
-import { Label } from '../../ui/label';
+import { Input, Label, Button, Card } from '@baskt/ui';
 import { ArrowLeft } from 'lucide-react';
 import { FiltersSectionProps } from '../../../types/assets';
 export const FiltersSection: React.FC<FiltersSectionProps> = ({

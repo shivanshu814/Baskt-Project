@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useToast } from '../use-toast';
+import { toast } from 'sonner';
 import { useBasktClient } from '@baskt/ui';
 import { PublicKey } from '@solana/web3.js';
 import { AccessControlRole } from '@baskt/types';
 import { Role } from '../../types/roles';
 
 export function useRoles() {
-  const { toast } = useToast();
   const { client } = useBasktClient();
   const [isLoading, setIsLoading] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -42,11 +41,7 @@ export function useRoles() {
         setRoles(formattedRoles);
       }
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch the roles',
-        variant: 'destructive',
-      });
+      toast.error('Failed to fetch the roles');
     } finally {
       setIsLoading(false);
     }
@@ -54,11 +49,7 @@ export function useRoles() {
 
   const handleRemoveRole = async (account: string, role: string) => {
     if (!client || !isOwner) {
-      toast({
-        title: 'Error',
-        description: 'Only owners can remove roles',
-        variant: 'destructive',
-      });
+      toast.error('Only owners can remove roles');
       return;
     }
 
@@ -68,20 +59,12 @@ export function useRoles() {
       const userAddress = client.getPublicKey().toString();
 
       if (account === userAddress) {
-        toast({
-          title: 'Error',
-          description: 'Cannot remove your own role',
-          variant: 'destructive',
-        });
+        toast.error('Cannot remove your own role');
         return;
       }
 
       if (protocol.owner === account) {
-        toast({
-          title: 'Error',
-          description: 'Cannot remove the protocol owner',
-          variant: 'destructive',
-        });
+        toast.error('Cannot remove the protocol owner');
         return;
       }
 
@@ -91,17 +74,10 @@ export function useRoles() {
       );
       if (txSignature) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
-        toast({
-          title: 'Success',
-          description: 'Role removed successfully',
-        });
+        toast.success('Role removed successfully');
         await fetchRoles();
       } else {
-        toast({
-          title: 'Transaction Failed',
-          description: 'Please check your wallet balance and try again',
-          variant: 'destructive',
-        });
+        toast.error('Transaction Failed. Please check your wallet balance and try again');
       }
       // eslint-disable-next-line
     } catch (error: any) {
@@ -109,11 +85,7 @@ export function useRoles() {
         ? 'Insufficient balance in your wallet'
         : error?.message || 'Failed to remove role';
 
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

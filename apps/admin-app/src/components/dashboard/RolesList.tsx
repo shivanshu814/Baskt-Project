@@ -2,7 +2,7 @@
 
 import { AddRoleDialog } from '../roles/AddRoleDialog';
 import { RoleTable } from '../roles/RoleTable';
-import { Button } from '../ui/button';
+import { Button } from '@baskt/ui';
 import { Plus } from 'lucide-react';
 import { useRoles } from '../../hooks/roles/useRoles';
 import { useCopyAddress } from '../../hooks/useCopyAddress';

@@ -4,16 +4,22 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuList,
+  cn,
+  PublicKeyText,
+  Button,
+} from '@baskt/ui';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
-import { cn, PublicKeyText } from '@baskt/ui';
-import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { User, LogOut, ShieldCheck, Wallet } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from '../ui/navigation-menu';
 import { useState } from 'react';
 import { AdminNavbarProps } from '../../types';
 

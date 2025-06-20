@@ -1,12 +1,11 @@
 'use client';
 
-import { Card } from '../../components/ui/card';
+import { Card, Tabs, TabsList, TabsTrigger, TabsContent } from '@baskt/ui';
 import { useState } from 'react';
 import { useUSDCBalance } from '../../hooks/pool/useUSDCBalance';
 import { useTokenBalance } from '../../hooks/pool/useTokenBalance';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useBasktClient } from '@baskt/ui';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs';
 import { ActionCard } from '../../components/pool/ActionCard';
 import { PoolInfo } from '../../components/pool/PoolInfo';
 import { LiquidityAllocation } from '../../components/pool/LiquidityAllocation';

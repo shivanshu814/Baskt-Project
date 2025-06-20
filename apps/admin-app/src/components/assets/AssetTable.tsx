@@ -1,17 +1,18 @@
-import { TableCell, TableRow } from '../ui/table';
-import { Loading } from '../ui/loading';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from '../ui/dropdown-menu';
+  TableCell,
+  TableRow,
+  Loading,
+} from '@baskt/ui';
 import { MoreHorizontal } from 'lucide-react';
 import { ASSET_TABLE_CONFIG } from '../../config/assets';
 import { AssetTableCell } from './AssetTableCell';
 import { AssetTableProps } from '../../types/assets';
 
-export function AssetTable({ assets, isLoading, onViewPrices }: AssetTableProps) {
+export function AssetTable({ assets, isLoading, onViewPrices, onEdit, onDelete }: AssetTableProps) {
   if (isLoading) {
     return (
       <TableRow>
@@ -52,6 +53,10 @@ export function AssetTable({ assets, isLoading, onViewPrices }: AssetTableProps)
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onViewPrices(asset)}>View Prices</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onEdit(asset)}>Edit</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onDelete(asset)} className="text-red-500">
+                  Delete
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </TableCell>

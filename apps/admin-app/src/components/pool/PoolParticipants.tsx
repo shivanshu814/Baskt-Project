@@ -1,11 +1,20 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  PublicKeyText,
+} from '@baskt/ui';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PoolParticipantsProps } from '../../types/pool';
 import { PAGE_SIZE_OPTIONS } from '../../constants/pool';
-import { PublicKeyText } from '@baskt/ui';
 
 export function PoolParticipants({
   participants,
@@ -75,7 +84,11 @@ export function PoolParticipants({
                     <td className="py-3 px-4 text-white/80 font-mono text-sm">
                       <div className="flex items-center gap-2">
                         <span>
-                          <PublicKeyText publicKey={participant.address} isCopy={true} noFormat={true} />
+                          <PublicKeyText
+                            publicKey={participant.address}
+                            isCopy={true}
+                            noFormat={true}
+                          />
                         </span>
                       </div>
                     </td>

@@ -1,12 +1,10 @@
 'use client';
 
-import { Toaster } from '../ui/toaster';
-import { Toaster as Sonner } from '../ui/sonner';
+import { Toaster as Sonner } from '@baskt/ui';
 
 export function ToasterWrapper() {
   return (
     <>
-      <Toaster />
       <Sonner />
     </>
   );

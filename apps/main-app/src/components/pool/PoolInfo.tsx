@@ -1,11 +1,6 @@
 import React from 'react';
 import { Info } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '../../components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@baskt/ui';
 import { PoolInfoProps } from '../../types/pool';
 
 export const PoolInfo = React.memo(({ apy, lastUpdated }: PoolInfoProps) => {

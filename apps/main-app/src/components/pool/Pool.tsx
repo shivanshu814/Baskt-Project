@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@baskt/ui';
 import { usePoolData } from '../../hooks/pool/usePoolData';
 import { useDeposit } from '../../hooks/pool/useDeposit';
 import { useWithdraw } from '../../hooks/pool/useWithdraw';

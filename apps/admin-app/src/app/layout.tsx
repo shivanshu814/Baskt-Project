@@ -3,11 +3,9 @@
 import '../styles/globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Toaster } from '../components/ui/toaster';
-import { PrivyProvider, BasktClientProvider } from '@baskt/ui';
 import { ReactNode } from 'react';
 import { TRPCProvider } from '../providers/TRPCProvider';
-import { TooltipProvider } from '../components/ui/tooltip';
+import { TooltipProvider, Toaster, PrivyProvider, BasktClientProvider } from '@baskt/ui';
 
 const inter = Inter({ subsets: ['latin'] });
 

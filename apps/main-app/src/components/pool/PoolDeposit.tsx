@@ -1,4 +1,4 @@
-import { Input } from '../../components/ui/input';
+import { Input } from '@baskt/ui';
 import { PoolDepositProps } from '../../types/pool';
 
 export const PoolDeposit = ({

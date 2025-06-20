@@ -3,8 +3,7 @@
 import { useRouter, useParams } from 'next/navigation';
 import { BasktTradingForm } from '../../../components/baskt/details/BasktTradingForm';
 import { CryptoNews } from '../../../components/baskt/details/CryptoNews';
-import { Loading } from '../../../components/ui/loading';
-import { Button } from '../../../components/ui/button';
+import { Loading, Button } from '@baskt/ui';
 import { useBasktDetail } from '../../../hooks/baskt/useBasktDetail';
 import { BasktChart } from '../../../components/baskt/details/BasktChart';
 import { BasktTabs } from '../../../components/baskt/details/BasktTabs';
@@ -16,15 +15,8 @@ export default function BasktDetailPage() {
 
   const [basktId, setBasktId] = useState(params.id as string);
 
-  const {
-    baskt,
-    isLoading,
-    chartPeriod,
-    setChartPeriod,
-    chartType,
-    setChartType,
-    cryptoNews,
-  } = useBasktDetail(basktId);
+  const { baskt, isLoading, chartPeriod, setChartPeriod, chartType, setChartType, cryptoNews } =
+    useBasktDetail(basktId);
 
   if (isLoading) {
     return (

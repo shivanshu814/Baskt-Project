@@ -9,16 +9,14 @@ import {
   NavigationMenuItem,
   NavigationMenuList,
   navigationMenuTriggerStyle,
-} from '../ui/navigation-menu';
-import { Button } from '../ui/button';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
+  Button,
+  PublicKeyText,
+} from '@baskt/ui';
 import { toast } from 'sonner';
-import { PublicKeyText } from '@baskt/ui';
 
 interface NavbarProps {
   setSidebarOpen?: (open: boolean) => void;

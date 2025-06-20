@@ -6,7 +6,7 @@
 import { useMemo, useCallback } from 'react';
 import { useAdminDashboard } from '../hooks/dashboard/useDashboard';
 import { Layout } from '../components/Layout';
-import { Button } from '../components/ui/button';
+import { Button } from '@baskt/ui';
 import { Plus } from 'lucide-react';
 import { TAB_CONFIG } from '../config/tabs';
 import { TAB_IDS, TabId } from '../constants/tabs';

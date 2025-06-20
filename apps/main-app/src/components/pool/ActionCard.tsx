@@ -5,9 +5,9 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { Button } from '../../components/ui/button';
+  Input,
+  Button,
+} from '@baskt/ui';
 import { ActionCardProps } from '../../types/pool';
 
 export const ActionCard = React.memo(

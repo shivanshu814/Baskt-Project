@@ -1,10 +1,21 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  useBasktClient,
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+  Input,
+} from '@baskt/ui';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '../ui/form';
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '../ui/select';
 import { showTransactionToast } from '../ui/transaction-toast';
 import {
   assetFormSchema,
@@ -13,25 +24,19 @@ import {
   AssetMutationInput,
   providerOptions,
 } from '../../types/assets';
-import { useToast } from '../../hooks/use-toast';
-import { useBasktClient } from '@baskt/ui';
+import { toast } from 'sonner';
 import { trpc } from '../../utils/trpc';
 import { usePrivy } from '@privy-io/react-auth';
 import { useState } from 'react';
 
 export function ListNewAssetDialog({ open, onOpenChange }: DialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
   const { client } = useBasktClient();
   const { authenticated, login } = usePrivy();
 
   const createAsset = trpc.asset.createAsset.useMutation({
     onError: (error) => {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast.error(error.message);
     },
   });
 
@@ -61,11 +66,7 @@ export function ListNewAssetDialog({ open, onOpenChange }: DialogProps) {
 
   const onSubmit = async (values: AssetFormValues) => {
     if (!authenticated) {
-      toast({
-        title: 'Wallet Required',
-        description: 'Please connect your wallet to list new assets',
-        variant: 'destructive',
-      });
+      toast.error('Please connect your wallet to list new assets');
       login();
       return;
     }
@@ -73,11 +74,7 @@ export function ListNewAssetDialog({ open, onOpenChange }: DialogProps) {
     try {
       setIsSubmitting(true);
       if (!client) {
-        toast({
-          title: 'Client Error',
-          description: 'Client not initialized',
-          variant: 'destructive',
-        });
+        toast.error('Client not initialized');
         return;
       }
       const { assetAddress, txSignature } = await client.addAsset(values.ticker, {
@@ -110,11 +107,7 @@ export function ListNewAssetDialog({ open, onOpenChange }: DialogProps) {
       onOpenChange(false);
       form.reset();
     } catch (error) {
-      toast({
-        title: 'Error Adding Asset',
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'An unknown error occurred');
     } finally {
       setIsSubmitting(false);
     }

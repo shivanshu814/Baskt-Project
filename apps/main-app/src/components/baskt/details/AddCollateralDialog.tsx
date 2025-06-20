@@ -7,14 +7,14 @@ import {
   DialogDescription,
   DialogFooter,
   DialogClose,
-} from '../../ui/dialog';
-import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
-import { Button } from '../../ui/button';
+  Label,
+  Input,
+  Button,
+  PRICE_PRECISION,
+} from '@baskt/ui';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import BN from 'bn.js';
 import { AddCollateralDialogProps } from '../../../types/baskt';
-import { PRICE_PRECISION } from '@baskt/ui';
 
 const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
   position,
@@ -128,7 +128,9 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
 
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="outline" disabled={isSubmitting}>Cancel</Button>
+            <Button variant="outline" disabled={isSubmitting}>
+              Cancel
+            </Button>
           </DialogClose>
           <Button
             onClick={handleSubmit}

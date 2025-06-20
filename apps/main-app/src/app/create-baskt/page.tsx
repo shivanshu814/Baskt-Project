@@ -7,8 +7,7 @@ import { CreateBasktGuideDialog } from '../../components/baskt/create/CreateBask
 import { AssetSelectionModal } from '../../components/baskt/create/AssetSelectionModal';
 import { BasicInfoForm } from '../../components/baskt/create/BasicInfoForm';
 import { AssetManagementForm } from '../../components/baskt/create/AssetManagementForm';
-import { Button } from '../../components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
+import { Button, Alert, AlertDescription, AlertTitle } from '@baskt/ui';
 import { useCreateBasktForm } from '../../hooks/baskt/create/useCreateBasktForm';
 import { useAssetManagement } from '../../hooks/baskt/create/useAssetManagement';
 import { useBasktCreation } from '../../hooks/baskt/create/useBasktCreation';
@@ -30,16 +29,7 @@ const CreateBasktPage = () => {
   } = useCreateBasktForm();
   const { handleAddAsset, handleRemoveAsset, handleAssetPositionChange, handleAssetWeightChange } =
     useAssetManagement(formData, setFormData);
-  const {
-    isSubmitting,
-    transactionStatus,
-    createBaskt,
-    handleRetry,
-    authenticated,
-    ready,
-    login,
-    signature,
-  } = useBasktCreation();
+  const { isSubmitting, createBaskt, authenticated, ready, login } = useBasktCreation();
 
   // eslint-disable-next-line
   const handleAssetSelect = (asset: any) => {

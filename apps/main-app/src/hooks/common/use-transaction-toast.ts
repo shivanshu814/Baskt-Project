@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { toast } from './use-toast';
+import { toast } from 'sonner';
 import { TransactionStatus, TransactionToastConfig } from '../../types/baskt';
 import { getSolscanAddressUrl } from '@baskt/ui';
 
@@ -54,14 +54,15 @@ export const useTransactionToast = () => {
       config?: TransactionToastConfig,
       signature?: string,
       error?: string,
-      onRetry?: () => void,
+      onRetry?: () => void, // eslint-disable-line
     ) => {
+      // eslint-disable-next-line
       const getStatusText = (status: TransactionStatus) => {
         switch (status) {
           case 'waiting':
             return config?.waiting?.title || 'Waiting for Signature';
           case 'confirmed':
-            return config?.confirmed?.title || 'On-Chain Confirmed';
+            return config?.confirmed?.title || 'Transaction Confirmed';
           case 'processing':
             return config?.processing?.title || 'Processing';
           case 'success':
@@ -99,25 +100,27 @@ export const useTransactionToast = () => {
 
         if (status === 'success' && signature) {
           const explorerUrl = getSolscanAddressUrl(signature);
-          baseDescription += `\n\n🔗 View on Explorer: ${explorerUrl}`;
+          baseDescription += `\n\n View on Explorer: ${explorerUrl}`;
         }
 
         if (status === 'failed' && error) {
-          baseDescription += `\n\n❌ Error: ${error}`;
+          baseDescription += `\n\n Error: ${error}`;
         }
 
         return baseDescription;
       };
 
-      const toastResult = toast({
-        title: getStatusText(status),
-        description: getStatusDescription(status),
-        duration: status === 'success' || status === 'failed' ? 5000 : Infinity,
-        variant: status === 'failed' ? 'destructive' : 'default',
-      });
+      const message = getStatusDescription(status);
 
-      setCurrentToastId(toastResult.id);
-      return toastResult;
+      if (status === 'failed') {
+        toast.error(message);
+      } else if (status === 'success') {
+        toast.success(message);
+      } else {
+        toast(message);
+      }
+
+      return { id: Date.now().toString() };
     },
     [currentToastId],
   );
@@ -131,59 +134,6 @@ export const useTransactionToast = () => {
       onRetry?: () => void,
     ) => {
       if (!currentToastId) return;
-
-      const getStatusText = (status: TransactionStatus) => {
-        switch (status) {
-          case 'waiting':
-            return config?.waiting?.title || 'Waiting for Signature';
-          case 'confirmed':
-            return config?.confirmed?.title || 'On-Chain Confirmed';
-          case 'processing':
-            return config?.processing?.title || 'Processing';
-          case 'success':
-            return config?.success?.title || 'Success!';
-          case 'failed':
-            return config?.failed?.title || 'Something Went Wrong';
-        }
-      };
-
-      const getStatusDescription = (status: TransactionStatus) => {
-        let baseDescription = '';
-        switch (status) {
-          case 'waiting':
-            baseDescription =
-              config?.waiting?.description ||
-              'Please sign the transaction in your wallet to continue.';
-            break;
-          case 'confirmed':
-            baseDescription =
-              config?.confirmed?.description || 'Signature accepted—now saving on our side.';
-            break;
-          case 'processing':
-            baseDescription =
-              config?.processing?.description || 'Finalizing and writing to the database…';
-            break;
-          case 'success':
-            baseDescription =
-              config?.success?.description || 'Your Baskt is live—go explore it now.';
-            break;
-          case 'failed':
-            baseDescription =
-              config?.failed?.description || 'Your signature went through, but saving failed.';
-            break;
-        }
-
-        if (status === 'success' && signature) {
-          const explorerUrl = getSolscanAddressUrl(signature);
-          baseDescription += `\n\n🔗 View on Explorer: ${explorerUrl}`;
-        }
-
-        if (status === 'failed' && error) {
-          baseDescription += `\n\n❌ Error: ${error}`;
-        }
-
-        return baseDescription;
-      };
 
       showTransactionToast(status, config, signature, error, onRetry);
     },

@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Search } from 'lucide-react';
-import { Input } from '../ui/input';
+import { Input } from '@baskt/ui';
 import { SearchBarProps } from '../../types/shared';
 
 export const SearchBar = memo(({ value, onChange, placeholder = 'Search...' }: SearchBarProps) => (

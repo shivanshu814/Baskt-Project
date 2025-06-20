@@ -1,11 +1,18 @@
 import React from 'react';
-import { Card } from '../../ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
-import { Loading } from '../../ui/loading';
+import {
+  Loading,
+  NumberFormat,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Card,
+} from '@baskt/ui';
 import { formatDate } from '../../../utils/date';
 import { getTableRowKey } from '../../../utils/table';
 import { PriceHistoryTableProps } from '../../../types/assets';
-import { NumberFormat } from '@baskt/ui';
 
 export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({ data, isLoading, error }) => {
   return (
@@ -44,8 +51,12 @@ export const PriceHistoryTable: React.FC<PriceHistoryTableProps> = ({ data, isLo
             data.map((row: any, i: number) => (
               <TableRow key={getTableRowKey(i)} className="border-white/10">
                 <TableCell className="text-[#E5E7EB]">{formatDate(row.time)}</TableCell>
-                <TableCell className="text-[#E5E7EB]"><NumberFormat value={row.price} isPrice={true} /></TableCell>
-                <TableCell className="text-[#E5E7EB]"><NumberFormat value={row.rawPrice} isPrice={true} /></TableCell>
+                <TableCell className="text-[#E5E7EB]">
+                  <NumberFormat value={row.price} isPrice={true} />
+                </TableCell>
+                <TableCell className="text-[#E5E7EB]">
+                  <NumberFormat value={row.rawPrice} isPrice={true} />
+                </TableCell>
               </TableRow>
             ))
           )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '../components/ui/button';
+import { Button } from '@baskt/ui';
 import Link from 'next/link';
 
 export default function NotFound() {

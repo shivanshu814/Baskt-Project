@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Plus, Search } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from '@baskt/ui';
 import { EmptyStateProps } from '../../types/baskt';
 
 export const EmptyState = memo(({ onCreateClick }: EmptyStateProps) => (

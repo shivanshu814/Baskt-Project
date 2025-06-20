@@ -5,6 +5,7 @@
     "target": "ES2019",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,

@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { useBasktClient } from '@baskt/ui';
+import { toast } from 'sonner';
 import { trpc } from '../../utils/trpc';
-import { useToast } from '../common/use-toast';
 import type { PoolData, PoolResponse } from '../../types/pool';
 import { usePoolCalculations } from './usePoolCalculations';
 
 export const usePoolData = () => {
   const { client } = useBasktClient();
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [poolData, setPoolData] = useState<PoolData | null>(null);
   const [liquidityPool, setLiquidityPool] = useState<PublicKey | null>(null);
@@ -23,14 +22,11 @@ export const usePoolData = () => {
       const liquidityPoolPDA = await client.findLiquidityPoolPDA();
       setLiquidityPool(liquidityPoolPDA);
     } catch (error) {
-      toast({
-        title: 'Failed to fetch pool data',
-        variant: 'destructive',
-      });
+      toast.error('Failed to fetch pool data');
     } finally {
       setIsLoading(false);
     }
-  }, [client, toast]);
+  }, [client]);
 
   useEffect(() => {
     if (poolDataResponse?.success) {

@@ -1,9 +1,7 @@
-import { TableCell } from '../ui/table';
-import { getSolscanAddressUrl } from '@baskt/ui';
+import { PublicKeyText, NumberFormat, TableCell, getSolscanAddressUrl } from '@baskt/ui';
 import { DATE_FORMAT_OPTIONS } from '../../constants/assets';
 import { ASSET_TABLE_IDS } from '../../constants/assets';
 import { AssetTableCellProps } from '../../types/assets';
-import { PublicKeyText, NumberFormat } from '@baskt/ui';
 
 export function AssetTableCell({ asset, id }: AssetTableCellProps) {
   switch (id) {
@@ -32,9 +30,11 @@ export function AssetTableCell({ asset, id }: AssetTableCellProps) {
       );
 
     case ASSET_TABLE_IDS.PRICE:
-      return <TableCell>
-        <NumberFormat value={asset.price} isPrice={true} />
-      </TableCell>;
+      return (
+        <TableCell>
+          <NumberFormat value={asset.price} isPrice={true} />
+        </TableCell>
+      );
 
     case ASSET_TABLE_IDS.ALLOW_LONG:
       return <TableCell>{asset.account.permissions.allowLongs ? 'Yes' : 'No'}</TableCell>;
@@ -46,9 +46,11 @@ export function AssetTableCell({ asset, id }: AssetTableCellProps) {
       return <TableCell>{asset.account.isActive ? 'Active' : 'Inactive'}</TableCell>;
 
     case ASSET_TABLE_IDS.LATEST_PRICE:
-      return <TableCell>
-        <NumberFormat value={asset.latestPrice?.price ?? 0} isPrice={true} />
-      </TableCell>;
+      return (
+        <TableCell>
+          <NumberFormat value={asset?.price ?? 0} isPrice={true} />
+        </TableCell>
+      );
 
     case ASSET_TABLE_IDS.LATEST_PRICE_TIME:
       return (

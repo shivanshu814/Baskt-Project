@@ -1,8 +1,15 @@
 import { Clock } from 'lucide-react';
-import { Card, CardContent } from '../../ui/card';
-import { Input } from '../../ui/input';
-import { Label } from '../../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
+import {
+  Card,
+  CardContent,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@baskt/ui';
 import { BasicInfoFormProps } from '../../../types/baskt';
 
 export const BasicInfoForm = ({
@@ -74,19 +81,21 @@ export const BasicInfoForm = ({
             <div className="flex items-center">
               <div className="flex items-center bg-muted rounded-full p-0.5">
                 <div
-                  className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${formData.isPublic
-                    ? 'bg-background text-foreground font-medium'
-                    : 'text-muted-foreground'
-                    }`}
+                  className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${
+                    formData.isPublic
+                      ? 'bg-background text-foreground font-medium'
+                      : 'text-muted-foreground'
+                  }`}
                   onClick={() => onVisibilityChange(true)}
                 >
                   Public
                 </div>
                 <div
-                  className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${!formData.isPublic
-                    ? 'bg-background text-foreground font-medium'
-                    : 'text-muted-foreground'
-                    }`}
+                  className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${
+                    !formData.isPublic
+                      ? 'bg-background text-foreground font-medium'
+                      : 'text-muted-foreground'
+                  }`}
                   onClick={() => onVisibilityChange(false)}
                 >
                   Private

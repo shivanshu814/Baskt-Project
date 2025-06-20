@@ -1,24 +1,24 @@
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader } from '../ui/card';
-import { Button } from '../ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Button,
+  cn,
+  NumberFormat,
+  PRICE_PRECISION,
+} from '@baskt/ui';
 import { ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
-import { cn, NumberFormat } from '@baskt/ui';
 import { useMemo } from 'react';
 import { BasktCardProps } from '../../types/baskt';
-import { PRICE_PRECISION } from '@baskt/ui';
 
 const DEFAULT_SPARKLINE = Array(24).fill(0);
 
 export const BasktCard = ({ baskt, className }: BasktCardProps) => {
   const router = useRouter();
 
-  const {
-    isPositive,
-    changeColor,
-    changeIcon,
-    sparklineData,
-  } = useMemo(() => {
+  const { isPositive, changeColor, changeIcon, sparklineData } = useMemo(() => {
     const change24h = baskt.change24h || 0;
     const isPositive = change24h >= 0;
 
@@ -60,7 +60,9 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
       </CardHeader>
 
       <CardContent className="space-y-4 pt-0">
-        <div className="text-2xl font-bold"><NumberFormat value={baskt.price} isPrice={true} /></div>
+        <div className="text-2xl font-bold">
+          <NumberFormat value={baskt.price} isPrice={true} />
+        </div>
 
         <div className="h-16 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -92,7 +94,9 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
 
         <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
           <div>Assets: {baskt.totalAssets || 0}</div>
-          <div className="text-right">AUM: <NumberFormat value={baskt.aum} isPrice={true} />M</div>
+          <div className="text-right">
+            AUM: <NumberFormat value={baskt.aum} isPrice={true} />M
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-sm text-muted-foreground">
