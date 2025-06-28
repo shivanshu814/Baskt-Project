@@ -87,5 +87,5 @@ jobs:
             git fetch origin
             git reset --hard origin/${{ github.ref_name }}
             pnpm install
-            pnpm build
-            pm2 restart all
+            pnpm build:server
+            pnpm pm2:start

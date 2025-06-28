@@ -12,7 +12,7 @@ async function getOracleConfigs() {
 
 async function scheduleOracleConfigs() {
   const oracleConfigs = await getOracleConfigs();
-
+  console.log('Got Oracle configs:', oracleConfigs.length);
   for (const oracleConfig of oracleConfigs) {
     await pricingQueue.add(oracleConfig.ticker, oracleConfig, {
       repeat: {
