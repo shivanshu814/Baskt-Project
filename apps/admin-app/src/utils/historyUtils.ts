@@ -21,10 +21,18 @@ export const formatPnl = (pnl?: string, percentage?: string) => {
 };
 
 export const formatSize = (size: string) => {
-  return parseFloat(size).toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
+  const sizeValue = parseFloat(size) / 1e6;
+  const wholePart = Math.floor(sizeValue);
+  const fractionalPart = sizeValue - wholePart;
+
+  const formattedWhole = wholePart.toLocaleString('en-US');
+  const formattedFraction = fractionalPart.toFixed(2).replace('0.', '');
+
+  if (fractionalPart === 0) {
+    return formattedWhole;
+  }
+
+  return `${formattedWhole}.${formattedFraction}`;
 };
 
 export const formatCollateral = (collateral: string) => {

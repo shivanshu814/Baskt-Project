@@ -10,6 +10,8 @@ import { orderRouter } from './order';
 import { positionRouter } from './position';
 import { metricsRouter } from './metrics';
 import { historyRouter } from './history';
+import { accessRouter } from './access';
+import { faucetRouter } from './faucet';
 
 export const appRouter = router({
   health: publicProcedure.query(() => {
@@ -27,6 +29,8 @@ export const appRouter = router({
   position: positionRouter,
   metrics: metricsRouter,
   history: historyRouter,
+  accessCode: accessRouter,
+  faucet: faucetRouter,
 });
 
 export type AppRouter = typeof appRouter;

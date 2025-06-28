@@ -1,4 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
+import BN from 'bn.js';
 
 /**
  * Feature flags to enable or disable specific protocol features
@@ -26,6 +27,40 @@ export interface OnchainFeatureFlags {
   allowTrading: boolean;
   /** Allow liquidations to occur */
   allowLiquidations: boolean;
+}
+
+/**
+ * Protocol configuration parameters
+ */
+export interface OnchainProtocolConfig {
+  /** Opening fee in basis points */
+  openingFeeBps: BN;
+  /** Closing fee in basis points */
+  closingFeeBps: BN;
+  /** Liquidation fee in basis points */
+  liquidationFeeBps: BN;
+  /** Maximum funding rate in basis points */
+  maxFundingRateBps: BN;
+  /** Funding interval in seconds */
+  fundingIntervalSeconds: BN;
+  /** Minimum collateral ratio in basis points */
+  minCollateralRatioBps: BN;
+  /** Liquidation threshold in basis points */
+  liquidationThresholdBps: BN;
+  /** Maximum oracle price age in seconds */
+  maxPriceAgeSec: number;
+  /** Maximum price deviation in basis points */
+  maxPriceDeviationBps: BN;
+  /** Liquidation price deviation in basis points */
+  liquidationPriceDeviationBps: BN;
+  /** Minimum liquidity */
+  minLiquidity: BN;
+  /** Decommission grace period in seconds */
+  decommissionGracePeriod: BN;
+  /** Last updated timestamp */
+  lastUpdated: BN;
+  /** Last updated by */
+  lastUpdatedBy: string;
 }
 
 /**
@@ -58,12 +93,27 @@ export interface OnchainProtocolInterface {
   accessControl: OnchainAccessControl;
   /** Feature flags */
   featureFlags: OnchainFeatureFlags;
-  /** The treasury of the protocol */
+  /** Protocol configuration */
+  config: OnchainProtocolConfig;
+  /** Protocol treasury */
   treasury: PublicKey;
-  /** The escrow mint of the protocol */
+  /** Escrow mint */
   escrowMint: PublicKey;
 }
 
 /**
  * Raw protocol account data as returned by the program
  */
+export interface OnchainRawProtocolAccount {
+  isInitialized: boolean;
+  owner: PublicKey;
+  accessControl: {
+    entries: Array<{
+      account: PublicKey;
+      role: Record<string, unknown>; // Using unknown instead of {} for better type safety
+    }>;
+  };
+  featureFlags: OnchainFeatureFlags;
+  config: OnchainProtocolConfig;
+  treasury: PublicKey;
+}

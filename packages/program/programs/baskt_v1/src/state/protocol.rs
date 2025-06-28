@@ -1,3 +1,4 @@
+use crate::constants::*;
 use crate::error::PerpetualsError;
 use anchor_lang::prelude::*;
 
@@ -18,6 +19,8 @@ pub enum Role {
     Liquidator,
     /// FundingManager role with permission to update funding rates and indices
     FundingManager,
+    /// ConfigManager role with permission to update protocol configuration
+    ConfigManager,
 }
 
 /// Access control entry for a specific account
@@ -104,11 +107,68 @@ pub struct FeatureFlags {
     pub allow_liquidations: bool,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, InitSpace)]
+pub struct ProtocolConfig {
+    /// Fee parameters (in basis points)
+    pub opening_fee_bps: u64,
+    pub closing_fee_bps: u64,
+    pub liquidation_fee_bps: u64,
+
+    /// Fee split parameters (in basis points)
+    pub treasury_cut_bps: u64,
+    pub funding_cut_bps: u64,
+
+    /// Funding parameters
+    pub max_funding_rate_bps: u64,
+    pub funding_interval_seconds: i64,
+
+    /// Risk parameters
+    pub min_collateral_ratio_bps: u64,
+    pub liquidation_threshold_bps: u64,
+
+    /// Oracle parameters
+    pub max_price_age_sec: u32,
+    pub max_price_deviation_bps: u64,
+    pub liquidation_price_deviation_bps: u64,
+
+    /// Pool parameters
+    pub min_liquidity: u64,
+
+    /// Baskt decommissioning parameters
+    pub decommission_grace_period: i64, // Grace period in seconds
+
+    /// Metadata
+    pub last_updated: i64,
+    pub last_updated_by: Pubkey,
+}
+
+impl ProtocolConfig {
+    fn new(owner: Pubkey) -> Self {
+        Self {
+            opening_fee_bps: OPENING_FEE_BPS,
+            closing_fee_bps: CLOSING_FEE_BPS,
+            liquidation_fee_bps: LIQUIDATION_FEE_BPS,
+            treasury_cut_bps: DEFAULT_TREASURY_CUT_BPS,
+            funding_cut_bps: DEFAULT_FUNDING_CUT_BPS,
+            max_funding_rate_bps: MAX_FUNDING_RATE_BPS,
+            funding_interval_seconds: FUNDING_INTERVAL_SECONDS,
+            min_collateral_ratio_bps: MIN_COLLATERAL_RATIO_BPS,
+            liquidation_threshold_bps: LIQUIDATION_THRESHOLD_BPS,
+            max_price_age_sec: MAX_PRICE_AGE_SEC,
+            max_price_deviation_bps: MAX_PRICE_DEVIATION_BPS,
+            liquidation_price_deviation_bps: LIQUIDATION_PRICE_DEVIATION_BPS,
+            min_liquidity: MIN_LIQUIDITY,
+            decommission_grace_period: 86400, // Default to 24 hours (86400 seconds)
+            last_updated: 0,
+            last_updated_by: owner,
+        }
+    }
+}
+
 #[account]
 #[derive(InitSpace)]
 
 /**
- * REVIEW: I will need a permissions struct which can be used to turn of certain features of the system
  * It should track all the assets that we have in the system.
  * it should keep track of all the fees we are charging and what not
  * it should keep track of min liqudiation margins
@@ -125,6 +185,9 @@ pub struct Protocol {
     pub treasury: Pubkey,
     /// Escrow mint (USDC)
     pub escrow_mint: Pubkey,
+
+    /// Protocol configuration parameters
+    pub config: ProtocolConfig,
 }
 
 impl Protocol {
@@ -158,6 +221,9 @@ impl Protocol {
 
         self.treasury = treasury;
         self.escrow_mint = escrow_mint;
+
+        // Initialize default protocol configuration
+        self.config = ProtocolConfig::new(owner);
 
         Ok(())
     }
@@ -222,6 +288,7 @@ mod tests {
             feature_flags: FeatureFlags::default(),
             treasury: Pubkey::default(),
             escrow_mint: Pubkey::default(),
+            config: ProtocolConfig::new(Pubkey::default()),
         };
         let owner = Pubkey::new_unique();
         let treasury = Pubkey::new_unique();
@@ -242,6 +309,7 @@ mod tests {
             feature_flags: FeatureFlags::default(),
             treasury: Pubkey::default(),
             escrow_mint: Pubkey::default(),
+            config: ProtocolConfig::new(Pubkey::default()),
         };
         let owner = Pubkey::new_unique();
         let treasury = Pubkey::new_unique();
@@ -287,6 +355,7 @@ mod tests {
             feature_flags: FeatureFlags::default(),
             treasury: Pubkey::default(),
             escrow_mint: Pubkey::default(),
+            config: ProtocolConfig::new(Pubkey::default()),
         };
         let user = Pubkey::new_unique();
         let treasury = Pubkey::new_unique();

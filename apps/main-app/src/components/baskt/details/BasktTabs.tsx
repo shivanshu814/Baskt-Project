@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Card, CardContent } from '@baskt/ui';
 import { BasktPosition } from './BasktPosition';
 import { BasktOpenOrders } from './BasktOpenOrders';
 import { BasktOrderHistory } from './BasktOrderHistory';
 import { IndexComposition } from './IndexComposition';
 import { BasktTabsProps } from '../../../types/baskt';
+import BN from 'bn.js';
+import { MetricsGrid } from './MetricsGrid';
 
-type TabType = 'composition' | 'position' | 'openOrders' | 'orderHistory';
+type TabType = 'composition' | 'position' | 'openOrders' | 'orderHistory' | 'metrics';
 
 export const BasktTabs = ({ baskt }: BasktTabsProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('composition');
@@ -16,65 +17,46 @@ export const BasktTabs = ({ baskt }: BasktTabsProps) => {
       case 'composition':
         return <IndexComposition assets={baskt?.assets || []} />;
       case 'position':
-        return <BasktPosition basktId={baskt.basktId} />;
+        return <BasktPosition basktId={baskt.basktId} navPrice={new BN(baskt.price)} />;
       case 'openOrders':
         return <BasktOpenOrders basktId={baskt.basktId} />;
       case 'orderHistory':
-        return <BasktOrderHistory />;
+        return <BasktOrderHistory basktId={baskt.basktId} />;
+      case 'metrics':
+        return <MetricsGrid baskt={baskt} />;
       default:
         return null;
     }
   };
 
+  const tabs: { id: TabType | 'metrics'; label: string }[] = [
+    { id: 'composition', label: 'Composition' },
+    { id: 'position', label: 'Position' },
+    { id: 'openOrders', label: 'Open Orders' },
+    { id: 'orderHistory', label: 'Order History' },
+    { id: 'metrics', label: 'Metrics' },
+  ];
+
   return (
-    <Card>
-      <CardContent className="p-0">
-        <div className="flex items-center border-b">
-          <div className="flex items-center space-x-8 mx-4">
+    <div className="border-b border-muted-foreground/20">
+      <div className="border-b border-muted-foreground/20">
+        <div className="flex items-center space-x-4 sm:space-x-6 px-4 overflow-x-auto whitespace-nowrap">
+          {tabs.map((tab) => (
             <button
-              className={`px-1 py-2 text-[14px] ${
-                activeTab === 'composition'
+              key={tab.id}
+              className={`py-3 text-sm font-medium transition-colors ${
+                activeTab === tab.id
                   ? 'text-primary border-b-2 border-primary'
                   : 'text-muted-foreground hover:text-primary'
               }`}
-              onClick={() => setActiveTab('composition')}
+              onClick={() => setActiveTab(tab.id as TabType | 'metrics')}
             >
-              Composition
+              {tab.label}
             </button>
-            <button
-              className={`px-1 py-2 text-[14px] ${
-                activeTab === 'position'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-primary'
-              }`}
-              onClick={() => setActiveTab('position')}
-            >
-              Position
-            </button>
-            <button
-              className={`px-1 py-2 text-[14px] ${
-                activeTab === 'openOrders'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-primary'
-              }`}
-              onClick={() => setActiveTab('openOrders')}
-            >
-              Open Orders
-            </button>
-            <button
-              className={`px-1 py-2 text-[14px] ${
-                activeTab === 'orderHistory'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-muted-foreground hover:text-primary'
-              }`}
-              onClick={() => setActiveTab('orderHistory')}
-            >
-              Order History
-            </button>
-          </div>
+          ))}
         </div>
-        {renderTabContent()}
-      </CardContent>
-    </Card>
+      </div>
+      <div className="p-2 sm:p-4 border-b border-muted-foreground/20">{renderTabContent()}</div>
+    </div>
   );
 };

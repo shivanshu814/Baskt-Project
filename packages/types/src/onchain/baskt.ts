@@ -21,6 +21,14 @@ export interface OnchainRebalanceHistory {
   timestamp: BN; // i64 timestamp
 }
 
+export enum BasktStatus {
+  Pending = 'pending',
+  Active = 'active',
+  Decommissioning = 'decommissioning',
+  Settled = 'settled',
+  Closed = 'closed',
+}
+
 export interface OnchainBasktAccount {
   address: PublicKey;
   basktId: PublicKey;
@@ -30,9 +38,10 @@ export interface OnchainBasktAccount {
   creator: PublicKey;
   creationTime: BN | string; // i64 timestamp
   lastRebalanceIndex: BN | string;
-  isActive: boolean;
   lastRebalanceTime: BN | string; // i64 timestamp
   oracle: OnchainOracleParams;
+  status: BasktStatus;
   baselineNav: BN | string;
   bump: number;
+  isActive: boolean;
 }

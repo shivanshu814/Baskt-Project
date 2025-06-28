@@ -1,21 +1,38 @@
 import { expect } from 'chai';
-import { describe, it, before } from 'mocha';
+import { describe, it, before, afterEach, after } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
-import { initializeProtocolAndRoles } from '../utils/test-setup';
+// Using TestClient static method instead of importing from test-setup
+import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
+import { MIN_COLLATERAL_RATIO_BPS, OPENING_FEE_BPS, BASE_NAV_BN, BASELINE_PRICE } from '../utils/test-constants';
 
 describe('Liquidate Position', () => {
   // Get the test client instance
   const client = TestClient.getInstance();
 
   // Test parameters
-  const ORDER_SIZE = new BN(10_000_000); // 10 units
-  const COLLATERAL_AMOUNT = new BN(11_000_000); // 11 USDC (110% of 10-unit order)
-  const ENTRY_PRICE = new BN(100_000_000); // NAV starts at 100 with 6 decimals
-  const LIQUIDATION_PRICE = new BN(98_000_000); // 98 with 6 decimals (2% price drop for long)
-  const NON_LIQUIDATION_PRICE = new BN(102_000_000); // 102 with 6 decimals (2% price increase for long)
+  const ORDER_SIZE = new BN(1_000_000); // 1 unit
+  const ENTRY_PRICE = BASELINE_PRICE; // NAV starts at $1 with 6 decimals
+
+  // Calculate required collateral based on worst-case notional (limit price + slippage)
+  // Base notional = 1 * 1 = 1 USDC
+  // Slippage (5%) = 0.05 USDC
+  // Worst-case notional = 1.05 USDC
+  // Min collateral (100%) = 1.05 USDC
+  // Opening fee (0.1%) = 0.00105 USDC
+  // Total required = 1.05105 USDC
+  const BASE_NOTIONAL = ORDER_SIZE.mul(ENTRY_PRICE).div(new BN(1_000_000)); // 1 USDC
+  const SLIPPAGE_ADJUSTMENT = BASE_NOTIONAL.muln(500).divn(10000); // 5% = 0.05 USDC
+  const WORST_CASE_NOTIONAL = BASE_NOTIONAL.add(SLIPPAGE_ADJUSTMENT); // 1.05 USDC
+  const MIN_COLLATERAL = WORST_CASE_NOTIONAL.muln(MIN_COLLATERAL_RATIO_BPS).divn(10000); // 100% = 1.05 USDC
+  const OPENING_FEE = WORST_CASE_NOTIONAL.muln(OPENING_FEE_BPS).divn(10000); // 0.1% = 0.00105 USDC
+  const COLLATERAL_AMOUNT = MIN_COLLATERAL.add(OPENING_FEE).muln(105).divn(100); // Total + 5% buffer
+
+  // With 40% liquidation threshold, SHORT position needs ~60% price rise to be liquidatable
+  const LIQUIDATION_PRICE = new BN(1_730_000); // $1.73 with 6 decimals (73% price rise for SHORT liquidation)
+  const NON_LIQUIDATION_PRICE = new BN(1_200_000); // $1.20 with 6 decimals (20% price rise - not enough for liquidation)
   const TICKER = 'BTC';
 
   // Test accounts
@@ -48,6 +65,9 @@ describe('Liquidate Position', () => {
   let positionIdSafe: BN;
   let positionPDASafe: PublicKey;
 
+  // Protocol configuration backup
+  let prevThreshold: number;
+
   // USDC mint constant from the program
   const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
@@ -58,10 +78,14 @@ describe('Liquidate Position', () => {
 
   before(async () => {
     // Initialize protocol and roles using centralized setup
-    const globalAccounts = await initializeProtocolAndRoles(client);
+    const globalAccounts = await TestClient.initializeProtocolAndRoles(client);
     treasury = client.treasury;
     matcher = globalAccounts.matcher;
     liquidator = globalAccounts.liquidator;
+
+    // Save current liquidation threshold and set to 40% for testing
+    prevThreshold = (await client.getProtocolAccount()).config.liquidationThresholdBps.toNumber();
+    await client.setLiquidationThresholdBps(4000); // 40%
 
     // Create test-specific accounts
     user = Keypair.generate();
@@ -121,7 +145,7 @@ describe('Liquidate Position', () => {
     // Since weight is 100% (10000 bps), the asset price should equal the target NAV
     await client.activateBaskt(
       basktId,
-      [new BN(100_000_000)], // NAV = 100 with 6 decimals
+      [BASELINE_PRICE], // NAV = $1 with 6 decimals
       60, // maxPriceAgeSec
     );
 
@@ -143,7 +167,7 @@ describe('Liquidate Position', () => {
     // Mint USDC tokens to user
     await client.mintUSDC(
       userTokenAccount,
-      COLLATERAL_AMOUNT.muln(25).toNumber(), // 25x for multiple tests (9 orders + liquidity pool)
+      COLLATERAL_AMOUNT.muln(50).toNumber(), // 50x for multiple tests (9 orders + liquidity pool)
     );
 
     // Set up a liquidity pool for liquidation tests
@@ -153,9 +177,6 @@ describe('Liquidate Position', () => {
       minDeposit: new BN(0),
       collateralMint,
     }));
-
-    // Initialize the protocol registry after liquidity pool setup
-    await initializeProtocolAndRoles(client);
 
     // Create a separate provider for liquidity to avoid role conflicts
     const liquidityProvider = Keypair.generate();
@@ -219,17 +240,23 @@ describe('Liquidate Position', () => {
       client.program.programId,
     );
 
-    // Create an open order for liquidation scenario (low collateral)
+    // Create an open order for liquidation scenario (SHORT position with minimal collateral)
+    // With 40% liquidation threshold, SHORT position needs ~60% price rise to be liquidatable
+    const liquidatableCollateral = MIN_COLLATERAL.add(OPENING_FEE); // Use minimum required collateral
     await userClient.createOrder({
       orderId,
       size: ORDER_SIZE,
-      collateral: COLLATERAL_AMOUNT,
-      isLong: true,
+      collateral: liquidatableCollateral,
+      isLong: false, // SHORT position - will be liquidatable when price rises significantly
       action: { open: {} },
       targetPosition: null,
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     // Open the position for liquidation scenario
@@ -241,17 +268,21 @@ describe('Liquidate Position', () => {
       orderOwner: user.publicKey,
     });
 
-    // Create an open order for non-liquidation scenario (higher collateral)
+    // Create an open order for non-liquidation scenario (LONG position with good collateral)
     await userClient.createOrder({
       orderId: orderIdSafe,
       size: ORDER_SIZE,
-      collateral: COLLATERAL_AMOUNT.muln(5), // 5x more collateral
-      isLong: true,
+      collateral: COLLATERAL_AMOUNT.muln(2), // 2x collateral for safety
+      isLong: true, // LONG position - will be profitable with price increases
       action: { open: {} },
       targetPosition: null,
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     // Open the position for non-liquidation scenario
@@ -264,16 +295,57 @@ describe('Liquidate Position', () => {
     });
   });
 
+  afterEach(async () => {
+    // Always attempt to restore protocol switches and oracle price.
+    // Run the two maintenance steps independently so a failure in one does not
+    // prevent the other, ensuring the basket price is consistently reset.
+
+    // 1️⃣  Feature flags back to fully-enabled ― ignore errors.
+    try {
+      const resetSig = await client.updateFeatureFlags({
+        allowAddLiquidity: true,
+        allowRemoveLiquidity: true,
+        allowOpenPosition: true,
+        allowClosePosition: true,
+        allowPnlWithdrawal: true,
+        allowCollateralWithdrawal: true,
+        allowAddCollateral: true,
+        allowBasktCreation: true,
+        allowBasktUpdate: true,
+        allowTrading: true,
+        allowLiquidations: true,
+      });
+      await waitForTx(client.connection, resetSig);
+    } catch (err) {
+      console.warn('Feature-flag reset failed (continuing):', err?.toString?.());
+    }
+
+    // 2️⃣  Reset oracle price back to the baseline NAV.
+    try {
+      await client.updateOraclePrice(basktId, ENTRY_PRICE);
+    } catch (err) {
+      console.warn('Oracle-price reset failed (continuing):', err?.toString?.());
+    }
+
+    // Ensure at least one new slot so subsequent tests see the fresh state.
+    await waitForNextSlot(client.connection);
+  });
+
   it('Successfully liquidates a position that meets liquidation criteria', async () => {
     // Get token balances before liquidation
     const treasuryTokenBefore = await getAccount(client.connection, treasuryTokenAccount);
     // Get pool vault balance before liquidation
     const vaultBefore = await getAccount(client.connection, tokenVault);
 
-    // Liquidate the position
+    // Update oracle price in ≤20% increments to reach liquidation threshold
+    await client.updateOraclePrice(basktId, new BN(1.2 * 1e6)); // +20% (1 -> 1.2)
+    await client.updateOraclePrice(basktId, new BN(1.44 * 1e6)); // +20% (1.2 -> 1.44)
+    await client.updateOraclePrice(basktId, new BN(1.73 * 1e6)); // +20% (1.44 -> 1.73)
+
+    // Liquidate the SHORT position (73% price rise makes it liquidatable)
     await liquidatorClient.liquidatePosition({
       position: positionPDA,
-      exitPrice: LIQUIDATION_PRICE,
+      exitPrice: LIQUIDATION_PRICE, // $1.73
       baskt: basktId,
       ownerTokenAccount: userTokenAccount,
       treasury: treasury.publicKey,
@@ -304,11 +376,14 @@ describe('Liquidate Position', () => {
   });
 
   it('Fails to liquidate a position that does not meet liquidation criteria', async () => {
-    // Try to liquidate a position that doesn't meet liquidation criteria (higher collateral)
+    // Update oracle price by only 20% (not enough to liquidate LONG position)
+    await client.updateOraclePrice(basktId, NON_LIQUIDATION_PRICE); // $1.20 (+20%)
+
+    // Try to liquidate a LONG position that doesn't meet liquidation criteria (profitable with price increase)
     try {
       await liquidatorClient.liquidatePosition({
         position: positionPDASafe,
-        exitPrice: NON_LIQUIDATION_PRICE, // Price that would result in profit for long
+        exitPrice: NON_LIQUIDATION_PRICE, // $1.20 - profitable for LONG, not liquidatable
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,
@@ -341,17 +416,22 @@ describe('Liquidate Position', () => {
       client.program.programId,
     );
 
-    // Create an open order with low collateral
+    // Create an open order with minimal collateral (SHORT position)
+    const roleTestCollateral = MIN_COLLATERAL.add(OPENING_FEE);
     await userClient.createOrder({
       orderId: newOrderId,
       size: ORDER_SIZE,
-      collateral: COLLATERAL_AMOUNT,
-      isLong: true,
+      collateral: roleTestCollateral,
+      isLong: false, // SHORT position for liquidation test
       action: { open: {} },
       targetPosition: null,
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     // Open the position
@@ -363,11 +443,16 @@ describe('Liquidate Position', () => {
       orderOwner: user.publicKey,
     });
 
+    // Update oracle price to make SHORT position liquidatable
+    await client.updateOraclePrice(basktId, new BN(1.2 * 1e6)); // +20%
+    await client.updateOraclePrice(basktId, new BN(1.44 * 1e6)); // +20%
+    await client.updateOraclePrice(basktId, new BN(1.73 * 1e6)); // +20%
+
     // Try to liquidate the position with a non-liquidator (should fail)
     try {
       await nonLiquidatorClient.liquidatePosition({
         position: newPositionPDA,
-        exitPrice: LIQUIDATION_PRICE,
+        exitPrice: LIQUIDATION_PRICE, // $1.73
         baskt: basktId,
         ownerTokenAccount: userTokenAccount,
         treasury: treasury.publicKey,
@@ -386,8 +471,10 @@ describe('Liquidate Position', () => {
     // 20% deviation for liquidation = ±20_000_000
     // Valid range: 80_000_000 to 120_000_000
 
-    const validLiquidationPriceHigh = new BN(119_000_000); // 119 - within 20% bound
-    const validLiquidationPriceLow = new BN(81_000_000); // 81 - within 20% bound
+    // With 40% liquidation threshold, SHORT position needs ~54% price rise to be liquidatable
+    // Use 160 USDC (60% rise) to ensure liquidation while staying within 20% oracle bounds
+    const validLiquidationPriceHigh = new BN(1.6 * 1e6); // 1.6 - sufficient for liquidation
+    const validLiquidationPriceLow = new BN(0.8 * 1e6); // 0.8 - within 20% bound
 
     // Test with high valid liquidation price - SHORT position will be liquidatable when price rises
     const highOrderId = new BN(Date.now() + 800);
@@ -406,18 +493,22 @@ describe('Liquidate Position', () => {
       ],
       client.program.programId,
     );
-
-    // Create and open SHORT position with low collateral to make it liquidatable when price rises
+    // Create and open SHORT position with minimal collateral to make it liquidatable when price rises
+    const oracleTestCollateral = MIN_COLLATERAL.add(OPENING_FEE); // Use minimum required collateral
     await userClient.createOrder({
       orderId: highOrderId,
       size: ORDER_SIZE,
-      collateral: COLLATERAL_AMOUNT, // Low collateral for liquidation
+      collateral: oracleTestCollateral, // Minimal collateral for liquidation
       isLong: false, // SHORT position - will be liquidatable when price rises
       action: { open: {} },
       targetPosition: null,
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     await matcherClient.openPosition({
@@ -427,6 +518,20 @@ describe('Liquidate Position', () => {
       baskt: basktId,
       orderOwner: user.publicKey,
     });
+
+    // Update oracle price in ≤20% increments to reach liquidation threshold
+
+    await client.updateOraclePrice(basktId, new BN(120_000_000)); // +20% (100 -> 120)
+    await client.updateOraclePrice(basktId, new BN(144_000_000)); // +20% (120 -> 144)
+    await client.updateOraclePrice(basktId, validLiquidationPriceHigh); // +11% (144 -> 160)
+
+    // --- DEBUG: compute equity & minCollateral on-chain before attempting liquidation ---
+    {
+      const positionAcc: any = await client.program.account.position.fetch(highPositionPDA);
+      const collateral = positionAcc.collateral.toString();
+      const size = positionAcc.size.toString();
+      const entryPrice = positionAcc.entryPrice.toString();
+    }
 
     // Should succeed with valid high liquidation price for SHORT position
     await liquidatorClient.liquidatePosition({
@@ -446,49 +551,64 @@ describe('Liquidate Position', () => {
       expect(err.message).to.include('Account does not exist');
     }
 
-    // Test with low valid liquidation price
-    const lowOrderId = new BN(Date.now() + 810);
-    const lowPositionId = new BN(Date.now() + 811);
+    // --- RESET ORACLE PRICE back to baseline NAV ($1) before proceeding ---
+    await client.updateOraclePrice(basktId, ENTRY_PRICE);
+    await waitForNextSlot(client.connection);
 
-    const [lowOrderPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('order'), user.publicKey.toBuffer(), lowOrderId.toArrayLike(Buffer, 'le', 8)],
+    // Test with a second SHORT position to confirm liquidation logic
+    const secondShortOrderId = new BN(Date.now() + 810);
+    const secondShortPositionId = new BN(Date.now() + 811);
+
+    const [secondShortOrderPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('order'), user.publicKey.toBuffer(), secondShortOrderId.toArrayLike(Buffer, 'le', 8)],
       client.program.programId,
     );
 
-    const [lowPositionPDA] = PublicKey.findProgramAddressSync(
+    const [secondShortPositionPDA] = PublicKey.findProgramAddressSync(
       [
         Buffer.from('position'),
         user.publicKey.toBuffer(),
-        lowPositionId.toArrayLike(Buffer, 'le', 8),
+        secondShortPositionId.toArrayLike(Buffer, 'le', 8),
       ],
       client.program.programId,
     );
 
-    // Create and open position with low collateral to make it liquidatable
+    // Create and open another SHORT position with minimal collateral
+    const secondShortCollateral = MIN_COLLATERAL.add(OPENING_FEE);
     await userClient.createOrder({
-      orderId: lowOrderId,
+      orderId: secondShortOrderId,
       size: ORDER_SIZE,
-      collateral: COLLATERAL_AMOUNT, // Low collateral for liquidation
-      isLong: true,
+      collateral: secondShortCollateral, // Minimal collateral for liquidation
+      isLong: false, // SHORT position
       action: { open: {} },
       targetPosition: null,
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     await matcherClient.openPosition({
-      positionId: lowPositionId,
+      positionId: secondShortPositionId,
       entryPrice: ENTRY_PRICE,
-      order: lowOrderPDA,
+      order: secondShortOrderPDA,
       baskt: basktId,
       orderOwner: user.publicKey,
     });
 
-    // Should succeed with valid low liquidation price
+    // Update oracle price to make the new SHORT position liquidatable
+    const secondLiquidationPrice = new BN(1.7 * 1e6); // Use a different high price
+    await client.updateOraclePrice(basktId, new BN(1.2 * 1e6)); // +20% (1 -> 1.2)
+    await client.updateOraclePrice(basktId, new BN(1.44 * 1e6)); // +20% (1.2 -> 1.44)
+    await client.updateOraclePrice(basktId, secondLiquidationPrice); // +18% (144 -> 170)
+
+    // Should succeed with valid high liquidation price for SHORT position
     await liquidatorClient.liquidatePosition({
-      position: lowPositionPDA,
-      exitPrice: validLiquidationPriceLow,
+      position: secondShortPositionPDA,
+      exitPrice: secondLiquidationPrice, // 170 USDC - sufficient for SHORT liquidation
       baskt: basktId,
       ownerTokenAccount: userTokenAccount,
       treasury: treasury.publicKey,
@@ -497,7 +617,7 @@ describe('Liquidate Position', () => {
 
     // Verify position is liquidated
     try {
-      await client.program.account.position.fetch(lowPositionPDA);
+      await client.program.account.position.fetch(secondShortPositionPDA);
       expect.fail('Position account should be closed');
     } catch (err: any) {
       expect(err.message).to.include('Account does not exist');
@@ -541,6 +661,10 @@ describe('Liquidate Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     await matcherClient.openPosition({
@@ -598,6 +722,10 @@ describe('Liquidate Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     await matcherClient.openPosition({
@@ -656,6 +784,10 @@ describe('Liquidate Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     await matcherClient.openPosition({
@@ -689,7 +821,7 @@ describe('Liquidate Position', () => {
 
     // Oracle price is NAV = 100 with 6 decimals = 100_000_000
     // Price at 22% deviation: should be valid for open/close but invalid for liquidation
-    const strictBoundPrice = new BN(122_000_000); // 122 - 22% deviation
+    const strictBoundPrice = new BN(1.22 * 1e6); // 1.22 - 22% deviation
 
     const testOrderId = new BN(Date.now() + 1100);
     const testPositionId = new BN(Date.now() + 1101);
@@ -708,17 +840,29 @@ describe('Liquidate Position', () => {
       client.program.programId,
     );
 
+    // Calculate required collateral for the strict bound price (122 USDC)
+    const strictBaseNotional = ORDER_SIZE.mul(strictBoundPrice).div(new BN(1_000_000)); // 1,220 USDC
+    const strictSlippageAdjustment = strictBaseNotional.muln(500).divn(10000); // 5% = 61 USDC
+    const strictWorstCaseNotional = strictBaseNotional.add(strictSlippageAdjustment); // 1,281 USDC
+    const strictMinCollateral = strictWorstCaseNotional.muln(11000).divn(10000); // 110% = 1,409.1 USDC
+    const strictOpeningFee = strictWorstCaseNotional.muln(10).divn(10000); // 0.1% = 1.281 USDC
+    const strictCollateralAmount = strictMinCollateral.add(strictOpeningFee).muln(105).divn(100); // Total + 5% buffer
+
     // Create and open position with this price (should succeed with 25% bound)
     await userClient.createOrder({
       orderId: testOrderId,
       size: ORDER_SIZE,
-      collateral: COLLATERAL_AMOUNT,
+      collateral: strictCollateralAmount,
       isLong: true,
       action: { open: {} },
       targetPosition: null,
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: strictBoundPrice, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     await matcherClient.openPosition({

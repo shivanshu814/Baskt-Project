@@ -1,178 +1,76 @@
 import { expect } from 'chai';
-import { describe, it, before } from 'mocha';
+import { describe, it, before, afterEach } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
-import { TestClient, requestAirdrop } from '../utils/test-client';
-import { initializeProtocolAndRoles } from '../utils/test-setup';
+import { TestClient } from '../utils/test-client';
+import { BASELINE_PRICE } from '../utils/test-constants';
+// Using TestClient static method instead of importing from test-setup
+// Chain helpers and fee utils are now used internally by TestClient methods
 
 describe('Position Opening', () => {
+  // Constants for test
+  const ORDER_SIZE = new BN(10_000_000); // 10 units
+  const COLLATERAL_AMOUNT = new BN(12_000_000); // 12 USDC (enough for $1 limit price)
+  const ENTRY_PRICE = BASELINE_PRICE; // NAV starts at $1 with 6 decimals
+
   // Get the test client instance
   const client = TestClient.getInstance();
-
-  // Test parameters
-  const ORDER_SIZE = new BN(10_000_000); // 10 units
-  const COLLATERAL_AMOUNT = new BN(15_000_000); // 15 USDC (assuming 6 decimals)
-  const ENTRY_PRICE = new BN(100_000_000); // NAV starts at 100 with 6 decimals
-  const TICKER = 'BTC';
 
   // Test accounts
   let user: Keypair;
   let matcher: Keypair;
   let nonMatcher: Keypair;
+
+  // Test clients
   let userClient: TestClient;
   let matcherClient: TestClient;
   let nonMatcherClient: TestClient;
 
-  // Test state
+  // Test data
   let basktId: PublicKey;
+  let assetId: PublicKey;
   let collateralMint: PublicKey;
   let userTokenAccount: PublicKey;
-  let assetId: PublicKey;
   let fundingIndexPDA: PublicKey;
 
-  // Order and position state
+  // Order and position data
   let orderId: BN;
   let orderPDA: PublicKey;
   let positionId: BN;
   let positionPDA: PublicKey;
 
-  // USDC mint constant from the program
-  const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
-
   before(async () => {
-    // Initialize protocol and roles using centralized setup
-    const globalAccounts = await initializeProtocolAndRoles(client);
-    matcher = globalAccounts.matcher;
-
-    // Create test-specific accounts
-    user = Keypair.generate();
-    nonMatcher = Keypair.generate();
-
-    // Fund the test-specific accounts
-    await requestAirdrop(user.publicKey, client.connection);
-    await requestAirdrop(nonMatcher.publicKey, client.connection);
-
-    // Create user clients
-    userClient = await TestClient.forUser(user);
-    matcherClient = await TestClient.forUser(matcher);
-    nonMatcherClient = await TestClient.forUser(nonMatcher);
-
-    // Enable features for testing
-    await client.updateFeatureFlags({
-      allowAddLiquidity: true,
-      allowRemoveLiquidity: true,
-      allowOpenPosition: true,
-      allowClosePosition: true,
-      allowPnlWithdrawal: true,
-      allowCollateralWithdrawal: true,
-      allowAddCollateral: true,
-      allowBasktCreation: true,
-      allowBasktUpdate: true,
-      allowTrading: true,
-      allowLiquidations: true,
-    });
-
-    // Create a synthetic asset
-    const assetResult = await client.addAsset(TICKER, {
-      allowLongs: true,
-      allowShorts: true,
-    });
-    assetId = assetResult.assetAddress;
-
-    // Create a baskt with the asset - use a unique name with timestamp
-    const basktName = `TestBaskt_OpenPos_${Date.now()}`;
-
-    // Format asset config correctly
-    const formattedAssetConfig = {
-      weight: new BN(10000), // 100% weight (10000 bps)
-      direction: true, // Long direction
-      assetId: assetId, // Include the asset ID in the config
-      baselinePrice: new BN(0), // Required by OnchainAssetConfig interface
-    };
-
-    const { basktId: createdBasktId } = await client.createBaskt(
-      basktName,
-      [formattedAssetConfig],
-      true, // isPublic
-    );
-    basktId = createdBasktId;
-
-    // Activate the baskt with initial prices
-    // Since weight is 100% (10000 bps), the asset price should equal the target NAV
-    await client.activateBaskt(
-      basktId,
-      [new BN(100_000_000)], // NAV = 100 with 6 decimals
-      60, // maxPriceAgeSec
-    );
-
-    // Find the funding index PDA for the baskt
-    [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('funding_index'), basktId.toBuffer()],
-      client.program.programId,
-    );
-
-    // Initialize the funding index
-    await client.program.methods
-      .initializeFundingIndex()
-      .accounts({
-        authority: client.getPublicKey(),
-        baskt: basktId,
-      })
-      .rpc();
-
-    // Use the USDC mock token for collateral
-    collateralMint = USDC_MINT;
-
-    // Create token accounts for the test
-    userTokenAccount = await client.getOrCreateUSDCAccount(user.publicKey);
-
-    // Find the funding index PDA for the baskt
-    [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('funding_index'), basktId.toBuffer()],
-      client.program.programId,
-    );
-
-    // Mint USDC tokens to user
-    await client.mintUSDC(
-      userTokenAccount,
-      COLLATERAL_AMOUNT.muln(10).toNumber(), // 10x for multiple tests
-    );
-
-    // Set up a minimal liquidity pool (required for registry initialization)
-    await client.setupLiquidityPool({
-      depositFeeBps: 0,
-      withdrawalFeeBps: 0,
-      minDeposit: new BN(0),
-      collateralMint,
-    });
-
-    // Generate unique IDs for order and position
-    orderId = new BN(Date.now());
-    positionId = new BN(Date.now() + 1);
-
-    // Find the order and position PDAs
-    [orderPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('order'), user.publicKey.toBuffer(), orderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId,
-    );
-
-    [positionPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('position'), user.publicKey.toBuffer(), positionId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId,
-    );
-
-    // Create an open order for testing
-    await userClient.createOrder({
-      orderId,
-      size: ORDER_SIZE,
-      collateral: COLLATERAL_AMOUNT,
+    // Use the centralized position test setup helper
+    const testSetup = await TestClient.setupPositionTest({
+      client,
+      orderSize: ORDER_SIZE,
+      collateralAmount: COLLATERAL_AMOUNT,
+      entryPrice: ENTRY_PRICE,
+      ticker: 'BTC',
       isLong: true,
-      action: { open: {} },
-      targetPosition: null,
-      basktId: basktId,
-      ownerTokenAccount: userTokenAccount,
-      collateralMint: collateralMint,
     });
+
+    // Assign all the returned values to our test variables
+    user = testSetup.user;
+    matcher = testSetup.matcher;
+    nonMatcher = testSetup.nonMatcher;
+    userClient = testSetup.userClient;
+    matcherClient = testSetup.matcherClient;
+    nonMatcherClient = testSetup.nonMatcherClient;
+    basktId = testSetup.basktId;
+    collateralMint = testSetup.collateralMint;
+    userTokenAccount = testSetup.userTokenAccount;
+    assetId = testSetup.assetId;
+    fundingIndexPDA = testSetup.fundingIndexPDA;
+    orderId = testSetup.orderId;
+    orderPDA = testSetup.orderPDA;
+    positionId = testSetup.positionId;
+    positionPDA = testSetup.positionPDA;
+  });
+
+  afterEach(async () => {
+    // Reset feature flags to enabled state after each test using the centralized helper
+    await TestClient.resetFeatureFlags(client);
   });
 
   it('Successfully opens a position from a valid order', async () => {
@@ -191,12 +89,34 @@ describe('Position Opening', () => {
     // Fetch the position account
     const positionAccount = await client.program.account.position.fetch(positionPDA);
 
-    // Verify position details
+    // Verify basic keys
     expect(positionAccount.owner.toString()).to.equal(user.publicKey.toString());
     expect(positionAccount.positionId.toString()).to.equal(positionId.toString());
     expect(positionAccount.basktId.toString()).to.equal(basktId.toString());
-    expect(positionAccount.size.toString()).to.equal(ORDER_SIZE.toString());
-    expect(positionAccount.collateral.toString()).to.equal(COLLATERAL_AMOUNT.toString());
+
+    // ------------------------------
+    // Re-derive expected size & fee with the same formula used on-chain
+    // ------------------------------
+    const protocolAccount = await client.program.account.protocol.fetch(client.protocolPDA);
+    const openingFeeBps = new BN(protocolAccount.config.openingFeeBps);
+    const minCrBps = new BN(protocolAccount.config.minCollateralRatioBps);
+
+    const TOTAL_BPS = openingFeeBps.add(minCrBps); // 10_010 by default
+    const TEN_THOUSAND = new BN(10_000);
+    const PRICE_PRECISION = new BN(1_000_000);
+
+    // notional_allowed = collateral * 10_000 / total_bps
+    const notionalAllowed = COLLATERAL_AMOUNT.mul(TEN_THOUSAND).div(TOTAL_BPS);
+
+    // expected size = notional_allowed * PRICE_PRECISION / entry_price
+    const expectedSize = notionalAllowed.mul(PRICE_PRECISION).div(ENTRY_PRICE);
+
+    // opening fee = notional_allowed * opening_fee_bps / 10_000
+    const openingFee = notionalAllowed.mul(openingFeeBps).div(TEN_THOUSAND);
+    const expectedNetCollateral = COLLATERAL_AMOUNT.sub(openingFee);
+
+    expect(positionAccount.size.toString()).to.equal(expectedSize.toString());
+    expect(positionAccount.collateral.toString()).to.equal(expectedNetCollateral.toString());
     expect(positionAccount.isLong).to.be.true;
     expect(positionAccount.entryPrice.toString()).to.equal(ENTRY_PRICE.toString());
     expect(positionAccount.entryFundingIndex.toString()).to.equal(
@@ -242,6 +162,9 @@ describe('Position Opening', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     // Try to open the position using a non-matcher client
@@ -262,12 +185,17 @@ describe('Position Opening', () => {
   });
 
   it('Successfully opens a position with price within oracle deviation bounds (25%)', async () => {
-    // Oracle price is NAV = 100 with 6 decimals = 100_000_000
-    // 25% deviation = ±25 = ±25_000_000
-    // Valid range: 75_000_000 to 125_000_000
+    // Oracle price is NAV = $1 with 6 decimals = 1_000_000
+    // 25% deviation = ±250_000
+    // Valid range: 750_000 to 1250_000
 
-    const validPriceHigh = new BN(124_000_000); // 124 - within 25% bound
-    const validPriceLow = new BN(76_000_000); // 76 - within 25% bound
+    const validPriceHigh = new BN(1_240_000); // $1.24 - within 25% bound
+    const validPriceLow = new BN(760_000); // $0.76 - within 25% bound
+
+    // Calculate required collateral for high price ($1.24)
+    // Base notional = 10 * 1.24 = 12.4 USDC, slippage = 0.62 USDC, worst-case = 13.02 USDC
+    // Min collateral (100%) = 13.02 USDC, opening fee = 0.013 USDC, total = ~13.1 USDC
+    const highPriceCollateral = new BN(14_000_000); // 14 USDC with buffer
 
     // Test with high valid price
     const highOrderId = new BN(Date.now() + 200);
@@ -290,13 +218,16 @@ describe('Position Opening', () => {
     await userClient.createOrder({
       orderId: highOrderId,
       size: ORDER_SIZE,
-      collateral: COLLATERAL_AMOUNT,
+      collateral: highPriceCollateral,
       isLong: true,
       action: { open: {} },
       targetPosition: null,
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: validPriceHigh, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     // Should succeed with valid high price
@@ -333,13 +264,16 @@ describe('Position Opening', () => {
     await userClient.createOrder({
       orderId: lowOrderId,
       size: ORDER_SIZE,
-      collateral: COLLATERAL_AMOUNT,
+      collateral: COLLATERAL_AMOUNT, // $0.76 price needs less collateral than $1
       isLong: true,
       action: { open: {} },
       targetPosition: null,
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: validPriceLow, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     // Should succeed with valid low price
@@ -357,12 +291,15 @@ describe('Position Opening', () => {
   });
 
   it('Fails to open position with price outside oracle deviation bounds (>25%)', async () => {
-    // Oracle price is NAV = 100 with 6 decimals = 100_000_000
-    // 25% deviation = ±25 = ±25_000_000
-    // Invalid range: <75_000_000 or >125_000_000
+    // Oracle price is NAV = $1 with 6 decimals = 1_000_000
+    // 25% deviation = ±250_000
+    // Invalid range: <750_000 or >1250_000
 
-    const invalidPriceHigh = new BN(130_000_000); // 130 - outside 25% bound
-    const invalidPriceLow = new BN(70_000_000); // 70 - outside 25% bound
+    const invalidPriceHigh = new BN(130_000_0); // 1.3 - outside 25% bound
+    const invalidPriceLow = new BN(70_000_0); // 0.7 - outside 25% bound
+
+    // Calculate required collateral for high price (130 USDC)
+    const highPriceCollateral = new BN(1_600_000_000); // 1600 USDC with buffer
 
     // Test with invalid high price
     const highOrderId = new BN(Date.now() + 300);
@@ -376,13 +313,16 @@ describe('Position Opening', () => {
     await userClient.createOrder({
       orderId: highOrderId,
       size: ORDER_SIZE,
-      collateral: COLLATERAL_AMOUNT,
+      collateral: highPriceCollateral,
       isLong: true,
       action: { open: {} },
       targetPosition: null,
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: invalidPriceHigh, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     // Should fail with invalid high price
@@ -412,13 +352,16 @@ describe('Position Opening', () => {
     await userClient.createOrder({
       orderId: lowOrderId,
       size: ORDER_SIZE,
-      collateral: COLLATERAL_AMOUNT,
+      collateral: COLLATERAL_AMOUNT, // 70 USDC price needs less collateral
       isLong: true,
       action: { open: {} },
       targetPosition: null,
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: invalidPriceLow, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     // Should fail with invalid low price
@@ -449,13 +392,16 @@ describe('Position Opening', () => {
     await userClient.createOrder({
       orderId: zeroOrderId,
       size: ORDER_SIZE,
-      collateral: COLLATERAL_AMOUNT,
+      collateral: new BN(50_000_000), // Small collateral for small limit price
       isLong: true,
       action: { open: {} },
       targetPosition: null,
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: new BN(1_000), // Minimum valid limit price (0.001 USDC)
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     // Should fail with zero price

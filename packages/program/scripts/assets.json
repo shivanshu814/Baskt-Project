@@ -1,7 +1,7 @@
 [
   {
-    "ticker": "BTC",
     "name": "Bitcoin",
+    "ticker": "BTC",
     "logo": "https://assets.coingecko.com/coins/images/1/standard/bitcoin.png",
     "price": 100000,
     "provider": {

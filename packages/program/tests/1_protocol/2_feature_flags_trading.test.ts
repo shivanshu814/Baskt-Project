@@ -2,8 +2,11 @@ import { expect } from 'chai';
 import { describe, it, before, after } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { TestClient, requestAirdrop } from '../utils/test-client';
+import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
+// Using TestClient static method instead of importing from test-setup
 import { BN } from '@coral-xyz/anchor';
 import { AccessControlRole } from '@baskt/types';
+import { BASELINE_PRICE } from '../utils/test-constants';
 
 describe('protocol feature flags - trading operations', () => {
   // Get the test client instance
@@ -23,7 +26,7 @@ describe('protocol feature flags - trading operations', () => {
 
   // Test parameters
   const ORDER_SIZE = new BN(10_000_000); // 10 units
-  const COLLATERAL_AMOUNT = new BN(11_000_000); // 11 USDC (110% of 10-unit order)
+  const COLLATERAL_AMOUNT = new BN(11_150_000); // 11.15 USDC (enough for 100% collateral + fees)
   const TICKER = 'BTC_FF';
 
   // Test state
@@ -32,7 +35,34 @@ describe('protocol feature flags - trading operations', () => {
   let userTokenAccount: PublicKey;
   let assetId: PublicKey;
 
+  // Helper method to reset all feature flags to enabled state
+  const resetFeatureFlags = async (): Promise<string> => {
+    return await client.updateFeatureFlags({
+      allowAddLiquidity: true,
+      allowRemoveLiquidity: true,
+      allowOpenPosition: true,
+      allowClosePosition: true,
+      allowPnlWithdrawal: true,
+      allowCollateralWithdrawal: true,
+      allowAddCollateral: true,
+      allowBasktCreation: true,
+      allowBasktUpdate: true,
+      allowTrading: true,
+      allowLiquidations: true,
+    });
+  };
+
+  // Ensure proper cleanup and state settling after each test
+  afterEach(async () => {
+    const resetSig = await resetFeatureFlags();
+    await waitForTx(client.connection, resetSig);
+    await waitForNextSlot(client.connection);
+  });
+
   before(async () => {
+    // Ensure protocol and core roles are initialized so subsequent operations succeed
+    await TestClient.initializeProtocolAndRoles(client);
+
     // Create test keypairs
     user = Keypair.generate();
     matcher = Keypair.generate();
@@ -94,7 +124,7 @@ describe('protocol feature flags - trading operations', () => {
     // Activate the baskt
     await client.activateBaskt(
       basktId,
-      [new BN(100 * 1000000)], // NAV = 100 with 6 decimals (baskt oracle will be set to this)
+      [BASELINE_PRICE], // NAV = $1 with 6 decimals (baskt oracle will be set to this)
       60, // maxPriceAgeSec
     );
 
@@ -117,12 +147,23 @@ describe('protocol feature flags - trading operations', () => {
       COLLATERAL_AMOUNT.muln(20).toNumber(), // 20x for multiple tests
     );
 
-    // Add liquidity to the pool (already initialized by initializeProtocolWithRegistry)
+    // Setup liquidity pool and add initial liquidity
     const liquidityAmount = new BN(1_000_000_000); // 1000 USDC
     const adminTokenAccount = await client.getOrCreateUSDCAccount(client.publicKey);
 
     // Mint USDC to admin for liquidity
     await client.mintUSDC(adminTokenAccount, liquidityAmount.toNumber());
+
+    // Setup liquidity pool (required for positions to work)
+    await client.setupLiquidityPool({
+      depositFeeBps: 0,
+      withdrawalFeeBps: 0,
+      minDeposit: new BN(0),
+      collateralMint,
+    });
+
+    // Create treasury token account (required for opening fees)
+    await client.getOrCreateUSDCAccount(client.treasury.publicKey);
   });
 
   describe('create order feature flag', () => {
@@ -155,6 +196,8 @@ describe('protocol feature flags - trading operations', () => {
         basktId: basktId,
         ownerTokenAccount: userTokenAccount,
         collateralMint: collateralMint,
+        limitPrice: BASELINE_PRICE, // Set reasonable limit price matching NAV
+        orderType: { limit: {} },
       });
 
       // Find the order PDA to verify it was created
@@ -189,6 +232,8 @@ describe('protocol feature flags - trading operations', () => {
         allowTrading: false, // DISABLED
         allowLiquidations: true,
       });
+      // Small delay to ensure blockchain state is updated
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Create order should fail
       const orderId = new BN(Date.now() + 1);
@@ -204,6 +249,8 @@ describe('protocol feature flags - trading operations', () => {
           basktId: basktId,
           ownerTokenAccount: userTokenAccount,
           collateralMint: collateralMint,
+          limitPrice: BASELINE_PRICE, // Set reasonable limit price matching NAV
+          orderType: { limit: {} },
         });
         expect.fail('Should have failed due to disabled feature flag');
       } catch (error: any) {
@@ -240,6 +287,8 @@ describe('protocol feature flags - trading operations', () => {
         basktId: basktId,
         ownerTokenAccount: userTokenAccount,
         collateralMint: collateralMint,
+        limitPrice: BASELINE_PRICE, // Set reasonable limit price matching NAV
+        orderType: { limit: {} },
       });
 
       // Find the order PDA
@@ -309,6 +358,8 @@ describe('protocol feature flags - trading operations', () => {
         basktId: basktId,
         ownerTokenAccount: userTokenAccount,
         collateralMint: collateralMint,
+        limitPrice: BASELINE_PRICE, // Set reasonable limit price matching NAV
+        orderType: { limit: {} },
       });
 
       [orderPDA] = PublicKey.findProgramAddressSync(
@@ -334,7 +385,7 @@ describe('protocol feature flags - trading operations', () => {
       });
 
       const positionId = new BN(Date.now());
-      const entryPrice = new BN(100 * 1_000_000); // NAV is 100
+      const entryPrice = BASELINE_PRICE; // NAV is $1
 
       try {
         await matcherClient.openPosition({
@@ -367,7 +418,7 @@ describe('protocol feature flags - trading operations', () => {
       });
 
       const positionId = new BN(Date.now() + 1);
-      const entryPrice = new BN(100 * 1_000_000); // NAV is 100
+      const entryPrice = BASELINE_PRICE; // NAV is $1
 
       try {
         await matcherClient.openPosition({
@@ -419,6 +470,8 @@ describe('protocol feature flags - trading operations', () => {
         basktId: basktId,
         ownerTokenAccount: userTokenAccount,
         collateralMint: collateralMint,
+        limitPrice: BASELINE_PRICE, // Set reasonable limit price matching NAV
+        orderType: { limit: {} },
       });
 
       const [orderPDA] = PublicKey.findProgramAddressSync(
@@ -427,7 +480,7 @@ describe('protocol feature flags - trading operations', () => {
       );
 
       positionId = new BN(Date.now() + 2001);
-      const entryPrice = new BN(100 * 1_000_000); // NAV is 100, not 50,000
+      const entryPrice = BASELINE_PRICE; // NAV is $1, not 50,000
 
       // Derive position PDA
       [positionPDA] = PublicKey.findProgramAddressSync(
@@ -464,7 +517,7 @@ describe('protocol feature flags - trading operations', () => {
         allowLiquidations: true,
       });
 
-      const exitPrice = new BN(101 * 1_000_000); // Price moved up from NAV 100
+      const exitPrice = new BN(101 * 1_000_000); // Price moved up from NAV $1
 
       // Need to create a close order first
       const closeOrderId = new BN(Date.now() + 2002);
@@ -478,6 +531,8 @@ describe('protocol feature flags - trading operations', () => {
         basktId: basktId,
         ownerTokenAccount: userTokenAccount,
         collateralMint: collateralMint,
+        limitPrice: BASELINE_PRICE, // Set reasonable limit price matching NAV
+        orderType: { limit: {} },
       });
 
       const [closeOrderPDA] = PublicKey.findProgramAddressSync(
@@ -524,25 +579,13 @@ describe('protocol feature flags - trading operations', () => {
         allowLiquidations: true,
       });
 
-      const exitPrice = new BN(101 * 1_000_000); // Price moved up from NAV 100
+      const exitPrice = new BN(101 * 1_000_000); // Price moved up from NAV $1
 
       // Need to create a close order first
       const closeOrderId = new BN(Date.now() + 2003);
 
       // Re-enable trading temporarily to create the close order
-      await client.updateFeatureFlags({
-        allowAddLiquidity: true,
-        allowRemoveLiquidity: true,
-        allowOpenPosition: true,
-        allowClosePosition: true,
-        allowPnlWithdrawal: true,
-        allowCollateralWithdrawal: true,
-        allowAddCollateral: true,
-        allowBasktCreation: true,
-        allowBasktUpdate: true,
-        allowTrading: true, // TEMPORARILY ENABLED
-        allowLiquidations: true,
-      });
+      await resetFeatureFlags();
 
       await userClient.createOrder({
         orderId: closeOrderId,
@@ -554,6 +597,8 @@ describe('protocol feature flags - trading operations', () => {
         basktId: basktId,
         ownerTokenAccount: userTokenAccount,
         collateralMint: collateralMint,
+        limitPrice: BASELINE_PRICE, // Set reasonable limit price matching NAV
+        orderType: { limit: {} },
       });
 
       const [closeOrderPDA] = PublicKey.findProgramAddressSync(
@@ -622,8 +667,8 @@ describe('protocol feature flags - trading operations', () => {
 
       // Create a highly leveraged position for liquidation
       const orderId = new BN(Date.now() + 3000);
-      const size = new BN(10_000_000); // 10 USDC
-      const collateral = new BN(11_000_000); // 11 USDC (110% collateral ratio - minimum allowed)
+      const size = new BN(10 * 1e6); // 10 USDC
+      const collateral = new BN(11.15 * 1e6); // 11.15 USDC (enough for 110% collateral + fees)
 
       await userClient.createOrder({
         orderId,
@@ -635,6 +680,8 @@ describe('protocol feature flags - trading operations', () => {
         basktId: basktId,
         ownerTokenAccount: userTokenAccount,
         collateralMint: collateralMint,
+        limitPrice: BASELINE_PRICE, // Set reasonable limit price matching NAV
+        orderType: { limit: {} },
       });
 
       const [orderPDA] = PublicKey.findProgramAddressSync(
@@ -643,7 +690,7 @@ describe('protocol feature flags - trading operations', () => {
       );
 
       positionId = new BN(Date.now() + 3001);
-      const initialPrice = new BN(100 * 1_000_000); // NAV is 100, not 50,000
+      const initialPrice = BASELINE_PRICE; // NAV is $1, not 50,000
 
       // Derive position PDA
       [positionPDA] = PublicKey.findProgramAddressSync(
@@ -681,7 +728,7 @@ describe('protocol feature flags - trading operations', () => {
       });
 
       // Price drops significantly to make position liquidatable
-      const liquidationPrice = new BN(60 * 1_000_000); // 40% drop from NAV 100 to ensure liquidation
+      const liquidationPrice = new BN(0.6 * 1e6); // 0.6 - 40% drop from NAV $1 to ensure liquidation
 
       // Get treasury token account
       const treasuryTokenAccount = await client.getOrCreateUSDCAccount(client.treasury.publicKey);
@@ -702,20 +749,5 @@ describe('protocol feature flags - trading operations', () => {
     });
   });
 
-  // Clean up by re-enabling all features
-  after(async () => {
-    await client.updateFeatureFlags({
-      allowAddLiquidity: true,
-      allowRemoveLiquidity: true,
-      allowOpenPosition: true,
-      allowClosePosition: true,
-      allowPnlWithdrawal: true,
-      allowCollateralWithdrawal: true,
-      allowAddCollateral: true,
-      allowBasktCreation: true,
-      allowBasktUpdate: true,
-      allowTrading: true,
-      allowLiquidations: true,
-    });
-  });
+
 });

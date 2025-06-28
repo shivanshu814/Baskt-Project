@@ -27,22 +27,24 @@ const Baskts = () => {
 
   return (
     <div>
-      <div className="container mx-auto py-8">
-        <div className="flex flex-col gap-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Explore Baskts</h1>
-              <p className="text-muted-foreground">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="flex flex-col gap-6 sm:gap-8">
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="w-full sm:w-auto">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2">Explore Baskts</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Discover and trade curated crypto index products.
               </p>
             </div>
-            <Button className="whitespace-nowrap" onClick={handleCreateClick}>
+            <Button className="w-full sm:w-auto whitespace-nowrap" onClick={handleCreateClick}>
               <Plus className="mr-2 h-4 w-4" />
               Create Baskt
             </Button>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4">
+          {/* Search and Filter Section */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <SearchBar
               value={searchQuery}
               onChange={setSearchQuery}
@@ -51,15 +53,20 @@ const Baskts = () => {
             <FilterControls sortBy={sortBy} setSortBy={setSortBy} />
           </div>
 
-          <Tabs defaultValue="all">
-            <TabsList className="mb-6">
-              <TabsTrigger value="all">All Baskts</TabsTrigger>
-              <TabsTrigger value="trending">Trending</TabsTrigger>
+          {/* Tabs Section */}
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="w-full sm:w-auto mb-4 sm:mb-6">
+              <TabsTrigger value="all" className="flex-1 sm:flex-none">
+                All Baskts
+              </TabsTrigger>
+              <TabsTrigger value="trending" className="flex-1 sm:flex-none">
+                Trending
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="all">
+            <TabsContent value="all" className="mt-0">
               {isLoading ? (
-                <div className="flex items-center justify-center min-h-[400px]">
+                <div className="flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
                   <Loading />
                 </div>
               ) : filteredBaskts.length === 0 ? (
@@ -69,11 +76,11 @@ const Baskts = () => {
               )}
             </TabsContent>
 
-            <TabsContent value="trending">
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  <h2 className="text-xl font-semibold">Trending Now</h2>
+            <TabsContent value="trending" className="mt-0">
+              <div className="mb-4 sm:mb-6">
+                <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <h2 className="text-lg sm:text-xl font-semibold">Trending Now</h2>
                 </div>
                 <BasktGrid baskts={popularBaskts} />
               </div>

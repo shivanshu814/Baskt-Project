@@ -3,8 +3,7 @@
 import '../styles/globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Providers } from '../components/shared/Providers';
-import { Navbar } from '../components/shared/Navbar';
+import { ClientLayout } from '../components/shared/ClientLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -21,10 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/logo.png" type="image/png" />
       </head>
       <body className={inter.className}>
-        <Providers>
-          <Navbar />
-          <main className="pt-16">{children}</main>
-        </Providers>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

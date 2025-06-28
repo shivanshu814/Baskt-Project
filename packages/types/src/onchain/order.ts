@@ -12,6 +12,11 @@ export enum OrderStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export enum OrderType {
+  Market = 'MARKET',
+  Limit = 'LIMIT',
+}
+
 export interface OnchainOrder {
   address: PublicKey;
   owner: PublicKey;
@@ -26,4 +31,7 @@ export interface OnchainOrder {
   timestamp: BN;
   targetPosition: PublicKey | null;
   bump: number;
+  limitPrice: BN;
+  maxSlippage: BN;
+  orderType: OrderType;
 }

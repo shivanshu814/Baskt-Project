@@ -46,7 +46,7 @@ export const Pool = () => {
   const isLoading = isPoolLoading || isBalanceLoading;
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-2xl mx-auto bg-foreground/5 border-border">
       <CardHeader>
         <CardTitle>Liquidity Pool</CardTitle>
         <CardDescription>Deposit USDC to earn rewards or withdraw your liquidity</CardDescription>

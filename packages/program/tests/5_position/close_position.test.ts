@@ -1,10 +1,12 @@
 import { expect } from 'chai';
-import { describe, it, before } from 'mocha';
+import { describe, it, before, afterEach } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
-import { initializeProtocolAndRoles } from '../utils/test-setup';
+// Using TestClient static method instead of importing from test-setup
+import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
+import { BASELINE_PRICE } from '../utils/test-constants';
 
 describe('Close Position', () => {
   // Get the test client instance
@@ -12,12 +14,20 @@ describe('Close Position', () => {
 
   // Test parameters
   const ORDER_SIZE = new BN(10_000_000); // 10 units
-  const COLLATERAL_AMOUNT = new BN(15_000_000); // 15 USDC (assuming 6 decimals)
-  const ENTRY_PRICE = new BN(100_000_000); // NAV starts at 100 with 6 decimals
+  const ENTRY_PRICE = BASELINE_PRICE; // NAV starts at 1 with 6 decimals
   // Use small price deltas to keep profit/loss within pool liquidity
-  const EXIT_PRICE_PROFIT = ENTRY_PRICE.add(new BN(1_000_000)); // 101 for small profit
-  const EXIT_PRICE_LOSS = ENTRY_PRICE.sub(new BN(1_000_000)); // 99 for small loss
+  const EXIT_PRICE_PROFIT = ENTRY_PRICE.add(new BN(1 * 1e5)); // 1.01 for small profit
+  const EXIT_PRICE_LOSS = ENTRY_PRICE.sub(new BN(1 * 1e5)); // 0.99 for small loss
   const TICKER = 'BTC';
+
+  // Calculate proper collateral amount based on worst-case notional
+  // Base notional = ORDER_SIZE * ENTRY_PRICE / PRICE_PRECISION = 10 * 100 = 1000 USDC
+  // With 5% slippage: worst-case = 1000 + 50 = 1050 USDC
+  // Min collateral (110%) = 1050 * 1.1 = 1155 USDC
+  // Opening fee (0.1%) = 1050 * 0.001 = 1.05 USDC
+  // Total required = 1155 + 1.05 = 1156.05 USDC
+  // Add buffer for safety: 1200 USDC
+  const COLLATERAL_AMOUNT = new BN(1_200_000_000); // 1200 USDC with 6 decimals
 
   // Test accounts
   let user: Keypair;
@@ -61,7 +71,7 @@ describe('Close Position', () => {
 
   before(async () => {
     // Initialize protocol and roles using centralized setup
-    const globalAccounts = await initializeProtocolAndRoles(client);
+    const globalAccounts = await TestClient.initializeProtocolAndRoles(client);
     treasury = client.treasury;
     matcher = globalAccounts.matcher;
 
@@ -157,9 +167,6 @@ describe('Close Position', () => {
       collateralMint,
     }));
 
-    // Initialize the protocol registry after liquidity pool setup
-    await initializeProtocolAndRoles(client);
-
     // Create a separate provider for liquidity to avoid role conflicts
     const liquidityProvider = Keypair.generate();
     await requestAirdrop(liquidityProvider.publicKey, client.connection);
@@ -254,6 +261,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     // Open the position for profit scenario
@@ -276,6 +286,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: EXIT_PRICE_PROFIT, // Set limit price for close order
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     // Create an open order and position for loss scenario
@@ -289,6 +302,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     // Open the position for loss scenario
@@ -311,7 +327,34 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: EXIT_PRICE_LOSS, // Set limit price for close order
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
+  });
+
+  afterEach(async () => {
+    // Reset feature flags to enabled state after each test
+    try {
+      const resetSig = await client.updateFeatureFlags({
+        allowAddLiquidity: true,
+        allowRemoveLiquidity: true,
+        allowOpenPosition: true,
+        allowClosePosition: true,
+        allowPnlWithdrawal: true,
+        allowCollateralWithdrawal: true,
+        allowAddCollateral: true,
+        allowBasktCreation: true,
+        allowBasktUpdate: true,
+        allowTrading: true,
+        allowLiquidations: true,
+      });
+      await waitForTx(client.connection, resetSig);
+      await waitForNextSlot(client.connection);
+    } catch (error) {
+      // Silently handle cleanup errors to avoid masking test failures
+      console.warn('Cleanup error in close_position.test.ts:', error);
+    }
   });
 
   it('Successfully closes a position with profit', async () => {
@@ -354,16 +397,26 @@ describe('Close Position', () => {
     const PRICE_PRECISION = new BN(10).pow(new BN(6)); // 10^6
     const BPS_DIVISOR = new BN(10000);
     const CLOSING_FEE_BPS = new BN(10);
+    const OPENING_FEE_BPS = new BN(10);
 
     // Calculate PnL: (exit_price - entry_price) * size / PRICE_PRECISION
     const priceDelta = EXIT_PRICE_PROFIT.sub(ENTRY_PRICE); // 1_000_000
     const pnl = priceDelta.mul(ORDER_SIZE).div(PRICE_PRECISION); // 10_000_000
 
-    // Calculate closing fee: size * CLOSING_FEE_BPS / BPS_DIVISOR
-    const closingFee = ORDER_SIZE.mul(CLOSING_FEE_BPS).div(BPS_DIVISOR); // 10_000
+    // Calculate closing fee based on exit notional value: (size * exit_price / PRICE_PRECISION) * CLOSING_FEE_BPS / BPS_DIVISOR
+    const exitNotional = ORDER_SIZE.mul(EXIT_PRICE_PROFIT).div(PRICE_PRECISION); // 1010 USDC (10 * 101)
+    const closingFee = exitNotional.mul(CLOSING_FEE_BPS).div(BPS_DIVISOR); // 1_010_000 (1.01 USDC)
 
-    // Calculate expected user payout: collateral + PnL - fee
-    const expectedUserPayout = COLLATERAL_AMOUNT.add(pnl).sub(closingFee); // 24_990_000
+    // Calculate opening fee based on real notional value: (size * entry_price / PRICE_PRECISION) * OPENING_FEE_BPS / BPS_DIVISOR
+    const realNotional = ORDER_SIZE.mul(ENTRY_PRICE).div(PRICE_PRECISION); // 1000 USDC
+    const openingFee = realNotional.mul(OPENING_FEE_BPS).div(BPS_DIVISOR); // 1_000_000 (1 USDC)
+
+    // Calculate treasury portion of closing fee (default treasury cut is 10%)
+    const TREASURY_CUT_BPS = new BN(1000); // 10%
+    const treasuryFee = closingFee.mul(TREASURY_CUT_BPS).div(BPS_DIVISOR); // 101_000 (0.101 USDC)
+
+    const netCollateral = COLLATERAL_AMOUNT.sub(openingFee); // Actual collateral in position
+    const expectedUserPayout = netCollateral.add(pnl).sub(closingFee);
 
     // Verify exact user settlement amount
     const userBalanceDiff = new BN(userTokenAfter.amount.toString()).sub(
@@ -375,15 +428,17 @@ describe('Close Position', () => {
     const treasuryBalanceDiff = new BN(treasuryTokenAfter.amount.toString()).sub(
       new BN(treasuryTokenBefore.amount.toString()),
     );
-    expect(treasuryBalanceDiff.toString()).to.equal(closingFee.toString());
+    expect(treasuryBalanceDiff.toString()).to.equal(treasuryFee.toString());
 
-    // Verify liquidity pool vault decreased by exact PnL amount
+    // Verify liquidity pool vault decreased by PnL minus BLP fee
     const vaultAfter = await getAccount(client.connection, tokenVault);
     const vaultDiff = new BN(vaultBefore.amount.toString()).sub(
       new BN(vaultAfter.amount.toString()),
     );
-    // Pool pays out exactly the PnL amount
-    expect(vaultDiff.toString()).to.equal(pnl.toString());
+    // Pool pays out PnL but receives BLP portion of closing fee
+    const blpFee = closingFee.sub(treasuryFee); // 90% of closing fee goes to BLP
+    const expectedVaultDecrease = pnl.sub(blpFee); // Net outflow = PnL - BLP fee
+    expect(vaultDiff.toString()).to.equal(expectedVaultDecrease.toString());
 
     // Position escrow account should be closed after position is closed
     try {
@@ -522,6 +577,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     // Open the position
@@ -544,6 +602,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: EXIT_PRICE_PROFIT, // Set limit price for close order
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
     // Try to close the position with a non-matcher (should fail)
     try {
@@ -569,8 +630,8 @@ describe('Close Position', () => {
     // 25% deviation = ±25 = ±25_000_000
     // Valid range: 75_000_000 to 125_000_000
 
-    const validExitPriceHigh = new BN(124_000_000); // 124 - within 25% bound
-    const validExitPriceLow = new BN(76_000_000); // 76 - within 25% bound
+    const validExitPriceHigh = new BN(124_000_0); // 1.24 - within 25% bound
+    const validExitPriceLow = new BN(76_000_0); // 0.76 - within 25% bound
 
     // Create positions for testing valid price ranges
     const highOrderId = new BN(Date.now() + 500);
@@ -611,6 +672,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     await matcherClient.openPosition({
@@ -632,6 +696,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: validExitPriceHigh, // Set limit price for close order
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     // Should succeed with valid high exit price
@@ -692,6 +759,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     await matcherClient.openPosition({
@@ -713,6 +783,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: validExitPriceLow, // Set limit price for close order
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     // Should succeed with valid low exit price
@@ -740,8 +813,8 @@ describe('Close Position', () => {
     // 25% deviation = ±25 = ±25_000_000
     // Invalid range: <75_000_000 or >125_000_000
 
-    const invalidExitPriceHigh = new BN(130_000_000); // 130 - outside 25% bound
-    const invalidExitPriceLow = new BN(70_000_000); // 70 - outside 25% bound
+    const invalidExitPriceHigh = new BN(130_000_0); // 1.30 - outside 25% bound
+    const invalidExitPriceLow = new BN(70_000_0); // 0.70 - outside 25% bound
 
     // Test with invalid high price
     const highOrderId = new BN(Date.now() + 600);
@@ -782,6 +855,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     await matcherClient.openPosition({
@@ -803,6 +879,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: invalidExitPriceHigh, // Set limit price for close order
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     // Should fail with invalid high exit price
@@ -861,6 +940,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     await matcherClient.openPosition({
@@ -882,6 +964,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: invalidExitPriceLow, // Set limit price for close order
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     // Should fail with invalid low exit price
@@ -941,6 +1026,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match expected execution price
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     await matcherClient.openPosition({
@@ -962,6 +1050,9 @@ describe('Close Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: new BN(1), // Set a minimal limit price for zero exit price test
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
+      orderType: { limit: {} },
     });
 
     // Should fail with zero exit price

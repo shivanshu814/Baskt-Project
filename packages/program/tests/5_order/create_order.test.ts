@@ -1,10 +1,11 @@
 import { expect } from 'chai';
-import { describe, it, before } from 'mocha';
+import { describe, it, before, after } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { BN } from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { AccessControlRole } from '@baskt/types';
+import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
 
 describe('Order Creation', () => {
   // Get the test client instance
@@ -12,7 +13,7 @@ describe('Order Creation', () => {
 
   // Test parameters
   const ORDER_SIZE = new BN(10_000_000); // 10 units
-  const COLLATERAL_AMOUNT = new BN(11_000_000); // 11 USDC (110% of 10-unit order)
+  const COLLATERAL_AMOUNT = new BN(11_020_000); // 11.02 USDC (110% + opening fee)
   const TICKER = 'BTC';
 
   // Test accounts
@@ -132,6 +133,38 @@ describe('Order Creation', () => {
     }
   });
 
+  after(async () => {
+    // Clean up roles and feature flags
+    try {
+      // Remove matcher role
+      const removeMatcherSig = await client.removeRole(
+        matcher.publicKey,
+        AccessControlRole.Matcher
+      );
+      await waitForTx(client.connection, removeMatcherSig);
+
+      // Reset feature flags to enabled state
+      const resetSig = await client.updateFeatureFlags({
+        allowAddLiquidity: true,
+        allowRemoveLiquidity: true,
+        allowOpenPosition: true,
+        allowClosePosition: true,
+        allowPnlWithdrawal: true,
+        allowCollateralWithdrawal: true,
+        allowAddCollateral: true,
+        allowBasktCreation: true,
+        allowBasktUpdate: true,
+        allowTrading: true,
+        allowLiquidations: true,
+      });
+      await waitForTx(client.connection, resetSig);
+      await waitForNextSlot(client.connection);
+    } catch (error) {
+      // Silently handle cleanup errors to avoid masking test failures
+      console.warn('Cleanup error in create_order.test.ts:', error);
+    }
+  });
+
   it('Creates an open long order', async () => {
     // Generate a unique order ID
     const orderId = new BN(Date.now());
@@ -156,6 +189,7 @@ describe('Order Creation', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     // Fetch the order account
@@ -170,6 +204,7 @@ describe('Order Creation', () => {
     expect(orderAccount.isLong).to.be.true;
     expect(Object.keys(orderAccount.action)[0]).to.equal('open');
     expect(Object.keys(orderAccount.status)[0]).to.equal('pending');
+    expect(Object.keys(orderAccount.orderType)[0]).to.equal('market'); // Should default to market
 
     // Verify collateral was transferred
     const userTokenAfter = await getAccount(client.connection, userTokenAccount);
@@ -207,6 +242,7 @@ describe('Order Creation', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     // Fetch the order account
@@ -221,6 +257,7 @@ describe('Order Creation', () => {
     expect(orderAccount.isLong).to.be.false;
     expect(Object.keys(orderAccount.action)[0]).to.equal('open');
     expect(Object.keys(orderAccount.status)[0]).to.equal('pending');
+    expect(Object.keys(orderAccount.orderType)[0]).to.equal('market'); // Should default to market
 
     // Verify collateral was transferred
     const userTokenAfter = await getAccount(client.connection, userTokenAccount);
@@ -269,6 +306,7 @@ describe('Order Creation', () => {
         basktId: basktId,
         ownerTokenAccount: userTokenAccount,
         collateralMint: collateralMint,
+        leverageBps: new BN(10000), // 1x leverage (not used for close orders)
       });
 
       // Fetch the order account
@@ -320,6 +358,7 @@ describe('Order Creation', () => {
         basktId: basktId,
         ownerTokenAccount: userTokenAccount,
         collateralMint: collateralMint,
+        leverageBps: new BN(10000), // 1x leverage
       });
       // Should not reach here
       expect.fail('Transaction should have failed due to insufficient collateral');
@@ -345,6 +384,7 @@ describe('Order Creation', () => {
         basktId: basktId,
         ownerTokenAccount: userTokenAccount,
         collateralMint: collateralMint,
+        leverageBps: new BN(10000), // 1x leverage
       });
       // Should not reach here
       expect.fail('Transaction should have failed due to missing target position');
@@ -352,5 +392,45 @@ describe('Order Creation', () => {
       // Verify error message indicates invalid target position
       expect(error.toString()).to.include('InvalidTargetPosition');
     }
+  });
+
+  it('Creates a limit order', async () => {
+    // Generate a unique order ID
+    const orderId = new BN(Date.now() + 5);
+
+    // Find the order PDA
+    const [orderPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('order'), user.publicKey.toBuffer(), orderId.toArrayLike(Buffer, 'le', 8)],
+      client.program.programId,
+    );
+
+    // Create a limit order
+    await userClient.createOrder({
+      orderId,
+      size: ORDER_SIZE,
+      collateral: COLLATERAL_AMOUNT,
+      isLong: true,
+      action: { open: {} },
+      targetPosition: null,
+      basktId: basktId,
+      ownerTokenAccount: userTokenAccount,
+      collateralMint: collateralMint,
+      orderType: { limit: {} }, // Explicitly set as limit order
+      leverageBps: new BN(10000), // 1x leverage
+    });
+
+    // Fetch the order account
+    const orderAccount = await client.program.account.order.fetch(orderPDA);
+
+    // Verify order details
+    expect(orderAccount.owner.toString()).to.equal(user.publicKey.toString());
+    expect(orderAccount.orderId.toString()).to.equal(orderId.toString());
+    expect(orderAccount.basktId.toString()).to.equal(basktId.toString());
+    expect(orderAccount.size.toString()).to.equal(ORDER_SIZE.toString());
+    expect(orderAccount.collateral.toString()).to.equal(COLLATERAL_AMOUNT.toString());
+    expect(orderAccount.isLong).to.be.true;
+    expect(Object.keys(orderAccount.action)[0]).to.equal('open');
+    expect(Object.keys(orderAccount.status)[0]).to.equal('pending');
+    expect(Object.keys(orderAccount.orderType)[0]).to.equal('limit'); // Should be limit order
   });
 });

@@ -25,7 +25,6 @@ export function calculateNav(
       const netChange = currentNav.mul(directionalChange).div(baselineAsset.baselinePrice);
       navChange = navChange.add(netChange);
     }
-
     // in weightPriceChange we multiply by weight which is WEIGHT_PRECISION so we need to remove it from the nav here
     newNav = newNav.add(navChange.div(WEIGHT_PRECISION));
     return newNav.lte(new BN(0)) ? new BN(0) : newNav;

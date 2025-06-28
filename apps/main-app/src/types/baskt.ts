@@ -159,17 +159,8 @@ export interface BasktTabsProps {
 
 export interface UseOpenPositionProps {
   baskt: BasktInfo;
-  size: number;
-}
-
-export interface CalculateSharesParams {
-  collateral: number;
-  price: number;
-  leverage: number;
-}
-
-export interface CalculateLiquidationPriceParams extends CalculateSharesParams {
-  position: 'long' | 'short';
+  usdcSize: number;
+  navPrice: BN;
 }
 
 export interface AddCollateralDialogProps {
@@ -186,4 +177,16 @@ export interface TransactionToastProps {
   error?: string;
   onRetry?: () => void;
   onClose?: () => void;
+}
+export interface BasktFormProps {
+  formData: BasktFormData;
+  errors: Record<string, string>;
+  totalWeightage: number;
+  onNameChange: (value: string) => void;
+  onRebalancePeriodChange: (value: number, unit: 'day' | 'hour') => void;
+  onVisibilityChange: (value: boolean) => void;
+  onAddAsset: () => void;
+  onRemoveAsset: (ticker: string) => void;
+  onAssetPositionChange: (ticker: string, position: 'long' | 'short') => void;
+  onAssetWeightChange: (ticker: string, weight: string) => void;
 }

@@ -11,9 +11,9 @@ import {
 import { FilterControlsProps } from '../../types/baskt';
 
 export const FilterControls = memo(({ sortBy, setSortBy }: FilterControlsProps) => (
-  <div className="flex gap-2">
+  <div className="flex gap-2 w-full sm:w-auto">
     <Select value={sortBy} onValueChange={setSortBy}>
-      <SelectTrigger className="w-[150px]">
+      <SelectTrigger className="w-full sm:w-[150px]">
         <SelectValue placeholder="Sort by" />
       </SelectTrigger>
       <SelectContent>

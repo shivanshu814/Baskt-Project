@@ -12,7 +12,7 @@ export const PoolWithdraw = ({
   calculateExpectedOutput,
 }: PoolWithdrawProps) => {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 bg-foreground/5 border border-border rounded-2xl p-4">
       <div className="space-y-2">
         <label className="text-sm font-medium">Amount to Withdraw</label>
         <div className="relative">

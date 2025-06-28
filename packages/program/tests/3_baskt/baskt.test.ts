@@ -1,15 +1,13 @@
 import { expect } from 'chai';
-import { describe, it, before } from 'mocha';
+import { describe, it, before, afterEach } from 'mocha';
 import { PublicKey } from '@solana/web3.js';
 import { TestClient } from '../utils/test-client';
 import { BN } from 'bn.js';
 import { OnchainAssetConfig } from '@baskt/types';
+// Using TestClient static method instead of importing from test-setup
+// Chain helpers are now used internally by TestClient.resetFeatureFlags
 
-// Define AssetPermissions type locally since it's not exported from SDK
-type AssetPermissions = {
-  allowLongs: boolean;
-  allowShorts: boolean;
-};
+// AssetPermissions type is now handled internally by TestClient.setupTestAssets
 
 type AssetId = {
   assetAddress: PublicKey;
@@ -29,23 +27,23 @@ describe('baskt', () => {
 
   // Set up test roles and assets before running tests
   before(async () => {
-    // Create assets that will be used across tests
-    btcAssetId = await client.addAsset('BTC');
-    ethAssetId = await client.addAsset('ETH');
-    dogeAssetId = await client.addAsset('DOGE');
+    // Ensure protocol is initialized and roles are set up
+    await TestClient.initializeProtocolAndRoles(client);
 
-    // Create assets with specific permissions
-    const longOnlyPermissions: AssetPermissions = {
-      allowLongs: true,
-      allowShorts: false,
-    };
-    longOnlyAssetId = await client.addAsset('LONG_ONLY', longOnlyPermissions);
+    // Create assets that will be used across tests using the centralized helper
+    const assets = await TestClient.setupTestAssets(client);
+    
+    // Assign the returned assets to our test variables
+    btcAssetId = assets.btcAssetId;
+    ethAssetId = assets.ethAssetId;
+    dogeAssetId = assets.dogeAssetId;
+    longOnlyAssetId = assets.longOnlyAssetId;
+    shortOnlyAssetId = assets.shortOnlyAssetId;
+  });
 
-    const shortOnlyPermissions: AssetPermissions = {
-      allowLongs: false,
-      allowShorts: true,
-    };
-    shortOnlyAssetId = await client.addAsset('SHORT_ONLY', shortOnlyPermissions);
+  afterEach(async () => {
+    // Reset feature flags to enabled state after each test using the centralized helper
+    await TestClient.resetFeatureFlags(client);
   });
 
   it('Successfully creates a new baskt with valid asset configs', async () => {
@@ -424,5 +422,31 @@ describe('baskt', () => {
     // Fetch the baskt account to verify it was initialized correctly
     const baskt = await client.getBaskt(basktId);
     expect(baskt.currentAssetConfigs[0].baselinePrice.toNumber()).to.equal(0);
+  });
+
+  it('Fails to create a baskt with duplicate assets', async () => {
+    // Create asset configs with duplicate asset IDs
+    const assets = [
+      {
+        assetId: btcAssetId.assetAddress,
+        direction: true,
+        weight: new BN(5000), // 50% BTC
+        baselinePrice: new BN(0),
+      },
+      {
+        assetId: btcAssetId.assetAddress, // Duplicate BTC asset
+        direction: true,
+        weight: new BN(5000), // 50% BTC
+        baselinePrice: new BN(0),
+      },
+    ] as OnchainAssetConfig[];
+
+    // Attempt to create the baskt - should fail due to duplicate assets
+    try {
+      await client.createBaskt('DupAssetBaskt', assets, true);
+      expect.fail('Should have thrown an error');
+    } catch (error: unknown) {
+      expect((error as Error).message).to.include('InvalidBasktConfig');
+    }
   });
 });

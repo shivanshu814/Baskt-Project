@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { OrderAction, OrderStatus } from '../onchain/order';
+import { OrderAction, OrderStatus, OrderType } from '../onchain/order';
 export interface OrderModel {
   orderPDA: string;
   orderId: string;
@@ -18,8 +18,8 @@ export interface OrderModel {
   position?: string;
   size: string;
   isLong: boolean;
-  entryPrice?: string;
-  exitPrice?: string;
+  limitPrice: string;
+  maxSlippage: string;
 }
 
 export const OrderSchema = new mongoose.Schema(
@@ -94,12 +94,19 @@ export const OrderSchema = new mongoose.Schema(
       required: true,
       default: false,
     },
-    entryPrice: {
+    orderType: {
       type: String,
+      enum: [OrderType.Market, OrderType.Limit],
+      required: true,
+    },
+    limitPrice: {
+      type: String,
+      required: true,
       trim: true,
     },
-    exitPrice: {
+    maxSlippage: {
       type: String,
+      required: true,
       trim: true,
     },
   },
@@ -107,5 +114,3 @@ export const OrderSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
-
-export const OrderMetadataModel = mongoose.model<OrderModel>('OrderMetadata', OrderSchema);

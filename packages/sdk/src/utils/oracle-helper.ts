@@ -1,6 +1,6 @@
 import * as anchor from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
-import { BasktV1 } from '../program/types';
+import { Baskt } from '../program/types';
 import { OnchainLightweightProvider } from '@baskt/types';
 
 // Interface for oracle price data
@@ -13,12 +13,12 @@ export interface OraclePrice {
  * Helper class for creating and managing oracle accounts
  */
 export class OracleHelper {
-  program: anchor.Program<BasktV1>;
+  program: anchor.Program<Baskt>;
   public publicKey: PublicKey;
   provider: OnchainLightweightProvider;
 
   constructor(
-    program: anchor.Program<BasktV1>,
+    program: anchor.Program<Baskt>,
     publicKey: PublicKey,
     provider: OnchainLightweightProvider,
   ) {

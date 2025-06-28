@@ -41,6 +41,8 @@ export const useBasktDetail = (basktId: string) => {
     if (!basktNavData?.data?.nav) return;
     const basktCopy = baskt;
     if (!basktCopy) return;
+    // @ts-expect-error data is expected to be present
+    if (basktNavData?.data?.nav === basktCopy.price) return;
     setBaskt({
       ...basktCopy,
       // @ts-expect-error data is expected to be present

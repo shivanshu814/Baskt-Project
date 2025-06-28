@@ -9,6 +9,7 @@ export function useRoles() {
   const { client } = useBasktClient();
   const [isLoading, setIsLoading] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [allUsers, setAllUsers] = useState<Role[]>([]);
   const [isOwner, setIsOwner] = useState(false);
 
   const checkOwnerPermission = async () => {
@@ -28,20 +29,61 @@ export function useRoles() {
     }
   };
 
-  const fetchRoles = async () => {
+  const fetchAllUsers = async () => {
     if (!client) return;
     setIsLoading(true);
     try {
+      const userAddresses = new Set<string>();
       const protocolAccount = await client.getProtocolAccount();
+      userAddresses.add(protocolAccount.owner);
+
       if (protocolAccount?.accessControl?.entries) {
-        const formattedRoles: Role[] = protocolAccount.accessControl.entries.map((entry) => ({
-          account: entry.account,
-          role: entry.role,
-        }));
-        setRoles(formattedRoles);
+        protocolAccount.accessControl.entries.forEach((entry) => {
+          userAddresses.add(entry.account);
+        });
       }
+
+      try {
+        const positions = await client.getAllPositions();
+        positions.forEach((position) => {
+          userAddresses.add(position.owner.toString());
+        });
+      } catch (error) {
+        toast('Failed to fetch positions');
+      }
+
+      try {
+        const orders = await client.getAllOrders();
+        orders.forEach((order) => {
+          userAddresses.add(order.owner.toString());
+        });
+      } catch (error) {
+        toast('Failed to fetch orders');
+      }
+
+      const usersWithRoles = new Map<string, string>();
+      if (protocolAccount?.accessControl?.entries) {
+        protocolAccount.accessControl.entries.forEach((entry) => {
+          usersWithRoles.set(entry.account, entry.role);
+        });
+      }
+
+      const allUsersList: Role[] = Array.from(userAddresses).map((address) => ({
+        account: address,
+        role: usersWithRoles.get(address) || 'No Role',
+      }));
+
+      setAllUsers(allUsersList);
+
+      const formattedRoles: Role[] = Array.from(usersWithRoles.entries()).map(
+        ([account, role]) => ({
+          account,
+          role,
+        }),
+      );
+      setRoles(formattedRoles);
     } catch (error) {
-      toast.error('Failed to fetch the roles');
+      toast('Failed to fetch users');
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +117,7 @@ export function useRoles() {
       if (txSignature) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         toast.success('Role removed successfully');
-        await fetchRoles();
+        await fetchAllUsers();
       } else {
         toast.error('Transaction Failed. Please check your wallet balance and try again');
       }
@@ -94,15 +136,16 @@ export function useRoles() {
   useEffect(() => {
     if (client) {
       checkOwnerPermission();
-      fetchRoles();
+      fetchAllUsers();
     }
   }, [client]);
 
   return {
     roles,
+    allUsers,
     isLoading,
     isOwner,
-    fetchRoles,
+    fetchRoles: fetchAllUsers,
     handleRemoveRole,
   };
 }

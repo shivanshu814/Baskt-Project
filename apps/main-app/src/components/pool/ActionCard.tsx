@@ -36,7 +36,7 @@ export const ActionCard = React.memo(
     );
 
     return (
-      <Card className="shadow-xl border-0 bg-white/5 backdrop-blur-md rounded-2xl transition-shadow hover:shadow-2xl">
+      <Card className="shadow-xl border-0 bg-foreground/5 backdrop-blur-md rounded-2xl transition-shadow hover:shadow-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             {icon}
@@ -60,7 +60,7 @@ export const ActionCard = React.memo(
                     e.preventDefault();
                   }
                 }}
-                className="pr-20 text-lg font-semibold bg-[#181c27] border border-[#23263a] focus:border-primary rounded-xl [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="pr-20 text-md font-semibold bg-foreground/5 border border-border focus:border-primary rounded-xl [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 disabled={loading}
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -71,23 +71,23 @@ export const ActionCard = React.memo(
                 >
                   MAX
                 </button>
-                <span className="text-white/60 font-medium">{unit || 'USDC'}</span>
+                <span className="text-muted-foreground font-medium">{unit || 'USDC'}</span>
               </div>
             </div>
             {tokenBalance && (
-              <div className="text-xs text-white/60 mt-1">
+              <div className="text-xs text-muted-foreground mt-1">
                 Your {unit}: {tokenBalance}
               </div>
             )}
-            <div className="space-y-2 text-sm bg-white/5 p-3 rounded-lg">
+            <div className="space-y-2 text-sm bg-foreground/5 p-3 rounded-lg">
               {expectedOutput && (
-                <div className="flex justify-between text-white/80">
+                <div className="flex justify-between text-muted-foreground">
                   <span>You will receive:</span>
                   <span className="font-medium">{expectedOutput}</span>
                 </div>
               )}
               {fee && (
-                <div className="flex justify-between text-white/80">
+                <div className="flex justify-between text-muted-foreground">
                   <span>Fee:</span>
                   <span className="font-medium">{fee}</span>
                 </div>
@@ -105,7 +105,7 @@ export const ActionCard = React.memo(
             >
               {loading ? (
                 <div className="flex items-center gap-2 justify-center animate-pulse">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-foreground"></div>
                   {actionLabel}...
                 </div>
               ) : (

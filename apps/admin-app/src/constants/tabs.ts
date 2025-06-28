@@ -10,6 +10,8 @@ export const TAB_IDS = {
   ORDERS: 'orders',
   POSITIONS: 'positions',
   HISTORY: 'history',
+  ACCESS_CODES: 'access-codes',
+  USERS: 'users',
 } as const;
 
 export type TabId = (typeof TAB_IDS)[keyof typeof TAB_IDS];

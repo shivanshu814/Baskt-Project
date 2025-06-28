@@ -6,6 +6,8 @@ import { sdkClient } from '../../utils';
 import { AssetMetadataModel, OrderMetadataModel, PositionMetadataModel } from '../../utils/models';
 import { OrderAction, OnchainPosition, PositionStatus } from '@baskt/types';
 import mongoose from 'mongoose';
+import { BN } from 'bn.js';
+import { calculateUsdcSize } from '@baskt/sdk';
 
 const sdkClientInstance = sdkClient();
 
@@ -41,7 +43,7 @@ export const getPositions = publicProcedure
       } else if (input.basktId) {
         filter.basktId = input.basktId;
       }
-      if (input.userId) filter.owner = input.userId;
+      if (input.userId) filter.owner = { $regex: input.userId, $options: 'i' };
       if (typeof input.isActive === 'boolean') {
         filter.status = input.isActive ? PositionStatus.OPEN : PositionStatus.CLOSED;
       }
@@ -76,6 +78,7 @@ async function convertPosition(position: OnchainPosition, positionMetadata: any)
   if (!positionMetadata || !positionMetadata) {
     return null;
   }
+  //TODO: Shivanshu Need to be able to return the position Metadata if the position account is closed
   return {
     positionId: position.positionId.toString(),
     positionPDA: position.address.toString(),
@@ -92,6 +95,7 @@ async function convertPosition(position: OnchainPosition, positionMetadata: any)
     size: position.size.toString(),
     collateral: position.collateral.toString(),
     isLong: position.isLong,
+    usdcSize: calculateUsdcSize(new BN(position.size), position.entryPrice.toNumber()).toString(),
   };
 }
 

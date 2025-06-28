@@ -7,13 +7,10 @@ import { useUSDCBalance } from '../../pool/useUSDCBalance';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { UseOpenPositionProps } from '../../../types/baskt';
-import {
-  calculateCollateralAmount,
-  calculateLiquidationPrice,
-} from '../../../utils/baskt/trade/calculate';
-import { PRICE_PRECISION } from '@baskt/ui';
+import { calculateCollateralAmount, calculateLiquidationPrice } from '@baskt/sdk';
+import { PRICE_PRECISION, STANDARD_SLIPPAGE_BPS } from '@baskt/ui';
 
-export function useOpenPositions(basktId?: string, userAddress?: string) {
+export function useOpenPositions(basktId?: string, userAddress?: string, navPrice?: BN) {
   const { client } = useBasktClient();
   const { account: userUSDCAccount, refetch: refetchUSDCBalance } = useUSDCBalance();
 
@@ -36,32 +33,109 @@ export function useOpenPositions(basktId?: string, userAddress?: string) {
     };
   }, [positionsByBasktAndUserQuery]);
 
-  const closePosition = async (position: OnchainPosition) => {
-    if (!client || !userUSDCAccount || !basktId) return;
-    await client.createOrderTx(
-      new BN(Date.now()),
-      new BN(1),
-      new BN(0),
-      position.isLong,
-      { close: {} },
-      new PublicKey(position.address),
-      new PublicKey(basktId),
-      userUSDCAccount.address,
-      USDC_MINT,
-    );
-    refetchUSDCBalance();
-    positionsByBasktAndUserQuery.refetch();
+  // Listen for blockchain interaction events
+  useEffect(() => {
+    const handleBlockchainInteraction = () => {
+      positionsByBasktAndUserQuery.refetch();
+    };
+
+    // Listen for various blockchain interaction events
+    window.addEventListener('order-cancelled', handleBlockchainInteraction);
+    window.addEventListener('order-created', handleBlockchainInteraction);
+    window.addEventListener('position-closed', handleBlockchainInteraction);
+    window.addEventListener('collateral-added', handleBlockchainInteraction);
+
+    return () => {
+      window.removeEventListener('order-cancelled', handleBlockchainInteraction);
+      window.removeEventListener('order-created', handleBlockchainInteraction);
+      window.removeEventListener('position-closed', handleBlockchainInteraction);
+      window.removeEventListener('collateral-added', handleBlockchainInteraction);
+    };
+  }, [positionsByBasktAndUserQuery]);
+
+  // eslint-disable-next-line
+  const closePosition = async (position: any) => {
+    if (!client || !userUSDCAccount) {
+      toast.error('Missing required parameters for closing position');
+      return;
+    }
+
+    if (!basktId) {
+      toast.error('Missing baskt ID for closing position');
+      return;
+    }
+
+    if (!navPrice) {
+      toast.error('Missing NAV price for closing position');
+      return;
+    }
+
+    try {
+      const tx = await client.createOrderTx(
+        new BN(Date.now()),
+        new BN(0),
+        new BN(position.usdcSize || '0'),
+        position.isLong,
+        { close: {} },
+        new PublicKey(position.positionPDA),
+        navPrice,
+        new BN(STANDARD_SLIPPAGE_BPS),
+        new PublicKey(basktId),
+        userUSDCAccount.address,
+        USDC_MINT,
+        new BN(10000), // leverageBps: 1x leverage
+        { market: {} }, // orderType: market order
+      );
+
+      // Wait for transaction confirmation
+      const confirmation = await client.connection.confirmTransaction(tx);
+
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${confirmation.value.err}`);
+      }
+
+      // Refetch data after successful transaction
+      await Promise.all([refetchUSDCBalance(), positionsByBasktAndUserQuery.refetch()]);
+
+      // Dispatch event for other components to listen to
+      window.dispatchEvent(new Event('position-closed'));
+
+      toast.success('Position closed successfully');
+    } catch (error) {
+      toast.error('Failed to close position');
+    }
   };
 
   const addCollateral = async (position: OnchainPosition, additionalCollateral: BN) => {
-    if (!client || !userUSDCAccount) return;
-    await client.addCollateral({
-      position: new PublicKey(position.address),
-      additionalCollateral,
-      ownerTokenAccount: userUSDCAccount.address,
-    });
-    refetchUSDCBalance();
-    positionsByBasktAndUserQuery.refetch();
+    if (!client || !userUSDCAccount) {
+      toast.error('Missing required parameters for adding collateral');
+      return;
+    }
+
+    try {
+      const tx = await client.addCollateral({
+        position: new PublicKey(position.address),
+        additionalCollateral,
+        ownerTokenAccount: userUSDCAccount.address,
+      });
+
+      // Wait for transaction confirmation
+      const confirmation = await client.connection.confirmTransaction(tx);
+
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${confirmation.value.err}`);
+      }
+
+      // Refetch data after successful transaction
+      await Promise.all([refetchUSDCBalance(), positionsByBasktAndUserQuery.refetch()]);
+
+      // Dispatch event for other components to listen to
+      window.dispatchEvent(new Event('collateral-added'));
+
+      toast.success('Collateral added successfully');
+    } catch (error) {
+      toast.error('Failed to add collateral');
+    }
   };
 
   let positions = (positionsByBasktAndUserQuery.data as any)?.data; //eslint-disable-line
@@ -93,7 +167,7 @@ export function useOpenPositions(basktId?: string, userAddress?: string) {
   };
 }
 
-export function useOpenPosition({ baskt, size }: UseOpenPositionProps) {
+export function useOpenPosition({ baskt, usdcSize, navPrice }: UseOpenPositionProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { client } = useBasktClient();
   const publicKey = client?.wallet?.address;
@@ -102,18 +176,23 @@ export function useOpenPosition({ baskt, size }: UseOpenPositionProps) {
     account: userUSDCAccount,
     refetch: refetchUSDCBalance,
   } = useUSDCBalance(publicKey);
-  const collateral = calculateCollateralAmount(new BN(size));
+
+  const collateral = calculateCollateralAmount(new BN(usdcSize));
 
   const getLiquidationPrice = (collateral: number, position: 'long' | 'short') => {
     return calculateLiquidationPrice({
       collateral,
       price: baskt.price,
-      leverage: 1.5,
+      leverage: 0.9,
       position,
     });
   };
 
-  const openPosition = async (position: 'long' | 'short', size: number) => {
+  // const getLiquidationPrice = (collateral: number, position: 'long' | 'short') => {
+  //   return new BN(0);
+  // };
+
+  const openPosition = async (position: 'long' | 'short', userInputSize: number) => {
     if (!publicKey || !client || !userUSDCAccount) {
       toast.error('Please connect your wallet first');
       return;
@@ -135,14 +214,18 @@ export function useOpenPosition({ baskt, size }: UseOpenPositionProps) {
 
       const tx = await client.createOrderTx(
         orderId,
-        new BN(size).mul(new BN(PRICE_PRECISION)),
-        collateral.mul(new BN(PRICE_PRECISION)),
+        new BN(0),
+        new BN(userInputSize).mul(new BN(PRICE_PRECISION)),
         position === 'long',
         { open: {} },
         null,
+        navPrice,
+        new BN(STANDARD_SLIPPAGE_BPS),
         new PublicKey(baskt.basktId),
         userUSDCAccount?.address,
-        new PublicKey(process.env.NEXT_PUBLIC_USDC_MINT || ''),
+        USDC_MINT,
+        new BN(10000), // leverageBps: 1x leverage
+        { market: {} }, // orderType: market order
       );
 
       const confirmation = await client.connection.confirmTransaction(tx);
@@ -153,15 +236,15 @@ export function useOpenPosition({ baskt, size }: UseOpenPositionProps) {
 
       refetchUSDCBalance();
 
+      // Dispatch events for other components to listen to
+      window.dispatchEvent(new Event('position-opened'));
+      window.dispatchEvent(new Event('order-created'));
+
       toast.success(
         `${
           position === 'long' ? 'Long' : 'Short'
         } position opened with ${collateral.toLocaleString()} USDT collateral`,
       );
-
-      if (window.dispatchEvent) {
-        window.dispatchEvent(new Event('position-opened'));
-      }
 
       return true;
       // eslint-disable-next-line

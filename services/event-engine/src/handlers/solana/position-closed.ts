@@ -1,4 +1,4 @@
-import { trpcClient } from '../../utils/config';
+import { trpcClient, basktClient } from '../../utils/config';
 import BN from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
 import { EventSource, ObserverEvent } from '../../types';
@@ -9,12 +9,14 @@ export type PositionClosedEvent = {
   positionId: BN;
   basktId: PublicKey;
   size: BN;
-  collateral: BN;
-  isLong: boolean;
-  entryPrice: BN;
-  entryFundingIndex: BN;
-  timestamp: BN;
   exitPrice: BN;
+  pnl: BN;
+  feeToTreasury: BN;
+  feeToBlp: BN;
+  fundingPayment: BN;
+  settlementAmount: BN;
+  poolPayout: BN;
+  timestamp: BN;
 };
 
 async function positionClosedHandler(event: ObserverEvent) {
@@ -22,14 +24,39 @@ async function positionClosedHandler(event: ObserverEvent) {
   const positionClosedData = event.payload.event as PositionClosedEvent;
   const tx = event.payload.signature;
 
-  // close position in DB
-  await trpcClient.position.closePosition.mutate({
-    positionId: positionClosedData.positionId.toString(),
-    exitPrice: positionClosedData.exitPrice.toString(),
-    tx,
-    ts: positionClosedData.timestamp.toString(),
-    //TODO add the order in which it was closed
-  });
+  try {
+    const positionPDA = await basktClient.getPositionPDA(
+      positionClosedData.owner,
+      positionClosedData.positionId,
+    );
+
+    const orderPDA = await basktClient.getOrderPDA(
+      positionClosedData.orderId,
+      positionClosedData.owner,
+    );
+
+    const result = await trpcClient.position.closePosition.mutate({
+      positionPDA: positionPDA.toString(),
+      exitPrice: positionClosedData.exitPrice.toString(),
+      tx,
+      ts: positionClosedData.timestamp.toString(),
+      closeOrder: orderPDA.toString(),
+    });
+
+    console.log('result', result);
+
+    if (!result.success) {
+      console.error(
+        'Failed to close position in DB:',
+        'message' in result ? result.message : 'Unknown error',
+      );
+    } else {
+      console.log('Position closed successfully in DB');
+    }
+  } catch (error) {
+    console.error('Error in positionClosedHandler:', error);
+    throw error;
+  }
 }
 
 export default {

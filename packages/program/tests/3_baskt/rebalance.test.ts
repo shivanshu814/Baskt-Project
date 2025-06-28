@@ -1,9 +1,13 @@
 import { expect } from 'chai';
-import { describe, it, before } from 'mocha';
+import { describe, it, before, after } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
 import { TestClient } from '../utils/test-client';
 import { AccessControlRole, OnchainAssetConfig } from '@baskt/types';
+// Using TestClient static method instead of importing from test-setup
+import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
+import { BN } from 'bn.js';
+import { BASE_NAV_BN } from '../utils/test-constants';
 
 type AssetId = {
   assetAddress: PublicKey;
@@ -26,6 +30,9 @@ describe('Baskt Rebalance', () => {
 
   // Set up test roles and assets before running tests
   before(async () => {
+    // Ensure protocol is initialized and roles are set up
+    await TestClient.initializeProtocolAndRoles(client);
+
     // Create assets that will be used across tests
     btcAssetId = await client.addAsset('BTC');
     ethAssetId = await client.addAsset('ETH');
@@ -62,6 +69,21 @@ describe('Baskt Rebalance', () => {
     rebalancerClient = await TestClient.forUser(Keypair.generate());
 
     await client.addRole(rebalancerClient.publicKey, AccessControlRole.Rebalancer);
+  });
+
+  after(async () => {
+    // Clean up Rebalancer role added during tests
+    try {
+      const removeRebalancerSig = await client.removeRole(
+        rebalancerClient.publicKey,
+        AccessControlRole.Rebalancer
+      );
+      await waitForTx(client.connection, removeRebalancerSig);
+      await waitForNextSlot(client.connection);
+    } catch (error) {
+      // Silently handle cleanup errors to avoid masking test failures
+      console.warn('Cleanup error in rebalance.test.ts:', error);
+    }
   });
 
   it('Successfully rebalances a baskt with new prices', async () => {
@@ -103,13 +125,14 @@ describe('Baskt Rebalance', () => {
     // Verify new weights were applied
     const btcConfig = basktAfter.currentAssetConfigs[0];
     expect(btcConfig?.baselinePrice.toNumber()).to.equal(100);
-    expect(btcConfig?.direction).to.not.equal(false);
-    expect(btcConfig?.weight.toNumber()).to.not.equal(3000);
+    // direction and weight should remain unchanged (true / 6000)
+    expect(btcConfig?.direction).to.equal(true);
+    expect(btcConfig?.weight.toNumber()).to.equal(6000);
 
     const ethConfig = basktAfter.currentAssetConfigs[1];
     expect(ethConfig?.baselinePrice.toNumber()).to.equal(100);
-    expect(ethConfig?.direction).to.not.equal(false);
-    expect(ethConfig?.weight.toNumber()).to.not.equal(7000);
+    expect(ethConfig?.direction).to.equal(true);
+    expect(ethConfig?.weight.toNumber()).to.equal(4000);
 
     expect(basktAfter.baselineNav.toNumber()).to.equal(140);
     expect(basktAfter.lastRebalanceTime.toNumber()).to.be.greaterThan(0);
@@ -126,14 +149,13 @@ describe('Baskt Rebalance', () => {
       expect(rebalanceHistory.assetConfigs[i].baselinePrice.toNumber()).to.equal(
         assetPrices[i].toNumber(),
       );
-      // Ensure weight and direction are not equal
-      expect(rebalanceHistory.assetConfigs[i].direction).to.not.equal(newAssetConfigs[i].direction);
-      expect(rebalanceHistory.assetConfigs[i].weight.toNumber()).to.not.equal(
-        newAssetConfigs[i].weight.toNumber(),
-      );
+      // Stored history should still reflect original values (true & 6000/4000)
+      const originalConfig = i === 0 ? { dir: true, weight: 6000 } : { dir: true, weight: 4000 };
+      expect(rebalanceHistory.assetConfigs[i].direction).to.equal(originalConfig.dir);
+      expect(rebalanceHistory.assetConfigs[i].weight.toNumber()).to.equal(originalConfig.weight);
     }
 
-    expect(rebalanceHistory.baselineNav.toNumber()).to.equal(100000000);
+    expect(rebalanceHistory.baselineNav.toNumber()).to.equal(BASE_NAV_BN.toNumber());
     expect(parseInt(rebalanceHistory.timestamp)).to.be.greaterThan(0);
   });
 

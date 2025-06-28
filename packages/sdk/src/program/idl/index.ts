@@ -5,5 +5,5 @@
  */
 
 // Import and re-export the IDL
-import idl from "./baskt_v1.json";
-export { idl as BasktV1Idl }; 
+import idl from "./baskt.json";
+export { idl as BasktIdl }; 

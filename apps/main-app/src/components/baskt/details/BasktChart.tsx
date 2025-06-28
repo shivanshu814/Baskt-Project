@@ -1,15 +1,6 @@
 import React, { useState } from 'react';
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  NumberFormat,
-} from '@baskt/ui';
-import { LineChart, ChevronDown } from 'lucide-react';
+import { Button, Popover, PopoverTrigger, PopoverContent, NumberFormat } from '@baskt/ui';
+import { ChevronDown } from 'lucide-react';
 import { TradingViewChart } from './TradingViewChart';
 import { BasktChartProps } from '../../../types/baskt';
 import { useBasktList } from '../../../hooks/baskt/useBasktList';
@@ -18,11 +9,12 @@ import { SearchBar } from '../../shared/SearchBar';
 export const BasktChart = ({
   baskt,
   chartPeriod,
-  setChartPeriod,
   chartType,
-  setChartType,
   onBasktChange,
-}: Omit<BasktChartProps, 'onCompositionClick' | 'onPositionClick'> & {
+}: Omit<
+  BasktChartProps,
+  'onCompositionClick' | 'onPositionClick' | 'setChartPeriod' | 'setChartType'
+> & {
   onBasktChange: (basktId: string) => void;
 }) => {
   const { filteredBaskts } = useBasktList();
@@ -39,32 +31,26 @@ export const BasktChart = ({
   );
 
   return (
-    <Card>
-      <CardHeader className="-mt-4 pb-2">
-        <div className="flex items-center justify-between border-b px-2 py-3">
-          <div className="flex items-center gap-3 min-w-[220px]">
+    <div className="border-b border-muted-foreground/20">
+      <div className="pb-0">
+        <div className="flex flex-row items-center justify-between border-b px-4 py-2 gap-3 min-h-0 w-full">
+          <div className="flex items-center gap-3 min-w-0">
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="flex items-center px-2 py-1 rounded hover:bg-muted/30 transition min-w-[220px]"
+                  className="flex items-center px-0 py-0 rounded hover:bg-muted/30 transition min-w-0"
+                  style={{ height: '40px' }}
                 >
-                  <div className="flex flex-col items-start">
-                    <div className="flex items-center">
-                      <span className="font-semibold text-xl">{baskt.name}</span>
-                      <span
-                        className={`font-semibold text-base ml-3 ${
-                          currentBaskt?.change24h >= 0 ? 'text-green-400' : 'text-red-400'
-                        }`}
-                      >
-                        <NumberFormat value={currentBaskt?.change24h} />%
-                      </span>
-                      <ChevronDown className="h-6 w-6 text-muted-foreground ml-2" />
-                    </div>
-                    <span className="font-semibold text-lg text-white -mt-2">
-                      <NumberFormat value={currentBaskt?.price} isPrice={true} />
-                    </span>
-                  </div>
+                  <span className="font-semibold text-lg sm:text-xl text-primary">{baskt.name}</span>
+                  <span
+                    className={`font-semibold text-sm sm:text-base ml-2 sm:ml-3 ${
+                      currentBaskt?.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+                    }`}
+                  >
+                    <NumberFormat value={currentBaskt?.change24h} />%
+                  </span>
+                  <ChevronDown className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground ml-2" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="start" className="w-80 p-2">
@@ -94,90 +80,34 @@ export const BasktChart = ({
               </PopoverContent>
             </Popover>
           </div>
-          <div className="flex items-center gap-x-10">
-            <div className="flex flex-col items-end">
-              <span className="text-sm text-muted-foreground underline decoration-dotted">
-                30D Change
-              </span>
-              <span className="font-semibold text-sm text-white">
-                {currentBaskt?.performance?.month !== undefined
-                  ? `+${currentBaskt.performance.month}%`
-                  : '-'}
+          {/* Metrics */}
+          <div className="flex items-center gap-8 text-xs sm:text-sm ml-8">
+            <div className="flex flex-col items-start">
+              <span className="text-muted-foreground underline decoration-dashed">Mark</span>
+              <span className="font-semibold text-white">
+                <NumberFormat value={currentBaskt?.price} isPrice={true} />
               </span>
             </div>
-            <div className="flex flex-col items-end">
-              <span className="text-sm text-muted-foreground underline decoration-dotted">
-                Total Assets
-              </span>
-              <span className="font-semibold text-sm text-white">
-                {currentBaskt?.totalAssets ?? '-'}
+            <div className="flex flex-col items-start">
+              <span className="text-muted-foreground underline decoration-dashed">Open Interest</span>
+              <span className="font-semibold text-white">
+                {/* Placeholder value, replace with real data if available */}
+                $1,054,677,839.59
               </span>
             </div>
-            <div className="flex flex-col items-end">
-              <span className="text-sm text-muted-foreground underline decoration-dotted">
-                30D Sharpe Ratio
+            <div className="flex flex-col items-start">
+              <span className="text-muted-foreground underline decoration-dashed">24h Volume</span>
+              <span className="font-semibold text-white">
+                {/* Placeholder value, replace with real data if available */}
+                $913,442,905.13
               </span>
-              <span className="font-semibold text-sm text-white">1.85</span>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-sm text-muted-foreground underline decoration-dotted">
-                30D Sortino Ratio
-              </span>
-              <span className="font-semibold text-sm text-white">2.12</span>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-sm text-muted-foreground underline decoration-dotted">
-                30D Volatility
-              </span>
-              <span className="font-semibold text-sm text-white">18.5%</span>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-sm text-muted-foreground underline decoration-dotted">
-                30D Return vs SOL
-              </span>
-              <span className="font-semibold text-sm text-green-400">+5.2%</span>
             </div>
           </div>
         </div>
-      </CardHeader>
-
-      <CardContent>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`rounded-md px-3 py-1 text-xs ${
-                chartType === 'line'
-                  ? 'bg-background text-primary'
-                  : 'text-muted-foreground hover:text-primary'
-              }`}
-              onClick={() => setChartType('line')}
-            >
-              <LineChart className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="flex gap-1 bg-muted/50 rounded-lg p-1">
-            {['1D', '1W', '1M', '1Y', 'All'].map((period) => (
-              <Button
-                key={period}
-                variant="ghost"
-                size="sm"
-                className={`rounded-md px-3 py-1 text-xs ${
-                  chartPeriod === period
-                    ? 'bg-background text-primary'
-                    : 'text-muted-foreground hover:text-primary'
-                }`}
-                onClick={() => setChartPeriod(period)}
-              >
-                {period}
-              </Button>
-            ))}
-          </div>
-        </div>
+      </div>
+      <div className="p-1 sm:p-2">
         <TradingViewChart
-          className="h-[500px]"
+          className="h-[350px] sm:h-[450px] lg:h-[500px]"
           dailyData={baskt.priceHistory?.daily || []}
           weeklyData={baskt.priceHistory?.weekly || []}
           monthlyData={baskt.priceHistory?.monthly || []}
@@ -186,7 +116,7 @@ export const BasktChart = ({
           period={chartPeriod}
           basktId={baskt.basktId?.toString() || ''}
         />
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

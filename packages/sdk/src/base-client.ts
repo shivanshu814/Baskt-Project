@@ -11,12 +11,11 @@ import {
 import { OracleHelper } from './utils/oracle-helper';
 import BN from 'bn.js';
 import { keccak256 } from 'js-sha3';
+import { Baskt } from './program/types';
 
-// Import the types from our local files
-import type { BasktV1 } from './program/types';
 import { stringToRole, toRoleString } from './utils/acl-helper';
 import { createLookupTableInstructions, extendLookupTable } from './utils/lookup-table-helper';
-import { BasktV1Idl } from './program/idl';
+import { BasktIdl } from './program/idl';
 import {
   OnchainLightweightProvider,
   OnchainAssetPermissions,
@@ -30,8 +29,9 @@ import {
   OrderStatus,
   PositionStatus,
   OnchainRebalanceHistory,
+  OrderType,
 } from '@baskt/types';
-import { getAccount, getAssociatedTokenAddressSync } from '@solana/spl-token';
+import { getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { toU64LeBytes } from './utils';
 import { USDC_MINT } from './constants';
 
@@ -41,7 +41,7 @@ import { USDC_MINT } from './constants';
  */
 export abstract class BaseClient {
   // Program and provider
-  public program: anchor.Program<BasktV1>;
+  public program: anchor.Program<Baskt>;
   public provider: OnchainLightweightProvider;
   public connection: Connection;
   // Protocol PDA
@@ -65,7 +65,7 @@ export abstract class BaseClient {
     userPublicKey?: PublicKey,
     anchorProvider?: anchor.AnchorProvider,
   ) {
-    this.program = new anchor.Program<BasktV1>(BasktV1Idl, anchorProvider);
+    this.program = new anchor.Program<Baskt>(BasktIdl, anchorProvider);
     this.connection = connection;
     this.provider = provider;
 
@@ -94,6 +94,11 @@ export abstract class BaseClient {
    */
   public async updateOraclePrice(oracleAddress: PublicKey, price: anchor.BN) {
     await this.oracleHelper.updateCustomOraclePrice(oracleAddress, price);
+  }
+
+
+  public async updateOraclePriceWithItx(basktAddress: PublicKey, price: anchor.BN) {
+    return await this.oracleHelper.updateCustomOraclePriceItx(basktAddress, price);
   }
 
   /**
@@ -188,7 +193,7 @@ export abstract class BaseClient {
       isInitialized: rawProtocol.isInitialized,
       owner: rawProtocol.owner.toString(),
       accessControl: {
-        entries: rawProtocol.accessControl.entries.map((entry) => ({
+        entries: rawProtocol.accessControl.entries.map((entry: any) => ({
           account: entry.account.toString(),
           // Extract the role name from the enum object
           role: Object.keys(entry.role)[0],
@@ -207,8 +212,24 @@ export abstract class BaseClient {
         allowTrading: rawProtocol.featureFlags.allowTrading,
         allowLiquidations: rawProtocol.featureFlags.allowLiquidations,
       },
-      treasury: rawProtocol.treasury,
+      config: {
+        openingFeeBps: rawProtocol.config.openingFeeBps,
+        closingFeeBps: rawProtocol.config.closingFeeBps,
+        liquidationFeeBps: rawProtocol.config.liquidationFeeBps,
+        maxFundingRateBps: rawProtocol.config.maxFundingRateBps,
+        fundingIntervalSeconds: rawProtocol.config.fundingIntervalSeconds,
+        minCollateralRatioBps: rawProtocol.config.minCollateralRatioBps,
+        liquidationThresholdBps: rawProtocol.config.liquidationThresholdBps,
+        maxPriceAgeSec: rawProtocol.config.maxPriceAgeSec,
+        maxPriceDeviationBps: rawProtocol.config.maxPriceDeviationBps,
+        liquidationPriceDeviationBps: rawProtocol.config.liquidationPriceDeviationBps,
+        minLiquidity: rawProtocol.config.minLiquidity,
+        decommissionGracePeriod: rawProtocol.config.decommissionGracePeriod,
+        lastUpdated: rawProtocol.config.lastUpdated,
+        lastUpdatedBy: rawProtocol.config.lastUpdatedBy.toString(),
+      },
       escrowMint: rawProtocol.escrowMint,
+      treasury: rawProtocol.treasury,
     };
   }
 
@@ -292,6 +313,10 @@ export abstract class BaseClient {
 
     // Check if account has the specific role
     return await this.hasRole(account, role);
+  }
+
+  public newIdForPosition(): BN {
+    return new BN(Date.now());
   }
 
   /**
@@ -386,7 +411,7 @@ export abstract class BaseClient {
   }
 
   public async getAllBasktsRaw() {
-    return await this.program.account.basktV1.all();
+    return await this.program.account.baskt.all();
   }
 
   public async getOrder(orderPublicKey: PublicKey, commitment: Commitment = 'confirmed') {
@@ -449,6 +474,9 @@ export abstract class BaseClient {
       timestamp: order.timestamp,
       targetPosition: order.targetPosition,
       userPublicKey: order.userPublicKey,
+      limitPrice: order.limitPrice,
+      maxSlippage: order.maxSlippageBps,
+      orderType: order.orderType?.market ? OrderType.Market : OrderType.Limit,
     } as OnchainOrder;
   }
 
@@ -540,8 +568,9 @@ export abstract class BaseClient {
 
     txBuilder.remainingAccounts([...assetAccounts]);
 
-    // Send transaction using Anchor's RPC to avoid versioned address lookup issues
-    const txSignature = await txBuilder.rpc();
+    // Build transaction and send using provider like other methods
+    const tx = await txBuilder.transaction();
+    const txSignature = await this.provider.sendAndConfirmLegacy(tx);
     return {
       basktId,
       txSignature,
@@ -566,8 +595,9 @@ export abstract class BaseClient {
       authority: this.getPublicKey(),
     });
 
-    // Send transaction using Anchor's RPC to avoid versioned address lookup issues
-    return await txBuilder.rpc();
+    // Build transaction and send using provider like other methods
+    const tx = await txBuilder.transaction();
+    return await this.provider.sendAndConfirmLegacy(tx);
   }
 
   public async sendAndConfirm(instructions: TransactionInstruction[]) {
@@ -610,8 +640,20 @@ export abstract class BaseClient {
    * @param basktPubkey The public key of the baskt account
    * @returns The baskt account data
    */
-  public async getBaskt(basktPubkey: PublicKey, commitment: Commitment = 'confirmed') {
-    return await this.program.account.basktV1.fetch(basktPubkey, commitment);
+  public async getBaskt(basktPubkey: PublicKey | string, commitment: Commitment = 'confirmed') {
+    // If a string is passed, treat it as a baskt name and derive the PDA
+    if (typeof basktPubkey === 'string') {
+      const basktNameSeed = this.getBasktNameSeedBuffer(basktPubkey);
+      const [basktPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from('baskt'), basktNameSeed],
+        this.program.programId,
+      );
+      return await this.program.account.baskt.fetch(basktPDA, commitment);
+    }
+
+
+    // Otherwise, use the provided PublicKey directly
+    return await this.program.account.baskt.fetch(basktPubkey, commitment);
   }
 
   /**
@@ -619,7 +661,7 @@ export abstract class BaseClient {
    * @returns Array of baskt accounts with their public keys
    */
   public async getAllBaskts() {
-    return await this.program.account.basktV1.all();
+    return await this.program.account.baskt.all();
   }
 
   /**
@@ -685,7 +727,50 @@ export abstract class BaseClient {
         })
         .transaction();
 
-      return await this.provider.sendAndConfirmLegacy(tx);
+      const sig = await this.provider.sendAndConfirmLegacy(tx);
+
+      // ––– NEW: re-query the protocol and assert the flip took effect –––
+      const protocol = await this.getProtocolAccount();
+      const actualFlags = protocol.featureFlags;
+
+      // Validate all critical flags that commonly cause test failures
+      const flagsToValidate = [
+        {
+          name: 'allowTrading',
+          expected: featureFlags.allowTrading,
+          actual: actualFlags.allowTrading,
+        },
+        {
+          name: 'allowOpenPosition',
+          expected: featureFlags.allowOpenPosition,
+          actual: actualFlags.allowOpenPosition,
+        },
+        {
+          name: 'allowClosePosition',
+          expected: featureFlags.allowClosePosition,
+          actual: actualFlags.allowClosePosition,
+        },
+        {
+          name: 'allowLiquidations',
+          expected: featureFlags.allowLiquidations,
+          actual: actualFlags.allowLiquidations,
+        },
+        {
+          name: 'allowBasktCreation',
+          expected: featureFlags.allowBasktCreation,
+          actual: actualFlags.allowBasktCreation,
+        },
+      ];
+
+      for (const flag of flagsToValidate) {
+        if (flag.actual !== flag.expected) {
+          throw new Error(
+            `updateFeatureFlags failed: ${flag.name} is still ${flag.actual}, expected ${flag.expected} (tx ${sig})`,
+          );
+        }
+      }
+
+      return sig;
     } catch (error) {
       console.error('Error updating feature flags:', error);
       throw error;
@@ -769,19 +854,27 @@ export abstract class BaseClient {
     tokenMint: PublicKey,
     lpMintKeypair: anchor.web3.Keypair,
   ): Promise<string> {
-    // Build the transaction
-    const tx = await this.program.methods
+    // Build the transaction with signers
+    const txBuilder = this.program.methods
       .initializeLiquidityPool(depositFeeBps, withdrawalFeeBps, minDeposit)
-      .signers([lpMintKeypair])
       .accounts({
         admin: this.getPublicKey(),
-        payer: this.getPublicKey(),
         lpMint,
         tokenMint,
-      })
-      .rpc();
+      });
 
-    return tx;
+    // Get the transaction and add signers
+    const tx = await txBuilder.transaction();
+
+    // Get recent blockhash and set fee payer
+    const { blockhash } = await this.connection.getLatestBlockhash();
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = this.getPublicKey();
+
+    // Sign with the LP mint keypair
+    tx.partialSign(lpMintKeypair);
+
+    return await this.provider.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -934,19 +1027,42 @@ export abstract class BaseClient {
     isLong: boolean,
     action: any, // e.g., { open: {} } or { close: {} }
     targetPosition: PublicKey | null,
+    limitPrice: BN,
+    maxSlippageBps: BN,
     basktId: PublicKey,
     ownerTokenAccount: PublicKey,
     collateralMint: PublicKey, // This is the escrowMint for the program
-  ): Promise<string> {
+    leverageBps: BN = new BN(10000), // Desired leverage in basis points (10000 = 1x leverage)
+    orderType: any = { market: {} }, // e.g., { market: {} } or { limit: {} } - defaults to market
+  ): Promise<string> {  
     const owner = this.getPublicKey();
 
+    // Derive addresses that Anchor cannot infer automatically
+    const escrowToken = await this.getOrderEscrowPDA(owner);
+    const [programAuthority] = await this.findProgramAuthorityPDA();
+
+
     const tx = await this.program.methods
-      .createOrder(orderId, size, collateral, isLong, action, targetPosition)
-      .accounts({
-        owner: owner,
+      .createOrder(
+        orderId,
+        size,
+        collateral,
+        isLong,
+        action,
+        targetPosition,
+        limitPrice,
+        maxSlippageBps,
+        leverageBps,
+        orderType,
+      )
+      .accountsPartial({
+        owner,
         baskt: basktId,
         ownerToken: ownerTokenAccount,
         escrowMint: collateralMint,
+        escrowToken,
+        programAuthority,
+        protocol: this.protocolPDA,
       })
       .transaction();
 
@@ -960,16 +1076,23 @@ export abstract class BaseClient {
   ): Promise<string> {
     const owner = this.getPublicKey();
 
+    // Derive addresses Anchor cannot infer automatically
+    const escrowToken = await this.getOrderEscrowPDA(owner);
+    const [programAuthority] = await this.findProgramAuthorityPDA();
+
     const tx = await this.program.methods
       .cancelOrder()
       .accountsPartial({
-        owner: owner,
-        ownerToken: ownerTokenAccount,
+        owner,
         order: orderPDA,
+        ownerToken: ownerTokenAccount,
+        escrowToken,
+        programAuthority,
+        protocol: this.protocolPDA,
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirm(tx.instructions);
   }
 
   public async getUSDCAccount(userPublicKey: PublicKey, isPDA: boolean = false) {
@@ -1047,6 +1170,242 @@ export abstract class BaseClient {
     return await this.provider.sendAndConfirmLegacy(tx);
   }
 
+  // Protocol Configuration Setters
+
+  /**
+   * Set the opening fee in basis points
+   * @param newOpeningFeeBps New opening fee in basis points (0-500)
+   * @returns Transaction signature
+   */
+  public async setOpeningFeeBps(newOpeningFeeBps: number): Promise<string> {
+    const tx = await this.program.methods
+      .setOpeningFeeBps(new BN(newOpeningFeeBps))
+      .accountsPartial({
+        authority: this.getPublicKey(),
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Set the closing fee in basis points
+   * @param newClosingFeeBps New closing fee in basis points (0-500)
+   * @returns Transaction signature
+   */
+  public async setClosingFeeBps(newClosingFeeBps: number): Promise<string> {
+    const tx = await this.program.methods
+      .setClosingFeeBps(new BN(newClosingFeeBps))
+      .accountsPartial({
+        authority: this.getPublicKey(),
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Set the liquidation fee in basis points
+   * @param newLiquidationFeeBps New liquidation fee in basis points (0-500)
+   * @returns Transaction signature
+   */
+  public async setLiquidationFeeBps(newLiquidationFeeBps: number): Promise<string> {
+    const tx = await this.program.methods
+      .setLiquidationFeeBps(new BN(newLiquidationFeeBps))
+      .accountsPartial({
+        authority: this.getPublicKey(),
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Set the minimum collateral ratio in basis points
+   * @param newMinCollateralRatioBps New minimum collateral ratio in basis points (>=11000)
+   * @returns Transaction signature
+   */
+  public async setMinCollateralRatioBps(newMinCollateralRatioBps: number): Promise<string> {
+    const tx = await this.program.methods
+      .setMinCollateralRatioBps(new BN(newMinCollateralRatioBps))
+      .accountsPartial({
+        authority: this.getPublicKey(),
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Set the liquidation threshold in basis points
+   * @param newLiquidationThresholdBps New liquidation threshold in basis points
+   * @returns Transaction signature
+   */
+  public async setLiquidationThresholdBps(newLiquidationThresholdBps: number): Promise<string> {
+    const tx = await this.program.methods
+      .setLiquidationThresholdBps(new BN(newLiquidationThresholdBps))
+      .accountsPartial({
+        authority: this.getPublicKey(),
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Update the treasury address
+   * @param newTreasury New treasury public key
+   * @returns Transaction signature
+   */
+  public async updateTreasury(newTreasury: PublicKey): Promise<string> {
+    const tx = await this.program.methods
+      .updateTreasury(newTreasury)
+      .accountsPartial({
+        authority: this.getPublicKey(),
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Set the maximum price age in seconds
+   * @param newMaxPriceAgeSec New maximum price age in seconds (>0)
+   * @returns Transaction signature
+   */
+  public async setMaxPriceAgeSec(newMaxPriceAgeSec: number): Promise<string> {
+    const tx = await this.program.methods
+      .setMaxPriceAgeSec(newMaxPriceAgeSec)
+      .accountsPartial({
+        authority: this.getPublicKey(),
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Set the maximum price deviation in basis points
+   * @param newMaxPriceDeviationBps New maximum price deviation in basis points (<=2500)
+   * @returns Transaction signature
+   */
+  public async setMaxPriceDeviationBps(newMaxPriceDeviationBps: number): Promise<string> {
+    const tx = await this.program.methods
+      .setMaxPriceDeviationBps(new BN(newMaxPriceDeviationBps))
+      .accountsPartial({
+        authority: this.getPublicKey(),
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Set the liquidation price deviation in basis points
+   * @param newLiquidationPriceDeviationBps New liquidation price deviation in basis points (<=2000)
+   * @returns Transaction signature
+   */
+  public async setLiquidationPriceDeviationBps(
+    newLiquidationPriceDeviationBps: number,
+  ): Promise<string> {
+    const tx = await this.program.methods
+      .setLiquidationPriceDeviationBps(new BN(newLiquidationPriceDeviationBps))
+      .accountsPartial({
+        authority: this.getPublicKey(),
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Set the minimum liquidity
+   * @param newMinLiquidity New minimum liquidity (>0)
+   * @returns Transaction signature
+   */
+  public async setMinLiquidity(newMinLiquidity: number): Promise<string> {
+    const tx = await this.program.methods
+      .setMinLiquidity(new BN(newMinLiquidity))
+      .accountsPartial({
+        authority: this.getPublicKey(),
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Set the decommission grace period in seconds
+   * @param newGracePeriod New grace period in seconds (3600-604800)
+   * @returns Transaction signature
+   */
+  public async setDecommissionGracePeriod(newGracePeriod: number): Promise<string> {
+    const tx = await this.program.methods
+      .setDecommissionGracePeriod(new BN(newGracePeriod))
+      .accountsPartial({
+        authority: this.getPublicKey(),
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  // ====== Baskt Lifecycle Operations ======
+
+  /**
+   * Decommission a baskt - enters decommissioning phase
+   * @param basktId The public key of the baskt to decommission
+   * @returns Transaction signature
+   */
+  public async decommissionBaskt(basktId: PublicKey): Promise<string> {
+    const tx = await this.program.methods
+      .decommissionBaskt()
+      .accountsPartial({
+        authority: this.getPublicKey(),
+        baskt: basktId,
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Settle a baskt - freeze price and funding after grace period
+   * @param basktId The public key of the baskt to settle
+   * @returns Transaction signature
+   */
+  public async settleBaskt(basktId: PublicKey): Promise<string> {
+    const [fundingIndexPDA] = await this.getFundingIndexPda(basktId);
+
+    const tx = await this.program.methods
+      .settleBaskt()
+      .accountsPartial({
+        authority: this.getPublicKey(),
+        baskt: basktId,
+        fundingIndex: fundingIndexPDA,
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * Close a baskt - final state when all positions are closed
+   * @param basktId The public key of the baskt to close
+   * @returns Transaction signature
+   */
+  public async closeBaskt(basktId: PublicKey): Promise<string> {
+    const tx = await this.program.methods
+      .closeBaskt()
+      .accountsPartial({
+        authority: this.getPublicKey(),
+        baskt: basktId,
+      })
+      .transaction();
+
+    return await this.provider.sendAndConfirmLegacy(tx);
+  }
+
   /**
    * Get a funding index account by its baskt public key
    * @param basktId The public key of the baskt
@@ -1081,10 +1440,7 @@ export abstract class BaseClient {
   }
 
   public async findProgramAuthorityPDA(): Promise<[PublicKey, number]> {
-    return PublicKey.findProgramAddressSync(
-      [Buffer.from('program_authority')],
-      this.program.programId,
-    );
+    return PublicKey.findProgramAddressSync([Buffer.from('authority')], this.program.programId);
   }
 
   public async getOrderEscrowPDA(owner: PublicKey): Promise<PublicKey> {
@@ -1112,6 +1468,7 @@ export abstract class BaseClient {
     entryPrice: BN;
     baskt: PublicKey;
     orderOwner?: PublicKey;
+    preInstructions?: TransactionInstruction[];
   }): Promise<string> {
     const [fundinIndexPDA] = await this.getFundingIndexPda(params.baskt);
     const position = await this.getPositionPDA(
@@ -1119,7 +1476,17 @@ export abstract class BaseClient {
       params.positionId,
     );
 
-    const orderEscrowPDA = await this.getOrderEscrowPDA(params.orderOwner || this.getPublicKey());
+    // Get protocol to find treasury address
+    const protocol = await this.getProtocolAccount();
+    const treasuryTokenAccount = getAssociatedTokenAddressSync(
+      USDC_MINT,
+      new PublicKey(protocol.treasury),
+    );
+
+    // Get token vault for validation
+    const tokenVault = (await this.getTokenVaultPda())[0];
+
+    const orderEscrow = await this.getOrderEscrowPDA(params.orderOwner || this.getPublicKey());
 
     return await this.program.methods
       .openPosition({ positionId: params.positionId, entryPrice: params.entryPrice })
@@ -1128,10 +1495,23 @@ export abstract class BaseClient {
         baskt: params.baskt,
         escrowMint: USDC_MINT,
         order: params.order,
-        orderEscrow: orderEscrowPDA,
         fundingIndex: fundinIndexPDA,
         position: position,
+        orderEscrow: orderEscrow,
       })
+      .preInstructions(params.preInstructions || [])
+      .remainingAccounts([
+        {
+          pubkey: treasuryTokenAccount,
+          isWritable: true,
+          isSigner: false,
+        },
+        {
+          pubkey: tokenVault,
+          isWritable: true,
+          isSigner: false,
+        },
+      ])
       .rpc();
   }
 
@@ -1148,12 +1528,19 @@ export abstract class BaseClient {
     additionalCollateral: BN;
     ownerTokenAccount: PublicKey;
   }): Promise<string> {
+    // Derive the protocol PDA explicitly to ensure it's available for constraint checking
+    const [protocol] = PublicKey.findProgramAddressSync(
+      [Buffer.from('protocol')],
+      this.program.programId,
+    );
+
     return await this.program.methods
       .addCollateral({ additionalCollateral: params.additionalCollateral })
       .accountsPartial({
         owner: this.getPublicKey(),
         ownerToken: params.ownerTokenAccount,
         position: params.position,
+        protocol: protocol, // Explicitly provide protocol for constraint checking
       })
       .rpc();
   }
@@ -1168,9 +1555,6 @@ export abstract class BaseClient {
     treasuryTokenAccount: PublicKey;
     orderOwner?: PublicKey;
   }): Promise<string> {
-    // Fetch the position to get the owner
-    const positionAccount = await this.getPosition(params.position);
-
     const [fundingIndex] = await this.getFundingIndexPda(params.baskt);
 
     // Prepare remaining accounts in the correct order
@@ -1192,13 +1576,13 @@ export abstract class BaseClient {
       },
     ];
 
+
     return await this.program.methods
       .closePosition({ exitPrice: params.exitPrice })
       .accountsPartial({
         matcher: this.getPublicKey(),
         order: params.orderPDA,
         position: params.position,
-        positionOwner: positionAccount.owner,
         baskt: params.baskt,
         treasury: params.treasury,
         fundingIndex: fundingIndex,
@@ -1258,28 +1642,145 @@ export abstract class BaseClient {
       .rpc();
   }
 
-  public async readWithRetry(fn: any, retries: number = 5, delay: number = 500) {
+  // Baskt Config Methods
+  public async setBasktOpeningFeeBps(
+    baskt: PublicKey,
+    newOpeningFeeBps: number | null,
+  ): Promise<string> {
+    return await this.program.methods
+      .setBasktOpeningFeeBps(newOpeningFeeBps !== null ? new BN(newOpeningFeeBps) : null)
+      .accountsPartial({
+        authority: this.getPublicKey(),
+        baskt: baskt,
+      })
+      .rpc();
+  }
+
+  public async setBasktClosingFeeBps(
+    baskt: PublicKey,
+    newClosingFeeBps: number | null,
+  ): Promise<string> {
+    return await this.program.methods
+      .setBasktClosingFeeBps(newClosingFeeBps !== null ? new BN(newClosingFeeBps) : null)
+      .accountsPartial({
+        authority: this.getPublicKey(),
+        baskt: baskt,
+      })
+      .rpc();
+  }
+
+  public async setBasktLiquidationFeeBps(
+    baskt: PublicKey,
+    newLiquidationFeeBps: number | null,
+  ): Promise<string> {
+    return await this.program.methods
+      .setBasktLiquidationFeeBps(
+        newLiquidationFeeBps !== null ? new BN(newLiquidationFeeBps) : null,
+      )
+      .accountsPartial({
+        authority: this.getPublicKey(),
+        baskt: baskt,
+      })
+      .rpc();
+  }
+
+  public async setBasktMinCollateralRatioBps(
+    baskt: PublicKey,
+    newMinCollateralRatioBps: number | null,
+  ): Promise<string> {
+    return await this.program.methods
+      .setBasktMinCollateralRatioBps(
+        newMinCollateralRatioBps !== null ? new BN(newMinCollateralRatioBps) : null,
+      )
+      .accountsPartial({
+        authority: this.getPublicKey(),
+        baskt: baskt,
+      })
+      .rpc();
+  }
+
+  public async setBasktLiquidationThresholdBps(
+    baskt: PublicKey,
+    newLiquidationThresholdBps: number | null,
+  ): Promise<string> {
+    return await this.program.methods
+      .setBasktLiquidationThresholdBps(
+        newLiquidationThresholdBps !== null ? new BN(newLiquidationThresholdBps) : null,
+      )
+      .accountsPartial({
+        authority: this.getPublicKey(),
+        baskt: baskt,
+      })
+      .rpc();
+  }
+
+  public async updateBasktConfig(
+    baskt: PublicKey,
+    params: {
+      openingFeeBps?: number | null;
+      closingFeeBps?: number | null;
+      liquidationFeeBps?: number | null;
+      minCollateralRatioBps?: number | null;
+      liquidationThresholdBps?: number | null;
+    },
+  ): Promise<string> {
+    // First, get the current config to preserve unspecified fields
+    const currentBaskt = await this.getBaskt(baskt, 'confirmed');
+    const currentConfig = currentBaskt.config;
+
+    // Build the update parameters, preserving existing values for unspecified fields
+    const updateParams = {
+      openingFeeBps:
+        params.openingFeeBps !== undefined
+          ? params.openingFeeBps !== null
+            ? new BN(params.openingFeeBps)
+            : null
+          : currentConfig.openingFeeBps,
+      closingFeeBps:
+        params.closingFeeBps !== undefined
+          ? params.closingFeeBps !== null
+            ? new BN(params.closingFeeBps)
+            : null
+          : currentConfig.closingFeeBps,
+      liquidationFeeBps:
+        params.liquidationFeeBps !== undefined
+          ? params.liquidationFeeBps !== null
+            ? new BN(params.liquidationFeeBps)
+            : null
+          : currentConfig.liquidationFeeBps,
+      minCollateralRatioBps:
+        params.minCollateralRatioBps !== undefined
+          ? params.minCollateralRatioBps !== null
+            ? new BN(params.minCollateralRatioBps)
+            : null
+          : currentConfig.minCollateralRatioBps,
+      liquidationThresholdBps:
+        params.liquidationThresholdBps !== undefined
+          ? params.liquidationThresholdBps !== null
+            ? new BN(params.liquidationThresholdBps)
+            : null
+          : currentConfig.liquidationThresholdBps,
+    };
+
+    return await this.program.methods
+      .updateBasktConfig(updateParams)
+      .accountsPartial({
+        authority: this.getPublicKey(),
+        baskt: baskt,
+      })
+      .rpc();
+  }
+
+  public async readWithRetry(fn: () => Promise<any>, retries: number = 3, delay: number = 1000) {
+    let lastError: Error | null = null;
     for (let i = 0; i < retries; i++) {
       try {
-        const data = await fn();
-        if (data) {
-          return data;
-        } else {
-          throw new Error('Data not found');
-        }
+        return await fn();
       } catch (error) {
-        console.error(`Attempt ${i + 1} failed:`, error);
+        lastError = error as Error;
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
-    throw new Error('Failed to read after multiple attempts');
-  }
-
-  public newIdForPosition() {
-    return new BN(Date.now());
-  }
-
-  public newIdForOrder() {
-    return new BN(Date.now());
+    throw lastError;
   }
 }

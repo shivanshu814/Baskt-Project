@@ -1,19 +1,17 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import leoProfanity from 'leo-profanity';
 import { AlertCircle } from 'lucide-react';
 import { Footer } from '../../components/shared/Footer';
 import { CreateBasktGuideDialog } from '../../components/baskt/create/CreateBasktGuideDialog';
 import { AssetSelectionModal } from '../../components/baskt/create/AssetSelectionModal';
-import { BasicInfoForm } from '../../components/baskt/create/BasicInfoForm';
-import { AssetManagementForm } from '../../components/baskt/create/AssetManagementForm';
+import { BasktForm } from '../../components/baskt/create/BasktForm';
 import { Button, Alert, AlertDescription, AlertTitle } from '@baskt/ui';
 import { useCreateBasktForm } from '../../hooks/baskt/create/useCreateBasktForm';
 import { useAssetManagement } from '../../hooks/baskt/create/useAssetManagement';
 import { useBasktCreation } from '../../hooks/baskt/create/useBasktCreation';
 
 const CreateBasktPage = () => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGuideDialogOpen, setIsGuideDialogOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
   const {
@@ -85,45 +83,48 @@ const CreateBasktPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="container mx-auto py-6 flex-grow">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 flex-grow">
         <div className="max-w-full mx-auto space-y-4">
-          <div className="flex justify-between items-center mb-2">
-            <h1 className="text-2xl font-semibold">Create a New Baskt</h1>
-            <Button variant="outline" size="sm" onClick={() => setIsGuideDialogOpen(true)}>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-2">
+            <h1 className="text-xl sm:text-2xl font-semibold">Create a New Baskt</h1>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsGuideDialogOpen(true)}
+              className="w-full sm:w-auto"
+            >
               <AlertCircle className="h-4 w-4 mr-1" />
               Guide
             </Button>
           </div>
 
           {error && (
-            <Alert variant="destructive">
+            <Alert
+              variant="destructive"
+              className="!border-warning/50 !text-warning !bg-warning/10 [&>svg]:text-warning"
+            >
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription className="text-sm">{error}</AlertDescription>
             </Alert>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <BasicInfoForm
+            <BasktForm
               formData={formData}
               errors={errors}
-              fileInputRef={fileInputRef}
+              totalWeightage={totalWeightage}
               onNameChange={(value) => handleChange('name', value)}
               onRebalancePeriodChange={handleRebalancePeriodChange}
               onVisibilityChange={(value) => handleChange('isPublic', value)}
-            />
-
-            <AssetManagementForm
-              formData={formData}
-              totalWeightage={totalWeightage}
               onAddAsset={() => setIsAssetModalOpen(true)}
               onRemoveAsset={handleRemoveAsset}
               onAssetPositionChange={handleAssetPositionChange}
               onAssetWeightChange={handleAssetWeightChange}
             />
 
-            <div className="flex justify-end">
-              <Button type="submit" disabled={isSubmitting}>
+            <div className="flex justify-end pt-4">
+              <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                 {isSubmitting ? 'Creating...' : 'Create Baskt'}
               </Button>
             </div>

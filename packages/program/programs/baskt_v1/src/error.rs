@@ -72,7 +72,7 @@ pub enum PerpetualsError {
     TradingDisabled,
     #[msg("Liquidity pool operations are currently disabled")]
     LiquidityOperationsDisabled,
-    #[msg("Position operations are currently disabled")]  
+    #[msg("Position operations are currently disabled")]
     PositionOperationsDisabled,
     #[msg("Baskt management operations are currently disabled")]
     BasktOperationsDisabled,
@@ -130,12 +130,43 @@ pub enum PerpetualsError {
     #[msg("Invalid fee basis points")]
     InvalidFeeBps,
 
+    #[msg("Invalid collateral ratio")]
+    InvalidCollateralRatio,
+
     #[msg("Funding rate exceeds maximum allowed")]
     FundingRateExceedsMaximum,
-    
+
     #[msg("Invalid pool authority account")]
     InvalidPoolAuthority,
-    
+
     #[msg("Invalid account input")]
     InvalidAccountInput,
+
+    #[msg("Invalid owner")]
+    InvalidOwner,
+
+    #[msg("Invalid funding index account")]
+    InvalidFundingIndex,
+
+    #[msg("Invalid oracle account")]
+    InvalidOracle,
+
+    // Baskt decommissioning errors
+    #[msg("Invalid baskt state for this operation")]
+    InvalidBasktState,
+    #[msg("Baskt is not active for trading")]
+    BasktNotActive,
+    #[msg("Baskt is not settled")]
+    BasktNotSettled,
+    #[msg("Grace period has not ended")]
+    GracePeriodNotOver,
+    #[msg("Positions are still open")]
+    PositionsStillOpen,
+    #[msg("Invalid grace period - must be between 1 hour and 7 days")]
+    InvalidGracePeriod,
+    #[msg("Price deviation too high")]
+    PriceDeviationTooHigh,
+    // Leverage-specific errors
+    #[msg("Realised leverage exceeds declared leverage amount")]
+    LeverageExceeded,
 }

@@ -1,9 +1,8 @@
 use crate::{
-    constants::{
-        BPS_DIVISOR, FUNDING_PRECISION, LIQUIDATION_THRESHOLD_BPS, MIN_COLLATERAL_RATIO_BPS,
-        PRICE_PRECISION,
-    },
+    constants::{FUNDING_PRECISION, PRICE_PRECISION},
     error::PerpetualsError,
+    math::mul_div_u64,
+    utils::calc_fee,
 };
 use anchor_lang::prelude::*;
 
@@ -17,6 +16,7 @@ pub enum PositionStatus {
     Open,
     Closed,
     Liquidated,
+    ForceClosed,
 }
 
 #[account]
@@ -48,6 +48,8 @@ pub struct ProgramAuthority {}
 
 impl Position {
     /// Initializes a new position with the given parameters
+    /// Note: Collateral validation should be done before calling this method
+    /// using the real notional value (size * entry_price)
     pub fn initialize(
         &mut self,
         owner: Pubkey,
@@ -63,18 +65,10 @@ impl Position {
     ) -> Result<()> {
         require!(size > 0, PerpetualsError::ZeroSizedPosition);
         require!(collateral > 0, PerpetualsError::InsufficientCollateral);
+        require!(entry_price > 0, PerpetualsError::InvalidOraclePrice);
 
-        // Check minimum collateral ratio
-        let min_collateral = (size as u128)
-            .checked_mul(MIN_COLLATERAL_RATIO_BPS as u128)
-            .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(BPS_DIVISOR as u128)
-            .ok_or(PerpetualsError::MathOverflow)? as u64;
-
-        require!(
-            collateral >= min_collateral,
-            PerpetualsError::InsufficientCollateral
-        );
+        // Note: Collateral validation is now done in the calling instruction
+        // using the real notional value (size * entry_price) instead of just size
 
         self.owner = owner;
         self.position_id = position_id;
@@ -240,7 +234,11 @@ impl Position {
     }
 
     /// Check if position can be liquidated at the given price
-    pub fn is_liquidatable(&self, current_price: u64) -> Result<bool> {
+    pub fn is_liquidatable(
+        &self,
+        current_price: u64,
+        liquidation_threshold_bps: u64,
+    ) -> Result<bool> {
         // Calculate unrealized PnL
         let unrealized_pnl = self.calculate_unrealized_pnl(current_price)?;
 
@@ -251,12 +249,10 @@ impl Position {
             .checked_add(self.funding_accumulated)
             .ok_or(PerpetualsError::MathOverflow)?;
 
-        // Calculate minimum required collateral based on threshold
-        let min_collateral = (self.size as u128)
-            .checked_mul(LIQUIDATION_THRESHOLD_BPS as u128)
-            .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(BPS_DIVISOR as u128)
-            .ok_or(PerpetualsError::MathOverflow)?;
+        // Calculate minimum required collateral based on threshold using current notional value
+        let current_notional_u64 = mul_div_u64(self.size, current_price, PRICE_PRECISION)?;
+
+        let min_collateral = calc_fee(current_notional_u64, liquidation_threshold_bps)? as u128;
 
         // Liquidatable if total equity falls below the maintenance margin
         // This allows liquidation even when equity is positive but below threshold

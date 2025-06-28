@@ -78,7 +78,7 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add Collateral</DialogTitle>
           <DialogDescription>
@@ -87,25 +87,27 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="currentCollateral" className="text-right col-span-1">
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="currentCollateral" className="text-left sm:text-right">
               Current Collateral
             </Label>
             <Input
               id="currentCollateral"
               value={currentCollateral}
               readOnly
-              className="col-span-3 bg-muted"
+              className="sm:col-span-3 bg-muted"
             />
           </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="collateralAmount" className="text-right col-span-1">
+          <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+            <Label htmlFor="collateralAmount" className="text-left sm:text-right">
               Amount to Add*
             </Label>
-            <div className="col-span-3">
+            <div className="sm:col-span-3">
               <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2">$</span>
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm">
+                  $
+                </span>
                 <Input
                   id="collateralAmount"
                   type="number"

@@ -121,9 +121,8 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
               <div className="flex justify-between">
                 <span className="text-white/60">Price:</span>
                 <span>
-                  $
                   {account.oracle?.price ? (
-                    <NumberFormat value={new BN(account.oracle.price).toNumber()} />
+                    <NumberFormat value={new BN(account.oracle.price).toNumber()} isPrice />
                   ) : (
                     'N/A'
                   )}
@@ -163,7 +162,7 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
                       <TableHead>Asset</TableHead>
                       <TableHead className="text-right">Weight</TableHead>
                       <TableHead className="text-right">Direction</TableHead>
-                      <TableHead className="text-right">Baseline Price</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Baseline Price</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -176,7 +175,9 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
                             noFormat={true}
                           />
                         </TableCell>
-                        <TableCell className="text-right">{asset.weight.toString()}</TableCell>
+                        <TableCell className="text-right">
+                          {parseFloat(asset.weight.toString()) / 1e2}%
+                        </TableCell>
                         <TableCell className="text-right">
                           {asset.direction ? 'Long' : 'Short'}
                         </TableCell>

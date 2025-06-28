@@ -45,16 +45,18 @@ export const createPosition = publicProcedure
 export const closePosition = publicProcedure
   .input(
     z.object({
-      positionId: z.string(),
+      positionPDA: z.string(),
       exitPrice: z.string(),
       tx: z.string(),
       ts: z.string(),
+      closeOrder: z.string().optional(),
     }),
   )
   .mutation(async ({ input }) => {
     try {
-      const { positionId, exitPrice, tx, ts } = input;
-      const position = await PositionMetadataModel.findOne({ positionPDA: positionId });
+      const { positionPDA, exitPrice, tx, ts, closeOrder } = input;
+
+      const position = await PositionMetadataModel.findOne({ positionPDA: positionPDA });
 
       if (!position) {
         return {
@@ -63,12 +65,17 @@ export const closePosition = publicProcedure
         };
       }
 
-      position.status = PositionStatus.CLOSED;
-      position.closePosition = {
-        exitPrice: exitPrice,
+      (position as any).status = PositionStatus.CLOSED;
+      (position as any).exitPrice = exitPrice;
+      (position as any).closePosition = {
         tx,
         ts,
       };
+
+      if (closeOrder) {
+        (position as any).closeOrder = closeOrder;
+      }
+
       await position.save();
 
       return {

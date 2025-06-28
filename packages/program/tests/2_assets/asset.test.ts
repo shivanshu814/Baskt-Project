@@ -1,15 +1,23 @@
 import { expect } from 'chai';
-import { describe, it, before } from 'mocha';
+import { describe, it, before, afterEach } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { TestClient } from '../utils/test-client';
 import { AccessControlRole, OnchainAssetPermissions } from '@baskt/types';
+import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
+// Using TestClient static method instead of importing from test-setup
 
 describe('asset', () => {
   // Get the test client instance
   const client = TestClient.getInstance();
 
+  // Track test accounts that might get roles assigned
+  const testAccounts: Keypair[] = [];
+
   // Set up test roles before running tests
   before(async () => {
+    // Ensure the protocol and roles are initialized before running asset-specific tests
+    await TestClient.initializeProtocolAndRoles(client);
+
     // Verify roles were assigned correctly
     const hasAssetManagerRole = await client.hasRole(
       client.assetManager.publicKey,
@@ -22,6 +30,27 @@ describe('asset', () => {
 
     expect(hasAssetManagerRole).to.be.true;
     expect(hasOracleManagerRole).to.be.true;
+  });
+
+  afterEach(async () => {
+    // Clean up any AssetManager roles that might have been added during tests
+    try {
+      // Check all test accounts and remove AssetManager roles if they exist
+      for (const account of testAccounts) {
+        const hasAssetManagerRole = await client.hasRole(account.publicKey, AccessControlRole.AssetManager);
+        if (hasAssetManagerRole) {
+          const removeRoleSig = await client.removeRole(account.publicKey, AccessControlRole.AssetManager);
+          await waitForTx(client.connection, removeRoleSig);
+        }
+      }
+
+      // Clear the test accounts array for next test
+      testAccounts.length = 0;
+      await waitForNextSlot(client.connection);
+    } catch (error) {
+      // Silently handle cleanup errors to avoid masking test failures
+      console.warn('Cleanup error in asset.test.ts:', error);
+    }
   });
 
   it('Successfully adds a new synthetic asset with custom oracle', async () => {
@@ -62,7 +91,11 @@ describe('asset', () => {
 
   it('Tests user with AssetManager role can add assets even if not the owner', async () => {
     // Create a new keypair for a user with AssetManager role
-    const assetManagerUser = await TestClient.forUser(Keypair.generate());
+    const assetManagerUserKeypair = Keypair.generate();
+    const assetManagerUser = await TestClient.forUser(assetManagerUserKeypair);
+
+    // Track this account for cleanup
+    testAccounts.push(assetManagerUserKeypair);
 
     // Grant the AssetManager role to this user
     await client.addRole(assetManagerUser.getPublicKey(), AccessControlRole.AssetManager);

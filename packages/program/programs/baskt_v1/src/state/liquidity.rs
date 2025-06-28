@@ -1,5 +1,6 @@
 use crate::constants::BPS_DIVISOR;
 use crate::error::PerpetualsError;
+use crate::math::mul_div_u64;
 use anchor_lang::prelude::*;
 
 /// LiquidityPool represents the shared liquidity pool for the entire protocol
@@ -68,16 +69,12 @@ impl LiquidityPool {
 
         // For subsequent deposits, mint shares proportional to the existing pool
         // Formula: (net_deposit * total_shares) / total_liquidity
-        let shares = (net_deposit as u128)
-            .checked_mul(self.total_shares as u128)
-            .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(self.total_liquidity as u128)
-            .ok_or(PerpetualsError::MathOverflow)?;
+        let shares = mul_div_u64(net_deposit, self.total_shares, self.total_liquidity)?;
 
         // Check if the result exceeds u64::MAX
-        require!(shares <= u64::MAX as u128, PerpetualsError::MathOverflow);
+        // shares is u64 so no overflow possible beyond u64::MAX by construction
 
-        Ok(shares as u64)
+        Ok(shares)
     }
 
     /// Calculate the amount of collateral to return for burned LP tokens
@@ -88,13 +85,10 @@ impl LiquidityPool {
         );
 
         // Formula: (lp_tokens_to_burn * total_liquidity) / total_shares
-        let withdrawal_amount = (lp_tokens_to_burn as u128)
-            .checked_mul(self.total_liquidity as u128)
-            .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(self.total_shares as u128)
-            .ok_or(PerpetualsError::MathOverflow)?;
+        let withdrawal_amount =
+            mul_div_u64(lp_tokens_to_burn, self.total_liquidity, self.total_shares)?;
 
-        Ok(withdrawal_amount as u64)
+        Ok(withdrawal_amount)
     }
 
     /// Calculate fee amount based on the specified fee rate
@@ -104,17 +98,9 @@ impl LiquidityPool {
             fee_bps as u64 <= BPS_DIVISOR,
             PerpetualsError::InvalidFeeBps
         );
+        let fee = mul_div_u64(amount, fee_bps as u64, BPS_DIVISOR)?;
 
-        let fee = (amount as u128)
-            .checked_mul(fee_bps as u128)
-            .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(BPS_DIVISOR as u128) // Basis points divisor
-            .ok_or(PerpetualsError::MathOverflow)?;
-
-        // Check if the fee exceeds u64::MAX
-        require!(fee <= u64::MAX as u128, PerpetualsError::MathOverflow);
-
-        Ok(fee as u64)
+        Ok(fee)
     }
 
     /// Update pool state after adding liquidity

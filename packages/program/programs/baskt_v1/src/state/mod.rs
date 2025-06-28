@@ -1,5 +1,6 @@
 pub mod asset;
 pub mod baskt;
+pub mod config;
 pub mod funding_index;
 pub mod liquidity;
 pub mod oracle;

@@ -7,23 +7,36 @@ pub mod events;
 pub mod instructions;
 pub mod math;
 pub mod state;
+pub mod utils;
 
-declare_id!("GK52S4WZPVEAMAgjRf8XsBd7upmG862AjMF89HavDpkm");
+declare_id!("8JaW8fhu46ii83WapMp64i4B4bKTM76XUSXftJfHfLyg");
 
-use crate::instructions::baskt::ActivateBasktParams;
+use crate::instructions::baskt_all::baskt_config::{
+    SetBasktClosingFeeBps, SetBasktLiquidationFeeBps, SetBasktLiquidationThresholdBps,
+    SetBasktMinCollateralRatioBps, SetBasktOpeningFeeBps, UpdateBasktConfig,
+    UpdateBasktConfigParams,
+};
+use crate::instructions::baskt_all::lifecycle::ActivateBasktParams;
+use crate::instructions::config::{SetFundingCutBps, SetTreasuryCutBps};
 use crate::instructions::protocol::UpdateFeatureFlagsParams;
 use crate::state::order::OrderAction;
 use instructions::*;
 // Import position instruction structs and params
+use crate::instructions::config::{
+    SetClosingFeeBps, SetLiquidationFeeBps, SetLiquidationPriceDeviationBps,
+    SetLiquidationThresholdBps, SetMaxPriceAgeSec, SetMaxPriceDeviationBps,
+    SetMinCollateralRatioBps, SetMinLiquidity, SetOpeningFeeBps, UpdateTreasury,
+};
 use crate::instructions::position::{
     add_collateral::{AddCollateral, AddCollateralParams},
     close::{ClosePosition, ClosePositionParams},
+    force_close::{ForceClosePosition, ForceClosePositionParams},
     liquidate::{LiquidatePosition, LiquidatePositionParams},
     open::{OpenPosition, OpenPositionParams},
 };
 
 #[program]
-pub mod baskt_v1 {
+pub mod baskt {
     use super::*;
 
     // Protocol Management
@@ -46,13 +59,174 @@ pub mod baskt_v1 {
         instructions::protocol::update_feature_flags(ctx, params)
     }
 
+    // Protocol Configuration Setters
+    pub fn set_opening_fee_bps(
+        ctx: Context<SetOpeningFeeBps>,
+        new_opening_fee_bps: u64,
+    ) -> Result<()> {
+        instructions::config::set_opening_fee_bps(ctx, new_opening_fee_bps)
+    }
+
+    pub fn set_closing_fee_bps(
+        ctx: Context<SetClosingFeeBps>,
+        new_closing_fee_bps: u64,
+    ) -> Result<()> {
+        instructions::config::set_closing_fee_bps(ctx, new_closing_fee_bps)
+    }
+
+    pub fn set_liquidation_fee_bps(
+        ctx: Context<SetLiquidationFeeBps>,
+        new_liquidation_fee_bps: u64,
+    ) -> Result<()> {
+        instructions::config::set_liquidation_fee_bps(ctx, new_liquidation_fee_bps)
+    }
+
+    pub fn set_treasury_cut_bps(
+        ctx: Context<SetTreasuryCutBps>,
+        new_treasury_cut_bps: u64,
+    ) -> Result<()> {
+        instructions::config::set_treasury_cut_bps(ctx, new_treasury_cut_bps)
+    }
+
+    pub fn set_funding_cut_bps(
+        ctx: Context<SetFundingCutBps>,
+        new_funding_cut_bps: u64,
+    ) -> Result<()> {
+        instructions::config::set_funding_cut_bps(ctx, new_funding_cut_bps)
+    }
+
+    pub fn set_min_collateral_ratio_bps(
+        ctx: Context<SetMinCollateralRatioBps>,
+        new_min_collateral_ratio_bps: u64,
+    ) -> Result<()> {
+        instructions::config::set_min_collateral_ratio_bps(ctx, new_min_collateral_ratio_bps)
+    }
+
+    pub fn set_liquidation_threshold_bps(
+        ctx: Context<SetLiquidationThresholdBps>,
+        new_liquidation_threshold_bps: u64,
+    ) -> Result<()> {
+        instructions::config::set_liquidation_threshold_bps(ctx, new_liquidation_threshold_bps)
+    }
+
+    pub fn update_treasury(ctx: Context<UpdateTreasury>, new_treasury: Pubkey) -> Result<()> {
+        instructions::config::update_treasury(ctx, new_treasury)
+    }
+
+    pub fn set_max_price_age_sec(
+        ctx: Context<SetMaxPriceAgeSec>,
+        new_max_price_age_sec: u32,
+    ) -> Result<()> {
+        instructions::config::set_max_price_age_sec(ctx, new_max_price_age_sec)
+    }
+
+    pub fn set_max_price_deviation_bps(
+        ctx: Context<SetMaxPriceDeviationBps>,
+        new_max_price_deviation_bps: u64,
+    ) -> Result<()> {
+        instructions::config::set_max_price_deviation_bps(ctx, new_max_price_deviation_bps)
+    }
+
+    pub fn set_liquidation_price_deviation_bps(
+        ctx: Context<SetLiquidationPriceDeviationBps>,
+        new_liquidation_price_deviation_bps: u64,
+    ) -> Result<()> {
+        instructions::config::set_liquidation_price_deviation_bps(
+            ctx,
+            new_liquidation_price_deviation_bps,
+        )
+    }
+
+    pub fn set_min_liquidity(ctx: Context<SetMinLiquidity>, new_min_liquidity: u64) -> Result<()> {
+        instructions::config::set_min_liquidity(ctx, new_min_liquidity)
+    }
+
+    pub fn set_decommission_grace_period(
+        ctx: Context<SetDecommissionGracePeriod>,
+        new_grace_period: i64,
+    ) -> Result<()> {
+        instructions::config::set_decommission_grace_period(ctx, new_grace_period)
+    }
+
     // Baskt Management
     pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Result<()> {
-        instructions::baskt::create_baskt(ctx, params)
+        instructions::baskt_all::lifecycle::create_baskt(ctx, params)
     }
 
     pub fn activate_baskt(ctx: Context<ActivateBaskt>, params: ActivateBasktParams) -> Result<()> {
-        instructions::baskt::activate_baskt(ctx, params)
+        instructions::baskt_all::lifecycle::activate_baskt(ctx, params)
+    }
+
+    // Baskt Configuration
+    pub fn set_baskt_opening_fee_bps(
+        ctx: Context<SetBasktOpeningFeeBps>,
+        new_opening_fee_bps: Option<u64>,
+    ) -> Result<()> {
+        instructions::baskt_all::baskt_config::set_baskt_opening_fee_bps(ctx, new_opening_fee_bps)
+    }
+
+    pub fn set_baskt_closing_fee_bps(
+        ctx: Context<SetBasktClosingFeeBps>,
+        new_closing_fee_bps: Option<u64>,
+    ) -> Result<()> {
+        instructions::baskt_all::baskt_config::set_baskt_closing_fee_bps(ctx, new_closing_fee_bps)
+    }
+
+    pub fn set_baskt_liquidation_fee_bps(
+        ctx: Context<SetBasktLiquidationFeeBps>,
+        new_liquidation_fee_bps: Option<u64>,
+    ) -> Result<()> {
+        instructions::baskt_all::baskt_config::set_baskt_liquidation_fee_bps(
+            ctx,
+            new_liquidation_fee_bps,
+        )
+    }
+
+    pub fn set_baskt_min_collateral_ratio_bps(
+        ctx: Context<SetBasktMinCollateralRatioBps>,
+        new_min_collateral_ratio_bps: Option<u64>,
+    ) -> Result<()> {
+        instructions::baskt_all::baskt_config::set_baskt_min_collateral_ratio_bps(
+            ctx,
+            new_min_collateral_ratio_bps,
+        )
+    }
+
+    pub fn set_baskt_liquidation_threshold_bps(
+        ctx: Context<SetBasktLiquidationThresholdBps>,
+        new_liquidation_threshold_bps: Option<u64>,
+    ) -> Result<()> {
+        instructions::baskt_all::baskt_config::set_baskt_liquidation_threshold_bps(
+            ctx,
+            new_liquidation_threshold_bps,
+        )
+    }
+
+    pub fn update_baskt_config(
+        ctx: Context<UpdateBasktConfig>,
+        params: UpdateBasktConfigParams,
+    ) -> Result<()> {
+        instructions::baskt_all::baskt_config::update_baskt_config(ctx, params)
+    }
+
+    // Baskt Lifecycle Management
+    pub fn decommission_baskt(ctx: Context<DecommissionBaskt>) -> Result<()> {
+        instructions::baskt_all::lifecycle::decommission_baskt(ctx)
+    }
+
+    pub fn settle_baskt(ctx: Context<SettleBaskt>) -> Result<()> {
+        instructions::baskt_all::lifecycle::settle_baskt(ctx)
+    }
+
+    pub fn force_close_position<'info>(
+        ctx: Context<'_, '_, 'info, 'info, ForceClosePosition<'info>>,
+        params: ForceClosePositionParams,
+    ) -> Result<()> {
+        instructions::position::force_close::force_close_position(ctx, params)
+    }
+
+    pub fn close_baskt(ctx: Context<CloseBaskt>) -> Result<()> {
+        instructions::baskt_all::lifecycle::close_baskt(ctx)
     }
 
     pub fn add_asset(ctx: Context<AddAsset>, params: AddAssetParams) -> Result<()> {
@@ -60,11 +234,11 @@ pub mod baskt_v1 {
     }
 
     pub fn rebalance(ctx: Context<Rebalance>, asset_configs: Vec<AssetConfig>) -> Result<()> {
-        instructions::rebalance::rebalance(ctx, asset_configs)
+        instructions::baskt_all::rebalance::rebalance(ctx, asset_configs)
     }
 
     pub fn update_custom_oracle(ctx: Context<UpdateCustomOracle>, price: u64) -> Result<()> {
-        instructions::oracle::update_custom_oracle(ctx, price)
+        instructions::baskt_all::oracle::update_custom_oracle(ctx, price)
     }
 
     pub fn create_order(
@@ -75,6 +249,10 @@ pub mod baskt_v1 {
         is_long: bool,
         action: OrderAction,
         target_position: Option<Pubkey>,
+        limit_price: u64,
+        max_slippage_bps: u64,
+        leverage_bps: u64,
+        order_type: crate::state::order::OrderType,
     ) -> Result<()> {
         instructions::order::create_order(
             ctx,
@@ -84,6 +262,10 @@ pub mod baskt_v1 {
             is_long,
             action,
             target_position,
+            limit_price,
+            max_slippage_bps,
+            leverage_bps,
+            order_type,
         )
     }
 
@@ -91,7 +273,10 @@ pub mod baskt_v1 {
         instructions::order::cancel_order(ctx)
     }
 
-    pub fn open_position(ctx: Context<OpenPosition>, params: OpenPositionParams) -> Result<()> {
+    pub fn open_position<'info>(
+        ctx: Context<'_, '_, 'info, 'info, OpenPosition<'info>>,
+        params: OpenPositionParams,
+    ) -> Result<()> {
         instructions::position::open::open_position(ctx, params)
     }
 
@@ -146,10 +331,10 @@ pub mod baskt_v1 {
 
     // Funding Index Management
     pub fn initialize_funding_index(ctx: Context<InitializeFundingIndex>) -> Result<()> {
-        instructions::funding_index::initialize_funding_index(ctx)
+        instructions::baskt_all::funding_index::initialize_funding_index(ctx)
     }
 
     pub fn update_funding_index(ctx: Context<UpdateFundingIndex>, new_rate: i64) -> Result<()> {
-        instructions::funding_index::update_funding_index(ctx, new_rate)
+        instructions::baskt_all::funding_index::update_funding_index(ctx, new_rate)
     }
 }

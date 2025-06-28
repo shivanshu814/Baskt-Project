@@ -1,4 +1,7 @@
 /** @format */
+#tv-attr-logo {
+  display: none !important;
+}
 
 @tailwind base;
 @tailwind components;

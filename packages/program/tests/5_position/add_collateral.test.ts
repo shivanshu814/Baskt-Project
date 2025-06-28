@@ -1,10 +1,12 @@
 import { expect } from 'chai';
-import { describe, it, before } from 'mocha';
+import { describe, it, before, afterEach } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
-import { initializeProtocolAndRoles } from '../utils/test-setup';
+// Using TestClient static method instead of importing from test-setup
+import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
+import { BASELINE_PRICE } from '../utils/test-constants';
 
 describe('Add Collateral to Position', () => {
   // Get the test client instance
@@ -12,9 +14,9 @@ describe('Add Collateral to Position', () => {
 
   // Test parameters
   const ORDER_SIZE = new BN(10_000_000); // 10 units
-  const INITIAL_COLLATERAL = new BN(11_000_000); // 11 USDC (110% of 10-unit order)
-  const ADDITIONAL_COLLATERAL = new BN(2_000_000); // 2 USDC
-  const ENTRY_PRICE = new BN(100_000_000); // NAV starts at 100 with 6 decimals
+  const INITIAL_COLLATERAL = new BN(11.57 * 1e6); // 11.57 USDC (enough for 100% + opening fee with 5% slippage)
+  const ADDITIONAL_COLLATERAL = new BN(2 * 1e6); // 2 USDC
+  const ENTRY_PRICE = BASELINE_PRICE; // NAV starts at $1 with 6 decimals
   const TICKER = 'BTC';
 
   // Test accounts
@@ -42,7 +44,7 @@ describe('Add Collateral to Position', () => {
 
   before(async () => {
     // Initialize protocol and roles using centralized setup
-    const globalAccounts = await initializeProtocolAndRoles(client);
+    const globalAccounts = await TestClient.initializeProtocolAndRoles(client);
     matcher = globalAccounts.matcher;
 
     // Create test-specific accounts
@@ -102,7 +104,7 @@ describe('Add Collateral to Position', () => {
     // Since weight is 100% (10000 bps), the asset price should equal the target NAV
     await client.activateBaskt(
       basktId,
-      [new BN(100_000_000)], // NAV = 100 with 6 decimals
+      [BASELINE_PRICE], // NAV = $1 with 6 decimals
       60, // maxPriceAgeSec
     );
 
@@ -136,7 +138,7 @@ describe('Add Collateral to Position', () => {
     });
 
     // Initialize the protocol registry after liquidity pool setup
-    await initializeProtocolAndRoles(client);
+    await TestClient.initializeProtocolAndRoles(client);
 
     // Generate unique IDs for order and position
     orderId = new BN(Date.now());
@@ -164,6 +166,8 @@ describe('Add Collateral to Position', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      limitPrice: ENTRY_PRICE, // Set limit price to match entry price (NAV = $1)
+      maxSlippageBps: new BN(500), // 5% slippage tolerance
     });
 
     // Open the position using the matcher client helper
@@ -174,6 +178,30 @@ describe('Add Collateral to Position', () => {
       baskt: basktId,
       orderOwner: user.publicKey,
     });
+  });
+
+  afterEach(async () => {
+    // Reset feature flags to enabled state after each test
+    try {
+      const resetSig = await client.updateFeatureFlags({
+        allowAddLiquidity: true,
+        allowRemoveLiquidity: true,
+        allowOpenPosition: true,
+        allowClosePosition: true,
+        allowPnlWithdrawal: true,
+        allowCollateralWithdrawal: true,
+        allowAddCollateral: true,
+        allowBasktCreation: true,
+        allowBasktUpdate: true,
+        allowTrading: true,
+        allowLiquidations: true,
+      });
+      await waitForTx(client.connection, resetSig);
+      await waitForNextSlot(client.connection);
+    } catch (error) {
+      // Silently handle cleanup errors to avoid masking test failures
+      console.warn('Cleanup error in add_collateral.test.ts:', error);
+    }
   });
 
   it('Successfully adds collateral to a position', async () => {
@@ -217,9 +245,12 @@ describe('Add Collateral to Position', () => {
     // Verify user's token balance decreased by the additional collateral amount
     expect(userBalanceDiff.toString()).to.equal(ADDITIONAL_COLLATERAL.toString());
 
-    // Verify position escrow has the additional collateral
+    // Verify escrow balance: previous collateral + newly added collateral
+    const expectedEscrowAfter = ADDITIONAL_COLLATERAL.add(
+      new BN(positionBefore.collateral.toString()),
+    );
     expect(positionEscrowAfter.amount.toString()).to.equal(
-      ADDITIONAL_COLLATERAL.add(INITIAL_COLLATERAL).toString(),
+      expectedEscrowAfter.toString(),
     );
   });
 
@@ -269,6 +300,9 @@ describe('Add Collateral to Position', () => {
       allowLiquidations: true,
     });
 
+    // Add a small delay to ensure the feature flag update is processed
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     // Try to add collateral (should fail due to feature flag)
     try {
       await userClient.addCollateral({
@@ -278,8 +312,8 @@ describe('Add Collateral to Position', () => {
       });
 
       expect.fail('Transaction should have failed due to disabled feature');
-    } catch (error: unknown) {
-      expect((error as Error).message).to.include('PositionOperationsDisabled');
+    } catch (error: any) {
+      expect(error.toString()).to.include('PositionOperationsDisabled');
     }
 
     // Re-enable the feature for subsequent tests

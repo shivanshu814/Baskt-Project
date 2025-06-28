@@ -1,8 +1,9 @@
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
+import { describe, it, before, after } from 'mocha';
 import { Keypair } from '@solana/web3.js';
 import { TestClient } from '../utils/test-client';
 import { AccessControlRole } from '@baskt/types';
+import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
 
 describe('protocol roles', () => {
   // Get the test client instance
@@ -12,6 +13,44 @@ describe('protocol roles', () => {
   const testAccount1 = Keypair.generate();
   const testAccount2 = Keypair.generate();
   const nonOwnerAccount = Keypair.generate();
+
+  before(async () => {
+    // Initialize protocol and roles before running role tests
+    try {
+      // Check if protocol is already initialized
+      await client.getProtocolAccount();
+    } catch (error) {
+      // Protocol doesn't exist, initialize it
+      await client.initializeProtocol(client.treasury.publicKey);
+      await client.initializeRoles();
+    }
+  });
+
+  after(async () => {
+    // Clean up any remaining roles after all tests complete
+    // Note: The "Successfully removes a role from an account" test intentionally removes testAccount1's AssetManager role
+    // so we only clean up roles that weren't intentionally removed by the tests
+    try {
+      // Check and clean up testAccount1 AssetManager role (may have been removed by test)
+      const hasAssetManagerRole = await client.hasRole(testAccount1.publicKey, AccessControlRole.AssetManager);
+      if (hasAssetManagerRole) {
+        const removeAssetManagerSig = await client.removeRole(testAccount1.publicKey, AccessControlRole.AssetManager);
+        await waitForTx(client.connection, removeAssetManagerSig);
+      }
+
+      // Check and clean up testAccount2 OracleManager role (added by tests but not removed)
+      const hasOracleManagerRole = await client.hasRole(testAccount2.publicKey, AccessControlRole.OracleManager);
+      if (hasOracleManagerRole) {
+        const removeOracleManagerSig = await client.removeRole(testAccount2.publicKey, AccessControlRole.OracleManager);
+        await waitForTx(client.connection, removeOracleManagerSig);
+      }
+
+      await waitForNextSlot(client.connection);
+    } catch (error) {
+      // Silently handle cleanup errors to avoid masking test failures
+      console.warn('Cleanup error in 4_roles.test.ts:', error);
+    }
+  });
 
   it('Successfully adds AssetManager role to an account', async () => {
     // Add the AssetManager role to the test account

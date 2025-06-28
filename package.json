@@ -12,6 +12,7 @@
     "dev:all": "turbo run dev",
     "dev:admin": "turbo run dev --filter=@baskt/admin-app --filter=@baskt/backend",
     "dev:main": "turbo run dev --filter=@baskt/main-app --filter=@baskt/backend",
+    "dev:services": "turbo run dev --filter=@baskt/backend --filter=@baskt/event-engine",
     "lint": "turbo run lint",
     "test": "turbo run test"
   },
@@ -23,7 +24,7 @@
     "postcss": "^8.5.3",
     "turbo": "^2.5.0"
   },
-  "workspaces": ["apps/*", "packages/*", "backend"],
+  "workspaces": ["apps/*", "packages/*", "services/*"],
   "packageManager": "pnpm@9.0.0",
   "dependencies": {
     "@trpc/client": "^10.45.1",

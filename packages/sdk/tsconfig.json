@@ -8,6 +8,6 @@
     "noEmit": false,
     "composite": true
   },
-  "include": ["src/**/*", "src/program/idl/baskt_v1.json"],
+  "include": ["src/**/*", "src/program/idl/baskt.json"],
   "exclude": ["node_modules", "dist", "tests/**/*"]
 }

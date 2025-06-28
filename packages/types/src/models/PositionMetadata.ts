@@ -13,10 +13,10 @@ export interface PositionMetadataModel {
   };
   status: PositionStatus;
   entryPrice: string;
+  exitPrice?: string;
   closePosition?: {
     tx: string;
     ts: string;
-    exitPrice: string;
   };
   owner: string;
   size: string;
@@ -70,6 +70,11 @@ export const PositionMetadataSchema = new mongoose.Schema<PositionMetadataModel>
       required: true,
       trim: true,
     },
+    exitPrice: {
+      type: String,
+      required: false,
+      trim: true,
+    },
     closePosition: {
       tx: {
         type: String,
@@ -77,11 +82,6 @@ export const PositionMetadataSchema = new mongoose.Schema<PositionMetadataModel>
         trim: true,
       },
       ts: {
-        type: String,
-        required: false,
-        trim: true,
-      },
-      exitPrice: {
         type: String,
         required: false,
         trim: true,
@@ -97,6 +97,7 @@ export const PositionMetadataSchema = new mongoose.Schema<PositionMetadataModel>
       enum: [PositionStatus.OPEN, PositionStatus.CLOSED, PositionStatus.LIQUIDATED],
       required: true,
     },
+    // This is number of contracts and not usdc size
     size: { type: String, required: true, trim: true },
     collateral: { type: String, required: true, trim: true },
     isLong: { type: Boolean, required: true },

@@ -26,9 +26,9 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
       isPositive,
       changeColor: isPositive ? 'text-success' : 'text-destructive',
       changeIcon: isPositive ? (
-        <ChevronUp className="h-4 w-4 mr-1" />
+        <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
       ) : (
-        <ChevronDown className="h-4 w-4 mr-1" />
+        <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
       ),
       formattedPrice: (baskt.price || 0).toLocaleString(undefined, {
         minimumFractionDigits: 2,
@@ -50,21 +50,21 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center gap-2">
           <div>
-            <h3 className="font-semibold">{baskt.name || 'Unnamed Baskt'}</h3>
+            <h3 className="text-sm sm:text-base font-semibold">{baskt.name || 'Unnamed Baskt'}</h3>
           </div>
         </div>
-        <div className={cn('flex items-center text-sm font-medium', changeColor)}>
+        <div className={cn('flex items-center text-xs sm:text-sm font-medium', changeColor)}>
           {changeIcon}
           <NumberFormat value={baskt.change24h} />%
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 pt-0">
-        <div className="text-2xl font-bold">
+      <CardContent className="space-y-3 sm:space-y-4 pt-0">
+        <div className="text-xl sm:text-2xl font-bold">
           <NumberFormat value={baskt.price} isPrice={true} />
         </div>
 
-        <div className="h-16 w-full">
+        <div className="h-12 sm:h-16 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={sparklineData}>
               <defs>
@@ -92,31 +92,31 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
           </ResponsiveContainer>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+        <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm text-muted-foreground">
           <div>Assets: {baskt.totalAssets || 0}</div>
           <div className="text-right">
             AUM: <NumberFormat value={baskt.aum} isPrice={true} />M
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 text-sm text-muted-foreground">
+        <div className="grid grid-cols-3 gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
           <div className="flex items-center">
-            <div className="w-2 h-2 rounded-full bg-success mr-1" />
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-success mr-1" />
             Long
           </div>
           <div className="flex items-center">
-            <div className="w-2 h-2 rounded-full bg-destructive mr-1" />
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-destructive mr-1" />
             Short
           </div>
           <div className="text-right">Risk: {baskt.risk || 'medium'}</div>
         </div>
 
         <Button
-          className="w-full"
+          className="w-full text-xs sm:text-sm"
           size="sm"
           onClick={() => router.push(`/baskts/${baskt.basktId}`)}
         >
-          <ArrowRightLeft className="h-4 w-4 mr-2" />
+          <ArrowRightLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           Trade
         </Button>
       </CardContent>

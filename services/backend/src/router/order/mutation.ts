@@ -1,7 +1,7 @@
 import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
 import { OrderMetadataModel } from '../../utils/models';
-import { OrderAction } from '@baskt/types';
+import { OrderAction, OrderType } from '@baskt/types';
 
 // create an order
 export const createOrder = publicProcedure
@@ -20,6 +20,9 @@ export const createOrder = publicProcedure
         tx: z.string(),
         ts: z.string(),
       }),
+      orderType: z.enum([OrderType.Market, OrderType.Limit]),
+      limitPrice: z.string(),
+      maxSlippage: z.string(),
     }),
   )
   .mutation(async ({ input }) => {

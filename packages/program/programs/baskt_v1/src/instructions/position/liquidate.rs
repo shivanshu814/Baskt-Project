@@ -1,19 +1,23 @@
 use {
     crate::constants::{
-        AUTHORITY_SEED, BPS_DIVISOR, ESCROW_SEED, FUNDING_INDEX_SEED, LIQUIDATION_FEE_BPS,
-        LIQUIDITY_POOL_SEED, POOL_AUTHORITY_SEED, POSITION_SEED, PROTOCOL_SEED,
+        AUTHORITY_SEED, ESCROW_SEED, FUNDING_INDEX_SEED, LIQUIDITY_POOL_SEED, POOL_AUTHORITY_SEED,
+        POSITION_SEED, PROTOCOL_SEED,
     },
     crate::error::PerpetualsError,
     crate::events::*,
     crate::state::{
-        baskt::BasktV1,
+        baskt::Baskt,
         funding_index::FundingIndex,
         liquidity::LiquidityPool,
         position::{Position, PositionStatus, ProgramAuthority},
         protocol::{Protocol, Role},
     },
+    crate::utils::{
+        calculate_settlement, close_escrow_account, effective_u64, execute_settlement_transfers,
+        update_pool_state, validate_treasury_and_vault, ClosingType, TransferParams,
+    },
     anchor_lang::prelude::*,
-    anchor_spl::token::{self, Token, TokenAccount, Transfer},
+    anchor_spl::token::{Token, TokenAccount},
 };
 
 /// Parameters for liquidating a position
@@ -45,13 +49,23 @@ impl<'info> LiquidatePositionRemainingAccounts<'info> {
             token_vault: &remaining_accounts[2],
         })
     }
+
+    /// Validate that accounts match expected protocol accounts
+    pub fn validate(&self, protocol: &Protocol, liquidity_pool: &LiquidityPool) -> Result<()> {
+        validate_treasury_and_vault(
+            &self.treasury_token,
+            &self.token_vault,
+            protocol,
+            liquidity_pool,
+        )
+    }
 }
 
 /// LiquidatePosition
 ///
 /// Remaining accounts expected (in order):
 /// 0. owner_token account
-/// 1. treasury_token account  
+/// 1. treasury_token account
 /// 2. token_vault account
 ///
 #[derive(Accounts)]
@@ -79,10 +93,11 @@ pub struct LiquidatePosition<'info> {
     pub funding_index: Account<'info, FundingIndex>,
 
     #[account(
+        mut,
         constraint = baskt.key() == position.baskt_id @ PerpetualsError::InvalidBaskt,
-        constraint = baskt.is_active @ PerpetualsError::BasktInactive
+        constraint = baskt.is_trading() || baskt.is_unwinding() @ PerpetualsError::InvalidBasktState
     )]
-    pub baskt: Account<'info, BasktV1>,
+    pub baskt: Account<'info, Baskt>,
 
     /// Protocol for permission checks
     #[account(
@@ -148,13 +163,19 @@ pub fn liquidate_position<'info>(
     ctx.accounts
         .baskt
         .oracle
-        .validate_liquidation_price(params.exit_price, clock.unix_timestamp)?;
+        .validate_liquidation_price(params.exit_price)?;
 
     // Update funding first
     position.update_funding(funding_index.cumulative_index)?;
 
+    // Get effective liquidation threshold from baskt config or protocol config
+    let liquidation_threshold_bps = effective_u64(
+        ctx.accounts.baskt.config.liquidation_threshold_bps,
+        ctx.accounts.protocol.config.liquidation_threshold_bps,
+    );
+
     // Check if position is liquidatable
-    let is_liquidatable = position.is_liquidatable(params.exit_price)?;
+    let is_liquidatable = position.is_liquidatable(params.exit_price, liquidation_threshold_bps)?;
     require!(is_liquidatable, PerpetualsError::PositionNotLiquidatable);
 
     // Liquidate the position
@@ -164,151 +185,77 @@ pub fn liquidate_position<'info>(
         clock.unix_timestamp,
     )?;
 
+    // Decrement open positions count
+    ctx.accounts.baskt.open_positions = ctx
+        .accounts
+        .baskt
+        .open_positions
+        .checked_sub(1)
+        .ok_or(PerpetualsError::MathOverflow)?; // prevent silent underflow
+
     // Calculate amounts
     let pnl = position.calculate_pnl()?;
-    let funding_amount = position.funding_accumulated;
-    let raw_liquidation_fee = (position.size as u128)
-        .checked_mul(LIQUIDATION_FEE_BPS as u128)
-        .ok_or(PerpetualsError::MathOverflow)?
-        .checked_div(BPS_DIVISOR as u128)
-        .ok_or(PerpetualsError::MathOverflow)? as u64;
+
+    // Get effective liquidation fee from baskt config or protocol config
+    let liquidation_fee_bps = effective_u64(
+        ctx.accounts.baskt.config.liquidation_fee_bps,
+        ctx.accounts.protocol.config.liquidation_fee_bps,
+    );
+
+    // Calculate settlement details using the new unified approach
+    let settlement_details = calculate_settlement(
+        position,
+        pnl,
+        ClosingType::Liquidation {
+            liquidation_fee_bps,
+        },
+        ctx.accounts.protocol.config.treasury_cut_bps,
+        params.exit_price,
+    )?;
 
     // Parse remaining accounts
     let remaining_accounts = LiquidatePositionRemainingAccounts::parse(ctx.remaining_accounts)?;
 
-    // Signer seeds
-    let authority_signer_seeds = [AUTHORITY_SEED.as_ref(), &[ctx.bumps.program_authority]];
-    let authority_signer = &[&authority_signer_seeds[..]];
+    // Validate remaining accounts for security
+    remaining_accounts.validate(&ctx.accounts.protocol, &ctx.accounts.liquidity_pool)?;
 
-    // Pool authority signer seeds
-    let lp_key = ctx.accounts.liquidity_pool.key();
-    let proto_key = ctx.accounts.protocol.key();
-    let pool_authority_signer_seeds = [
-        POOL_AUTHORITY_SEED.as_ref(),
-        lp_key.as_ref(),
-        proto_key.as_ref(),
-        &[ctx.bumps.pool_authority],
-    ];
-    let pool_authority_signer = &[&pool_authority_signer_seeds[..]];
-
-    // 1. Transfer liquidation fee to treasury
-    let initial_escrow_balance = ctx.accounts.escrow_token.amount;
-    let mut current_escrow_balance = initial_escrow_balance;
-
-    let liquidation_fee_paid_to_treasury =
-        std::cmp::min(raw_liquidation_fee, initial_escrow_balance);
-
-    if liquidation_fee_paid_to_treasury > 0 {
-        token::transfer(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.escrow_token.to_account_info(),
-                    to: remaining_accounts.treasury_token.clone(),
-                    authority: ctx.accounts.program_authority.to_account_info(),
-                },
-                authority_signer,
-            ),
-            liquidation_fee_paid_to_treasury,
-        )?;
-        current_escrow_balance = current_escrow_balance
-            .checked_sub(liquidation_fee_paid_to_treasury)
-            .ok_or(PerpetualsError::MathOverflow)?;
-    }
-
-    // 2. Calculate owner's net settlement
-    let owner_net_settlement_i128 = (position.collateral as i128)
-        .checked_add(pnl as i128)
-        .ok_or(PerpetualsError::MathOverflow)?
-        .checked_add(funding_amount)
-        .ok_or(PerpetualsError::MathOverflow)?;
-
-    let owner_payout_u64 = if owner_net_settlement_i128 > 0 {
-        owner_net_settlement_i128 as u64
-    } else {
-        0
+    // Prepare transfer parameters
+    let transfer_params = TransferParams {
+        escrow_balance: ctx.accounts.escrow_token.amount,
+        authority_bump: ctx.bumps.program_authority,
+        pool_authority_bump: ctx.bumps.pool_authority,
     };
 
-    // 3. Determine amounts from escrow
-    let payout_from_escrow_to_owner = std::cmp::min(owner_payout_u64, current_escrow_balance);
+    // Execute all settlement transfers using the unified approach
+    let transfer_result = execute_settlement_transfers(
+        &ctx.accounts.token_program,
+        &ctx.accounts.escrow_token,
+        &remaining_accounts.owner_token,
+        Some(&remaining_accounts.treasury_token),
+        &remaining_accounts.token_vault,
+        &ctx.accounts.program_authority.to_account_info(),
+        &ctx.accounts.pool_authority.to_account_info(),
+        ctx.accounts.liquidity_pool.key(),
+        ctx.accounts.protocol.key(),
+        &transfer_params,
+        &settlement_details,
+    )?;
 
-    if payout_from_escrow_to_owner > 0 {
-        token::transfer(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.escrow_token.to_account_info(),
-                    to: remaining_accounts.owner_token.clone(),
-                    authority: ctx.accounts.program_authority.to_account_info(),
-                },
-                authority_signer,
-            ),
-            payout_from_escrow_to_owner,
-        )?;
-        current_escrow_balance = current_escrow_balance
-            .checked_sub(payout_from_escrow_to_owner)
-            .ok_or(PerpetualsError::MathOverflow)?;
-    }
+    // Update liquidity pool state using actual transferred amounts
+    update_pool_state(
+        &mut ctx.accounts.liquidity_pool,
+        &transfer_result,
+        settlement_details.bad_debt_amount,
+    )?;
 
-    let payout_from_pool_to_owner = owner_payout_u64
-        .checked_sub(payout_from_escrow_to_owner)
-        .ok_or(PerpetualsError::MathOverflow)?;
-
-    let final_escrow_remainder_to_pool_vault = current_escrow_balance;
-
-    // 4. Pool transfers
-    if payout_from_pool_to_owner > 0 {
-        require!(
-            ctx.accounts.liquidity_pool.total_liquidity >= payout_from_pool_to_owner,
-            PerpetualsError::InsufficientLiquidity
-        );
-
-        token::transfer(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: remaining_accounts.token_vault.clone(),
-                    to: remaining_accounts.owner_token.clone(),
-                    authority: ctx.accounts.pool_authority.to_account_info(),
-                },
-                pool_authority_signer,
-            ),
-            payout_from_pool_to_owner,
-        )?;
-    }
-
-    if final_escrow_remainder_to_pool_vault > 0 {
-        token::transfer(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.escrow_token.to_account_info(),
-                    to: remaining_accounts.token_vault.clone(),
-                    authority: ctx.accounts.program_authority.to_account_info(),
-                },
-                authority_signer,
-            ),
-            final_escrow_remainder_to_pool_vault,
-        )?;
-    }
-
-    // 5. Update Liquidity Pool state
-    let net_change_for_lp_state_i128 = (final_escrow_remainder_to_pool_vault as i128)
-        .checked_sub(payout_from_pool_to_owner as i128)
-        .ok_or(PerpetualsError::MathOverflow)?;
-
-    if net_change_for_lp_state_i128 > 0 {
-        ctx.accounts
-            .liquidity_pool
-            .increase_liquidity(net_change_for_lp_state_i128 as u64)?;
-    } else if net_change_for_lp_state_i128 < 0 {
-        ctx.accounts.liquidity_pool.decrease_liquidity(
-            net_change_for_lp_state_i128
-                .unsigned_abs()
-                .try_into()
-                .map_err(|_| PerpetualsError::MathOverflow)?,
-        )?;
-    }
+    // Close escrow token account to reclaim rent
+    close_escrow_account(
+        &ctx.accounts.token_program,
+        &ctx.accounts.escrow_token,
+        &ctx.accounts.liquidator.to_account_info(),
+        &ctx.accounts.program_authority.to_account_info(),
+        ctx.bumps.program_authority,
+    )?;
 
     // Position is closed automatically via constraint
 
@@ -319,11 +266,12 @@ pub fn liquidate_position<'info>(
         baskt_id: position.baskt_id,
         size: position.size,
         exit_price: params.exit_price,
-        pnl,
-        liquidation_fee: liquidation_fee_paid_to_treasury,
-        funding_payment: funding_amount,
-        remaining_collateral: owner_payout_u64,
-        pool_payout: payout_from_pool_to_owner,
+        pnl: settlement_details.pnl as i64,
+        fee_to_treasury: transfer_result.actual_fee_to_treasury,
+        fee_to_blp: transfer_result.actual_fee_to_blp,
+        funding_payment: settlement_details.funding_accumulated,
+        remaining_collateral: settlement_details.user_payout_u64,
+        pool_payout: transfer_result.from_pool_to_user,
         timestamp: clock.unix_timestamp,
     });
 

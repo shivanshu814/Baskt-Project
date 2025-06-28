@@ -1,8 +1,10 @@
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
+import { describe, it, after } from 'mocha';
 import { TestClient } from '../utils/test-client';
 import { BN } from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
+import { AccessControlRole } from '@baskt/types';
+import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
 
 describe('protocol', () => {
   // Get the test client instance
@@ -11,6 +13,27 @@ describe('protocol', () => {
   const DEPOSIT_FEE_BPS = 50; // 0.25%
   const WITHDRAWAL_FEE_BPS = 50; // 0.5%
   const MIN_DEPOSIT = new BN(1_000_000); // 1 USDC (assuming 6 decimals)
+
+  after(async () => {
+    // Clean up roles added during initialization
+    try {
+      const removeAssetManagerSig = await client.removeRole(
+        client.assetManager.publicKey,
+        AccessControlRole.AssetManager
+      );
+      await waitForTx(client.connection, removeAssetManagerSig);
+
+      const removeOracleManagerSig = await client.removeRole(
+        client.oracleManager.publicKey,
+        AccessControlRole.OracleManager
+      );
+      await waitForTx(client.connection, removeOracleManagerSig);
+      await waitForNextSlot(client.connection);
+    } catch (error) {
+      // Silently handle cleanup errors to avoid masking test failures
+      console.warn('Cleanup error in 1_init.test.ts:', error);
+    }
+  });
 
   it('Successfully initializes the protocol', async () => {
     await client.initializeProtocol(client.treasury.publicKey);

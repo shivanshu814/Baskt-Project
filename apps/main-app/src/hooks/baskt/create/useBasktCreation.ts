@@ -56,19 +56,8 @@ export const useBasktCreation = () => {
       }
 
       setSignature(txSignature);
-
-      setTransactionStatus('confirmed');
-      showTransactionToast('confirmed', config, txSignature);
-
-      setTransactionStatus('processing');
-      showTransactionToast('processing', config, txSignature);
-
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
       setTransactionStatus('success');
-
       showTransactionToast('success', config, txSignature);
-
       router.push(`/baskts/${basktId}`);
     } catch (error) {
       setTransactionStatus('failed');

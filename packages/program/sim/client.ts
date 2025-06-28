@@ -1,4 +1,4 @@
-import { BaseClient } from '@baskt/sdk';
+import { BaseClient, USDC_MINT } from '@baskt/sdk';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
 import { Connection } from '@solana/web3.js';
@@ -39,11 +39,10 @@ class SimClient extends BaseClient {
   public async mintUSDC(destination: PublicKey, amount: number | anchor.BN): Promise<string> {
     const provider = this.program.provider as anchor.AnchorProvider;
     const payer = provider.wallet.payer as Keypair;
-    const usdcMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
     // Convert amount for minting
     const mintAmount = typeof amount === 'number' ? amount : BigInt(amount.toString());
 
-    const usdcMintAccount = await getMint(provider.connection, usdcMint);
+    const usdcMintAccount = await getMint(provider.connection, USDC_MINT);
     if (!usdcMintAccount) {
       throw new Error('USDC mint account not found');
     }
@@ -52,7 +51,7 @@ class SimClient extends BaseClient {
     const signature = await mintTo(
       provider.connection,
       payer, // Payer for transaction fees
-      usdcMint,
+      USDC_MINT,
       destination,
       payer, // Use our controlled mint authority
       mintAmount,
@@ -62,11 +61,9 @@ class SimClient extends BaseClient {
   }
 
   public async getOrCreateUSDCAccount(owner: PublicKey): Promise<PublicKey> {
-    // USDC mint address from constants
-    const usdcMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
     // Find the associated token address
-    const tokenAccount = await getAssociatedTokenAddress(usdcMint, owner);
+    const tokenAccount = await getAssociatedTokenAddress(USDC_MINT, owner);
 
     try {
       // Check if account exists
@@ -79,7 +76,7 @@ class SimClient extends BaseClient {
         throw new Error('Provider is undefined');
       }
       const payer = provider.wallet.payer as Keypair;
-      await createAssociatedTokenAccount(provider.connection, payer, usdcMint, owner);
+      await createAssociatedTokenAccount(provider.connection, payer, USDC_MINT, owner);
       return tokenAccount;
     }
   }

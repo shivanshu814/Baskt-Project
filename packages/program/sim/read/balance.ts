@@ -7,11 +7,8 @@ dotenv.config();
 
 const getBalance = async (args: string[]) => {
   try {
-    if (args.length < 1) {
-      throw new Error('Usage: balance|bal <usdc|sol|blp> [user] ');
-    }
 
-    const asset = args[0];
+    const asset = args[0] || 'usdc';
     const user = args[1] || client.getPublicKey().toString();
 
     let mint = USDC_MINT;

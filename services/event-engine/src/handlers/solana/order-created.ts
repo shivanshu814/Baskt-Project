@@ -50,8 +50,6 @@ async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder
       throw new Error('Invalid NAV price: Price is zero');
     }
 
-    await basktClient.updateOraclePrice(onchainOrder.basktId, price);
-
     // open position onchain
     const tx = await basktClient.openPosition({
       order: onchainOrder.address,
@@ -59,6 +57,7 @@ async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder
       entryPrice: price,
       baskt: onchainOrder.basktId,
       orderOwner: onchainOrder.owner,
+      preInstructions: [await basktClient.updateOraclePriceWithItx(onchainOrder.basktId, price)],
     });
 
     const positionPDA = await basktClient.getPositionPDA(onchainOrder.owner, positionId);
@@ -163,6 +162,9 @@ async function orderCreatedHandler(event: ObserverEvent) {
           tx: signature,
           ts: onchainOrder.timestamp.toString(),
         },
+        orderType: onchainOrder.orderType,
+        limitPrice: onchainOrder.limitPrice.toString(),
+        maxSlippage: onchainOrder.maxSlippage.toString(),
       });
 
       console.log('Order created successfully in DB');

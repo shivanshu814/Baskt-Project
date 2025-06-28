@@ -1,10 +1,11 @@
 import { expect } from 'chai';
-import { describe, it, before } from 'mocha';
+import { describe, it, before, after } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { AccessControlRole } from '@baskt/types';
+import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
 
 describe('Order Cancellation', () => {
   // Get the test client instance
@@ -12,7 +13,7 @@ describe('Order Cancellation', () => {
 
   // Test parameters
   const ORDER_SIZE = new BN(10_000_000); // 10 units
-  const COLLATERAL_AMOUNT = new BN(11_000_000); // 11 USDC (110% of 10-unit order)
+  const COLLATERAL_AMOUNT = new BN(11_020_000); // 11.02 USDC (110% + opening fee)
   const TICKER = 'BTC';
 
   // Test accounts
@@ -146,6 +147,7 @@ describe('Order Cancellation', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     // Create a short order
@@ -182,6 +184,38 @@ describe('Order Cancellation', () => {
     });
   });
 
+  after(async () => {
+    // Clean up roles and feature flags
+    try {
+      // Remove matcher role
+      const removeMatcherSig = await client.removeRole(
+        matcher.publicKey,
+        AccessControlRole.Matcher
+      );
+      await waitForTx(client.connection, removeMatcherSig);
+
+      // Reset feature flags to enabled state
+      const resetSig = await client.updateFeatureFlags({
+        allowAddLiquidity: true,
+        allowRemoveLiquidity: true,
+        allowOpenPosition: true,
+        allowClosePosition: true,
+        allowPnlWithdrawal: true,
+        allowCollateralWithdrawal: true,
+        allowAddCollateral: true,
+        allowBasktCreation: true,
+        allowBasktUpdate: true,
+        allowTrading: true,
+        allowLiquidations: true,
+      });
+      await waitForTx(client.connection, resetSig);
+      await waitForNextSlot(client.connection);
+    } catch (error) {
+      // Silently handle cleanup errors to avoid masking test failures
+      console.warn('Cleanup error in cancel_order.test.ts:', error);
+    }
+  });
+
   it('Cancels a long order and returns collateral', async () => {
     // Create a new order PDA for additional testing
     const additionalOrderId = new BN(Date.now() + 100);
@@ -197,6 +231,7 @@ describe('Order Cancellation', () => {
       basktId: basktId,
       ownerTokenAccount: userTokenAccount,
       collateralMint: collateralMint,
+      leverageBps: new BN(10000), // 1x leverage
     });
 
     // Get balances before cancellation

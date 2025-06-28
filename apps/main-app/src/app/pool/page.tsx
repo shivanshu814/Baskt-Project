@@ -38,18 +38,26 @@ export default function PoolPage() {
     });
 
   const randomAPY = '15.08%';
+  
+  // Calculate accurate TVL from pool data
+  const tvl = poolData?.totalLiquidity ? parseFloat(poolData.totalLiquidity).toLocaleString() : '0';
+  const totalSupply = poolData?.totalShares ? parseFloat(poolData.totalShares).toLocaleString() : '0';
+  
+  // Calculate BLP price based on TVL and total supply
+  const blpPrice = poolData?.totalLiquidity && poolData?.totalShares 
+    ? (parseFloat(poolData.totalLiquidity) / parseFloat(poolData.totalShares)).toFixed(3)
+    : '0';
 
   return (
-    <div className="min-h-screen w-full bg-[#010b1d]/80 flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-[85rem] mx-auto flex flex-col lg:flex-row gap-8 mb-8">
         <div className="flex-1 min-w-0">
           <PoolInfo apy={randomAPY} lastUpdated="5/29/2025" />
           <div className="mt-8">
             <LiquidityAllocation
-              tvl="1,554,457,666.26"
-              aumLimit="1,750,000,000"
-              blpPrice="4.491"
-              totalSupply="346,141,137.074"
+              tvl={tvl}
+              blpPrice={blpPrice}
+              totalSupply={totalSupply}
               allocations={poolAllocations}
             />
           </div>
@@ -57,13 +65,13 @@ export default function PoolPage() {
         <div className="w-full lg:w-96 flex-shrink-0">
           <div className="flex flex-col gap-8 h-full justify-stretch">
             <div className="grid grid-cols-1 gap-8 items-start h-full">
-              <Card className="bg-white/5 border-white/10 p-0">
+              <Card className="bg-foreground/5 border-border p-0">
                 <div className="p-4">
-                  <Card className="bg-white/10 border-0 rounded-2xl p-4 mb-4">
+                  <Card className="bg-foreground/10 border-0 rounded-2xl p-4 mb-4">
                     <div>
-                      <div className="text-white/60 text-sm mb-1">Your LP</div>
-                      <div className="text-2xl font-bold text-white">{userLpBalance} BLP</div>
-                      <div className="text-xs text-white/50 mt-1">~ $0</div>
+                      <div className="text-muted-foreground text-sm mb-1">Your LP</div>
+                      <div className="text-2xl font-bold text-foreground">{userLpBalance} BLP</div>
+                      <div className="text-xs text-muted-foreground mt-1">~ $0</div>
                     </div>
                   </Card>
                   <Tabs

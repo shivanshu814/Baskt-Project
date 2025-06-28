@@ -1,7 +1,7 @@
 import { publicProcedure } from '../../trpc/trpc';
 import { sdkClient } from '../../utils';
 import { PublicKey } from '@solana/web3.js';
-import { getAccount } from '@solana/spl-token';
+import { getAccount, getMint } from '@solana/spl-token';
 
 const sdkClientInstance = sdkClient();
 
@@ -13,11 +13,15 @@ export const getLiquidityPool = publicProcedure.query(async () => {
     );
 
     const poolData = await sdkClientInstance.getLiquidityPool();
+
+    const lpMintAccount = await getMint(sdkClientInstance.connection, new PublicKey(poolData.lpMint));
+    const lpMint = lpMintAccount?.supply.toString();
+
     return {
       success: true,
       data: {
         totalLiquidity: poolData.totalLiquidity.toString(),
-        totalShares: poolData.totalShares.toString(),
+        totalShares: lpMint,
         depositFeeBps: poolData.depositFeeBps,
         withdrawalFeeBps: poolData.withdrawalFeeBps,
         minDeposit: poolData.minDeposit.toString(),

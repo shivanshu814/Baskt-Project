@@ -83,12 +83,16 @@ export default {
       return;
     }
 
-    const randomBaselinePrices = activeAssets.map(
-      (asset: any) => new BN(Math.floor(asset.priceMetrics.price)),
-    );
+    //Sort the active assets according to the asset config
+    const baselinePrices = onchainAssetList.map((asset: OnchainAssetConfig) => {
+      const assetMetrics:any = activeAssets.find((a: any) => a.assetAddress.toLowerCase() === asset.assetId.toString().toLowerCase());
+      return new BN(Math.floor(assetMetrics.priceMetrics.price));
+    });
+
+
 
     try {
-      let tx = await basktClient.activateBaskt(new PublicKey(basktId), randomBaselinePrices);
+      let tx = await basktClient.activateBaskt(new PublicKey(basktId), baselinePrices);
       console.log('Baskt activated successfully with tx:', tx);
 
       await createBasktMutation(basktId, onchainBaskt, basktEventCreatedData);

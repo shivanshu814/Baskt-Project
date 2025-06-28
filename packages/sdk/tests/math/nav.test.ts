@@ -1,8 +1,13 @@
 import { expect } from 'chai';
+import { describe, it } from 'mocha';
 import BN from 'bn.js';
 import { calculateNav, NAV_PRECISION, WEIGHT_PRECISION } from '../../src/math/nav';
 import { OnchainAssetConfig } from '@baskt/types';
 import { PublicKey } from '@solana/web3.js';
+
+// NAV constants for testing
+const TEST_BASE_NAV = 1; // Base NAV value for testing ($1)
+const TEST_INITIAL_NAV = 100; // Initial NAV value for random simulations
 
 interface NavSimulationAsset {
   baselinePrice: number;
@@ -59,7 +64,7 @@ function runNavSimulation(sim: NavSimulation) {
 }
 
 function generateRandomSimulation(): NavSimulation {
-  const initialNav = 100;
+  const initialNav = TEST_INITIAL_NAV;
   const numAssets = Math.floor(Math.random() * 4) + 2;
   let remainingWeight = 10000;
   const assets: NavSimulationAsset[] = [];

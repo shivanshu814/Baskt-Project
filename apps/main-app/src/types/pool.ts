@@ -63,11 +63,18 @@ export interface TokenAllocation {
     target: string;
   };
   utilization: string;
+  longExposure: {
+    usd: string;
+    percentage: string;
+  };
+  shortExposure: {
+    usd: string;
+    percentage: string;
+  };
 }
 
 export interface LiquidityAllocationProps {
   tvl: string;
-  aumLimit: string;
   allocations: TokenAllocation[];
   blpPrice: string;
   totalSupply: string;

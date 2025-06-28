@@ -14,11 +14,17 @@ export function Footer({ className }: { className?: string }) {
               high-growth trends, helping you navigate the market's complexity with confidence.
             </p>
             <div className="flex space-x-4">
-              <Link href="#" className="text-muted-foreground hover:text-foreground">
+              <Link
+                href="https://x.com/basktdotai"
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <Twitter className="h-5 w-5" />
                 <span className="sr-only">Twitter</span>
               </Link>
-              <Link href="#" className="text-muted-foreground hover:text-foreground">
+              <Link
+                href="https://baskt.ai/"
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <Globe className="h-5 w-5" />
                 <span className="sr-only">Website</span>
               </Link>

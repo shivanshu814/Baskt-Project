@@ -2,35 +2,30 @@
 
 import { ThemeProvider } from 'next-themes';
 import { BasktClientProvider, PrivyProvider } from '@baskt/ui';
-import { useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { httpBatchLink } from '@trpc/client';
-import { trpc } from '../../utils/trpc';
 import { Toaster } from '@baskt/ui';
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
-  const [trpcClient] = useState(() =>
-    trpc.createClient({
-      links: [
-        httpBatchLink({
-          url: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/trpc',
-        }),
-      ],
-    }),
-  );
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <PrivyProvider>
-            <BasktClientProvider>
-              {children}
-              <Toaster />
-            </BasktClientProvider>
-          </PrivyProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </trpc.Provider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <PrivyProvider>
+        <BasktClientProvider>
+          {children}
+          <Toaster
+            position="bottom-left"
+            closeButton={true}
+            toastOptions={{
+              classNames: {
+                toast:
+                  'group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg',
+                description: 'group-[.toast]:text-muted-foreground',
+                actionButton: 'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground',
+                cancelButton: 'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground',
+                closeButton: 'group-[.toast]:opacity-100 group-[.toast]:hover:opacity-100',
+              },
+            }}
+          />
+        </BasktClientProvider>
+      </PrivyProvider>
+    </ThemeProvider>
   );
 }

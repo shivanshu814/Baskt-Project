@@ -7,6 +7,11 @@ pub const CLOSING_FEE_BPS: u64 = 10; // 0.1%
 pub const LIQUIDATION_FEE_BPS: u64 = 50; // 0.5%
 pub const MAX_FEE_BPS: u64 = 500; // 5% maximum fee
 pub const BPS_DIVISOR: u64 = 10_000; // 100%
+
+// Default fee split bps
+pub const DEFAULT_TREASURY_CUT_BPS: u64 = 1_000; // 10%
+pub const DEFAULT_FUNDING_CUT_BPS: u64 = 1_000; // 10%
+pub const MAX_TREASURY_CUT_BPS: u64 = 5_000; // 50% maximum treasury cut
 pub const BPS_POWER: u32 = 4; // 10^4 = 10000
 
 // Funding rate constants
@@ -14,7 +19,7 @@ pub const MAX_FUNDING_RATE_BPS: u64 = 57; // 0.57% hourly = ~5000% APR
 pub const FUNDING_INTERVAL_SECONDS: i64 = 3600; // 1 hour
 
 // Collateral constants
-pub const MIN_COLLATERAL_RATIO_BPS: u64 = 11000; // 110% minimum collateral
+pub const MIN_COLLATERAL_RATIO_BPS: u64 = 10000; // 100% minimum collateral
 pub const LIQUIDATION_THRESHOLD_BPS: u64 = 500; // 5% threshold for liquidation
 
 // Liquidity pool constants
@@ -26,7 +31,11 @@ pub const MAX_PRICE_ERROR_BPS: u64 = 100; // 1% max price error
 pub const MAX_PRICE_DEVIATION_BPS: u64 = 2500; // 25% max price deviation for regular operations
 pub const LIQUIDATION_PRICE_DEVIATION_BPS: u64 = 2000; // 20% max price deviation for liquidations
 
-// USDC decimals
+// Order validation constants
+pub const MAX_SLIPPAGE_BPS: u64 = 1000; // 10% maximum slippage allowed
+pub const MIN_ORDER_SIZE: u64 = 1_000; // 0.001 tokens
+pub const MAX_ORDER_SIZE: u64 = 1_000_000_000_000; // 1M tokens
+                                                   // USDC decimals
 pub const USDC_DECIMALS: u8 = 6;
 
 // Price precision - aligned with USDC decimals
@@ -41,7 +50,9 @@ pub const SECONDS_IN_HOUR: i64 = 3600;
 pub const ESCROW_MINT: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
 // Baskt constants
-pub const BASE_NAV: u64 = 1; // Base NAV value for new baskts
+pub const BASE_NAV: u64 = 1; // Base NAV value for new baskts ($1)
+pub const MIN_GRACE_PERIOD: i64 = 1; // 1 second
+pub const MAX_GRACE_PERIOD: i64 = 604800; // 7 days
 
 // PDA Seeds
 pub const PROTOCOL_SEED: &[u8] = b"protocol";

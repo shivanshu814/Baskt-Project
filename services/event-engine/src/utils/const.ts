@@ -14,7 +14,7 @@ dotenv.config();
 export const EVENT_ENGINE_QUEUE_NAME = 'events';
 export const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
 export const PROGRAM_ID = new PublicKey(
-  process.env.PROGRAM_ID || 'GK52S4WZPVEAMAgjRf8XsBd7upmG862AjMF89HavDpkm',
+  process.env.PROGRAM_ID || '8JaW8fhu46ii83WapMp64i4B4bKTM76XUSXftJfHfLyg',
 );
 export const solanaConnection = new Connection(SOLANA_RPC_URL, 'confirmed');
 

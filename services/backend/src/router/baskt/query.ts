@@ -214,7 +214,9 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     price = new BN(0);
   }
 
+  const status = onchainBaskt.status;
   const account = (onchainBaskt.account || onchainBaskt) as OnchainBasktAccount;
+
 
   return {
     _id: basktMetadata?._id,
@@ -244,6 +246,7 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
         price: account.oracle.price.toString(),
         publishTime: account.oracle.publishTime.toString(),
       },
+      isActive: status['active'],
     },
     creationDate: basktMetadata?.creationDate || new Date().toISOString(),
     priceHistory: generateNavHistory(onchainBaskt.currentAssetConfigs, new BN(1e6)),

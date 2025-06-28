@@ -43,12 +43,10 @@ const CHART_OPTIONS = {
     lockVisibleTimeRangeOnResize: true,
   },
   watermark: { visible: false },
-  height: 500,
   crosshair: {
     mode: CrosshairMode.Normal,
   },
 } as const;
-
 
 const AREA_SERIES_OPTIONS = {
   topColor: 'rgba(0, 82, 255, 0.56)',
@@ -168,7 +166,10 @@ export function TradingViewChart({
 
   const handleResize = useCallback(() => {
     if (chartRef.current && chartContainerRef.current) {
-      chartRef.current.resize(chartContainerRef.current.clientWidth, CHART_OPTIONS.height);
+      chartRef.current.resize(
+        chartContainerRef.current.clientWidth,
+        chartContainerRef.current.clientHeight,
+      );
     }
   }, []);
 
@@ -182,6 +183,7 @@ export function TradingViewChart({
     const chart = createChart(chartContainerRef.current, {
       ...CHART_OPTIONS,
       width: chartContainerRef.current.clientWidth,
+      height: chartContainerRef.current.clientHeight,
       timeScale: {
         ...timeScaleOptions,
         fixLeftEdge: true,

@@ -5,8 +5,8 @@ import * as anchor from '@coral-xyz/anchor';
 import { Connection, Keypair } from '@solana/web3.js';
 import { join } from 'path';
 import { homedir } from 'os';
-import { BasktV1 } from '../../target/types/baskt_v1';
-import BasktV1Idl from '../../target/idl/baskt_v1.json';
+import { Baskt } from '../../target/types/baskt_v1';
+import BasktIdl from '../../target/idl/baskt_v1.json';
 
 export const getProvider = (endpointParam?: string) => {
   const endpoint = endpointParam || process.env.ANCHOR_PROVIDER_URL!;
@@ -18,6 +18,6 @@ export const getProvider = (endpointParam?: string) => {
     commitment: 'confirmed',
     preflightCommitment: 'confirmed',
   });
-  const program = new anchor.Program<BasktV1>(BasktV1Idl, provider);
+  const program = new anchor.Program<Baskt>(BasktIdl, provider);
   return { provider, program, wallet };
 };

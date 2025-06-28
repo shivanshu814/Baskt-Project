@@ -1,9 +1,12 @@
 import { expect } from 'chai';
-import { describe, before, it } from 'mocha';
+import { describe, before, it, after } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { TestClient } from '../utils/test-client';
 import { BN } from 'bn.js';
 import { AccessControlRole, OnchainAssetConfig } from '@baskt/types';
+// Using TestClient static method instead of importing from test-setup
+import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
+import { BASE_NAV_BN } from '../utils/test-constants';
 
 type AssetId = {
   assetAddress: PublicKey;
@@ -34,6 +37,9 @@ describe('activate baskt', () => {
   const DEFAULT_MAX_PRICE_AGE_SEC = 60;
   // Set up test roles and assets before running tests
   before(async () => {
+    // Ensure protocol is initialized and roles are set up
+    await TestClient.initializeProtocolAndRoles(client);
+
     // Create assets that will be used across tests
     btcAssetId = await client.addAsset('BTC');
     ethAssetId = await client.addAsset('ETH');
@@ -50,6 +56,21 @@ describe('activate baskt', () => {
     for (let i = 0; i < 20; i++) {
       const assetId = await client.addAsset(`ASSET${i}`);
       multiAssetIds.push(assetId);
+    }
+  });
+
+  after(async () => {
+    // Clean up roles added during tests
+    try {
+      const removeRebalancerSig = await client.removeRole(
+        rebalancer.publicKey,
+        AccessControlRole.Rebalancer
+      );
+      await waitForTx(client.connection, removeRebalancerSig);
+      await waitForNextSlot(client.connection);
+    } catch (error) {
+      // Silently handle cleanup errors to avoid masking test failures
+      console.warn('Cleanup error in activate_baskt.test.ts:', error);
     }
   });
 
@@ -74,7 +95,7 @@ describe('activate baskt', () => {
 
     // Get the baskt before activation
     const basktBefore = await client.getBaskt(basktId);
-    expect(basktBefore.isActive).to.be.false;
+    expect(basktBefore.status).to.deep.equal({ pending: {} });
 
     // Set prices for each asset in the baskt
     const prices = [
@@ -89,7 +110,7 @@ describe('activate baskt', () => {
     const basktAfter = await client.getBaskt(basktId);
 
     // Verify the baskt is now active
-    expect(basktAfter.isActive).to.be.true;
+    expect(basktAfter.status).to.deep.equal({ active: {} });
 
     // Verify baseline prices were set correctly
     expect(basktAfter.currentAssetConfigs[0].baselinePrice.toString()).to.equal(
@@ -100,7 +121,7 @@ describe('activate baskt', () => {
     );
 
     // Verify baseline NAV was set
-    expect(basktAfter.baselineNav.toString()).to.equal('100000000');
+    expect(basktAfter.baselineNav.toString()).to.equal(BASE_NAV_BN.toString());
 
     // Try to activate again - should fail with BasktAlreadyActive
     try {
@@ -126,7 +147,7 @@ describe('activate baskt', () => {
 
     // Get the baskt before activation
     const basktBefore = await client.getBaskt(basktId);
-    expect(basktBefore.isActive).to.be.false;
+    expect(basktBefore.status).to.deep.equal({ pending: {} });
 
     // Set prices for each asset in the baskt
     const prices = [new BN(1)]; // DOGE price
@@ -139,7 +160,7 @@ describe('activate baskt', () => {
     const basktAfter = await client.getBaskt(basktId);
 
     // Verify the baskt is now active
-    expect(basktAfter.isActive).to.be.true;
+    expect(basktAfter.status).to.deep.equal({ active: {} });
 
     // Verify baseline prices were set correctly
     expect(basktAfter.currentAssetConfigs[0].baselinePrice.toString()).to.equal(
@@ -147,7 +168,7 @@ describe('activate baskt', () => {
     );
 
     // Verify baseline NAV was set
-    expect(basktAfter.baselineNav.toString()).to.equal('100000000');
+    expect(basktAfter.baselineNav.toString()).to.equal(BASE_NAV_BN.toString());
   });
 
   it('Fails to activate a baskt from a regular user', async () => {
@@ -188,7 +209,7 @@ describe('activate baskt', () => {
 
     // Verify the baskt is still inactive
     const basktAfter = await client.getBaskt(basktId);
-    expect(basktAfter.isActive).to.be.false;
+    expect(basktAfter.status).to.deep.equal({ pending: {} });
   });
 
   it('Fails to activate a baskt from a rebalancer', async () => {
@@ -220,7 +241,7 @@ describe('activate baskt', () => {
 
     // Verify the baskt is still inactive
     const basktAfter = await client.getBaskt(basktId);
-    expect(basktAfter.isActive).to.be.false;
+    expect(basktAfter.status).to.deep.equal({ pending: {} });
   });
 
   it('Successfully activates a baskt with 20 assets', async () => {
@@ -236,7 +257,7 @@ describe('activate baskt', () => {
 
     // Get the baskt before activation
     const basktBefore = await client.getBaskt(basktId);
-    expect(basktBefore.isActive).to.be.false;
+    expect(basktBefore.status).to.deep.equal({ pending: {} });
 
     // Set prices for each asset in the baskt (20 assets)
     const prices = Array(20)
@@ -250,7 +271,7 @@ describe('activate baskt', () => {
     const basktAfter = await client.getBaskt(basktId);
 
     // Verify the baskt is now active
-    expect(basktAfter.isActive).to.be.true;
+    expect(basktAfter.status).to.deep.equal({ active: {} });
 
     // Verify baseline prices were set correctly for all 20 assets
     for (let i = 0; i < 20; i++) {
@@ -260,7 +281,7 @@ describe('activate baskt', () => {
     }
 
     // Verify baseline NAV was set
-    expect(basktAfter.baselineNav.toString()).to.equal('100000000');
+    expect(basktAfter.baselineNav.toString()).to.equal(BASE_NAV_BN.toString());
   });
 
   it('Fails to activate a baskt with mismatched price count', async () => {
@@ -297,6 +318,6 @@ describe('activate baskt', () => {
 
     // Verify the baskt is still inactive
     const basktAfter = await client.getBaskt(basktId);
-    expect(basktAfter.isActive).to.be.false;
+    expect(basktAfter.status).to.deep.equal({ pending: {} });
   });
 });

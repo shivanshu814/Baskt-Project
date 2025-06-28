@@ -16,6 +16,8 @@ export function toRoleString(role: AccessControlRole): string {
       return 'Liquidator';
     case AccessControlRole.FundingManager:
       return 'FundingManager';
+    case AccessControlRole.ConfigManager:
+      return 'ConfigManager';
     default:
       return 'Unknown';
   }
@@ -34,6 +36,8 @@ export function stringToRole(roleStr: string): AccessControlRole {
       return AccessControlRole.Liquidator;
     case 'FundingManager':
       return AccessControlRole.FundingManager;
+    case 'ConfigManager':
+      return AccessControlRole.ConfigManager;
     case 'Owner':
       // For Owner role, we can't actually add it as a role in the access control list
       // but we handle it specially in the hasPermission method

@@ -9,4 +9,5 @@ export enum AccessControlRole {
   Matcher = 4,
   Liquidator = 5,
   FundingManager = 6,
+  ConfigManager = 7,
 }

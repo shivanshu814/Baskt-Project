@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   PublicKeyText,
+  NumberFormat,
 } from '@baskt/ui';
 import { formatDate } from '../../utils/pool';
 import { MoreHorizontal } from 'lucide-react';
@@ -60,11 +61,13 @@ const OrderList = () => {
             <TableHead>Baskt ID</TableHead>
             <TableHead>Position</TableHead>
             <TableHead>Action</TableHead>
-            <TableHead>Size</TableHead>
             <TableHead>Collateral</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Time</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>Limit Price</TableHead>
+            <TableHead>Max Slippage</TableHead>
+            <TableHead>Order Type</TableHead>
+            <TableHead className="text-right"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -79,7 +82,7 @@ const OrderList = () => {
               <TableRow key={order.orderId.toString()}>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <p
+                    <div
                       className="text-sm font-medium text-gray-200 truncate cursor-pointer"
                       onClick={() =>
                         handleCopy(order.orderId.toString(), `orderId-${order.orderId}`)
@@ -90,43 +93,53 @@ const OrderList = () => {
                         isCopy={true}
                         noFormat={true}
                       />
-                    </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <p
+                    <div
                       className="text-sm text-gray-500 cursor-pointer"
                       onClick={() => handleCopy(order.owner.toBase58(), `owner-${order.orderId}`)}
                     >
                       <PublicKeyText publicKey={order.owner.toBase58()} isCopy={true} />
-                    </p>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <p className="text-sm text-gray-200">
+                  <div className="text-sm text-gray-200">
                     <PublicKeyText publicKey={order.basktId.toBase58()} isCopy={true} />
-                  </p>
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <p className={`text-sm font-medium ${getActionColor(order.isLong)}`}>
+                  <div className={`text-sm font-medium ${getActionColor(order.isLong)}`}>
                     {order.isLong ? 'Long' : 'Short'}
-                  </p>
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <p className="text-sm text-gray-200">{order.action}</p>
+                  <div className="text-sm text-gray-200">{order.action}</div>
                 </TableCell>
                 <TableCell>
-                  <p className="text-sm text-gray-200">{order.size.toString()}</p>
+                  <div className="text-sm text-gray-200">
+                    <NumberFormat value={parseFloat(order.collateral.toString())} isPrice />
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <p className="text-sm text-gray-200">${order.collateral.toString()}</p>
-                </TableCell>
-                <TableCell>
-                  <p className={`text-sm font-medium ${getStatusColor(order.status)}`}>
+                  <div className={`text-sm font-medium ${getStatusColor(order.status)}`}>
                     {order.status}
-                  </p>
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <p className="text-sm text-gray-500">{formatDate(order.timestamp.toNumber())}</p>
+                  <div className="text-sm text-gray-500">
+                    {formatDate(order.timestamp.toNumber())}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm text-gray-500">{order.limitPrice.toString()}</div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm text-gray-500">{order.maxSlippage.toString()}</div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm text-gray-500">{order.orderType}</div>
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>

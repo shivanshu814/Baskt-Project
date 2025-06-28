@@ -9,12 +9,13 @@ import {
   Badge,
   PublicKeyText,
 } from '@baskt/ui';
-import { Loader2 } from 'lucide-react';
+import { Loader2, FileText } from 'lucide-react';
 import { formatDate } from '../../utils/pool';
 import { useCopyWithTimeout } from '../../hooks/useCopyWithTimeout';
 import { getStatusColor, getActionColor } from '../../utils/orderUtils';
 import { HistoryTableProps } from '../../types/history';
-import { getPnlColor, formatPnl, formatSize, formatCollateral } from '../../utils/historyUtils';
+import { getPnlColor, formatSize } from '../../utils/historyUtils';
+import { NumberFormat } from '@baskt/ui';
 
 const LoadingState: React.FC<{ colSpan: number }> = ({ colSpan }) => (
   <TableRow>
@@ -33,19 +34,7 @@ const EmptyState: React.FC<{ colSpan: number }> = ({ colSpan }) => (
     <TableCell colSpan={colSpan} className="text-center py-12">
       <div className="flex flex-col items-center gap-2">
         <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center">
-          <svg
-            className="w-6 h-6 text-gray-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
+          <FileText className="w-6 h-6 text-gray-500" />
         </div>
         <p className="text-gray-400 font-medium">No history found</p>
         <p className="text-sm text-gray-500">Try adjusting your filters or check back later</p>
@@ -78,7 +67,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
         <Badge variant={item.type === 'order' ? 'default' : 'secondary'} className="w-fit">
           {item.type.toUpperCase()}
         </Badge>
-        <p
+        <div
           className="text-sm text-gray-300 cursor-pointer"
           onClick={() =>
             handleCopy(item.type === 'order' ? item.orderId! : item.positionId!, `id-${item.id}`)
@@ -89,7 +78,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
             isCopy={true}
             noFormat={true}
           />
-        </p>
+        </div>
       </div>
     ),
     [handleCopy],
@@ -100,13 +89,13 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
       item: any, //eslint-disable-line
     ) => (
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium text-gray-200">{item.basktName || 'Unknown'}</p>
-        <p
+        <div className="text-sm font-medium text-gray-200">{item.basktName || 'Unknown'}</div>
+        <div
           className="text-xs text-gray-500 cursor-pointer"
           onClick={() => handleCopy(item.basktId, `baskt-${item.id}`)}
         >
           <PublicKeyText publicKey={item.basktId} isCopy={true} />
-        </p>
+        </div>
       </div>
     ),
     [handleCopy],
@@ -116,12 +105,12 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
     (
       item: any, //eslint-disable-line
     ) => (
-      <p
+      <div
         className="text-sm text-gray-300 cursor-pointer"
         onClick={() => handleCopy(item.owner, `owner-${item.id}`)}
       >
         <PublicKeyText publicKey={item.owner} isCopy={true} />
-      </p>
+      </div>
     ),
     [handleCopy],
   );
@@ -129,7 +118,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
   const renderActionCell = useCallback(
     (
       item: any, //eslint-disable-line
-    ) => <p className="text-sm text-gray-200">{item.action}</p>,
+    ) => <div className="text-sm text-gray-200">{item.action}</div>,
     [],
   );
 
@@ -137,9 +126,9 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
     (
       item: any, //eslint-disable-line
     ) => (
-      <p className={`text-sm font-medium ${getActionColor(item.isLong)}`}>
+      <div className={`text-sm font-medium ${getActionColor(item.isLong)}`}>
         {item.isLong ? 'Long' : 'Short'}
-      </p>
+      </div>
     ),
     [],
   );
@@ -147,21 +136,25 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
   const renderSizeCell = useCallback(
     (
       item: any, //eslint-disable-line
-    ) => <p className="text-sm text-gray-200">{formatSize(item.size)}</p>,
+    ) => <div className="text-sm text-gray-200">{formatSize(item.size)}</div>,
     [],
   );
 
   const renderCollateralCell = useCallback(
     (
       item: any, //eslint-disable-line
-    ) => <p className="text-sm text-gray-200">{formatCollateral(item.collateral)}</p>,
+    ) => (
+      <div className="text-sm text-gray-200">
+        {item.collateral ? <NumberFormat value={parseFloat(item.collateral)} isPrice /> : '-'}
+      </div>
+    ),
     [],
   );
 
   const renderStatusCell = useCallback(
     (
       item: any, //eslint-disable-line
-    ) => <p className={`text-sm font-medium ${getStatusColor(item.status)}`}>{item.status}</p>,
+    ) => <div className={`text-sm font-medium ${getStatusColor(item.status)}`}>{item.status}</div>,
     [],
   );
 
@@ -169,9 +162,16 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
     (
       item: any, //eslint-disable-line
     ) => (
-      <p className={`text-sm font-medium ${getPnlColor(item.pnl)}`}>
-        {formatPnl(item.pnl, item.pnlPercentage)}
-      </p>
+      <div className={`text-sm font-medium ${getPnlColor(item.pnl)}`}>
+        {item.pnl ? (
+          <>
+            <NumberFormat value={parseFloat(item.pnl)} isPrice />
+            {item.pnlPercentage && ` (${item.pnlPercentage}%)`}
+          </>
+        ) : (
+          '-'
+        )}
+      </div>
     ),
     [],
   );
@@ -179,7 +179,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
   const renderTimeCell = useCallback(
     (
       item: any, //eslint-disable-line
-    ) => <p className="text-sm text-gray-500">{formatDate(parseInt(item.timestamp))}</p>,
+    ) => <div className="text-sm text-gray-500">{formatDate(parseInt(item.timestamp))}</div>,
     [],
   );
 
