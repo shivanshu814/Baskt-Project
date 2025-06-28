@@ -8,7 +8,8 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "build:server": "turbo run build --filter=@baskt/sdk --filter=@baskt/types",
+    "build:lib": "turbo run build --filter=@baskt/sdk --filter=@baskt/types",
+    "build:server": "turbo run build --filter=@baskt/backend --filter=@baskt/oracle --filter=@baskt/event-engine",
     "dev:all": "turbo run dev",
     "dev:admin": "turbo run dev --filter=@baskt/admin-app --filter=@baskt/backend",
     "dev:main": "turbo run dev --filter=@baskt/main-app --filter=@baskt/backend",

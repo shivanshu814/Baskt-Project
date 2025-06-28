@@ -14,7 +14,30 @@ export const managerQueueName = 'managerQueue';
 export const eventsQueueName = 'events';
 export const rebalanceQueueName = 'rebalanceQueue';
 
-export const pricingQueue = new Queue(pricingQueueName, { connection });
-export const managerQueue = new Queue(managerQueueName, { connection });
-export const eventsQueue = new Queue(eventsQueueName, { connection });
-export const rebalanceQueue = new Queue(rebalanceQueueName, { connection });
+export const pricingQueue = new Queue(pricingQueueName, { connection, 
+  defaultJobOptions: {
+    removeOnComplete: true,
+    removeOnFail: true,
+  },
+});
+export const managerQueue = new Queue(managerQueueName, {
+  connection,
+  defaultJobOptions: {
+    removeOnComplete: true,
+    removeOnFail: true,
+  },
+});
+export const eventsQueue = new Queue(eventsQueueName, {
+  connection,
+  defaultJobOptions: {
+    removeOnComplete: true,
+    removeOnFail: true,
+  },
+});
+export const rebalanceQueue = new Queue(rebalanceQueueName, {
+  connection,
+  defaultJobOptions: {
+    removeOnComplete: true,
+    removeOnFail: true,
+  },
+});
