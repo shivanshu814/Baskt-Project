@@ -2,7 +2,7 @@ import { PublicKey } from '@solana/web3.js';
 import { basktClient } from '../../utils/config';
 import { OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
 import { trpcClient } from '../../utils/config';
-import { MAX_ASSET_PRICE_AGE_MS } from '@baskt/sdk/dist';
+import { MAX_ASSET_PRICE_AGE_MS } from '@baskt/sdk';
 import { BN } from 'bn.js';
 import { ObserverEvent } from '../../types';
 import { EventSource } from '../../types';

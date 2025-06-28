@@ -9,6 +9,7 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
+      env_file: '/root/monorepo/.env',  // Absolute path to root .env
       env: {
         NODE_ENV: 'production',
       },
@@ -22,6 +23,35 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
+      env_file: '/root/monorepo/.env',  // Absolute path to root .env
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
+      name: 'oracle:rebalance-manager',
+      cwd: '/root/monorepo/services/oracle',
+      script: 'bash',
+      args: "-c 'node dist/rebalance/manager.js'",
+      interpreter: 'none',
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      env_file: '/root/monorepo/.env',  // Absolute path to root .env
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
+      name: 'oracle:rebalance-worker',
+      cwd: '/root/monorepo/services/oracle',
+      script: 'bash',
+      args: "-c 'node dist/rebalance/worker.js'",
+      interpreter: 'none',
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      env_file: '/root/monorepo/.env',  // Absolute path to root .env
       env: {
         NODE_ENV: 'production',
       },
@@ -30,11 +60,12 @@ module.exports = {
       name: 'backend',
       cwd: '/root/monorepo/services/backend',
       script: 'bash',
-      args: "-c 'node dist/server/index.js'",
+      args: "-c 'node dist/index.js'",
       interpreter: 'none',
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
+      env_file: '/root/monorepo/.env',  // Absolute path to root .env
       env: {
         NODE_ENV: 'production',
       },
@@ -48,6 +79,7 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
+      env_file: '/root/monorepo/.env',  // Absolute path to root .env
       env: {
         NODE_ENV: 'production',
       },

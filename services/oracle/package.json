@@ -8,7 +8,7 @@
     "dev:worker": "tsx watch src/oracle-worker.ts",
     "rebalance:manager": "tsx watch src/rebalance/manager.ts",
     "rebalance:worker": "tsx watch src/rebalance/worker.ts",
-    "build": "tsc",
+    "build": "tsup",
     "start:manager": "node dist/manager.js",
     "start:worker": "node dist/oracle-worker.js",
     "lint": "eslint src --ext .ts"
@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.6",
+    "tsup": "^8.0.2",
     "tsx": "^4.10.1",
     "typescript": "^5.3.3"
   }
