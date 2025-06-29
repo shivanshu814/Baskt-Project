@@ -22,7 +22,6 @@ import {
   SheetTrigger,
 } from '@baskt/ui';
 import { toast } from 'sonner';
-import { ThemeToggle } from './ThemeToggle';
 
 interface NavbarProps {
   setSidebarOpen?: (open: boolean) => void;
@@ -48,11 +47,8 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
 
   const navigationItems = [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/my-portfolio', label: 'My Portfolio' },
     { href: '/baskts', label: 'Baskts' },
-    // { href: '/how-it-works', label: 'How It Works' },
-    { href: '/pool', label: 'Pool' },
-    { href: '/faucet', label: 'Faucet' },
+    { href: '/earn', label: 'Earn' },
   ];
 
   return (
@@ -79,7 +75,6 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
         <div className="flex items-center gap-2">
           {/* desktop view */}
           <div className="hidden md:flex items-center gap-2 sm:gap-3">
-            <ThemeToggle />
             <Link href="/create-baskt">
               <Button variant="outline" size="sm">
                 <Plus className="h-4 w-4 mr-2" />
@@ -138,10 +133,6 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
                 </div>
               </div>
               <div className="border-t p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Theme</span>
-                  <ThemeToggle />
-                </div>
                 {authenticated && user?.wallet?.address ? (
                   <div className="space-y-2">
                     <div className="p-2 text-sm rounded-md border text-center">
