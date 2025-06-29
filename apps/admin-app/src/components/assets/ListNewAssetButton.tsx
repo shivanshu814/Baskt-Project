@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 // import { toast } from 'sonner';
 // import { usePrivy } from '@privy-io/react-auth';
-// import { useBasktClient, Button } from '@baskt/ui';
+import {  Button } from '@baskt/ui';
 import { ListNewAssetDialog } from './ListNewAssetDialog';
 
 export function ListNewAssetButton() {
