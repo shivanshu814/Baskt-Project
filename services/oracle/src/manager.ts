@@ -55,14 +55,15 @@ async function resetJobs(queue: Queue) {
     },
     { connection },
   );
+  await scheduleOracleConfigs();
 
   await managerQueue.add(
     'resetPricingJobs',
     {},
     {
-      repeat: { every: parseInt(process.env.MANAGER_REPEAST_MS ?? '3600000') }, // every hour
+      repeat: { every: parseInt(process.env.MANAGER_REPEAST_MS ?? '1800000') }, // every 30mins
     },
   );
 
-  console.log('Manager queue initialized, runs hourly.');
+  console.log('Manager queue initialized, runs every 30 mins.');
 })();
