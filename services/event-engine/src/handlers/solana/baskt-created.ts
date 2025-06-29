@@ -71,7 +71,7 @@ export default {
     const activeAssets = assets.filter(
       (asset: any) =>
         asset.priceMetrics?.price > 0 &&
-        asset.priceMetrics?.timestamp + MAX_ASSET_PRICE_AGE_MS > currentTime,
+        Math.abs(currentTime - asset.priceMetrics?.timestamp) < MAX_ASSET_PRICE_AGE_MS,
     );
 
     if (activeAssets.length !== onchainAssetList.length) {
