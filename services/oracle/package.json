@@ -8,6 +8,8 @@
     "dev:worker": "tsx watch src/oracle-worker.ts",
     "rebalance:manager": "tsx watch src/rebalance/manager.ts",
     "rebalance:worker": "tsx watch src/rebalance/worker.ts",
+    "download:historical": "tsx src/scripts/download-historical-data.ts",
+    "verify:historical": "tsx src/scripts/verify-historical-data.ts",
     "build": "tsup",
     "start:manager": "node dist/manager.js",
     "start:worker": "node dist/oracle-worker.js",
