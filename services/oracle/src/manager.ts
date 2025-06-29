@@ -44,6 +44,7 @@ async function resetJobs(queue: Queue) {
 
   await resetJobs(managerQueue);
   await resetJobs(pricingQueue);
+  await scheduleOracleConfigs();
 
   const managerWorker = new Worker(
     managerQueue.name,
@@ -55,7 +56,6 @@ async function resetJobs(queue: Queue) {
     },
     { connection },
   );
-  await scheduleOracleConfigs();
 
   await managerQueue.add(
     'resetPricingJobs',
