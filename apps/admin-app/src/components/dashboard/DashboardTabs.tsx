@@ -18,15 +18,7 @@ export function AdminTabs({
   hasPermission,
   renderActionButton,
 }: AdminTabsProps) {
-  const visibleTabs = useMemo(() => {
-    // if user is owner show all tabs
-    if (isOwner) {
-      return TAB_CONFIG;
-    }
-
-    // for non owners only show assets and baskts
-    return TAB_CONFIG.filter((tab) => tab.id === TAB_IDS.ASSETS || tab.id === TAB_IDS.BASKTS);
-  }, [isOwner]);
+  const visibleTabs = TAB_CONFIG;
 
   const tabTriggers = useMemo(() => {
     return visibleTabs.map((tab) => (
