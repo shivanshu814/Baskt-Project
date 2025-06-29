@@ -10,7 +10,7 @@ export function useRoles() {
   const [isLoading, setIsLoading] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
   const [allUsers, setAllUsers] = useState<Role[]>([]);
-  const [isOwner, setIsOwner] = useState(true);
+  const [isOwner] = useState(true);
 
   // const checkOwnerPermission = async () => {
   //   if (!client) return;
