@@ -8,17 +8,12 @@ async function main() {
   );
 
   const tokenKeypair = Keypair.fromSecretKey(
-    Uint8Array.from([
-      95, 136, 61, 33, 143, 184, 249, 132, 146, 238, 145, 126, 84, 151, 150, 3, 198, 128, 238, 71,
-      208, 173, 133, 110, 242, 194, 113, 215, 60, 111, 136, 193, 232, 32, 30, 249, 61, 182, 166,
-      193, 104, 47, 98, 7, 122, 139, 156, 217, 163, 153, 134, 12, 116, 138, 148, 178, 168, 221, 240,
-      43, 37, 101, 13, 5,
-    ]),
+    Uint8Array.from([116,22,28,62,203,238,144,135,3,143,172,38,151,37,175,70,222,253,173,233,237,157,94,245,254,79,184,185,118,112,245,62,34,23,202,54,145,104,187,233,130,38,158,87,195,116,212,45,167,152,45,200,40,52,85,234,69,19,177,193,157,142,156,195]),
   );
 
   const mintAccount = await getMint(
     provider.connection,
-    new PublicKey('Gd7zeJamJavAPEywyEtPq28aaRdEMEKvDZwL7P8K2mWU'),
+    new PublicKey('3J5uJ5Pn8yrLwraQSmNMDYFAw59tf2mPTbMxBTtEFx3t'),
   );
 
   console.log('Mint Account:', mintAccount);
@@ -33,7 +28,7 @@ async function main() {
     Buffer.from(newMintAuthority.secretKey).toString('base64'),
   );
 
-  const tokenMint = new PublicKey('Gd7zeJamJavAPEywyEtPq28aaRdEMEKvDZwL7P8K2mWU');
+  const tokenMint = new PublicKey('3J5uJ5Pn8yrLwraQSmNMDYFAw59tf2mPTbMxBTtEFx3t');
 
   const transaction = new Transaction().add(
     createSetAuthorityInstruction(

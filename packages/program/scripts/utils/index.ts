@@ -5,8 +5,8 @@ import * as anchor from '@coral-xyz/anchor';
 import { Connection, Keypair } from '@solana/web3.js';
 import { join } from 'path';
 import { homedir } from 'os';
-import { Baskt } from '../../target/types/baskt_v1';
-import BasktIdl from '../../target/idl/baskt_v1.json';
+import { Baskt } from '../../target/types/baskt';
+import BasktIdl from '../../target/idl/baskt.json';
 
 export const getProvider = (endpointParam?: string) => {
   const endpoint = endpointParam || process.env.ANCHOR_PROVIDER_URL!;

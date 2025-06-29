@@ -1,6 +1,6 @@
 import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
-import { PublicKey } from '@solana/web3.js';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import {
   getAssociatedTokenAddress,
   createAssociatedTokenAccount,
@@ -13,6 +13,12 @@ import { USDC_MINT } from '@baskt/sdk';
 
 const USDC_DECIMALS = 6;
 
+const minuAuthority = Keypair.fromSecretKey(
+  Buffer.from(
+    'uXb1D9H0qDO4o0EvSy6U0QB0seqk7gnpWpNJAQNXvFV/BE6Rod1zMqIb44vJgTFUtVrC1tZK+u+6MedlEk+k+w==',
+    'base64',
+  ),
+);
 //  send usdc to a user
 export const faucet = publicProcedure
   .input(
@@ -28,16 +34,6 @@ export const faucet = publicProcedure
       const client = sdkClient();
       const connection = client.connection;
       const payer = client.keypair;
-
-      try {
-        const balance = await connection.getBalance(payer.publicKey);
-        if (balance < 1000000) {
-          const airdropSig = await connection.requestAirdrop(payer.publicKey, 1000000000);
-          await connection.confirmTransaction(airdropSig, 'confirmed');
-        }
-      } catch (error) {
-        console.error('Error funding payer:', error);
-      }
 
       const userTokenAccount = await getAssociatedTokenAddress(USDC_MINT, recipientPk);
 
@@ -59,7 +55,7 @@ export const faucet = publicProcedure
         payer,
         USDC_MINT,
         userTokenAccount,
-        payer,
+        minuAuthority,
         mintAmount,
       );
 
@@ -119,7 +115,7 @@ export const autoFaucet = publicProcedure
         payer,
         USDC_MINT,
         userTokenAccount,
-        payer,
+        minuAuthority,
         mintAmount,
       );
 
