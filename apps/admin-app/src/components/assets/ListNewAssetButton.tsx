@@ -1,17 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { toast } from 'sonner';
-import { usePrivy } from '@privy-io/react-auth';
-import { useBasktClient, Button } from '@baskt/ui';
+// import { toast } from 'sonner';
+// import { usePrivy } from '@privy-io/react-auth';
+// import { useBasktClient, Button } from '@baskt/ui';
 import { ListNewAssetDialog } from './ListNewAssetDialog';
 
 export function ListNewAssetButton() {
   const [showModal, setShowModal] = useState(false);
-  const [hasPermission, setHasPermission] = useState(true);
-  const { client } = useBasktClient();
-  const { authenticated } = usePrivy();
+  const [hasPermission] = useState(true);
+  // const { client } = useBasktClient();
+  // const { authenticated } = usePrivy();
 
   // useEffect(() => {
   //   const checkPermission = async () => {
