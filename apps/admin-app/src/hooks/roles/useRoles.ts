@@ -12,22 +12,22 @@ export function useRoles() {
   const [allUsers, setAllUsers] = useState<Role[]>([]);
   const [isOwner, setIsOwner] = useState(true);
 
-  const checkOwnerPermission = async () => {
-    if (!client) return;
-    try {
-      const protocol = await client.getProtocolAccount();
-      const userAddress = client.getPublicKey().toString();
+  // const checkOwnerPermission = async () => {
+  //   if (!client) return;
+  //   try {
+  //     const protocol = await client.getProtocolAccount();
+  //     const userAddress = client.getPublicKey().toString();
 
-      const isProtocolOwner = protocol.owner === userAddress;
-      const hasOwnerRole = protocol.accessControl.entries.some(
-        (entry) => entry.account === userAddress && entry.role.toLowerCase() === 'owner',
-      );
-      const hasPermission = isProtocolOwner || hasOwnerRole;
-      setIsOwner(hasPermission);
-    } catch (error) {
-      setIsOwner(false);
-    }
-  };
+  //     const isProtocolOwner = protocol.owner === userAddress;
+  //     const hasOwnerRole = protocol.accessControl.entries.some(
+  //       (entry) => entry.account === userAddress && entry.role.toLowerCase() === 'owner',
+  //     );
+  //     const hasPermission = isProtocolOwner || hasOwnerRole;
+  //     setIsOwner(hasPermission);
+  //   } catch (error) {
+  //     setIsOwner(false);
+  //   }
+  // };
 
   const fetchAllUsers = async () => {
     if (!client) return;
