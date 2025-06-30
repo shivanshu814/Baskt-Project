@@ -15,9 +15,8 @@ interface ClientLayoutProps {
 }
 
 function AppContent({ children }: { children: React.ReactNode }) {
-  const hasAccess = true;
   const {
-    // hasAccess,
+    hasAccess,
     grantAccess,
     clearAccess,
     initializeAccessState,
