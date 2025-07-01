@@ -135,7 +135,10 @@ export function combineAsset(
     change24h,
     account: onchainAsset,
     weight: 0,
-    config: shouldPassConfig ? config.priceConfig : undefined,
+    config: shouldPassConfig ? {
+      ...config.priceConfig,
+      coingeckoId: config.coingeckoId,
+    } : undefined,
     latestPrice: latestPrice,
     basktIds: config.basktIds,
   };
