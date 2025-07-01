@@ -75,7 +75,9 @@ export interface AssetMutationInput {
       seconds: number;
     };
     updateFrequencySeconds: number;
+    units: number;
   };
+  coingeckoId?: string;
 }
 
 export interface AssetPriceHistoryPageProps {
@@ -92,7 +94,7 @@ export interface FetchParams {
   endDate: number;
 }
 
-export const providerOptions = ['Binance', 'Dexscreener', 'Coingecko'] as const;
+export const providerOptions = ['Binance', 'Dexscreener', 'USDC'] as const;
 
 export const assetFormSchema = z.object({
   ticker: z.string().min(1, { message: 'Ticker is required' }),
@@ -112,7 +114,9 @@ export const assetFormSchema = z.object({
       .number()
       .int()
       .min(1, { message: 'Update frequency required' }),
+    units: z.coerce.number().positive({ message: 'Units must be positive' }).default(1),
   }),
+  coingeckoId: z.string().optional(),
   logo: z.string().url({ message: 'Please enter a valid logo URL' }),
   permissions: z.object({
     allowLong: z.boolean().default(true),
@@ -150,7 +154,23 @@ export interface AssetHeaderProps {
 export interface EditAssetDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (assetId: string, provider: { id: string; name: string; chain: string }) => void;
+  onSave: (assetId: string, data: {
+    name?: string;
+    logo?: string;
+    priceConfig?: {
+      provider?: {
+        id?: string;
+        name?: string;
+        chain?: string;
+      };
+      twp?: {
+        seconds?: number;
+      };
+      updateFrequencySeconds?: number;
+      units?: number;
+    };
+    coingeckoId?: string;
+  }) => void;
   asset: Asset | null;
 }
 

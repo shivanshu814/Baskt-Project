@@ -20,7 +20,9 @@ export const createAsset = publicProcedure
           seconds: z.number().positive(),
         }),
         updateFrequencySeconds: z.number().positive(),
+        units: z.number().positive().default(1),
       }),
+      coingeckoId: z.string().optional(),
     }),
   )
   .mutation(async ({ input }) => {
@@ -32,6 +34,9 @@ export const createAsset = publicProcedure
       const asset = new AssetMetadataModel({
         ...input,
       });
+      if (input.coingeckoId) {
+        asset.set('coingeckoId', input.coingeckoId);
+      }
       await asset.save();
       return { success: true, data: asset };
     } catch (error) {
@@ -66,31 +71,82 @@ export const updateAssetPriceConfig = publicProcedure
   .input(
     z.object({
       assetId: z.string(),
+      name: z.string().min(1).optional(),
+      logo: z.string().min(1).optional(),
       priceConfig: z.object({
         provider: z.object({
-          id: z.string().min(1),
-          name: z.string().min(1),
-          chain: z.string().optional().default(''),
-        }),
-      }),
+          id: z.string().min(1).optional(),
+          name: z.string().min(1).optional(),
+          chain: z.string().optional(),
+        }).optional(),
+        twp: z.object({
+          seconds: z.number().positive().optional(),
+        }).optional(),
+        updateFrequencySeconds: z.number().positive().optional(),
+        units: z.number().positive().optional(),
+      }).optional(),
+      coingeckoId: z.string().optional(),
     }),
   )
   .mutation(async ({ input }) => {
     try {
-      const { assetId, priceConfig } = input;
+      const { assetId, name, logo, priceConfig, coingeckoId } = input;
       const asset = await AssetMetadataModel.findById(assetId);
 
       if (!asset) {
         return { success: false, message: 'Asset not found' };
       }
 
-      asset.priceConfig.provider = priceConfig.provider;
+      // Only update fields that are provided
+      if (name) {
+        asset.name = name;
+      }
+      
+      if (logo) {
+        asset.logo = logo;
+      }
+      
+      if (coingeckoId) {
+        asset.set('coingeckoId', coingeckoId);
+      }
+      
+      if (priceConfig) {
+        // Update provider fields if provided
+        if (priceConfig.provider) {
+          if (priceConfig.provider.name) {
+            asset.priceConfig.provider.name = priceConfig.provider.name;
+          }
+          if (priceConfig.provider.id) {
+            asset.priceConfig.provider.id = priceConfig.provider.id;
+          }
+          if (priceConfig.provider.chain) {
+            asset.priceConfig.provider.chain = priceConfig.provider.chain;
+          }
+        }
+        
+        // Update TWP if provided
+        if (priceConfig.twp?.seconds) {
+          if (!asset.priceConfig.twp) asset.priceConfig.twp = { seconds: 60 };
+          asset.priceConfig.twp.seconds = priceConfig.twp.seconds;
+        }
+        
+        // Update update frequency if provided
+        if (priceConfig.updateFrequencySeconds) {
+          asset.priceConfig.updateFrequencySeconds = priceConfig.updateFrequencySeconds;
+        }
+        
+        // Update units if provided
+        if (priceConfig.units) {
+          (asset.priceConfig as any).units = priceConfig.units;
+        }
+      }
+      
       await asset.save();
 
       return { success: true, data: asset };
     } catch (error) {
-      console.error('Error updating asset price config:', error);
-      return { success: false, message: 'Failed to update asset price config' };
+      console.error('Error updating asset:', error);
+      return { success: false, message: 'Failed to update asset' };
     }
   });
 

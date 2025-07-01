@@ -9,6 +9,7 @@ export async function fetchTokenPrice(
   name: string,
   chain: string,
   id: string,
+  units: number = 1,
 ): Promise<{
   priceUSD: BN;
 } | null> {
@@ -22,7 +23,10 @@ export async function fetchTokenPrice(
     console.log(prices, 'are null');
     return null;
   }
-  return prices;
+  
+  // Apply units multiplier
+  const multipliedPrice = prices.priceUSD.muln(units);
+  return { priceUSD: multipliedPrice };
 }
 
 export async function fetchAssetPrices(tokens: AssetPriceProviderConfig[]): Promise<AssetPrice[]> {
@@ -31,7 +35,8 @@ export async function fetchAssetPrices(tokens: AssetPriceProviderConfig[]): Prom
   for (const token of tokens) {
     let prices;
     const priceProvider = token.provider;
-    prices = await fetchTokenPrice(priceProvider.name, priceProvider.chain, priceProvider.id);
+    const units = token.units || 1; // Default to 1 if units is not defined
+    prices = await fetchTokenPrice(priceProvider.name, priceProvider.chain, priceProvider.id, units);
     if (!prices) {
       continue;
     }

@@ -36,6 +36,13 @@ async function callBinanceAPI(id: string) {
   };
 }
 
+async function callUSDCAPI(id: string) {
+  const priceUSD = new BN(PRICE_PRECISION);
+  return {
+    priceUSD,
+  };
+}
+
 // Function to route the price to the correct API
 export async function routePrice(
   priceProvider: string,
@@ -46,6 +53,8 @@ export async function routePrice(
     return await callOxfunAPI(id);
   } else if (priceProvider === 'binance') {
     return await callBinanceAPI(id);
+  } else if (priceProvider === 'usdc') {
+    return await callUSDCAPI(id);
   } else {
     return await callDexscreenerAPI(id, chain);
   }

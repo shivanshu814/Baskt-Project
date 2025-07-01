@@ -9,12 +9,14 @@ export interface AssetPriceProviderConfig {
     seconds: number;
   };
   updateFrequencySeconds: number;
+  units: number;
 }
 export interface AssetMetadataModel {
   ticker: string;
   name: string;
   assetAddress: string;
   priceConfig: AssetPriceProviderConfig;
+  coingeckoId?: string;
   logo: string;
   _id?: string;
   createdAt?: Date;
@@ -54,8 +56,14 @@ export const AssetMetadataSchema = new mongoose.Schema({
         required: true,
       },
       updateFrequencySeconds: { type: Number, required: true },
+      units: { type: Number, required: true, default: 1 },
     },
     required: true,
+  },
+  coingeckoId: {
+    type: String,
+    required: false,
+    trim: true,
   },
   priceMetrics: {
     type: {

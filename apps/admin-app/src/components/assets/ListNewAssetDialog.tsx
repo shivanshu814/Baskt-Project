@@ -55,7 +55,9 @@ export function ListNewAssetDialog({ open, onOpenChange }: DialogProps) {
           seconds: 60,
         },
         updateFrequencySeconds: 60,
+        units: 1,
       },
+      coingeckoId: '',
       logo: '',
       permissions: {
         allowLong: true,
@@ -96,7 +98,9 @@ export function ListNewAssetDialog({ open, onOpenChange }: DialogProps) {
             seconds: values.priceConfig.twp.seconds,
           },
           updateFrequencySeconds: values.priceConfig.updateFrequencySeconds,
+          units: values.priceConfig.units,
         },
+        coingeckoId: values.coingeckoId,
       };
       await createAsset.mutateAsync(assetInput);
       showTransactionToast({
@@ -264,8 +268,43 @@ export function ListNewAssetDialog({ open, onOpenChange }: DialogProps) {
                     )}
                   />
                 </div>
+                <div className="flex-1 min-w-[200px]">
+                  <FormField
+                    control={form.control}
+                    name="priceConfig.units"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Units</FormLabel>
+                        <FormControl>
+                          <Input className="text-xs" type="number" placeholder="1" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        <p className="text-xs text-muted-foreground">
+                          Price multiplier (default: 1)
+                        </p>
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
             </div>
+
+            <FormField
+              control={form.control}
+              name="coingeckoId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CoinGecko ID (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="bitcoin" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                  <p className="text-xs text-[#E5E7EB]/60">
+                    CoinGecko ID for historical data (e.g., bitcoin, ethereum)
+                  </p>
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
