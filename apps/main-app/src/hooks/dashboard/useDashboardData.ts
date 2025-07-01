@@ -196,7 +196,7 @@ export const useDashboardData = () => {
     // eslint-disable-next-line
     const baskets = basketsData.data.filter((b) => b !== null) as any[];
 
-    const basktTotals: Record<string, { name: string; value: number }> = {};
+    const basktTotals: Record<string, { name: string; value: number; id: string }> = {};
     // eslint-disable-next-line
     positionsData.data.forEach((pos: any) => {
       // eslint-disable-next-line
@@ -204,7 +204,7 @@ export const useDashboardData = () => {
       const basketName = basket?.name || pos.basktId || 'Unknown Basket';
 
       if (!basktTotals[pos.basktId]) {
-        basktTotals[pos.basktId] = { name: basketName, value: 0 };
+        basktTotals[pos.basktId] = { name: basketName, value: 0, id: pos.basktId };
       }
       basktTotals[pos.basktId].value += pos.usdcSize ? Number(pos.usdcSize) / 1e6 : 0;
     });

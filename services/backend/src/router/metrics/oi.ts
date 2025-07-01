@@ -4,6 +4,7 @@ import { PositionStatus } from '@baskt/types';
 import { AssetMetadataModel, PositionMetadataModel } from '../../utils/models';
 import { sdkClient } from '../../utils';
 import { PublicKey } from '@solana/web3.js';
+import { BN } from 'bn.js';
 
 const sdkClientInstance = sdkClient();
 
@@ -29,19 +30,23 @@ export const getOpenInterestForBaskt = publicProcedure
       if (basktId) filter.basktId = basktId;
       if (positionStatus) filter.status = positionStatus;
 
-      const positions = await PositionMetadataModel.find({ basktId });
+      const positions = await PositionMetadataModel.find(filter);
 
       const longPositions = positions.filter((p: any) => p.isLong);
       const shortPositions = positions.filter((p: any) => !p.isLong);
 
-      const longOpenInterest = longPositions.reduce(
-        (sum: any, pos: any) => sum + Number(pos.size),
-        0,
-      );
-      const shortOpenInterest = shortPositions.reduce(
-        (sum: any, pos: any) => sum + Number(pos.size),
-        0,
-      );
+      const longOpenInterest = longPositions.reduce((sum: any, pos: any) => {
+        const contractSize = new BN(pos.size);
+        const entryPrice = new BN(pos.entryPrice);
+        const usdcValue = contractSize.mul(entryPrice).div(new BN(1000000));
+        return sum + usdcValue.toNumber();
+      }, 0);
+      const shortOpenInterest = shortPositions.reduce((sum: any, pos: any) => {
+        const contractSize = new BN(pos.size);
+        const entryPrice = new BN(pos.entryPrice);
+        const usdcValue = contractSize.mul(entryPrice).div(new BN(1000000));
+        return sum + usdcValue.toNumber();
+      }, 0);
 
       return {
         success: true,

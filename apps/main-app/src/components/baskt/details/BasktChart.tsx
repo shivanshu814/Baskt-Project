@@ -5,6 +5,7 @@ import { TradingViewChart } from './TradingViewChart';
 import { BasktChartProps } from '../../../types/baskt';
 import { useBasktList } from '../../../hooks/baskt/useBasktList';
 import { SearchBar } from '../../shared/SearchBar';
+import { useBasktOI } from '../../../hooks/baskt/useBasktOI';
 
 export const BasktChart = ({
   baskt,
@@ -15,7 +16,7 @@ export const BasktChart = ({
   BasktChartProps,
   'onCompositionClick' | 'onPositionClick' | 'setChartPeriod' | 'setChartType'
 > & {
-  onBasktChange: (basktId: string) => void;
+  onBasktChange: (basktName: string) => void;
 }) => {
   const { filteredBaskts } = useBasktList();
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -30,6 +31,9 @@ export const BasktChart = ({
       b.basktId?.toString().toLowerCase().includes(search.toLowerCase()),
   );
 
+  // Get real OI value
+  const { totalOpenInterest, isLoading: oiLoading } = useBasktOI(baskt.basktId?.toString());
+
   return (
     <div className="border-b border-muted-foreground/20">
       <div className="pb-0">
@@ -42,7 +46,9 @@ export const BasktChart = ({
                   className="flex items-center px-0 py-0 rounded hover:bg-muted/30 transition min-w-0"
                   style={{ height: '40px' }}
                 >
-                  <span className="font-semibold text-lg sm:text-xl text-primary">{baskt.name}</span>
+                  <span className="font-semibold text-lg sm:text-xl text-primary">
+                    {baskt.name}
+                  </span>
                   <span
                     className={`font-semibold text-sm sm:text-base ml-2 sm:ml-3 ${
                       currentBaskt?.change24h >= 0 ? 'text-green-400' : 'text-red-400'
@@ -67,7 +73,7 @@ export const BasktChart = ({
                         }`}
                         onClick={() => {
                           setPopoverOpen(false);
-                          onBasktChange(b.basktId?.toString());
+                          onBasktChange(b.name);
                         }}
                       >
                         <span>{b.name}</span>
@@ -89,10 +95,15 @@ export const BasktChart = ({
               </span>
             </div>
             <div className="flex flex-col items-start">
-              <span className="text-muted-foreground underline decoration-dashed">Open Interest</span>
+              <span className="text-muted-foreground underline decoration-dashed">
+                Open Interest
+              </span>
               <span className="font-semibold text-white">
-                {/* Placeholder value, replace with real data if available */}
-                $1,054,677,839.59
+                {oiLoading
+                  ? '...'
+                  : totalOpenInterest === 0
+                  ? '---'
+                  : '$' + (totalOpenInterest / 1e6).toFixed(3)}
               </span>
             </div>
             <div className="flex flex-col items-start">

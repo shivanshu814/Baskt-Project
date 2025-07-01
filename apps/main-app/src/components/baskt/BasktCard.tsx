@@ -12,11 +12,23 @@ import { ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { useMemo } from 'react';
 import { BasktCardProps } from '../../types/baskt';
+import { useBasktOI } from '../../hooks/baskt/useBasktOI';
 
 const DEFAULT_SPARKLINE = Array(24).fill(0);
 
+const formatNumberWithAbbreviation = (value: number): string => {
+  if (value >= 1000000) {
+    return `${(value / 1000000).toFixed(1)}M`;
+  } else if (value >= 1000) {
+    return `${(value / 1000).toFixed(0)}k`;
+  } else {
+    return value.toFixed(3);
+  }
+};
+
 export const BasktCard = ({ baskt, className }: BasktCardProps) => {
   const router = useRouter();
+  const { totalOpenInterest, isLoading: oiLoading } = useBasktOI(baskt.basktId.toString());
 
   const { isPositive, changeColor, changeIcon, sparklineData } = useMemo(() => {
     const change24h = baskt.change24h || 0;
@@ -95,7 +107,7 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
         <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm text-muted-foreground">
           <div>Assets: {baskt.totalAssets || 0}</div>
           <div className="text-right">
-            AUM: <NumberFormat value={baskt.aum} isPrice={true} />M
+            OI: {oiLoading ? '...' : formatNumberWithAbbreviation(totalOpenInterest / 1e6)}
           </div>
         </div>
 
@@ -114,7 +126,7 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
         <Button
           className="w-full text-xs sm:text-sm"
           size="sm"
-          onClick={() => router.push(`/baskts/${baskt.basktId}`)}
+          onClick={() => router.push(`/baskts/${baskt.name}`)}
         >
           <ArrowRightLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           Trade

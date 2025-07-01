@@ -130,13 +130,29 @@ export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Liquidation Price:</span>
                 <TabsContent value="long" className="m-0 p-0">
-                  <span className="text-[#EA3943]">
-                    <NumberFormat value={getLiquidationPrice(size, 'long')} isPrice />
+                  <span>
+                    {getLiquidationPrice(size, 'long') !== null &&
+                    getLiquidationPrice(size, 'long') !== undefined &&
+                    !isNaN(getLiquidationPrice(size, 'long')) ? (
+                      <span className="text-[#EA3943]">
+                        <NumberFormat value={getLiquidationPrice(size, 'long')} isPrice />
+                      </span>
+                    ) : (
+                      '---'
+                    )}
                   </span>
                 </TabsContent>
                 <TabsContent value="short" className="m-0 p-0">
-                  <span className="text-[#EA3943]">
-                    <NumberFormat value={getLiquidationPrice(size, 'short')} isPrice />
+                  <span>
+                    {getLiquidationPrice(size, 'short') !== null &&
+                    getLiquidationPrice(size, 'short') !== undefined &&
+                    !isNaN(getLiquidationPrice(size, 'short')) ? (
+                      <span className="text-[#EA3943]">
+                        <NumberFormat value={getLiquidationPrice(size, 'short')} isPrice />
+                      </span>
+                    ) : (
+                      '---'
+                    )}
                   </span>
                 </TabsContent>
               </div>

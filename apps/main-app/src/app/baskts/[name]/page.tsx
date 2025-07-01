@@ -12,9 +12,9 @@ export default function BasktDetailPage() {
   const router = useRouter();
   const params = useParams();
 
-  const [basktId, setBasktId] = useState(params.id as string);
+  const [basktName, setBasktName] = useState(decodeURIComponent(params.name as string));
 
-  const { baskt, isLoading, chartPeriod, chartType } = useBasktDetail(basktId);
+  const { baskt, isLoading, chartPeriod, chartType } = useBasktDetail(basktName);
 
   if (isLoading) {
     return (
@@ -45,7 +45,7 @@ export default function BasktDetailPage() {
               baskt={baskt}
               chartPeriod={chartPeriod}
               chartType={chartType}
-              onBasktChange={(id: string) => setBasktId(id)}
+              onBasktChange={(name: string) => setBasktName(name)}
             />
 
             <BasktTabs baskt={baskt} />

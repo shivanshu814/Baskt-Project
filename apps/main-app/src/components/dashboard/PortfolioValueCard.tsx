@@ -26,7 +26,7 @@ const PortfolioValueCard = ({ portfolioSummary }: { portfolioSummary: PortfolioS
         </CardTitle>
         <div className="flex items-center gap-2">
           <div className="relative group">
-            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
             <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-popover border rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto z-10">
               <p className="text-xs text-muted-foreground">
                 This represents the total value of your portfolio including all open positions,

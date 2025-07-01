@@ -157,6 +157,33 @@ const getTradingData = publicProcedure
     };
   });
 
+// get baskt metadata by name
+const getBasktMetadataByName = publicProcedure
+  .input(z.object({ basktName: z.string() }))
+  .query(async ({ input }) => {
+    try {
+      const basktInfo = await getBasktInfoFromName(input.basktName);
+      if (!basktInfo) {
+        return {
+          success: false,
+          message: 'Baskt metadata not found',
+        };
+      }
+
+      return {
+        success: true,
+        data: basktInfo,
+      };
+    } catch (error) {
+      console.error('Error fetching baskt metadata:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch baskt metadata',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
+
 // get baskt info from address
 async function getBasktInfoFromAddress(basktId: string) {
   const basktMetadata = await BasktMetadataModel.findOne({ basktId }).exec();
@@ -165,6 +192,36 @@ async function getBasktInfoFromAddress(basktId: string) {
   }
   const onchainBaskt = await sdkClientInstance.getBaskt(new PublicKey(basktId));
   if (!onchainBaskt) {
+    return null;
+  }
+  return convertToBasktInfo(onchainBaskt, basktMetadata);
+}
+
+// get baskt info from name
+async function getBasktInfoFromName(basktName: string) {
+  console.log('Searching for baskt with name:', basktName);
+
+  // First try exact match
+  let basktMetadata = await BasktMetadataModel.findOne({ name: basktName }).exec();
+
+  if (!basktMetadata) {
+    console.log('Exact match not found, trying case-insensitive search');
+    // Try case-insensitive search
+    basktMetadata = await BasktMetadataModel.findOne({
+      name: { $regex: new RegExp(`^${basktName}$`, 'i') },
+    }).exec();
+  }
+
+  if (!basktMetadata) {
+    console.log('Baskt not found in database');
+    return null;
+  }
+
+  console.log('Found baskt metadata:', basktMetadata.name, 'with ID:', basktMetadata.basktId);
+
+  const onchainBaskt = await sdkClientInstance.getBaskt(new PublicKey(basktMetadata.basktId));
+  if (!onchainBaskt) {
+    console.log('Onchain baskt not found');
     return null;
   }
   return convertToBasktInfo(onchainBaskt, basktMetadata);
@@ -217,7 +274,6 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
   const status = onchainBaskt.status;
   const account = (onchainBaskt.account || onchainBaskt) as OnchainBasktAccount;
 
-
   return {
     _id: basktMetadata?._id,
     basktId: basktId,
@@ -261,6 +317,7 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
 
 export const getRouter = {
   getBasktMetadataById,
+  getBasktMetadataByName,
   getAllBaskts,
   getBasktNAV,
   getTradingData,

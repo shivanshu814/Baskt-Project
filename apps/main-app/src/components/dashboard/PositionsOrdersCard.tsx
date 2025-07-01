@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@baskt/ui';
-import { Package, Clock } from 'lucide-react';
 
 const PositionsOrdersCard = ({
   openPositions,
@@ -15,18 +14,12 @@ const PositionsOrdersCard = ({
     <CardContent>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
         <div className="flex items-center gap-4">
-          <div className="rounded-full bg-muted/40 p-4 flex items-center justify-center">
-            <Package className="h-7 w-7 text-foreground" />
-          </div>
           <div className="flex flex-col items-start">
             <span className="text-xs text-muted-foreground mb-1">Open Positions</span>
             <span className="text-2xl font-bold text-foreground">{openPositions}</span>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="rounded-full bg-muted/40 p-4 flex items-center justify-center">
-            <Clock className="h-7 w-7 text-foreground" />
-          </div>
           <div className="flex flex-col items-start">
             <span className="text-xs text-muted-foreground mb-1">Active Orders</span>
             <span className="text-2xl font-bold text-foreground">{openOrders}</span>

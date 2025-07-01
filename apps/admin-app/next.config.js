@@ -15,6 +15,7 @@ const connectSrc = [
   'wss://www.walletlink.org',
   'https://*.rpc.privy.systems',
   'https://explorer-api.walletconnect.com',
+  'https://staging-be.baskt.ai',
 ]
   .filter(Boolean)
   .join(' ');

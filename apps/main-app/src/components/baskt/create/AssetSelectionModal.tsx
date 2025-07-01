@@ -137,7 +137,7 @@ export function AssetSelectionModal({
                           }`}
                         >
                           {asset.change24h >= 0 ? '+' : ''}
-                          <NumberFormat value={asset.change24h} />%
+                          <NumberFormat value={asset.change24h / 1e9} />%
                         </span>
                       </div>
                     </div>

@@ -4,7 +4,8 @@ import { BasktInfo } from '@baskt/types';
 import { processBasktData } from '../../utils/baskt/processBasktData';
 import { toast } from 'sonner';
 
-export const useBasktDetail = (basktId: string) => {
+export const useBasktDetail = (basktName: string) => {
+  console.log('useBasktDetail called with name:', basktName);
   const [baskt, setBaskt] = useState<BasktInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -18,8 +19,8 @@ export const useBasktDetail = (basktId: string) => {
   });
 
   const { data: basktInfo, isSuccess: isBasktDataLoaded } =
-    trpc.baskt.getBasktMetadataById.useQuery(
-      { basktId },
+    trpc.baskt.getBasktMetadataByName.useQuery(
+      { basktName },
       {
         refetchOnMount: false,
         refetchOnWindowFocus: false,
@@ -28,9 +29,10 @@ export const useBasktDetail = (basktId: string) => {
     );
 
   const { data: basktNavData, isSuccess: isBasktNavDataLoaded } = trpc.baskt.getBasktNAV.useQuery(
-    { basktId },
+    { basktId: basktInfo?.success && 'data' in basktInfo ? basktInfo.data.basktId : '' },
     {
       refetchInterval: 2 * 1000,
+      enabled: basktInfo?.success && 'data' in basktInfo && !!basktInfo.data.basktId,
     },
   );
 
@@ -76,7 +78,7 @@ export const useBasktDetail = (basktId: string) => {
     };
 
     fetchBasktData();
-  }, [basktId, isBasktDataLoaded, basktInfo]);
+  }, [basktName, isBasktDataLoaded, basktInfo]);
 
   return {
     baskt,

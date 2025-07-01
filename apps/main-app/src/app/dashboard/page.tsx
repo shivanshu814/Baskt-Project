@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+// import { useState, useEffect } from 'react';
 import { PortfolioDistribution } from '../../components/dashboard/PortfolioDistribution';
 import { BasketAllocationPie } from '../../components/dashboard/TokenAllocationPie';
 import PortfolioValueCard from '../../components/dashboard/PortfolioValueCard';
 import UsdcCollateralCard from '../../components/dashboard/UsdcCollateralCard';
 import PositionsOrdersCard from '../../components/dashboard/PositionsOrdersCard';
-import PopularBaskts from '../../components/dashboard/PopularBaskts';
+// import PopularBaskts from '../../components/dashboard/PopularBaskts';
 import RecentActivity from '../../components/dashboard/RecentActivity';
-import PortfolioValueGraph from '../../components/dashboard/PortfolioValueGraph';
+// import PortfolioValueGraph from '../../components/dashboard/PortfolioValueGraph';
 import { useDashboardData } from '../../hooks/dashboard/useDashboardData';
 
 export default function DashboardPage() {
@@ -17,41 +17,41 @@ export default function DashboardPage() {
     chartData,
     recentActivity,
     openOrders,
-    popularBaskts,
+    // popularBaskts,
     usdcBalance,
     isLoading,
   } = useDashboardData();
 
-  const [portfolioValueHistory, setPortfolioValueHistory] = useState(() => {
-    const now = Date.now();
-    return Array.from({ length: 10 }, (_, i) => {
-      const timestamp = now - (9 - i) * 60 * 1000;
-      return {
-        date: new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        value: 1000 + Math.round(Math.sin(i / 2) * 200 + Math.random() * 100),
-      };
-    });
-  });
+  // const [portfolioValueHistory, setPortfolioValueHistory] = useState(() => {
+  //   const now = Date.now();
+  //   return Array.from({ length: 10 }, (_, i) => {
+  //     const timestamp = now - (9 - i) * 60 * 1000;
+  //     return {
+  //       date: new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  //       value: 1000 + Math.round(Math.sin(i / 2) * 200 + Math.random() * 100),
+  //     };
+  //   });
+  // });
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPortfolioValueHistory((prev) => {
-        const now = Date.now();
-        const newValue = prev[prev.length - 1].value + Math.round((Math.random() - 0.5) * 100);
-        const next = [
-          ...prev.slice(1),
-          {
-            date: new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            value: Math.max(0, newValue),
-          },
-        ];
-        return next;
-      });
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     setPortfolioValueHistory((prev) => {
+  //       const now = Date.now();
+  //       const newValue = prev[prev.length - 1].value + Math.round((Math.random() - 0.5) * 100);
+  //       const next = [
+  //         ...prev.slice(1),
+  //         {
+  //           date: new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  //           value: Math.max(0, newValue),
+  //         },
+  //       ];
+  //       return next;
+  //     });
+  //   }, 10000);
+  //   return () => clearInterval(interval);
+  // }, []);
 
-  const startValue = portfolioValueHistory[0]?.value || 0;
+  // const startValue = portfolioValueHistory[0]?.value || 0;
 
   if (isLoading) {
     return (
@@ -87,17 +87,17 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <PortfolioDistribution basktData={chartData.basktDistribution} />
         <BasketAllocationPie data={chartData.tokenAllocation} />
-        <PortfolioValueGraph
+        {/* <PortfolioValueGraph
           portfolioValueHistory={portfolioValueHistory}
           startValue={startValue}
-        />
+        /> */}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <PopularBaskts popularBaskts={popularBaskts} />
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8">
+        {/* <PopularBaskts popularBaskts={popularBaskts} /> */}
         <RecentActivity recentActivity={recentActivity} />
       </div>
     </main>
