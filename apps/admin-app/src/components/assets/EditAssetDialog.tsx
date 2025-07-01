@@ -78,12 +78,12 @@ export function EditAssetDialog({ isOpen, onClose, onSave, asset }: EditAssetDia
             chain: asset.config?.provider?.chain || '',
           },
           twp: {
-            seconds: 60, // Default value since this might not be available in current asset structure
+            seconds: asset.config?.twp?.seconds || 60,
           },
-          updateFrequencySeconds: 60, // Default value since this might not be available in current asset structure
-          units: 1, // Default value since this might not be available in current asset structure
+          updateFrequencySeconds: asset.config?.updateFrequencySeconds || 60,
+          units: asset.config?.units || 1,
         },
-        coingeckoId: '', // Default value since this might not be available in current asset structure
+        coingeckoId: asset.config?.coingeckoId || '',
       });
     }
   }, [asset, form, isOpen]);

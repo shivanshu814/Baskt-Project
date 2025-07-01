@@ -16,6 +16,12 @@ export interface Asset {
       chain: string;
       name: string;
     };
+    twp?: {
+      seconds: number;
+    };
+    updateFrequencySeconds?: number;
+    units?: number;
+    coingeckoId?: string;
   };
   account: {
     address: string;

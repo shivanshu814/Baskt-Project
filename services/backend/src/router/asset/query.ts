@@ -136,7 +136,10 @@ export function combineAsset(
     account: onchainAsset,
     weight: 0,
     config: shouldPassConfig ? {
-      ...config.priceConfig,
+      provider: config.priceConfig.provider,
+      twp: config.priceConfig.twp,
+      updateFrequencySeconds: config.priceConfig.updateFrequencySeconds,
+      units: config.priceConfig.units,
       coingeckoId: config.coingeckoId,
     } : undefined,
     latestPrice: latestPrice,
