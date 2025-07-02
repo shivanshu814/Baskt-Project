@@ -73,7 +73,9 @@ export const LiquidityAllocation = React.memo(
           </div>
           <div className="bg-foreground/10 rounded-xl p-4">
             <div className="text-sm text-muted-foreground mb-1">BLP Price</div>
-            <div className="text-xl font-bold text-foreground">${blpPrice}</div>
+            <div className="text-xl font-bold text-foreground">
+              {isNaN(Number(blpPrice)) || !isFinite(Number(blpPrice)) ? '---' : `$${blpPrice}`}
+            </div>
           </div>
           <div className="bg-foreground/10 rounded-xl p-4">
             <div className="text-sm text-muted-foreground mb-1">Total Supply</div>

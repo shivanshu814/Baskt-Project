@@ -106,22 +106,29 @@ export function useAssets() {
   ) => {
     try {
       // Only include fields that are actually provided
+      // eslint-disable-next-line
       const updatePayload: any = { assetId };
-      
+
       if (data.name) updatePayload.name = data.name;
       if (data.logo) updatePayload.logo = data.logo;
       if (data.coingeckoId) updatePayload.coingeckoId = data.coingeckoId;
-      
+
       if (data.priceConfig) {
         updatePayload.priceConfig = {};
         if (data.priceConfig.provider) {
           updatePayload.priceConfig.provider = {};
-          if (data.priceConfig.provider.name) updatePayload.priceConfig.provider.name = data.priceConfig.provider.name;
-          if (data.priceConfig.provider.id) updatePayload.priceConfig.provider.id = data.priceConfig.provider.id;
-          if (data.priceConfig.provider.chain) updatePayload.priceConfig.provider.chain = data.priceConfig.provider.chain;
+          if (data.priceConfig.provider.name)
+            updatePayload.priceConfig.provider.name = data.priceConfig.provider.name;
+          if (data.priceConfig.provider.id)
+            updatePayload.priceConfig.provider.id = data.priceConfig.provider.id;
+          if (data.priceConfig.provider.chain)
+            updatePayload.priceConfig.provider.chain = data.priceConfig.provider.chain;
         }
-        if (data.priceConfig.twp?.seconds) updatePayload.priceConfig.twp = { seconds: data.priceConfig.twp.seconds };
-        if (data.priceConfig.updateFrequencySeconds) updatePayload.priceConfig.updateFrequencySeconds = data.priceConfig.updateFrequencySeconds;
+        if (data.priceConfig.twp?.seconds)
+          updatePayload.priceConfig.twp = { seconds: data.priceConfig.twp.seconds };
+        if (data.priceConfig.updateFrequencySeconds)
+          updatePayload.priceConfig.updateFrequencySeconds =
+            data.priceConfig.updateFrequencySeconds;
         if (data.priceConfig.units) updatePayload.priceConfig.units = data.priceConfig.units;
       }
 

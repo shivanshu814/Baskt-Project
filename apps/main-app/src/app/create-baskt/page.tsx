@@ -74,11 +74,7 @@ const CreateBasktPage = () => {
       return;
     }
 
-    try {
-      await createBaskt(formData);
-    } catch (error) {
-      setError('Failed to create baskt. Please try again later.');
-    }
+    await createBaskt(formData);
   };
 
   return (

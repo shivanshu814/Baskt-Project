@@ -15,14 +15,34 @@ import { useBasktDetail } from '../../../hooks/baskt/useBasktDetail';
 import { toast } from 'sonner';
 
 const EditBasktPage = () => {
+  // blocking the route for now
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/20">
+      <div className="text-center space-y-4 p-8 rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50 shadow-xl">
+        <div className="w-16 h-16 mx-auto rounded-full bg-muted/50 flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-muted-foreground" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-foreground">Coming Soon</h2>
+          <p className="text-muted-foreground max-w-md">
+            We're working hard to bring you the baskt editing feature. Stay tuned for updates!
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => router.back()} className="mt-4">
+          Go Back
+        </Button>
+      </div>
+    </div>
+  );
+
   const params = useParams();
   const router = useRouter();
-  const basktId = params.id as string;
+  const basktName = decodeURIComponent(params.name as string);
 
   const [isGuideDialogOpen, setIsGuideDialogOpen] = useState(false);
   const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
 
-  const { baskt, isLoading: isBasktLoading } = useBasktDetail(basktId);
+  const { baskt, isLoading: isBasktLoading } = useBasktDetail(basktName);
   const {
     formData,
     setFormData,
@@ -106,7 +126,7 @@ const EditBasktPage = () => {
     }
 
     try {
-      await updateBaskt(basktId, formData);
+      await updateBaskt(basktName, formData);
     } catch (error) {
       setError('Failed to update baskt. Please try again later.');
     }
@@ -172,6 +192,7 @@ const EditBasktPage = () => {
               onRemoveAsset={handleRemoveAsset}
               onAssetPositionChange={handleAssetPositionChange}
               onAssetWeightChange={handleAssetWeightChange}
+              title="Edit Baskt"
             />
 
             <div className="flex justify-end pt-4 gap-3">

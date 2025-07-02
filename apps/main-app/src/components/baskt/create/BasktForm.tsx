@@ -34,12 +34,13 @@ export const BasktForm = ({
   onRemoveAsset,
   onAssetPositionChange,
   onAssetWeightChange,
+  title,
 }: BasktFormProps) => {
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-          <span className="text-lg sm:text-xl">Create Baskt</span>
+          <span className="text-lg sm:text-xl">{title || 'Create Baskt'}</span>
           <div className="flex items-center text-xs sm:text-sm font-normal gap-2">
             <span className={cn(totalWeightage === 100 ? 'text-success' : 'text-warning')}>
               Total: {totalWeightage}%

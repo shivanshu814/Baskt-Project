@@ -6,7 +6,7 @@ import { BasketAllocationPie } from '../../components/dashboard/TokenAllocationP
 import PortfolioValueCard from '../../components/dashboard/PortfolioValueCard';
 import UsdcCollateralCard from '../../components/dashboard/UsdcCollateralCard';
 import PositionsOrdersCard from '../../components/dashboard/PositionsOrdersCard';
-// import PopularBaskts from '../../components/dashboard/PopularBaskts';
+import MyBaskts from '../../components/dashboard/UsersBaskts';
 import RecentActivity from '../../components/dashboard/RecentActivity';
 // import PortfolioValueGraph from '../../components/dashboard/PortfolioValueGraph';
 import { useDashboardData } from '../../hooks/dashboard/useDashboardData';
@@ -17,10 +17,22 @@ export default function DashboardPage() {
     chartData,
     recentActivity,
     openOrders,
-    // popularBaskts,
     usdcBalance,
     isLoading,
+    myBaskts,
   } = useDashboardData();
+
+  const myBasktsData = (myBaskts || [])
+    // eslint-disable-next-line
+    .filter((b: any): b is NonNullable<typeof b> => b != null)
+    // eslint-disable-next-line
+    .map((b: any) => ({
+      basktId: b.basktId,
+      name: b.name ?? '',
+      price: b.price ?? 0,
+      change24h: b.change24h ?? 0,
+      aum: b.aum ?? 0,
+    }));
 
   // const [portfolioValueHistory, setPortfolioValueHistory] = useState(() => {
   //   const now = Date.now();
@@ -96,8 +108,8 @@ export default function DashboardPage() {
         /> */}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8">
-        {/* <PopularBaskts popularBaskts={popularBaskts} /> */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <MyBaskts myBaskts={myBasktsData} />
         <RecentActivity recentActivity={recentActivity} />
       </div>
     </main>

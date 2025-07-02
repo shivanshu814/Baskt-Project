@@ -36,6 +36,15 @@ export const useDashboardData = () => {
   const { popularBaskts } = useBasktList();
   const { balance: usdcBalance } = useUSDCBalance(client?.wallet?.address);
 
+  const myBaskts = useMemo(() => {
+    if (!basketsData?.success || !('data' in basketsData) || !basketsData.data) return [];
+    return basketsData.data.filter(
+      // eslint-disable-next-line
+      (b: any) =>
+        b && b.creator && userAddress && b.creator.toLowerCase() === userAddress.toLowerCase(),
+    );
+  }, [basketsData, userAddress]);
+
   const portfolioSummary = useMemo((): PortfolioSummary => {
     const hasPositionsData =
       positionsData?.success && 'data' in positionsData && positionsData.data;
@@ -359,6 +368,7 @@ export const useDashboardData = () => {
     openPositions,
     orderHistory,
     popularBaskts,
+    myBaskts,
     usdcBalance: usdcBalance ? Number(usdcBalance) : 0,
     isLoading,
     userAddress,

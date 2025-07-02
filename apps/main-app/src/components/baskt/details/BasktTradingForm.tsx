@@ -131,7 +131,15 @@ export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
                 <span className="text-muted-foreground">Liquidation Price:</span>
                 <TabsContent value="long" className="m-0 p-0">
                   <span>
+                    {getLiquidationPrice(size, 'long') !== null &&
+                    getLiquidationPrice(size, 'long') !== undefined &&
+                    !isNaN(getLiquidationPrice(size, 'long')) ? (
+                      <span className="text-[#EA3943]">
+                        <NumberFormat value={getLiquidationPrice(size, 'long')} isPrice />
+                      </span>
+                    ) : (
                       '---'
+                    )}
                   </span>
                 </TabsContent>
                 <TabsContent value="short" className="m-0 p-0">
@@ -143,7 +151,7 @@ export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
                         <NumberFormat value={getLiquidationPrice(size, 'short')} isPrice />
                       </span>
                     ) : (
-                      'N/A'
+                      '---'
                     )}
                   </span>
                 </TabsContent>

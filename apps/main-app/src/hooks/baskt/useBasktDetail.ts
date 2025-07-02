@@ -5,7 +5,6 @@ import { processBasktData } from '../../utils/baskt/processBasktData';
 import { toast } from 'sonner';
 
 export const useBasktDetail = (basktName: string) => {
-  console.log('useBasktDetail called with name:', basktName);
   const [baskt, setBaskt] = useState<BasktInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);

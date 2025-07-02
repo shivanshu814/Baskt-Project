@@ -25,18 +25,30 @@ import { providerOptions, EditAssetDialogProps } from '../../types/assets';
 const editAssetSchema = z.object({
   name: z.string().optional(),
   logo: z.string().url('Please enter a valid logo URL').optional().or(z.literal('')),
-  priceConfig: z.object({
-    provider: z.object({
-      name: z.enum(providerOptions.map((o) => o.toLowerCase()) as [string, ...string[]]).optional(),
-      id: z.string().optional(),
-      chain: z.string().optional(),
-    }).optional(),
-    twp: z.object({
-      seconds: z.coerce.number().int().min(1, 'TWP seconds required').optional(),
-    }).optional(),
-    updateFrequencySeconds: z.coerce.number().int().min(1, 'Update frequency required').optional(),
-    units: z.coerce.number().positive('Units must be positive').optional(),
-  }).optional(),
+  priceConfig: z
+    .object({
+      provider: z
+        .object({
+          name: z
+            .enum(providerOptions.map((o) => o.toLowerCase()) as [string, ...string[]])
+            .optional(),
+          id: z.string().optional(),
+          chain: z.string().optional(),
+        })
+        .optional(),
+      twp: z
+        .object({
+          seconds: z.coerce.number().int().min(1, 'TWP seconds required').optional(),
+        })
+        .optional(),
+      updateFrequencySeconds: z.coerce
+        .number()
+        .int()
+        .min(1, 'Update frequency required')
+        .optional(),
+      units: z.coerce.number().positive('Units must be positive').optional(),
+    })
+    .optional(),
   coingeckoId: z.string().optional(),
 });
 
@@ -91,43 +103,47 @@ export function EditAssetDialog({ isOpen, onClose, onSave, asset }: EditAssetDia
   const onSubmit = (data: EditAssetFormValues) => {
     if (asset) {
       // Only include fields that have been changed (not empty)
+      // eslint-disable-next-line
       const updateData: any = {};
-      
+
       if (data.name && data.name.trim() !== '') {
         updateData.name = data.name;
       }
-      
+
       if (data.logo && data.logo.trim() !== '') {
         updateData.logo = data.logo;
       }
-      
+
       if (data.coingeckoId) {
         updateData.coingeckoId = data.coingeckoId;
       }
-      
+
       if (data.priceConfig) {
         updateData.priceConfig = {};
-        
+
         if (data.priceConfig.provider) {
           updateData.priceConfig.provider = {};
-          if (data.priceConfig.provider.name) updateData.priceConfig.provider.name = data.priceConfig.provider.name;
-          if (data.priceConfig.provider.id) updateData.priceConfig.provider.id = data.priceConfig.provider.id;
-          if (data.priceConfig.provider.chain) updateData.priceConfig.provider.chain = data.priceConfig.provider.chain;
+          if (data.priceConfig.provider.name)
+            updateData.priceConfig.provider.name = data.priceConfig.provider.name;
+          if (data.priceConfig.provider.id)
+            updateData.priceConfig.provider.id = data.priceConfig.provider.id;
+          if (data.priceConfig.provider.chain)
+            updateData.priceConfig.provider.chain = data.priceConfig.provider.chain;
         }
-        
+
         if (data.priceConfig.twp?.seconds) {
           updateData.priceConfig.twp = { seconds: data.priceConfig.twp.seconds };
         }
-        
+
         if (data.priceConfig.updateFrequencySeconds) {
           updateData.priceConfig.updateFrequencySeconds = data.priceConfig.updateFrequencySeconds;
         }
-        
+
         if (data.priceConfig.units) {
           updateData.priceConfig.units = data.priceConfig.units;
         }
       }
-      
+
       onSave(asset._id, updateData);
     }
   };
@@ -190,7 +206,9 @@ export function EditAssetDialog({ isOpen, onClose, onSave, asset }: EditAssetDia
 
             <div>
               <FormLabel>Price Configuration (Optional)</FormLabel>
-              <p className="text-xs text-muted-foreground mb-4">Only fill in the fields you want to change</p>
+              <p className="text-xs text-muted-foreground mb-4">
+                Only fill in the fields you want to change
+              </p>
               <div className="space-y-4">
                 <FormField
                   control={form.control}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Input } from '@baskt/ui';
+import { Button, Input, PublicKeyText } from '@baskt/ui';
 import { useBasktFundingIndex } from '../../hooks/baskts/useBasktFundingIndex';
 import { formatTimestamp, formatNumber } from '../../utils/format';
 import { BASIS_POINT } from '../../constants/pool';
@@ -60,7 +60,9 @@ export function FundingIndexTable({ basktId }: FundingIndexTableProps) {
           </thead>
           <tbody>
             <tr className="border-b border-white/5">
-              <td className="py-2 font-mono text-xs">{fundingIndex.basktId.toString()}</td>
+              <td className="py-2 font-mono text-xs">
+                <PublicKeyText publicKey={fundingIndex.basktId.toString()} isCopy={true} />
+              </td>
               <td className="py-2 text-right">
                 {formatNumber(Number(fundingIndex.cumulativeIndex) / BASIS_POINT || 0)}
               </td>
@@ -81,7 +83,7 @@ export function FundingIndexTable({ basktId }: FundingIndexTableProps) {
           placeholder="New rate (e.g., 0.5 for 0.5%)"
           value={newRate}
           onChange={(e) => setNewRate(e.target.value)}
-          className="flex-grow"
+          className="flex-grow bg-white/5 border border-border rounded-md"
         />
         <Button onClick={handleUpdateRate} disabled={!newRate}>
           Update Rate

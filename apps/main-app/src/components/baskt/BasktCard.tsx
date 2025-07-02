@@ -126,7 +126,7 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
         <Button
           className="w-full text-xs sm:text-sm"
           size="sm"
-          onClick={() => router.push(`/baskts/${baskt.name}`)}
+          onClick={() => router.push(`/baskts/${encodeURIComponent(baskt.name)}`)}
         >
           <ArrowRightLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           Trade

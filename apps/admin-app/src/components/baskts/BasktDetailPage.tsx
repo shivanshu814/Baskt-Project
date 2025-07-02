@@ -19,6 +19,7 @@ import { ArrowLeft } from 'lucide-react';
 import { BN } from 'bn.js';
 import { formatTimestamp } from '../../utils/format';
 import { FundingIndexTable } from './FundingIndexTable';
+import { RebalanceHistoryTable } from './RebalanceHistoryTable';
 import { BasktDetailPageProps } from '../../types/baskt';
 
 export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
@@ -48,7 +49,7 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Basic Information */}
-        <Card>
+        <Card className="!bg-white/5 border border-border rounded-md">
           <CardHeader>
             <CardTitle>Basic Information</CardTitle>
           </CardHeader>
@@ -57,17 +58,13 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
               <div className="flex justify-between">
                 <span className="text-white/60">Baskt ID:</span>
                 <span className="font-mono text-sm">
-                  <PublicKeyText publicKey={baskt.basktId} isCopy={true} noFormat={true} />
+                  <PublicKeyText publicKey={baskt.basktId} isCopy={true} />
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Creator:</span>
                 <span className="font-mono text-sm">
-                  <PublicKeyText
-                    publicKey={account.creator.toString()}
-                    isCopy={true}
-                    noFormat={true}
-                  />
+                  <PublicKeyText publicKey={account.creator.toString()} isCopy={true} />
                 </span>
               </div>
               <div className="flex justify-between">
@@ -87,9 +84,9 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
         </Card>
 
         {/* Rebalancing Information */}
-        <Card>
+        <Card className="!bg-white/5 border border-border rounded-md">
           <CardHeader>
-            <CardTitle>Rebalance History</CardTitle>
+            <CardTitle>Rebalancing Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-2">
@@ -112,7 +109,7 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
         </Card>
 
         {/* Oracle Parameters */}
-        <Card>
+        <Card className="!bg-white/5 border border-border rounded-md">
           <CardHeader>
             <CardTitle>Oracle Parameters</CardTitle>
           </CardHeader>
@@ -149,7 +146,7 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
         </Card>
 
         {/* Asset Configurations */}
-        <Card className="md:col-span-2">
+        <Card className="md:col-span-2 !bg-white/5 border border-border rounded-md">
           <CardHeader>
             <CardTitle>Asset Configurations ({account.currentAssetConfigs?.length || 0})</CardTitle>
           </CardHeader>
@@ -169,11 +166,7 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
                     {account.currentAssetConfigs.map((asset, index) => (
                       <TableRow key={index}>
                         <TableCell className="font-mono text-xs">
-                          <PublicKeyText
-                            publicKey={asset.assetId.toString()}
-                            isCopy={true}
-                            noFormat={true}
-                          />
+                          <PublicKeyText publicKey={asset.assetId.toString()} isCopy={true} />
                         </TableCell>
                         <TableCell className="text-right">
                           {parseFloat(asset.weight.toString()) / 1e2}%
@@ -198,8 +191,18 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
           </CardContent>
         </Card>
 
+        {/* Rebalance History */}
+        <Card className="md:col-span-2 !bg-white/5 border border-border rounded-md">
+          <CardHeader>
+            <CardTitle>Rebalance History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RebalanceHistoryTable basktId={baskt.basktId} />
+          </CardContent>
+        </Card>
+
         {/* Funding Index */}
-        <Card className="md:col-span-2">
+        <Card className="md:col-span-2 !bg-white/5 border border-border rounded-md">
           <CardHeader>
             <CardTitle>Funding Index</CardTitle>
           </CardHeader>
