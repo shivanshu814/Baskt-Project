@@ -41,6 +41,9 @@ export interface BasktResponse {
 export interface FundingIndexTableProps {
   basktId: string;
 }
+export interface RebalanceHistoryTableProps {
+  basktId: string;
+}
 export interface BasktDetailPageProps {
   baskt: BasktData;
   onBack: () => void;

@@ -158,12 +158,6 @@ export function AccessCodeEntry({ onSuccess }: AccessCodeEntryProps) {
             )}
           </Button>
         </form>
-
-        <div className="text-center">
-          <p className="text-white/40 text-xs sm:text-sm px-2">
-            Don't have an access code? Contact your administrator
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -23,7 +23,7 @@ export const transactionToastConfigs = {
     },
     failed: {
       title: 'Failed to Create Baskt',
-      description: 'Something went wrong while creating your Baskt. Please try again.',
+      description: 'Please check the error details below and try again.',
     },
   },
 } as const;

@@ -189,4 +189,5 @@ export interface BasktFormProps {
   onRemoveAsset: (ticker: string) => void;
   onAssetPositionChange: (ticker: string, position: 'long' | 'short') => void;
   onAssetWeightChange: (ticker: string, weight: string) => void;
+  title?: string;
 }

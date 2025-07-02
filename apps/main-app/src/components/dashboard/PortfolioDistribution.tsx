@@ -42,9 +42,9 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({ ba
                     ? baskt.name.slice(0, 6) + '...' + baskt.name.slice(-4)
                     : baskt.name}
                 </span>
-                {baskt.id && (
+                {baskt.name && (
                   <Link
-                    href={`/baskts/${baskt.id}`}
+                    href={`/baskts/${encodeURIComponent(baskt.name)}`}
                     className="flex items-center gap-1"
                     title={`View ${baskt.name} details`}
                   >
