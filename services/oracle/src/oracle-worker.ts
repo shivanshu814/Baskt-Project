@@ -22,18 +22,20 @@ const pricingWorker = new Worker(
 
     const oracleConfig = job.data as AssetMetadataModelType;
 
+    const priceDBID = oracleConfig.ticker;
+
     try {
       const prices = await fetchAssetPrices([oracleConfig.priceConfig]);
 
       await AssetPrice.create({
-        asset_id: (oracleConfig as any)._id,
+        asset_id: priceDBID,
         price: prices[0].priceUSD,
         time: new Date(),
       });
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const oldestPrice = await AssetPrice.findOne({
         where: {
-          asset_id: (oracleConfig as any)._id,
+          asset_id: priceDBID,
           time: {
             [Op.gte]: twentyFourHoursAgo,
           },
