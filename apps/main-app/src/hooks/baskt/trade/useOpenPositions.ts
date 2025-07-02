@@ -183,7 +183,7 @@ export function useOpenPosition({ baskt, usdcSize, navPrice }: UseOpenPositionPr
     return calculateLiquidationPrice({
       collateral,
       price: baskt.price,
-      leverage: 0.9,
+      leverage: 1, // Always 1x leverage
       position,
     });
   };

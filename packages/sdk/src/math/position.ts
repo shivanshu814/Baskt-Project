@@ -9,6 +9,7 @@ export interface CalculateSharesParams {
 
 export interface CalculateLiquidationPriceParams extends CalculateSharesParams {
   position: 'long' | 'short';
+  liquidationThresholdBps?: number;
 }
 
 export const calculateEstimatedShares = ({
@@ -24,14 +25,15 @@ export const calculateLiquidationPrice = ({
   price,
   leverage,
   position,
+  liquidationThresholdBps = 500,
 }: CalculateLiquidationPriceParams): number => {
-  const positionSize = collateral / leverage;
-  const ratio = collateral / positionSize;
-
+  const positionSize = collateral;
+  const liquidationThreshold = liquidationThresholdBps / 10000;
+  
   if (position === 'long') {
-    return price * (1 - (ratio - 1));
+    return price * liquidationThreshold;
   } else {
-    return price * (1 + (ratio - 1));
+    return price * (2 - liquidationThreshold);
   }
 };
 
