@@ -85,6 +85,7 @@ const pricingWorker = new Worker(
           },
         },
       );
+      console.log('Stored price, current price: ', currentPrice, 'SYMBOL', priceDBID);
     } catch (error) {
       console.error(`Error fetching prices for ${oracleConfig.name}:`, error);
     }
