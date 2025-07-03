@@ -9,13 +9,10 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@baskt/ui';
-import { Button } from '@baskt/ui';
 import {
   MessageCircle,
   Users,
   LifeBuoy,
-  ExternalLink,
-  X as LucideX,
   PartyPopper,
 } from 'lucide-react';
 
@@ -24,12 +21,57 @@ interface AccessCodeSuccessDialogProps {
   onClose: () => void;
 }
 
+interface TextLinkProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  linkText: string;
+  onClick: () => void;
+  color: string;
+}
+
+function TextLink({ icon, title, description, linkText, onClick, color }: TextLinkProps) {
+  return (
+    <div className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-md transition-colors">
+      <div className={`text-${color}-400 flex-shrink-0`}>{icon}</div>
+      <div className="flex-1">
+        <h3 className="font-medium text-white">{title}</h3>
+        <p className="text-white/60 text-sm">
+          {description}{' '}
+          <span 
+            onClick={onClick} 
+            className={`text-${color}-400 underline cursor-pointer hover:text-${color}-300`}
+          >
+            {linkText}
+          </span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function FeedbackInfo() {
+  return (
+    <div className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-md transition-colors">
+      <div className="text-blue-400 flex-shrink-0">
+        <MessageCircle className="h-5 w-5" />
+      </div>
+      <div className="flex-1">
+        <h3 className="font-medium text-white">Submit Feedback</h3>
+        <p className="text-white/60 text-sm">
+          Please use the blue feedback button on the bottom right of the application
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function AccessCodeSuccessDialog({ isOpen, onClose }: AccessCodeSuccessDialogProps) {
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(15);
 
   useEffect(() => {
     if (isOpen) {
-      setCountdown(30);
+      setCountdown(15);
       const timer = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
@@ -44,15 +86,11 @@ export function AccessCodeSuccessDialog({ isOpen, onClose }: AccessCodeSuccessDi
     }
   }, [isOpen, onClose]);
 
-  const handleFeedbackClick = () => {
-    const formId = process.env.NEXT_PUBLIC_TYPEFORM_ID || 'YOUR_FORM_ID';
-    const typeformUrl = `https://form.typeform.com/to/${formId}`;
-    window.open(typeformUrl, '_blank', 'noopener,noreferrer');
-  };
   const handleTelegramClick = () => {
     const telegramUrl = process.env.NEXT_PUBLIC_TELEGRAM_GROUP_URL || 'https://t.me/basktai';
     window.open(telegramUrl, '_blank', 'noopener,noreferrer');
   };
+  
   const handleSupportClick = () => {
     const supportUrl = process.env.NEXT_PUBLIC_SUPPORT_CONTACT_URL || 'https://t.me/basktai';
     window.open(supportUrl, '_blank', 'noopener,noreferrer');
@@ -60,97 +98,43 @@ export function AccessCodeSuccessDialog({ isOpen, onClose }: AccessCodeSuccessDi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-lg bg-background border border-white/10 shadow-lg rounded-md sm:rounded-lg p-0 relative">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 p-2 rounded-full hover:bg-white/10 text-white transition"
-          aria-label="Close dialog"
-        >
-          <LucideX className="h-5 w-5" />
-        </button>
+      <DialogContent className="w-full max-w-md bg-background border border-white/10 shadow-lg rounded-lg p-0">
 
-        <DialogHeader className="px-3 sm:px-8 pt-4 sm:pt-8 pb-2">
-          <DialogTitle className="text-center text-xl sm:text-2xl font-bold text-white">
-            Welcome to Baskt!{' '}
-            <PartyPopper className="inline-block h-6 w-6 sm:h-7 sm:w-7 text-yellow-400" />
+        <DialogHeader className="px-5 pt-5 pb-2">
+          <DialogTitle className="text-center text-xl font-bold text-white flex items-center justify-center gap-2">
+            Welcome to Baskt!
+            <PartyPopper className="h-5 w-5 text-yellow-400" />
           </DialogTitle>
-          <DialogDescription className="text-center text-white/80 text-base mt-2">
-            Your access has been granted successfully. Here's what you can do next:
+          <DialogDescription className="text-center text-white/70 text-sm">
+            Your access has been granted successfully
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 sm:gap-5 px-3 sm:px-6 pb-4 sm:pb-6">
-          <div className="flex items-start gap-3 sm:gap-4 bg-white/5 border-l-4 border-blue-500/20 rounded-md sm:rounded-lg p-4 sm:p-5 shadow-sm">
-            <div className="mt-1">
-              <MessageCircle className="h-6 w-6 sm:h-7 sm:w-7 text-blue-400" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-white text-base sm:text-lg mb-1">
-                Submit Feedback
-              </h3>
-              <p className="text-white/60 text-sm mb-3">
-                Help us improve by sharing your thoughts and suggestions
-              </p>
-              <Button
-                onClick={handleFeedbackClick}
-                size="lg"
-                className="w-full font-bold bg-primary text-primary-foreground hover:bg-primary/90 py-2 sm:py-2.5"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Give Feedback
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 sm:gap-4 bg-white/5 border-l-4 border-green-500/20 rounded-md sm:rounded-lg p-4 sm:p-5 shadow-sm">
-            <div className="mt-1">
-              <Users className="h-6 w-6 sm:h-7 sm:w-7 text-green-400" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-white text-base sm:text-lg mb-1">
-                Join Our Community
-              </h3>
-              <p className="text-white/60 text-sm mb-3">
-                Stay updated with announcements and connect with other users
-              </p>
-              <Button
-                onClick={handleTelegramClick}
-                size="lg"
-                variant="outline"
-                className="w-full font-bold border-green-500/30 text-green-400 hover:bg-green-500/10 py-2 sm:py-2.5"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Join BASKT.AI Channel
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 sm:gap-4 bg-white/5 border-l-4 border-purple-500/20 rounded-md sm:rounded-lg p-4 sm:p-5 shadow-sm">
-            <div className="mt-1">
-              <LifeBuoy className="h-6 w-6 sm:h-7 sm:w-7 text-purple-400" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-white text-base sm:text-lg mb-1">Need Help?</h3>
-              <p className="text-white/60 text-sm mb-3">
-                Get support from our team for any questions or issues
-              </p>
-              <Button
-                onClick={handleSupportClick}
-                size="lg"
-                variant="outline"
-                className="w-full font-bold border-purple-500/30 text-purple-400 hover:bg-purple-500/10 py-2 sm:py-2.5"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Contact @Baskt.ai
-              </Button>
-            </div>
-          </div>
+        <div className="p-4">
+          <FeedbackInfo />
+          
+          <TextLink 
+            icon={<Users className="h-5 w-5" />}
+            title="Join Our Community"
+            description="Connect with other Baskt users via our"
+            linkText="Community"
+            onClick={handleTelegramClick}
+            color="green"
+          />
+          
+          <TextLink 
+            icon={<LifeBuoy className="h-5 w-5" />}
+            title="Need Help?"
+            description="Get support for any questions via"
+            linkText="Contact"
+            onClick={handleSupportClick}
+            color="purple"
+          />
         </div>
 
-        <DialogFooter className="px-3 sm:px-8 pb-4 sm:pb-6 pt-2">
-          <div className="w-full text-center text-white/60 text-sm">
-            This dialog will close automatically in{' '}
-            <span className="font-mono font-bold text-white">{countdown}</span> seconds
+        <DialogFooter className="px-5 py-3 border-t border-white/10">
+          <div className="w-full text-center text-white/60 text-xs">
+            Closing in <span className="font-mono font-bold text-white">{countdown}s</span>
           </div>
         </DialogFooter>
       </DialogContent>
