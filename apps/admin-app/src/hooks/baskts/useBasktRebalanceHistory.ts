@@ -28,7 +28,7 @@ export function useBasktRebalanceHistory(basktId: string) {
 
         const history: OnchainRebalanceHistory[] = [];
 
-        for (let i = 0; i <= lastRebalanceIndex; i++) {
+        for (let i = 0; i < lastRebalanceIndex; i++) {
           try {
             const rebalanceEntry = await client.getRebalanceHistory(basktPubkey, i);
             history.push(rebalanceEntry);
