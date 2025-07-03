@@ -8,6 +8,7 @@ export function useAccessCode() {
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [authorizedWallet, setAuthorizedWallet] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const revokeWalletAccessMutation = trpc.accessCode.revokeWalletAccess.useMutation();
   const validateCodeMutation = trpc.accessCode.validate.useMutation();
@@ -28,7 +29,8 @@ export function useAccessCode() {
   const clearAccess = useCallback(() => {
     setHasAccess(false);
     setAuthorizedWallet(null);
-  }, [authorizedWallet]);
+    setShowSuccessDialog(false);
+  }, []);
 
   const revokeAccess = useCallback(async () => {
     if (authorizedWallet) {
@@ -41,6 +43,7 @@ export function useAccessCode() {
     }
     setHasAccess(false);
     setAuthorizedWallet(null);
+    setShowSuccessDialog(false);
   }, [authorizedWallet, revokeWalletAccessMutation]);
 
   const validateAccessCode = useCallback(
@@ -66,6 +69,7 @@ export function useAccessCode() {
 
         setHasAccess(true);
         setAuthorizedWallet(walletAddress);
+        setShowSuccessDialog(true);
         return true;
         // eslint-disable-next-line
       } catch (error: any) {
@@ -87,15 +91,21 @@ export function useAccessCode() {
     [authorizedWallet, hasAccess],
   );
 
+  const closeSuccessDialog = useCallback(() => {
+    setShowSuccessDialog(false);
+  }, []);
+
   return {
     hasAccess,
     authorizedWallet,
     isValidating,
+    showSuccessDialog,
     grantAccess,
     revokeAccess,
     isWalletAuthorized,
     validateAccessCode,
     initializeAccessState,
+    closeSuccessDialog,
     isLoading: revokeWalletAccessMutation.isLoading || autoFaucetMutation.isLoading,
     clearAccess,
   };
