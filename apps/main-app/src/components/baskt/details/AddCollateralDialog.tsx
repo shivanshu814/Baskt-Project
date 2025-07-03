@@ -65,6 +65,7 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
       // Close dialog on success
       onClose();
     } catch (error: unknown) {
+      console.error(error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to add collateral';
       setError(errorMessage);
     } finally {
