@@ -120,7 +120,7 @@ export function combineAsset(
     };
   }
 
-  const price = (latestPrice?.price ?? config.priceMetrics?.price ?? 0) * 1e6;
+  const price = config.priceMetrics?.price;
   const change24h = config.priceMetrics?.change24h ?? 0;
 
   return {
