@@ -51,12 +51,6 @@ const rebalanceWorker = new Worker(
         return;
       }
 
-      if (!baskt.isActive) {
-        console.log(`Activating basket ${basktConfig.basktId}...`);
-        const prices = baskt.currentAssetConfigs.map((config: any) => new BN(100));
-        await basktClient.activateBaskt(new PublicKey(basktConfig.basktId), prices, 60);
-      }
-
       const currentConfigs = baskt.currentAssetConfigs.map((config: any) => ({
         assetId: Array.isArray(config.assetId) ? config.assetId[0] : config.assetId,
         weight: config.weight,
