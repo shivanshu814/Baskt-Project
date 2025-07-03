@@ -17,10 +17,7 @@ import {
 export function changeFromCurrentPrice(asset: BasktAssetInfo) {
   const change = asset.price - (asset.baselinePrice || asset.price);
   const changePercentage = (change / (asset.baselinePrice || asset.price)) * 100;
-
-  // For short positions, invert the change percentage
-  // If direction is false, it's a short position
-  return asset.direction ? changePercentage : -changePercentage;
+  return changePercentage;
 }
 
 export function IndexComposition({ assets }: IndexCompositionProps) {

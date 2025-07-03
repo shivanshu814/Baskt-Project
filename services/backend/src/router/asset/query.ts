@@ -58,7 +58,6 @@ async function getAllAssetsInternal(config: boolean) {
       data: combinedAssets.filter((asset: any) => asset),
     };
   } catch (error) {
-    console.error('Error fetching assets:', error);
     throw new Error('Failed to fetch assets');
   }
 }
@@ -68,7 +67,6 @@ export async function getAssetsByAddressInternal(assetAddresses: string[]) {
     const assets = await AssetMetadataModel.find({ assetAddress: { $in: assetAddresses } }).exec();
     return assets;
   } catch (error) {
-    console.error('Error fetching assets:', error);
     throw new Error('Failed to fetch assets');
   }
 }
@@ -77,9 +75,9 @@ export async function getAssetFromAddress(assetAddress: string) {
   try {
     const asset = await AssetMetadataModel.findOne({ assetAddress }).exec();
     const onchainAsset = await sdkClientInstance.getAsset(new PublicKey(assetAddress));
-    return combineAsset(onchainAsset, asset, false);
+    const latestPrice = asset ? await getLatestAssetPriceInternal(asset._id.toString()) : null;
+    return combineAsset(onchainAsset, asset, latestPrice, true);
   } catch (error) {
-    console.error('Error fetching asset:', error);
     return null;
   }
 }
@@ -122,8 +120,9 @@ export function combineAsset(
     };
   }
 
-  const price = config.priceMetrics?.price ?? 0;
+  const price = (latestPrice?.price ?? config.priceMetrics?.price ?? 0) * 1e6;
   const change24h = config.priceMetrics?.change24h ?? 0;
+
   return {
     _id: config._id,
     ticker: onchainAsset.ticker,
@@ -135,13 +134,17 @@ export function combineAsset(
     change24h,
     account: onchainAsset,
     weight: 0,
-    config: shouldPassConfig ? {
-      provider: config.priceConfig.provider,
-      twp: config.priceConfig.twp,
-      updateFrequencySeconds: config.priceConfig.updateFrequencySeconds,
-      units: config.priceConfig.units,
-      coingeckoId: config.coingeckoId,
-    } : undefined,
+    config: shouldPassConfig
+      ? {
+          priceConfig: {
+            provider: config.priceConfig.provider,
+            twp: config.priceConfig.twp,
+            updateFrequencySeconds: config.priceConfig.updateFrequencySeconds,
+            units: config.priceConfig.units,
+          },
+          coingeckoId: config.coingeckoId,
+        }
+      : undefined,
     latestPrice: latestPrice,
     basktIds: config.basktIds,
   };

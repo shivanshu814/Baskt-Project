@@ -15,13 +15,8 @@ interface ClientLayoutProps {
 }
 
 function AppContent({ children }: { children: React.ReactNode }) {
-  const hasAccess = true;
-  const {
-    // hasAccess,
-    grantAccess,
-    clearAccess,
-    initializeAccessState,
-  } = useAccessCode();
+  // const hasAccess = true;
+  const { hasAccess, grantAccess, clearAccess, initializeAccessState } = useAccessCode();
   const { user, authenticated } = usePrivy();
   const { walletHasAccess } = useWalletAuthorization(user?.wallet?.address);
   const hasShownAutoLoginToast = useRef(false);

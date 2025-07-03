@@ -4,7 +4,7 @@ import { BasktMetadataModel } from '../../utils/models';
 import { sdkClient } from '../../utils';
 import { PublicKey } from '@solana/web3.js';
 import { getAssetFromAddress } from '../asset/query';
-import { calculateNav, WEIGHT_PRECISION } from '@baskt/sdk';
+import { calculateNav, WEIGHT_PRECISION, calculateLiveNav } from '@baskt/sdk';
 import { OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
 import { BN } from 'bn.js';
 import { generateNavHistory } from '../../fakers/price';
@@ -247,17 +247,44 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     onchainBaskt.account?.basktId?.toString();
 
   let price = new BN(0);
-  const formattedAssets = assets.map(
-    (asset) =>
-      ({
-        assetId: new PublicKey(asset.id),
-        direction: asset.direction,
-        weight: new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100),
-        baselinePrice: new BN(asset.priceRaw),
-      } as OnchainAssetConfig),
-  );
   try {
     if (assets.length > 0 && assets.every((asset) => asset && asset.price > 0)) {
+      const assetsWithPriceConfig = assets.filter((asset) => asset.config?.priceConfig);
+
+      if (assetsWithPriceConfig.length === 0) {
+        throw new Error('No price config available');
+      }
+
+      const basktAssets = assetsWithPriceConfig.map((asset) => {
+        const weightBN = new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100);
+        return {
+          assetId: asset.id,
+          weight: weightBN,
+          direction: asset.direction ? 1 : 0,
+          baselinePrice: new BN(asset.baselinePrice),
+          priceConfig: asset.config.priceConfig,
+        };
+      });
+
+      const { liveNav } = await calculateLiveNav(
+        basktAssets,
+        new BN(onchainBaskt.baselineNav || 0),
+      );
+
+      price = liveNav;
+    }
+  } catch (error) {
+    const formattedAssets = assets.map(
+      (asset) =>
+        ({
+          assetId: new PublicKey(asset.id),
+          direction: asset.direction,
+          weight: new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100),
+          baselinePrice: new BN(asset.baselinePrice),
+        } as OnchainAssetConfig),
+    );
+
+    try {
       price = calculateNav(
         onchainBaskt.currentAssetConfigs.map((asset: any) => ({
           ...asset,
@@ -265,10 +292,9 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
         formattedAssets,
         new BN(onchainBaskt.baselineNav || 0),
       );
+    } catch (fallbackError) {
+      price = new BN(0);
     }
-  } catch (error) {
-    console.error('Error calculating NAV:', error);
-    price = new BN(0);
   }
 
   const status = onchainBaskt.status;

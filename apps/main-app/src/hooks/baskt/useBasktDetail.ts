@@ -52,32 +52,26 @@ export const useBasktDetail = (basktName: string) => {
   }, [baskt, isBasktNavDataLoaded, basktNavData]);
 
   useEffect(() => {
-    const fetchBasktData = async () => {
-      if (!isBasktDataLoaded) return;
-      try {
-        if (!basktInfo) {
-          throw new Error('Baskt not found');
-        }
+    if (!isBasktDataLoaded || !basktInfo?.success || !('data' in basktInfo)) {
+      setIsLoading(false);
+      return;
+    }
 
-        const processedBaskts = processBasktData({
-          success: true,
-          data: 'data' in basktInfo ? [basktInfo.data] : [],
-        });
-        if (processedBaskts.length > 0) {
-          setBaskt(processedBaskts[0]);
-        } else {
-          throw new Error('Failed to process baskt data');
-        }
-      } catch (error) {
-        toast.error('Failed to fetch baskt data');
-        setBaskt(null);
-      } finally {
-        setIsLoading(false);
+    try {
+      const processedBaskt = processBasktData({
+        success: true,
+        data: [basktInfo.data],
+      })[0];
+
+      if (processedBaskt) {
+        setBaskt(processedBaskt);
       }
-    };
-
-    fetchBasktData();
-  }, [basktName, isBasktDataLoaded, basktInfo]);
+    } catch (error) {
+      toast.error('Failed to load baskt data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isBasktDataLoaded, basktInfo]);
 
   return {
     baskt,
