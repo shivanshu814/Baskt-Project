@@ -87,7 +87,7 @@ jobs:
             git fetch origin
             git reset --hard origin/${{ github.ref_name }}
             pnpm install
-            pnpm load:env
+            export $(cat .env | xargs)
             pnpm pm2:delete
             pnpm build:server
             pnpm pm2:start
