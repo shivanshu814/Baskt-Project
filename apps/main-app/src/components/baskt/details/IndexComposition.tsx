@@ -1,5 +1,6 @@
 import { BasktAssetInfo } from '@baskt/types';
 import { IndexCompositionProps } from '../../../types/baskt';
+import { calculateCurrentWeights } from '@baskt/sdk/src/math/weight';
 import {
   Card,
   CardContent,
@@ -12,7 +13,13 @@ import {
   TableHeader,
   TableRow,
   NumberFormat,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@baskt/ui';
+import { InfoIcon } from 'lucide-react';
+import { useMemo } from 'react';
 
 export function changeFromCurrentPrice(asset: BasktAssetInfo) {
   const change = asset.price - (asset.baselinePrice || asset.price);
@@ -21,6 +28,15 @@ export function changeFromCurrentPrice(asset: BasktAssetInfo) {
 }
 
 export function IndexComposition({ assets }: IndexCompositionProps) {
+  // Calculate current weights whenever assets change
+  const currentWeights = useMemo(() => {
+    // Only calculate if we have valid assets with prices
+    if (assets.length === 0 || assets.some(a => a.price === undefined || a.baselinePrice === undefined)) {
+      return assets.map(asset => asset.weight); // Return target weights if we can't calculate
+    }
+    return calculateCurrentWeights(assets);
+  }, [assets]);
+
   return (
     <Card className="rounded-none border-0 shadow-none">
       <CardHeader className="p-0 mb-2">
@@ -33,7 +49,30 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
               <TableRow>
                 <TableHead className="text-xs sm:text-sm">Asset</TableHead>
                 <TableHead className="text-xs sm:text-sm">Direction</TableHead>
-                <TableHead className="text-xs sm:text-sm">Weight</TableHead>
+                <TableHead className="text-xs sm:text-sm">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="flex items-center gap-1">
+                        Target Weight <InfoIcon size={14} />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs text-xs">Initial weight allocation when the basket was created</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableHead>
+                <TableHead className="text-xs sm:text-sm">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="flex items-center gap-1">
+                        Current Weight <InfoIcon size={14} />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs text-xs">Current weight based on price movements and directional exposure</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableHead>
                 <TableHead className="text-xs sm:text-sm whitespace-nowrap">
                   Baseline Price
                 </TableHead>
@@ -44,7 +83,7 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {assets.map((asset) => (
+              {assets.map((asset, index) => (
                 <TableRow key={asset.assetAddress}>
                   <TableCell className="font-medium text-xs sm:text-sm">
                     <div className="flex items-center gap-2 sm:gap-3">
@@ -68,6 +107,11 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                   </TableCell>
                   <TableCell className="text-xs sm:text-sm">
                     <NumberFormat value={asset.weight} />%
+                  </TableCell>
+                  <TableCell 
+                    className={`text-xs sm:text-sm ${currentWeights[index] > asset.weight ? 'text-[#16C784]' : currentWeights[index] < asset.weight ? 'text-[#EA3943]' : ''}`}
+                  >
+                    <NumberFormat value={currentWeights[index]} />%
                   </TableCell>
                   <TableCell className="text-xs sm:text-sm">
                     {asset.baselinePrice !== undefined ? (
