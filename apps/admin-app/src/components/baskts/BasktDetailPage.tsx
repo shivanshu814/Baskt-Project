@@ -175,10 +175,7 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
                           {asset.direction ? 'Long' : 'Short'}
                         </TableCell>
                         <TableCell className="text-right">
-                          <NumberFormat
-                            value={new BN(asset.baselinePrice).toNumber()}
-                            isPrice={true}
-                          />
+                          {new BN(asset.baselinePrice).toNumber()}
                         </TableCell>
                       </TableRow>
                     ))}
