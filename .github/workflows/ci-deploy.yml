@@ -86,7 +86,8 @@ jobs:
             cd ~/monorepo
             git fetch origin
             git reset --hard origin/${{ github.ref_name }}
-            pnpm pm2:delete
             pnpm install
+            pnpm load:env
+            pnpm pm2:delete
             pnpm build:server
             pnpm pm2:start
