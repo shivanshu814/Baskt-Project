@@ -131,7 +131,7 @@ export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
                 <span className="text-muted-foreground">Liquidation Price:</span>
                 <TabsContent value="long" className="m-0 p-0">
                   <span>
-                    '---'
+                    --
                   </span>
                 </TabsContent>
                 <TabsContent value="short" className="m-0 p-0">
