@@ -12,7 +12,7 @@ export const usePositions = () => {
       const positions = await client.getAllPositions();
       return positions.map((position: OnchainPosition) => ({
         ...position,
-        publicKey: position.address.toString(),
+        publicKey: position.positionPDA.toString(),
       }));
     },
     enabled: !!client,

@@ -96,7 +96,6 @@ export abstract class BaseClient {
     await this.oracleHelper.updateCustomOraclePrice(oracleAddress, price);
   }
 
-
   public async updateOraclePriceWithItx(basktAddress: PublicKey, price: anchor.BN) {
     return await this.oracleHelper.updateCustomOraclePriceItx(basktAddress, price);
   }
@@ -482,7 +481,7 @@ export abstract class BaseClient {
 
   private convertPosition(position: any, positionAddress: PublicKey) {
     return {
-      address: positionAddress,
+      positionPDA: positionAddress,
       positionId: position.positionId,
       basktId: position.basktId,
       bump: position.bump,
@@ -650,7 +649,6 @@ export abstract class BaseClient {
       );
       return await this.program.account.baskt.fetch(basktPDA, commitment);
     }
-
 
     // Otherwise, use the provided PublicKey directly
     return await this.program.account.baskt.fetch(basktPubkey, commitment);
@@ -1034,13 +1032,12 @@ export abstract class BaseClient {
     collateralMint: PublicKey, // This is the escrowMint for the program
     leverageBps: BN = new BN(10000), // Desired leverage in basis points (10000 = 1x leverage)
     orderType: any = { market: {} }, // e.g., { market: {} } or { limit: {} } - defaults to market
-  ): Promise<string> {  
+  ): Promise<string> {
     const owner = this.getPublicKey();
 
     // Derive addresses that Anchor cannot infer automatically
     const escrowToken = await this.getOrderEscrowPDA(owner);
     const [programAuthority] = await this.findProgramAuthorityPDA();
-
 
     const tx = await this.program.methods
       .createOrder(
@@ -1575,7 +1572,6 @@ export abstract class BaseClient {
         isWritable: true,
       },
     ];
-
 
     return await this.program.methods
       .closePosition({ exitPrice: params.exitPrice })

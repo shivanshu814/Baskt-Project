@@ -114,7 +114,7 @@ export function useOpenPositions(basktId?: string, userAddress?: string, navPric
 
     try {
       const tx = await client.addCollateral({
-        position: new PublicKey(position.address),
+        position: new PublicKey(position.positionPDA),
         additionalCollateral,
         ownerTokenAccount: userUSDCAccount.address,
       });
@@ -134,6 +134,7 @@ export function useOpenPositions(basktId?: string, userAddress?: string, navPric
 
       toast.success('Collateral added successfully');
     } catch (error) {
+      console.error(error);
       toast.error('Failed to add collateral');
     }
   };

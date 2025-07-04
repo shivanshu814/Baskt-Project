@@ -57,7 +57,7 @@ async function positionOpenedHandler(event: ObserverEvent) {
     console.log('Found Position PDA: ', positionPDA.toString());
 
     const positionResult = await trpcClient.position.createPosition.mutate({
-      positionPDA: onchainPosition.address.toString(),
+      positionPDA: positionPDA.toString(),
       positionId: onchainPosition.positionId.toString(),
       basktId: onchainPosition.basktId.toString(),
       openOrder: orderPDA.toString(),

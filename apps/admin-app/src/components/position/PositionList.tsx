@@ -246,7 +246,7 @@ const PositionList = () => {
     }
 
     return positions.map((position) => (
-      <TableRow key={position.address.toString()}>
+      <TableRow key={position.positionPDA.toString()}>
         {cellRenderers.map((renderer, index) => (
           <TableCell key={index}>{renderer(position)}</TableCell>
         ))}

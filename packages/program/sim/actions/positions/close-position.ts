@@ -6,12 +6,14 @@ import { USDC_MINT } from '@baskt/sdk';
 const closePosition = async (args: string[]) => {
   try {
     if (args.length < 2) {
-      throw new Error('Usage: close-position <positionId> <exitPrice> [limitPrice] [maxSlippageBps]');
+      throw new Error(
+        'Usage: close-position <positionId> <exitPrice> [limitPrice] [maxSlippageBps]',
+      );
     }
 
     const positionId = new BN(args[0]);
     const exitPrice = new BN(args[1]);
-    
+
     // Optional parameters with defaults
     const limitPrice = args[2] ? new BN(args[2]) : new BN(0); // Default to market order
     const maxSlippageBps = args[3] ? new BN(args[3]) : new BN(100); // Default to 1% slippage
@@ -39,14 +41,8 @@ const closePosition = async (args: string[]) => {
 
     await client.updateOraclePrice(position.basktId, exitPrice);
 
-    const treasuryTokenAccount = getAssociatedTokenAddressSync(
-      USDC_MINT,
-      protocolAccount.treasury,
-    );
-    const ownerTokenAccount = getAssociatedTokenAddressSync(
-      USDC_MINT,
-      position.owner,
-    );
+    const treasuryTokenAccount = getAssociatedTokenAddressSync(USDC_MINT, protocolAccount.treasury);
+    const ownerTokenAccount = getAssociatedTokenAddressSync(USDC_MINT, position.owner);
 
     const orderId = client.newIdForPosition();
     const orderTx = await client.createOrderTx(
@@ -55,7 +51,7 @@ const closePosition = async (args: string[]) => {
       position.collateral,
       position.isLong,
       { close: {} },
-      position.address,
+      position.positionPDA,
       limitPrice,
       maxSlippageBps,
       position.basktId,
@@ -71,7 +67,7 @@ const closePosition = async (args: string[]) => {
 
     const closeTx = await client.closePosition({
       orderPDA,
-      position: position.address,
+      position: position.positionPDA,
       exitPrice,
       baskt: position.basktId,
       ownerTokenAccount,

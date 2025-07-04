@@ -53,7 +53,8 @@ export const getPositions = publicProcedure
           .map((position) => {
             const pos = positionMetadatas.find(
               (metadata) =>
-                metadata.positionPDA.toLowerCase() === position.address.toString().toLowerCase(),
+                metadata.positionPDA.toLowerCase() ===
+                position.positionPDA.toString().toLowerCase(),
             );
             return convertPosition(position, pos);
           })
@@ -81,7 +82,7 @@ async function convertPosition(position: OnchainPosition, positionMetadata: any)
   //TODO: Shivanshu Need to be able to return the position Metadata if the position account is closed
   return {
     positionId: position.positionId.toString(),
-    positionPDA: position.address.toString(),
+    positionPDA: position.positionPDA.toString(),
     basktId: position.basktId,
     openOrder: positionMetadata?.openOrder,
     closeOrder: positionMetadata?.closeOrder,

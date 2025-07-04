@@ -9,7 +9,7 @@ export enum PositionStatus {
 }
 
 export interface OnchainPosition {
-  address: PublicKey;
+  positionPDA: PublicKey;
   owner: PublicKey;
   positionId: BN;
   basktId: PublicKey;
