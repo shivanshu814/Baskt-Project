@@ -4,10 +4,8 @@ import { LiquidityAllocationProps } from '../../types/pool';
 
 export const LiquidityAllocation = React.memo(
   ({ tvl, allocations, blpPrice, totalSupply }: LiquidityAllocationProps) => {
-    // Calculate fees (previously Total USDC) from allocations
     const fees = 1_000;
 
-    // Convert TVL and Total Supply from 1e6 scale to actual values
     const actualTvl = (parseFloat(tvl.replace(/,/g, '')) / 1e6).toFixed(2);
     const actualTotalSupply = (parseFloat(totalSupply.replace(/,/g, '')) / 1e6).toFixed(2);
 

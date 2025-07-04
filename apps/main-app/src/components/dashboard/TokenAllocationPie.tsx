@@ -1,3 +1,4 @@
+import { PieChart as LucidePieChart } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@baskt/ui';
@@ -7,6 +8,25 @@ interface BasketAllocationPieProps {
 }
 
 export const BasketAllocationPie: React.FC<BasketAllocationPieProps> = ({ data }) => {
+  const hasValidData = data && data.length > 0 && data.some((item) => item.value > 0);
+
+  if (!hasValidData) {
+    return (
+      <div className="bg-white/5 rounded-2xl p-6 shadow flex flex-col items-center justify-center gap-4 min-h-[300px]">
+        <h2 className="text-xl font-bold mb-2 self-start">Asset Allocation</h2>
+        <div className="flex flex-col items-center justify-center flex-1">
+          <div className="text-muted-foreground text-center">
+            <LucidePieChart className="w-10 h-10 mb-2 mx-auto" />
+            <p className="text-lg font-medium mb-1">No Data Available</p>
+            <p className="text-sm text-muted-foreground">
+              Asset allocation data will appear here once you have positions or holdings.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const total = data.reduce((sum, d) => sum + d.value, 0);
   // eslint-disable-next-line
   const CustomTooltip = ({ active, payload }: any) => {

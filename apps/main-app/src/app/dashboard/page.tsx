@@ -8,6 +8,7 @@ import UsdcCollateralCard from '../../components/dashboard/UsdcCollateralCard';
 import PositionsOrdersCard from '../../components/dashboard/PositionsOrdersCard';
 import MyBaskts from '../../components/dashboard/UsersBaskts';
 import RecentActivity from '../../components/dashboard/RecentActivity';
+import { DashboardSkeleton } from '../../components/dashboard/DashboardSkeleton';
 // import PortfolioValueGraph from '../../components/dashboard/PortfolioValueGraph';
 import { useDashboardData } from '../../hooks/dashboard/useDashboardData';
 
@@ -65,17 +66,9 @@ export default function DashboardPage() {
 
   // const startValue = portfolioValueHistory[0]?.value || 0;
 
+  // Show skeleton while loading
   if (isLoading) {
-    return (
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading dashboard...</p>
-          </div>
-        </div>
-      </main>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

@@ -10,22 +10,33 @@ export const useBasktDetail = (basktName: string) => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [chartPeriod, setChartPeriod] = useState('1W');
   const [chartType, setChartType] = useState<'line' | 'candle'>('line');
+  const [retryCount, setRetryCount] = useState(0);
+  const [isNewlyCreated, setIsNewlyCreated] = useState(false);
+
   const { data: cryptoNews = [] } = trpc.crypto.getCryptoNews.useQuery(undefined, {
-    staleTime: 120 * 60 * 1000, // 2 hours
+    staleTime: 120 * 60 * 1000,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
 
-  const { data: basktInfo, isSuccess: isBasktDataLoaded } =
-    trpc.baskt.getBasktMetadataByName.useQuery(
-      { basktName },
-      {
-        refetchOnMount: false,
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-      },
-    );
+  const {
+    data: basktInfo,
+    isSuccess: isBasktDataLoaded,
+    isError: isBasktDataError,
+    isLoading: isBasktDataLoading,
+    refetch,
+  } = trpc.baskt.getBasktMetadataByName.useQuery(
+    { basktName },
+    {
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      enabled: !!basktName,
+      retry: 3,
+      retryDelay: 2000,
+    },
+  );
 
   const { data: basktNavData, isSuccess: isBasktNavDataLoaded } = trpc.baskt.getBasktNAV.useQuery(
     { basktId: basktInfo?.success && 'data' in basktInfo ? basktInfo.data.basktId : '' },
@@ -36,6 +47,19 @@ export const useBasktDetail = (basktName: string) => {
   );
 
   useEffect(() => {
+    if (isBasktDataLoaded && !basktInfo?.success && retryCount < 5) {
+      setIsNewlyCreated(true);
+
+      const timer = setTimeout(() => {
+        setRetryCount((prev) => prev + 1);
+        refetch();
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isBasktDataLoaded, basktInfo?.success, retryCount, refetch]);
+
+  useEffect(() => {
     if (!isBasktNavDataLoaded) return;
     if (!baskt) return;
     // @ts-expect-error data is expected to be present
@@ -44,6 +68,7 @@ export const useBasktDetail = (basktName: string) => {
     if (!basktCopy) return;
     // @ts-expect-error data is expected to be present
     if (basktNavData?.data?.nav === basktCopy.price) return;
+
     setBaskt({
       ...basktCopy,
       // @ts-expect-error data is expected to be present
@@ -52,26 +77,54 @@ export const useBasktDetail = (basktName: string) => {
   }, [baskt, isBasktNavDataLoaded, basktNavData]);
 
   useEffect(() => {
-    if (!isBasktDataLoaded || !basktInfo?.success || !('data' in basktInfo)) {
-      setIsLoading(false);
+    if (isBasktDataLoading) {
+      setIsLoading(true);
       return;
     }
 
-    try {
-      const processedBaskt = processBasktData({
-        success: true,
-        data: [basktInfo.data],
-      })[0];
-
-      if (processedBaskt) {
-        setBaskt(processedBaskt);
-      }
-    } catch (error) {
-      toast.error('Failed to load baskt data');
-    } finally {
-      setIsLoading(false);
+    if (isNewlyCreated && retryCount < 5) {
+      setIsLoading(true);
+      return;
     }
-  }, [isBasktDataLoaded, basktInfo]);
+
+    if (isBasktDataLoaded) {
+      if (basktInfo?.success && 'data' in basktInfo) {
+        try {
+          const processedBaskt = processBasktData({
+            success: true,
+            data: [basktInfo.data],
+          })[0];
+
+          if (processedBaskt) {
+            setBaskt(processedBaskt);
+            setIsNewlyCreated(false);
+          } else {
+            toast.error('Failed to load baskt data');
+          }
+        } catch (error) {
+          toast.error('Failed to load baskt data');
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setIsLoading(false);
+        setIsNewlyCreated(false);
+      }
+    } else if (isBasktDataError) {
+      toast.error('Failed to load baskt data');
+      setIsLoading(false);
+      setIsNewlyCreated(false);
+    } else {
+      toast.error('Failed to load baskt data');
+    }
+  }, [
+    isBasktDataLoaded,
+    isBasktDataError,
+    isBasktDataLoading,
+    basktInfo,
+    retryCount,
+    isNewlyCreated,
+  ]);
 
   return {
     baskt,
