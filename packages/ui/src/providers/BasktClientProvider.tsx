@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { ConnectedSolanaWallet, useSolanaWallets } from '@privy-io/react-auth';
+import { ConnectedSolanaWallet, usePrivy, useSolanaWallets } from '@privy-io/react-auth';
 import { Connection } from '@solana/web3.js';
 import { PrivyClient } from './client';
 
@@ -20,10 +20,12 @@ const ProtocolClientContext = createContext<ProtocolClientContextType>({
 
 // Provider component for the protocol client
 export function BasktClientProvider({ children }: { children: React.ReactNode }) {
+  const { user } = usePrivy();
   const { wallets } = useSolanaWallets();
-  const activeWallet = wallets[0];
+  const activeWallet = wallets[user?.wallet?.walletIndex || 0];
   const [client, setClient] = useState<any | null>(null); //eslint-disable-line
   const [connection, setConnection] = useState<Connection | null>(null);
+
 
   useEffect(() => {
     const initializeClient = async () => {
