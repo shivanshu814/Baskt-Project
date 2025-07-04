@@ -12,7 +12,7 @@ import { AccessCodeSuccessDialog } from './AccessCodeSuccessDialog';
 export function AccessCodeEntry({ onSuccess }: AccessCodeEntryProps) {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const { user, authenticated, login } = usePrivy();
+  const { user, authenticated, login, logout } = usePrivy();
 
   const { isValidating, validateAccessCode, showSuccessDialog, closeSuccessDialog } =
     useAccessCode();
@@ -55,6 +55,10 @@ export function AccessCodeEntry({ onSuccess }: AccessCodeEntryProps) {
   const handleConnectWallet = useCallback(() => {
     login();
   }, [login]);
+
+  const handleDisconnectWallet = useCallback(async () => {
+    await logout();
+  }, [logout]);
 
   if (walletHasAccess && user?.wallet?.address) {
     return (
@@ -119,6 +123,15 @@ export function AccessCodeEntry({ onSuccess }: AccessCodeEntryProps) {
               <p className="text-white/60 text-xs sm:text-sm mt-1 font-mono break-all">
                 {user?.wallet?.address}
               </p>
+              <Button
+                onClick={handleDisconnectWallet}
+                className="w-full mt-2 sm:mt-3"
+                variant="outline"
+                size="sm"
+              >
+                <Wallet className="h-4 w-4 mr-2" />
+                Disconnect wallet
+              </Button>
             </div>
           )}
 

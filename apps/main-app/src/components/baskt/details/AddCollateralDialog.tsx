@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
 import {
   Dialog,
   DialogContent,
@@ -27,7 +26,6 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { balance: usdcBalance } = useUSDCBalance();
-  const { logout } = usePrivy();
 
   // Reset form when dialog opens with new position
   useEffect(() => {
@@ -131,31 +129,18 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
           </div>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          <div className="flex justify-start w-full sm:w-auto">
-            <Button 
-              variant="ghost" 
-              className="text-primary hover:text-primary/80 p-0 h-auto" 
-              onClick={async () => {
-                await logout();
-              }}
-            >
-              Connect another wallet
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline" disabled={isSubmitting}>
+              Cancel
             </Button>
-          </div>
-          <div className="flex justify-end gap-2 w-full sm:w-auto">
-            <DialogClose asChild>
-              <Button variant="outline" disabled={isSubmitting}>
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting || !collateralAmount || parseFloat(collateralAmount) <= 0}
-            >
-              {isSubmitting ? 'Processing...' : 'Add Collateral'}
-            </Button>
-          </div>
+          </DialogClose>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || !collateralAmount || parseFloat(collateralAmount) <= 0}
+          >
+            {isSubmitting ? 'Processing...' : 'Add Collateral'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
