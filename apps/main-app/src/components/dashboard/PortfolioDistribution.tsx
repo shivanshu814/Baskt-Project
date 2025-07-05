@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, BarChart2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface PortfolioDistributionProps {
@@ -9,6 +9,26 @@ interface PortfolioDistributionProps {
 const COLORS = ['#FF9900', '#3366FF', '#00C49F', '#FF444F', '#FFBB28', '#8884d8'];
 
 export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({ basktData }) => {
+  const hasValidData =
+    basktData && basktData.length > 0 && basktData.some((item) => item.value > 0);
+
+  if (!hasValidData) {
+    return (
+      <div className="bg-white/5 rounded-2xl p-6 shadow flex flex-col items-center justify-center gap-4 min-h-[300px]">
+        <h2 className="text-xl font-bold mb-2 self-start">Distribution</h2>
+        <div className="flex flex-col items-center justify-center flex-1">
+          <div className="text-muted-foreground text-center">
+            <BarChart2 className="w-10 h-10 mb-2 mx-auto" />
+            <p className="text-lg font-medium mb-1">No Data Available</p>
+            <p className="text-sm text-muted-foreground">
+              Portfolio distribution will appear here once you have positions or holdings.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white/5 rounded-2xl p-6 shadow flex flex-col gap-4">
       <h2 className="text-xl font-bold mb-4">Distribution</h2>

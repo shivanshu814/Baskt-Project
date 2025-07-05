@@ -54,7 +54,7 @@ export function AssetSelectionModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] max-w-[95vw] w-full p-0 rounded-2xl overflow-hidden">
+      <DialogContent className="sm:max-w-[450px] max-w-[95vw] w-full p-0 rounded-2xl overflow-hidden">
         <div className="flex flex-col h-full max-h-[90vh]">
           <DialogHeader className="p-4 sm:p-6 border-b flex-shrink-0">
             <div className="flex justify-between items-start">
@@ -76,7 +76,6 @@ export function AssetSelectionModal({
           </DialogHeader>
 
           <div className="flex flex-col space-y-4 p-4 sm:p-6 flex-1 min-h-0">
-            {/* Search bar */}
             <div className="relative flex-shrink-0">
               <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-3 w-3 sm:h-4 sm:w-4" />
               <Input
@@ -87,7 +86,6 @@ export function AssetSelectionModal({
               />
             </div>
 
-            {/* Asset list */}
             <div className="flex-1 overflow-y-auto min-h-0">
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
@@ -122,7 +120,9 @@ export function AssetSelectionModal({
                             {asset.ticker}
                           </span>
                           <span className="text-xs text-muted-foreground truncate hidden sm:block">
-                            {asset.name}
+                            {asset.name.length > 30
+                              ? `${asset.name.slice(0, 8)}...${asset.name.slice(-8)}`
+                              : asset.name}
                           </span>
                         </div>
                       </div>

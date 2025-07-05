@@ -72,11 +72,7 @@ export interface TransactionToastConfig {
 export interface BasktChartProps {
   baskt: BasktInfo;
   chartPeriod: string;
-  setChartPeriod: (period: string) => void;
   chartType: 'line' | 'candle';
-  setChartType: (type: 'line' | 'candle') => void;
-  onCompositionClick: () => void;
-  onPositionClick: () => void;
 }
 
 export interface BasktPositionProps {

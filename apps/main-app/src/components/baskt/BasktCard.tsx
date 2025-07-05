@@ -111,16 +111,18 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
-          <div className="flex items-center">
-            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-success mr-1" />
-            Long
+        <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-success mr-1" />
+              Long
+            </div>
+            <div className="flex items-center">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-destructive mr-1" />
+              Short
+            </div>
           </div>
-          <div className="flex items-center">
-            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-destructive mr-1" />
-            Short
-          </div>
-          <div className="text-right">Risk: {baskt.risk || 'medium'}</div>
+          <div>Risk: {baskt.risk || 'medium'}</div>
         </div>
 
         <Button
