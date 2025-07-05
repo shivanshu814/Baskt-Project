@@ -92,7 +92,7 @@ async function handleCloseOrder(orderCreatedData: OrderCreatedEvent, onchainOrde
     // close position onchain
     const tx = await basktClient.closePosition({
       orderPDA: onchainOrder.address,
-      position: positionAccount.address,
+      position: positionAccount.positionPDA,
       exitPrice: exitPrice,
       baskt: onchainOrder.basktId,
       ownerTokenAccount: ownerTokenAccount.address,
