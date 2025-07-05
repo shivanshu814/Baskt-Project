@@ -14,12 +14,17 @@ export default async function getBinanceData(symbol: string) {
 
   try {
     const response = await axios.get(url, options);
-    return {
-      symbol: response.data.symbol,
-      price: parseFloat(response.data.price),
-    };
+    if (response.data && response.data.price) {
+      return {
+        symbol: response.data.symbol,
+        price: parseFloat(response.data.price),
+      };
+    } else {
+      console.error('Invalid response from Binance API:', response.data);
+      return null;
+    }
   } catch (error) {
-    console.error('Error fetching data from Binance:', error);
+    console.error('Error fetching data from Binance for symbol', symbol, ':', error);
+    return null;
   }
-  return null;
 }

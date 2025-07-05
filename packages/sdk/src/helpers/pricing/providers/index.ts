@@ -40,15 +40,21 @@ export async function routePrice(
   chain: string,
   id: string,
 ): Promise<{ priceUSD: BN } | null> {
-  if (priceProvider === 'oxfun') {
+  if (!priceProvider || !id) {
+    console.log(`Invalid price config: provider=${priceProvider}, id=${id}`);
+    return null;
+  }
+
+  if (priceProvider.toLowerCase() === 'oxfun') {
     return await callOxfunAPI(id);
-  } else if (priceProvider === 'binance') {
+  } else if (priceProvider.toLowerCase() === 'binance') {
     return await callBinanceAPI(id);
-  } else if (priceProvider === 'usdc') {
+  } else if (priceProvider.toLowerCase() === 'usdc') {
     return {
       priceUSD: new BN(1e6),
     };
   } else {
+    console.log(`Falling back to Dexscreener for provider: ${priceProvider}`);
     return await callDexscreenerAPI(id, chain);
   }
 }
