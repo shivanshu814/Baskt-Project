@@ -44,6 +44,10 @@ export async function routePrice(
     return await callOxfunAPI(id);
   } else if (priceProvider === 'binance') {
     return await callBinanceAPI(id);
+  } else if (priceProvider === 'usdc') {
+    return {
+      priceUSD: new BN(1e6),
+    };
   } else {
     return await callDexscreenerAPI(id, chain);
   }
