@@ -7,7 +7,7 @@ import * as anchor from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { BasktFormData } from './useCreateBasktForm';
 import { OnchainAssetConfig } from '@baskt/types';
-import { getBasktCreationErrorMessage } from '../../../utils/error-handling';
+import { parseSolanaError } from '../../../utils/error-handling';
 
 export type TransactionStatus = 'waiting' | 'confirmed' | 'processing' | 'success' | 'failed';
 
@@ -76,11 +76,11 @@ export const useBasktCreation = () => {
       router.push(`/baskts/${encodeURIComponent(basktData.name)}`);
     } catch (error) {
       setTransactionStatus('failed');
-      const errorMessage = getBasktCreationErrorMessage(error);
-      setError(errorMessage);
+      const parsedError = parseSolanaError(error);
+      setError(parsedError.message);
 
       const config = getTransactionToastConfig('basktCreation');
-      showTransactionToast('failed', config, signature || undefined, errorMessage);
+      showTransactionToast('failed', config, signature || undefined, parsedError.message);
     } finally {
       setIsSubmitting(false);
     }

@@ -112,6 +112,12 @@ export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
                 onChange={handlesizeChange}
                 className="mb-2"
                 disabled={isLoading}
+                min="0.00001"
+                onKeyDown={(e) => {
+                  if (e.key === '-') {
+                    e.preventDefault();
+                  }
+                }}
               />
             </div>
 

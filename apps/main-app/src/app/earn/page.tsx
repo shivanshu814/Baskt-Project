@@ -38,15 +38,18 @@ export default function PoolPage() {
     });
 
   const randomAPY = '15.08%';
-  
+
   // Calculate accurate TVL from pool data
   const tvl = poolData?.totalLiquidity ? parseFloat(poolData.totalLiquidity).toLocaleString() : '0';
-  const totalSupply = poolData?.totalShares ? parseFloat(poolData.totalShares).toLocaleString() : '0';
-  
-  // Calculate BLP price based on TVL and total supply
-  const blpPrice = poolData?.totalLiquidity && poolData?.totalShares 
-    ? (parseFloat(poolData.totalLiquidity) / parseFloat(poolData.totalShares)).toFixed(3)
+  const totalSupply = poolData?.totalShares
+    ? parseFloat(poolData.totalShares).toLocaleString()
     : '0';
+
+  // Calculate BLP price based on TVL and total supply
+  const blpPrice =
+    poolData?.totalLiquidity && poolData?.totalShares
+      ? (parseFloat(poolData.totalLiquidity) / parseFloat(poolData.totalShares)).toFixed(3)
+      : '0';
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center px-4 py-8">
@@ -71,7 +74,16 @@ export default function PoolPage() {
                     <div>
                       <div className="text-muted-foreground text-sm mb-1">Your LP</div>
                       <div className="text-2xl font-bold text-foreground">{userLpBalance} BLP</div>
-                      <div className="text-xs text-muted-foreground mt-1">~ $0</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {(() => {
+                          const value =
+                            parseFloat(userLpBalance || '0') * parseFloat(blpPrice || '0');
+                          if (isNaN(value) || value === undefined) {
+                            return '~ $0.000';
+                          }
+                          return `~ $${value.toFixed(3)}`;
+                        })()}
+                      </div>
                     </div>
                   </Card>
                   <Tabs

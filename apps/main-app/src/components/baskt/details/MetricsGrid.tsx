@@ -8,6 +8,14 @@ export function MetricsGrid({ baskt }: { baskt: any }) {
       value: baskt?.performance?.month !== undefined ? `+${baskt.performance.month}%` : '-',
     },
     {
+      label: '24h Change',
+      value: baskt?.performance?.day !== undefined ? `+${baskt.performance.day}%` : '-',
+    },
+    {
+      label: '7D Change',
+      value: baskt?.performance?.week !== undefined ? `+${baskt.performance.week}%` : '-',
+    },
+    {
       label: 'Total Assets',
       value: baskt?.totalAssets ?? '-',
     },

@@ -4,7 +4,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useTransactionToast, getTransactionToastConfig } from '../../common/use-transaction-toast';
 import { useBasktClient } from '@baskt/ui';
 import { BasktFormData } from '../create/useCreateBasktForm';
-import { getBasktCreationErrorMessage } from '../../../utils/error-handling';
+import { parseSolanaError } from '../../../utils/error-handling';
 
 export type TransactionStatus = 'waiting' | 'confirmed' | 'processing' | 'success' | 'failed';
 
@@ -36,11 +36,11 @@ export const useBasktEdit = () => {
       router.push(`/baskts/${basktId}`);
     } catch (error) {
       setTransactionStatus('failed');
-      const errorMessage = getBasktCreationErrorMessage(error);
-      setError(errorMessage);
+      const parsedError = parseSolanaError(error);
+      setError(parsedError.message);
 
       const config = getTransactionToastConfig('basktCreation');
-      showTransactionToast('failed', config, signature || undefined, errorMessage);
+      showTransactionToast('failed', config, signature || undefined, parsedError.message);
     } finally {
       setIsSubmitting(false);
     }

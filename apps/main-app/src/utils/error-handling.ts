@@ -42,6 +42,20 @@ export function parseSolanaError(error: any): ParsedError {
         };
       }
 
+      // Check for insufficient funds error (custom program error: 0x1)
+      if (
+        log.includes('insufficient funds') ||
+        log.includes('custom program error: 0x1') ||
+        log.includes('Error: insufficient funds')
+      ) {
+        return {
+          isUserFriendly: true,
+          message:
+            'Insufficient funds. Please reduce the amount or add more tokens to your wallet.',
+          originalError: error,
+        };
+      }
+
       // Check for other common error patterns
       if (log.includes('custom program error: 0x0')) {
         return {
@@ -88,6 +102,99 @@ export function parseSolanaError(error: any): ParsedError {
           originalError: error,
         };
       }
+
+      // Check for TradingDisabled error
+      if (log.includes('TradingDisabled') || log.includes('tradingDisabled')) {
+        return {
+          isUserFriendly: true,
+          message: 'Trading is currently disabled. Please try again later.',
+          originalError: error,
+        };
+      }
+
+      // Check for PositionOperationsDisabled error
+      if (
+        log.includes('PositionOperationsDisabled') ||
+        log.includes('positionOperationsDisabled')
+      ) {
+        return {
+          isUserFriendly: true,
+          message: 'Position operations are currently disabled. Please try again later.',
+          originalError: error,
+        };
+      }
+
+      // Check for InactiveAsset error
+      if (log.includes('InactiveAsset') || log.includes('inactiveAsset')) {
+        return {
+          isUserFriendly: true,
+          message: 'This asset is currently inactive. Please try a different asset.',
+          originalError: error,
+        };
+      }
+
+      // Check for InvalidAssetWeights error
+      if (log.includes('InvalidAssetWeights') || log.includes('invalidAssetWeights')) {
+        return {
+          isUserFriendly: true,
+          message: 'Invalid asset weights. Please check your baskt configuration.',
+          originalError: error,
+        };
+      }
+
+      // Check for OrderAlreadyProcessed error
+      if (log.includes('OrderAlreadyProcessed') || log.includes('orderAlreadyProcessed')) {
+        return {
+          isUserFriendly: true,
+          message: 'This order has already been processed.',
+          originalError: error,
+        };
+      }
+
+      // Check for InvalidCollateral error
+      if (log.includes('InvalidCollateral') || log.includes('invalidCollateral')) {
+        return {
+          isUserFriendly: true,
+          message: 'Invalid collateral amount. Please check your input.',
+          originalError: error,
+        };
+      }
+
+      // Check for PositionNotFound error
+      if (log.includes('PositionNotFound') || log.includes('positionNotFound')) {
+        return {
+          isUserFriendly: true,
+          message: 'Position not found. Please try again.',
+          originalError: error,
+        };
+      }
+
+      // Check for OrderNotFound error
+      if (log.includes('OrderNotFound') || log.includes('orderNotFound')) {
+        return {
+          isUserFriendly: true,
+          message: 'Order not found. Please try again.',
+          originalError: error,
+        };
+      }
+
+      // Check for InvalidOrderSize error
+      if (log.includes('InvalidOrderSize') || log.includes('invalidOrderSize')) {
+        return {
+          isUserFriendly: true,
+          message: 'Invalid order size. Please check your input.',
+          originalError: error,
+        };
+      }
+
+      // Check for LiquidationThreshold error
+      if (log.includes('LiquidationThreshold') || log.includes('liquidationThreshold')) {
+        return {
+          isUserFriendly: true,
+          message: 'Position is at risk of liquidation. Please add more collateral.',
+          originalError: error,
+        };
+      }
     }
 
     // If no specific pattern found, return a generic but more helpful message
@@ -113,19 +220,4 @@ export function parseSolanaError(error: any): ParsedError {
     message: 'An unexpected error occurred. Please try again.',
     originalError: error,
   };
-}
-
-/**
- * Get a user-friendly error message for Baskt creation failures
- */
-// eslint-disable-next-line
-export function getBasktCreationErrorMessage(error: any): string {
-  const parsedError = parseSolanaError(error);
-
-  if (parsedError.isUserFriendly) {
-    return parsedError.message;
-  }
-
-  // For non-user-friendly errors, provide a generic message
-  return 'Something went wrong while creating your Baskt. Please try again.';
 }

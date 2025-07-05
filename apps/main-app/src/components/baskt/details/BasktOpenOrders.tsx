@@ -20,6 +20,7 @@ import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import { OrderType } from '@baskt/types';
 import { BN } from 'bn.js';
 import { toast } from 'sonner';
+import { parseSolanaError } from '../../../utils/error-handling';
 
 export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
   const { client } = useBasktClient();
@@ -35,7 +36,8 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
       const priceBN = new BN(entryPrice);
       return sizeBN.mul(priceBN).div(new BN(PRICE_PRECISION));
     } catch (error) {
-      toast('Error calculating usdcSize');
+      const parsedError = parseSolanaError(error);
+      toast.error(parsedError.message);
       return null;
     }
   };

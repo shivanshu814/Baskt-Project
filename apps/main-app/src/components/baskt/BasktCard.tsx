@@ -111,6 +111,15 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
           </div>
         </div>
 
+        {baskt.performance && (
+          <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm text-muted-foreground">
+            <div>24h: {baskt.performance.day ? `+${baskt.performance.day}%` : '-'}</div>
+            <div className="text-right">
+              7d: {baskt.performance.week ? `+${baskt.performance.week}%` : '-'}
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <div className="flex items-center">

@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { UseOpenPositionProps } from '../../../types/baskt';
 import { calculateCollateralAmount, calculateLiquidationPrice } from '@baskt/sdk';
 import { PRICE_PRECISION, STANDARD_SLIPPAGE_BPS } from '@baskt/ui';
+import { parseSolanaError } from '../../../utils/error-handling';
 
 export function useOpenPositions(basktId?: string, userAddress?: string, navPrice?: BN) {
   const { client } = useBasktClient();
@@ -102,7 +103,8 @@ export function useOpenPositions(basktId?: string, userAddress?: string, navPric
 
       toast.success('Position closed successfully');
     } catch (error) {
-      toast.error('Failed to close position');
+      const parsedError = parseSolanaError(error);
+      toast.error(parsedError.message);
     }
   };
 
@@ -135,7 +137,8 @@ export function useOpenPositions(basktId?: string, userAddress?: string, navPric
       toast.success('Collateral added successfully');
     } catch (error) {
       console.error(error);
-      toast.error('Failed to add collateral');
+      const parsedError = parseSolanaError(error);
+      toast.error(parsedError.message);
     }
   };
 
@@ -250,7 +253,8 @@ export function useOpenPosition({ baskt, usdcSize, navPrice }: UseOpenPositionPr
       return true;
       // eslint-disable-next-line
     } catch (error: any) {
-      toast.error(error.message || 'Failed to open position');
+      const parsedError = parseSolanaError(error);
+      toast.error(parsedError.message);
       return false;
     } finally {
       setIsLoading(false);

@@ -5,6 +5,7 @@ import { BN } from 'bn.js';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
+import { parseSolanaError } from '../../../utils/error-handling';
 
 export function useOpenOrders(basktId?: string, userAddress?: string) {
   const { client } = useBasktClient();
@@ -69,7 +70,8 @@ export function useOpenOrders(basktId?: string, userAddress?: string) {
 
       toast.success('Order canceled successfully');
     } catch (error) {
-      toast.error('Failed to cancel order');
+      const parsedError = parseSolanaError(error);
+      toast.error(parsedError.message);
     }
   };
 

@@ -15,6 +15,7 @@ import {
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import BN from 'bn.js';
 import { AddCollateralDialogProps } from '../../../types/baskt';
+import { parseSolanaError } from '../../../utils/error-handling';
 
 const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
   position,
@@ -65,8 +66,10 @@ const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({
       // Close dialog on success
       onClose();
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add collateral';
-      setError(errorMessage);
+      const parsedError = parseSolanaError(
+        error instanceof Error ? error.message : 'Failed to add collateral',
+      );
+      setError(parsedError.message);
     } finally {
       setIsSubmitting(false);
     }

@@ -22,9 +22,9 @@ export function FeaturedBaskts() {
         ...baskt,
         performance: baskt.performance
           ? {
-              day: baskt.performance.daily,
-              week: baskt.performance.weekly,
-              month: baskt.performance.monthly,
+              day: (baskt.performance as any)?.day || baskt.performance.daily,
+              week: (baskt.performance as any)?.week || baskt.performance.weekly,
+              month: (baskt.performance as any)?.month || baskt.performance.monthly,
               year: baskt.performance.year,
             }
           : undefined,

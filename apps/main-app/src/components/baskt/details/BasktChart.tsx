@@ -21,10 +21,10 @@ export const BasktChart = ({ baskt, chartPeriod, chartType }: BasktChartProps) =
               <span className="font-semibold text-lg sm:text-xl text-primary">{baskt.name}</span>
               <span
                 className={`font-semibold text-sm sm:text-base ml-2 sm:ml-3 ${
-                  currentBaskt?.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+                  baskt?.performance?.day >= 0 ? 'text-green-400' : 'text-red-400'
                 }`}
               >
-                <NumberFormat value={currentBaskt?.change24h} />%
+                <NumberFormat value={baskt?.performance?.day || 0} />%
               </span>
             </div>
           </div>

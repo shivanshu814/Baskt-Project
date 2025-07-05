@@ -24,9 +24,9 @@ export const processBasktData = (
         isActive: baskt.account?.isActive ?? false,
         creationDate: baskt.creationDate ? new Date(baskt.creationDate) : new Date(),
         performance: {
-          day: baskt.performance?.daily || 0,
-          week: baskt.performance?.weekly || 0,
-          month: baskt.performance?.monthly || 0,
+          day: (baskt.performance as any)?.day || baskt.performance?.daily || 0,
+          week: (baskt.performance as any)?.week || baskt.performance?.weekly || 0,
+          month: (baskt.performance as any)?.month || baskt.performance?.monthly || 0,
           year: baskt.performance?.year || 0,
         },
         assets:
