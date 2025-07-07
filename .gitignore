@@ -22,6 +22,8 @@ yarn-error.log*
 .env.prod
 .env.staging
 .env.dev
+.env.docker
+.env*
 
 # IDE and editor files
 .vscode/
@@ -57,3 +59,14 @@ packages/program/usdc-mock.json
 test-ledger/
 
 *-key.json
+
+infrastructure/terraform-basic/.terraform/
+infrastructure/terraform/.terraform/
+infrastructure/terraform/.terraform.tfstate
+
+*.tfstate
+*.tfstate.backup
+*.tfvars
+*.tfvars.backup
+
+.terraform.tfstate.lock.info

@@ -19,14 +19,12 @@ import {
   TableHeader,
   TableRow,
   NumberFormat,
-  cn,
 } from '@baskt/ui';
 import { BasktFormProps } from '../../../types/baskt';
 
 export const BasktForm = ({
   formData,
   errors,
-  totalWeightage,
   onNameChange,
   onRebalancePeriodChange,
   onVisibilityChange,
@@ -41,18 +39,10 @@ export const BasktForm = ({
       <CardHeader>
         <CardTitle className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <span className="text-lg sm:text-xl">{title || 'Create Baskt'}</span>
-          <div className="flex items-center text-xs sm:text-sm font-normal gap-2">
-            <span className={cn(totalWeightage === 100 ? 'text-success' : 'text-warning')}>
-              Total: {totalWeightage}%
-            </span>
-            {totalWeightage !== 100 && <span className="text-warning">(Must equal 100%)</span>}
-          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Basic Info Section */}
         <div className="grid grid-cols-1 lg:grid-cols-[450px_auto_auto] items-start lg:items-center gap-4 lg:gap-[6rem]">
-          {/* Baskt Name */}
           <div className="space-y-2">
             <Label htmlFor="name" className="flex items-center justify-between">
               <span className="text-sm sm:text-base">Baskt Name</span>
@@ -69,7 +59,6 @@ export const BasktForm = ({
             {errors['name'] && <p className="text-xs text-destructive">{errors['name']}</p>}
           </div>
 
-          {/* Rebalancing Period */}
           <div className="space-y-2">
             <Label className="flex items-center gap-1 text-sm sm:text-base" htmlFor="rebalancing">
               Rebalancing Period
@@ -108,7 +97,6 @@ export const BasktForm = ({
             </div>
           </div>
 
-          {/* Visibility */}
           <div className="space-y-2">
             <Label htmlFor="public" className="text-sm sm:text-base">
               Visibility
@@ -140,10 +128,8 @@ export const BasktForm = ({
           </div>
         </div>
 
-        {/* Divider */}
         <div className="border-t border-border" />
 
-        {/* Assets Management Section */}
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] items-start sm:items-center gap-3">
             <p className="text-xs sm:text-sm text-muted-foreground">
@@ -239,7 +225,7 @@ export const BasktForm = ({
                             variant="ghost"
                             size="icon"
                             onClick={() => onRemoveAsset(asset.ticker)}
-                            className="text-destructive hover:text-destructive h-8 w-8 sm:h-9 sm:w-9"
+                            className="text-red-500 hover:text-red-500 h-8 w-8 sm:h-9 sm:w-9"
                           >
                             <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>

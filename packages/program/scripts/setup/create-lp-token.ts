@@ -8,21 +8,12 @@ import { TestClient } from '../../tests/utils/test-client';
 
 async function main() {
   const { program, wallet, provider } = getProvider(
-    'https://fabled-indulgent-seed.solana-devnet.quiknode.pro/19abbec85e908d5bdf453cc6bf35fb6d8d559b80/',
+    'https://attentive-long-replica.solana-mainnet.quiknode.pro/5338b0732eff649c847a73b9132b485b8e9d7346/',
   );
   const client = new TestClient(program);
   client.setPublicKey(wallet.publicKey);
 
-  // Derive PDAs
-  const protocolPDA = await client.protocolPDA;
-  const liquidityPoolPDA = await client.findLiquidityPoolPDA();
-  const poolAuthorityPDA = await client.findPoolAuthorityPDA(liquidityPoolPDA);
-  console.log('Protocol PDA:', protocolPDA.toBase58());
-  console.log('Liquidity Pool PDA:', liquidityPoolPDA.toBase58());
-  console.log('Pool Authority PDA:', poolAuthorityPDA.toBase58());
-
-  // Use USDC as the collateral mint
-  const usdcMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+  const poolAuthorityPDA = await client.findPoolAuthorityPDA();
 
   // Create LP Mint
   const lpMintKeypair = Keypair.generate();
@@ -35,16 +26,7 @@ async function main() {
     lpMintKeypair,
   );
   console.log('LP Mint:', lpMint.toBase58());
-
-  // Create Token Vault
-  const tokenVault = await getOrCreateAssociatedTokenAccount(
-    provider.connection,
-    wallet.payer,
-    usdcMint,
-    poolAuthorityPDA,
-    true,
-  );
-  console.log('Token Vault:', tokenVault.address.toBase58());
+  console.log('LP Mint Keypair:', lpMintKeypair.secretKey.toString());
 }
 
 main().catch((err) => {
