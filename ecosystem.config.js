@@ -9,7 +9,7 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      env_file: '/root/monorepo/.env',  // Absolute path to root .env
+      env_file: '/root/monorepo/.env', // Absolute path to root .env
       env: {
         NODE_ENV: 'production',
       },
@@ -23,7 +23,7 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      env_file: '/root/monorepo/.env',  // Absolute path to root .env
+      env_file: '/root/monorepo/.env', // Absolute path to root .env
       env: {
         NODE_ENV: 'production',
       },
@@ -37,7 +37,7 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      env_file: '/root/monorepo/.env',  // Absolute path to root .env
+      env_file: '/root/monorepo/.env', // Absolute path to root .env
       env: {
         NODE_ENV: 'production',
       },
@@ -51,7 +51,7 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      env_file: '/root/monorepo/.env',  // Absolute path to root .env
+      env_file: '/root/monorepo/.env', // Absolute path to root .env
       env: {
         NODE_ENV: 'production',
       },
@@ -65,7 +65,7 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      env_file: '/root/monorepo/.env',  // Absolute path to root .env
+      env_file: '/root/monorepo/.env', // Absolute path to root .env
       env: {
         NODE_ENV: 'production',
       },
@@ -74,15 +74,29 @@ module.exports = {
       name: 'event-listener',
       cwd: '/root/monorepo/services/event-engine',
       script: 'bash',
-      args: "-c 'node dist/listener.js'", 
+      args: "-c 'node dist/listener.js'",
       interpreter: 'none',
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      env_file: '/root/monorepo/.env',  // Absolute path to root .env
+      env_file: '/root/monorepo/.env', // Absolute path to root .env
       env: {
         NODE_ENV: 'production',
       },
-    }
+    },
+    {
+      name: 'oracle:nav-tracker',
+      cwd: '/root/monorepo/services/oracle',
+      script: 'bash',
+      args: "-c 'node dist/nav-tracker.js'",
+      interpreter: 'none',
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      env_file: '/root/monorepo/.env', // Absolute path to root .env
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
   ],
 };

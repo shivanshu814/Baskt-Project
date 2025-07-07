@@ -1,11 +1,12 @@
-import { defineConfig } from 'tsup'
+import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: {
-    'manager': 'src/manager.ts',
+    manager: 'src/manager.ts',
     'oracle-worker': 'src/oracle-worker.ts',
     'rebalance/manager': 'src/rebalance/manager.ts',
-    'rebalance/worker': 'src/rebalance/worker.ts'
+    'rebalance/worker': 'src/rebalance/worker.ts',
+    'nav-tracker': 'src/nav-tracker/nav-tracker.ts',
   },
   format: ['esm'],
   dts: false,
@@ -30,6 +31,6 @@ export default defineConfig({
     'mongoose',
     'sequelize',
     'uuid',
-    'ws'
-  ]
-}) 
+    'ws',
+  ],
+});
