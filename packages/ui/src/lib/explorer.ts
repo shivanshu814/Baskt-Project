@@ -17,5 +17,5 @@ export function getSolscanTxUrl(txId: string): string {
  * @returns The full Solscan URL for the account
  */
 export function getSolscanAddressUrl(address: string): string {
-  return `https://solscan.io/account/${address}`;
+  return `https://solscan.io/tx/${address}`;
 }

@@ -6,7 +6,7 @@ import { Footer } from '../../components/shared/Footer';
 import { CreateBasktGuideDialog } from '../../components/baskt/create/CreateBasktGuideDialog';
 import { AssetSelectionModal } from '../../components/baskt/create/AssetSelectionModal';
 import { BasktForm } from '../../components/baskt/create/BasktForm';
-import { Button, Alert, AlertDescription, AlertTitle } from '@baskt/ui';
+import { Button, Alert, AlertDescription, AlertTitle, cn } from '@baskt/ui';
 import { useCreateBasktForm } from '../../hooks/baskt/create/useCreateBasktForm';
 import { useAssetManagement } from '../../hooks/baskt/create/useAssetManagement';
 import { useBasktCreation } from '../../hooks/baskt/create/useBasktCreation';
@@ -118,8 +118,13 @@ const CreateBasktPage = () => {
               onAssetPositionChange={handleAssetPositionChange}
               onAssetWeightChange={handleAssetWeightChange}
             />
-
-            <div className="flex justify-end pt-4">
+            <div className="flex items-center justify-between pt-4">
+              <div className="flex items-center text-xs sm:text-sm font-normal gap-2">
+                <span className={cn(totalWeightage === 100 ? 'text-success' : 'text-warning')}>
+                  Total: {totalWeightage}%
+                </span>
+                {totalWeightage !== 100 && <span className="text-warning">(Must equal 100%)</span>}
+              </div>
               <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                 {isSubmitting ? 'Creating...' : 'Create Baskt'}
               </Button>

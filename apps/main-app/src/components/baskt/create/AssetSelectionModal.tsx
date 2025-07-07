@@ -8,7 +8,6 @@ import {
   DialogTitle,
   DialogDescription,
   Input,
-  Loading,
   NumberFormat,
   useBasktClient,
   Button,
@@ -17,6 +16,22 @@ import { Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '../../../utils/trpc';
 import { AssetSelectionModalProps } from '../../../types/baskt';
+
+const AssetSkeleton = () => (
+  <div className="flex items-center justify-between py-3 px-3 animate-pulse">
+    <div className="flex items-center gap-3">
+      <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-muted flex-shrink-0"></div>
+      <div className="flex flex-col min-w-0">
+        <div className="h-4 w-16 bg-muted rounded mb-1"></div>
+        <div className="h-3 w-24 bg-muted rounded"></div>
+      </div>
+    </div>
+    <div className="flex flex-col items-end flex-shrink-0">
+      <div className="h-4 w-12 bg-muted rounded mb-1"></div>
+      <div className="h-3 w-8 bg-muted rounded"></div>
+    </div>
+  </div>
+);
 
 export function AssetSelectionModal({
   open,
@@ -88,8 +103,10 @@ export function AssetSelectionModal({
 
             <div className="flex-1 overflow-y-auto min-h-0">
               {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loading />
+                <div className="space-y-1">
+                  {Array.from({ length: 8 }).map((_, index) => (
+                    <AssetSkeleton key={index} />
+                  ))}
                 </div>
               ) : filteredAssets.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">
@@ -129,11 +146,14 @@ export function AssetSelectionModal({
 
                       <div className="flex flex-col items-end flex-shrink-0">
                         <span className="text-sm sm:text-base font-medium">
-                          <NumberFormat value={asset.priceRaw} isPrice={true} />
+                          {(() => {
+                            const price = asset.priceRaw / 1e6;
+                            return price < 1 ? price.toFixed(6) : price.toFixed(3);
+                          })()}
                         </span>
                         <span
                           className={`text-xs font-medium ${
-                            asset.change24h >= 0 ? 'text-success' : 'text-destructive'
+                            asset.change24h >= 0 ? 'text-green-500' : 'text-red-500'
                           }`}
                         >
                           {asset.change24h >= 0 ? '+' : ''}
