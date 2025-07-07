@@ -98,6 +98,7 @@ export const useDeposit = ({ poolData, liquidityPool, onSuccess }: UseDepositPro
       setDepositAmount('');
       onSuccess?.();
     } catch (error) {
+      console.error(error);
       if (error instanceof Error) {
         if (error.message.includes('Treasury')) {
           toast.error('Treasury account error. Please contact support.');
