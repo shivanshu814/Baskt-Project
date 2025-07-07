@@ -13,7 +13,7 @@ import type { AppRouter } from '../../../services/backend/src/router';
 import { AssetPrice } from '../../../services/oracle/src/config/sequelize';
 
 import assetConfig from './assets.json';
-import { getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';
+import { getMint, getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';
 import { connectMongoDB } from '../../../services/backend/src/config/mongo';
 
 const shouldCreateFakePrices = process.argv.includes('--create-fake-prices');
@@ -197,6 +197,9 @@ async function main() {
     fundingAccount,
   );
   const usdcAmount = new anchor.BN(10_000 * 1e6);
+
+  console.log((await getMint(provider.connection, usdcMint)).mintAuthority?.toString());
+
   await mintTo(
     provider.connection,
     wallet.payer,
