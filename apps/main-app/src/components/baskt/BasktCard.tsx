@@ -131,7 +131,7 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
               Short
             </div>
           </div>
-          <div>Risk: {baskt.risk || 'medium'}</div>
+          <div>30d Sharpe: {baskt.sharpeRatio || '1.2'}</div>
         </div>
 
         <Button

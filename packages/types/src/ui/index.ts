@@ -77,4 +77,5 @@ export interface BasktInfo extends Omit<BasktMetadataModel, 'assets'> {
   categories: string[];
   description?: string;
   risk?: 'low' | 'medium' | 'high';
+  sharpeRatio?: string;
 }

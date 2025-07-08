@@ -1,6 +1,7 @@
-import { Card, CardHeader, CardTitle, CardContent } from '@baskt/ui';
-import { ClipboardList } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent, Button } from '@baskt/ui';
+import { ClipboardList, ExternalLink } from 'lucide-react';
 import { NumberFormat } from '@baskt/ui';
+import Link from 'next/link';
 
 interface ActivityItem {
   type: 'position' | 'order' | 'history';
@@ -8,6 +9,7 @@ interface ActivityItem {
   amount: number;
   timestamp: number;
   basktName: string;
+  basktId?: string;
   isPositive: boolean;
 }
 
@@ -49,9 +51,19 @@ const RecentActivity = ({ recentActivity }: RecentActivityProps) => {
                     {activity.basktName} • {new Date(activity.timestamp).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="text-sm font-medium text-foreground">
-                  {activity.amount > 0 ? '+' : ''}
-                  <NumberFormat value={activity.amount * 1e6} isPrice={true} />
+                <div className="flex items-center space-x-2">
+                  <div className="text-sm font-medium text-foreground">
+                    {activity.amount > 0 ? '+' : ''}
+                    <NumberFormat value={activity.amount * 1e6} isPrice={true} />
+                  </div>
+                  {activity.type === 'position' && activity.basktName && (
+                    <Link href={`/baskts/${encodeURIComponent(activity.basktName)}`}>
+                      <Button variant="ghost" size="sm" className="h-6 px-2">
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}

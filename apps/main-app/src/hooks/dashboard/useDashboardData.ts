@@ -307,6 +307,7 @@ export const useDashboardData = () => {
           portfolioSummary.assetExposures.find((e) =>
             e.positions.some((p) => p.positionPDA === pos.positionPDA),
           )?.assetName || 'Unknown',
+        basktId: pos.basktId || '',
         isPositive: true,
       })),
       // eslint-disable-next-line
