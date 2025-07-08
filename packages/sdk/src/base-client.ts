@@ -7,6 +7,7 @@ import {
   TransactionInstruction,
   TransactionMessage,
   VersionedTransaction,
+  ComputeBudgetProgram,
 } from '@solana/web3.js';
 import { OracleHelper } from './utils/oracle-helper';
 import BN from 'bn.js';
@@ -86,6 +87,50 @@ export abstract class BaseClient {
   abstract getPublicKey(): PublicKey;
 
   /**
+   * Wrapper for provider.sendAndConfirmLegacy that adds priority fee instructions
+   * @param transaction The transaction to send and confirm
+   * @param priorityFeeLamports Optional priority fee in lamports (default: 10000)
+   * @returns Transaction signature
+   */
+  public async sendAndConfirmLegacy(
+    transaction: Transaction,
+    priorityFeeLamports: number = 10000,
+  ): Promise<string> {
+    // Add priority fee instruction at the beginning
+    const priorityFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+      microLamports: priorityFeeLamports,
+    });
+    
+    // Insert the priority fee instruction at the beginning of the transaction
+    transaction.instructions.unshift(priorityFeeIx);
+    
+    // Call the provider's sendAndConfirmLegacy method
+    return await this.provider.sendAndConfirmLegacy(transaction);
+  }
+
+  /**
+   * Wrapper for Anchor .rpc() calls that builds a transaction and sends it with priority fees
+   * @param transactionBuilder The Anchor transaction builder (e.g., this.program.methods.someMethod().accounts())
+   * @param priorityFeeLamports Optional priority fee in lamports (default: 10000)
+   * @returns Transaction signature
+   */
+  public async sendAndConfirmRpc(
+    transactionBuilder: any,
+    priorityFeeLamports: number = 10000,
+  ): Promise<string> {
+    // Build the transaction
+    const transaction = await transactionBuilder.transaction();
+    
+    // Get the latest blockhash and set fee payer
+    const { blockhash } = await this.connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = this.getPublicKey();
+    
+    // Send and confirm with priority fees
+    return await this.sendAndConfirmLegacy(transaction, priorityFeeLamports);
+  }
+
+  /**
    * Update the price of a custom oracle
    * @param oracleAddress Address of the oracle to update
    * @param price New price value
@@ -146,7 +191,7 @@ export abstract class BaseClient {
       .transaction();
 
     return {
-      initializeProtocolSignature: await this.provider.sendAndConfirmLegacy(tx),
+      initializeProtocolSignature: await this.sendAndConfirmLegacy(tx),
       initializeLookupTableSignature: await this.initializeLookupTable(),
     };
   }
@@ -248,7 +293,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -268,7 +313,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -363,7 +408,7 @@ export abstract class BaseClient {
       .postInstructions(postInstructions)
       .transaction();
 
-    return { txSignature: await this.provider.sendAndConfirmLegacy(tx), assetAddress };
+    return { txSignature: await this.sendAndConfirmLegacy(tx), assetAddress };
   }
 
   /**
@@ -569,7 +614,7 @@ export abstract class BaseClient {
 
     // Build transaction and send using provider like other methods
     const tx = await txBuilder.transaction();
-    const txSignature = await this.provider.sendAndConfirmLegacy(tx);
+    const txSignature = await this.sendAndConfirmLegacy(tx);
     return {
       basktId,
       txSignature,
@@ -596,7 +641,7 @@ export abstract class BaseClient {
 
     // Build transaction and send using provider like other methods
     const tx = await txBuilder.transaction();
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   public async sendAndConfirm(instructions: TransactionInstruction[]) {
@@ -725,7 +770,7 @@ export abstract class BaseClient {
         })
         .transaction();
 
-      const sig = await this.provider.sendAndConfirmLegacy(tx);
+      const sig = await this.sendAndConfirmLegacy(tx);
 
       // ––– NEW: re-query the protocol and assert the flip took effect –––
       const protocol = await this.getProtocolAccount();
@@ -872,7 +917,7 @@ export abstract class BaseClient {
     // Sign with the LP mint keypair
     tx.partialSign(lpMintKeypair);
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -912,7 +957,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   public async addLiquidityWithItx(
@@ -941,7 +986,7 @@ export abstract class BaseClient {
       .preInstructions(itx)
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -981,7 +1026,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1063,7 +1108,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   public async cancelOrderTx(
@@ -1145,7 +1190,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1164,7 +1209,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   // Protocol Configuration Setters
@@ -1182,7 +1227,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1198,7 +1243,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1214,7 +1259,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1230,7 +1275,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1246,7 +1291,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1262,7 +1307,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1278,7 +1323,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1294,7 +1339,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1312,7 +1357,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1328,7 +1373,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1344,7 +1389,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   // ====== Baskt Lifecycle Operations ======
@@ -1363,7 +1408,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1383,7 +1428,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1400,7 +1445,7 @@ export abstract class BaseClient {
       })
       .transaction();
 
-    return await this.provider.sendAndConfirmLegacy(tx);
+    return await this.sendAndConfirmLegacy(tx);
   }
 
   /**
@@ -1485,31 +1530,32 @@ export abstract class BaseClient {
 
     const orderEscrow = await this.getOrderEscrowPDA(params.orderOwner || this.getPublicKey());
 
-    return await this.program.methods
-      .openPosition({ positionId: params.positionId, entryPrice: params.entryPrice })
-      .accountsPartial({
-        matcher: this.getPublicKey(),
-        baskt: params.baskt,
-        escrowMint: USDC_MINT,
-        order: params.order,
-        fundingIndex: fundinIndexPDA,
-        position: position,
-        orderEscrow: orderEscrow,
-      })
-      .preInstructions(params.preInstructions || [])
-      .remainingAccounts([
-        {
-          pubkey: treasuryTokenAccount,
-          isWritable: true,
-          isSigner: false,
-        },
-        {
-          pubkey: tokenVault,
-          isWritable: true,
-          isSigner: false,
-        },
-      ])
-      .rpc();
+    return await this.sendAndConfirmRpc(
+      this.program.methods
+        .openPosition({ positionId: params.positionId, entryPrice: params.entryPrice })
+        .accountsPartial({
+          matcher: this.getPublicKey(),
+          baskt: params.baskt,
+          escrowMint: USDC_MINT,
+          order: params.order,
+          fundingIndex: fundinIndexPDA,
+          position: position,
+          orderEscrow: orderEscrow,
+        })
+        .preInstructions(params.preInstructions || [])
+        .remainingAccounts([
+          {
+            pubkey: treasuryTokenAccount,
+            isWritable: true,
+            isSigner: false,
+          },
+          {
+            pubkey: tokenVault,
+            isWritable: true,
+            isSigner: false,
+          },
+        ])
+    );
   }
 
   public async getOrderPDA(orderId: BN, owner: PublicKey): Promise<PublicKey> {
@@ -1531,15 +1577,16 @@ export abstract class BaseClient {
       this.program.programId,
     );
 
-    return await this.program.methods
-      .addCollateral({ additionalCollateral: params.additionalCollateral })
-      .accountsPartial({
-        owner: this.getPublicKey(),
-        ownerToken: params.ownerTokenAccount,
-        position: params.position,
-        protocol: protocol, // Explicitly provide protocol for constraint checking
-      })
-      .rpc();
+    return await this.sendAndConfirmRpc(
+      this.program.methods
+        .addCollateral({ additionalCollateral: params.additionalCollateral })
+        .accountsPartial({
+          owner: this.getPublicKey(),
+          ownerToken: params.ownerTokenAccount,
+          position: params.position,
+          protocol: protocol, // Explicitly provide protocol for constraint checking
+        })
+    );
   }
 
   public async closePosition(params: {
@@ -1573,18 +1620,19 @@ export abstract class BaseClient {
       },
     ];
 
-    return await this.program.methods
-      .closePosition({ exitPrice: params.exitPrice })
-      .accountsPartial({
-        matcher: this.getPublicKey(),
-        order: params.orderPDA,
-        position: params.position,
-        baskt: params.baskt,
-        treasury: params.treasury,
-        fundingIndex: fundingIndex,
-      })
-      .remainingAccounts(remainingAccounts)
-      .rpc();
+    return await this.sendAndConfirmRpc(
+      this.program.methods
+        .closePosition({ exitPrice: params.exitPrice })
+        .accountsPartial({
+          matcher: this.getPublicKey(),
+          order: params.orderPDA,
+          position: params.position,
+          baskt: params.baskt,
+          treasury: params.treasury,
+          fundingIndex: fundingIndex,
+        })
+        .remainingAccounts(remainingAccounts)
+    );
   }
   public async liquidatePosition(params: {
     position: PublicKey;
@@ -1624,18 +1672,19 @@ export abstract class BaseClient {
       },
     ];
 
-    return await this.program.methods
-      .liquidatePosition({ exitPrice: params.exitPrice })
-      .accountsPartial({
-        liquidator: this.getPublicKey(),
-        position: params.position,
-        positionOwner: positionAccount.owner,
-        baskt: params.baskt,
-        treasury: params.treasury,
-        escrowToken: escrowToken,
-      })
-      .remainingAccounts(remainingAccounts)
-      .rpc();
+    return await this.sendAndConfirmRpc(
+      this.program.methods
+        .liquidatePosition({ exitPrice: params.exitPrice })
+        .accountsPartial({
+          liquidator: this.getPublicKey(),
+          position: params.position,
+          positionOwner: positionAccount.owner,
+          baskt: params.baskt,
+          treasury: params.treasury,
+          escrowToken: escrowToken,
+        })
+        .remainingAccounts(remainingAccounts)
+    );
   }
 
   // Baskt Config Methods
@@ -1643,71 +1692,76 @@ export abstract class BaseClient {
     baskt: PublicKey,
     newOpeningFeeBps: number | null,
   ): Promise<string> {
-    return await this.program.methods
-      .setBasktOpeningFeeBps(newOpeningFeeBps !== null ? new BN(newOpeningFeeBps) : null)
-      .accountsPartial({
-        authority: this.getPublicKey(),
-        baskt: baskt,
-      })
-      .rpc();
+    return await this.sendAndConfirmRpc(
+      this.program.methods
+        .setBasktOpeningFeeBps(newOpeningFeeBps !== null ? new BN(newOpeningFeeBps) : null)
+        .accountsPartial({
+          authority: this.getPublicKey(),
+          baskt: baskt,
+        })
+    );
   }
 
   public async setBasktClosingFeeBps(
     baskt: PublicKey,
     newClosingFeeBps: number | null,
   ): Promise<string> {
-    return await this.program.methods
-      .setBasktClosingFeeBps(newClosingFeeBps !== null ? new BN(newClosingFeeBps) : null)
-      .accountsPartial({
-        authority: this.getPublicKey(),
-        baskt: baskt,
-      })
-      .rpc();
+    return await this.sendAndConfirmRpc(
+      this.program.methods
+        .setBasktClosingFeeBps(newClosingFeeBps !== null ? new BN(newClosingFeeBps) : null)
+        .accountsPartial({
+          authority: this.getPublicKey(),
+          baskt: baskt,
+        })
+    );
   }
 
   public async setBasktLiquidationFeeBps(
     baskt: PublicKey,
     newLiquidationFeeBps: number | null,
   ): Promise<string> {
-    return await this.program.methods
-      .setBasktLiquidationFeeBps(
-        newLiquidationFeeBps !== null ? new BN(newLiquidationFeeBps) : null,
-      )
-      .accountsPartial({
-        authority: this.getPublicKey(),
-        baskt: baskt,
-      })
-      .rpc();
+    return await this.sendAndConfirmRpc(
+      this.program.methods
+        .setBasktLiquidationFeeBps(
+          newLiquidationFeeBps !== null ? new BN(newLiquidationFeeBps) : null,
+        )
+        .accountsPartial({
+          authority: this.getPublicKey(),
+          baskt: baskt,
+        })
+    );
   }
 
   public async setBasktMinCollateralRatioBps(
     baskt: PublicKey,
     newMinCollateralRatioBps: number | null,
   ): Promise<string> {
-    return await this.program.methods
-      .setBasktMinCollateralRatioBps(
-        newMinCollateralRatioBps !== null ? new BN(newMinCollateralRatioBps) : null,
-      )
-      .accountsPartial({
-        authority: this.getPublicKey(),
-        baskt: baskt,
-      })
-      .rpc();
+    return await this.sendAndConfirmRpc(
+      this.program.methods
+        .setBasktMinCollateralRatioBps(
+          newMinCollateralRatioBps !== null ? new BN(newMinCollateralRatioBps) : null,
+        )
+        .accountsPartial({
+          authority: this.getPublicKey(),
+          baskt: baskt,
+        })
+    );
   }
 
   public async setBasktLiquidationThresholdBps(
     baskt: PublicKey,
     newLiquidationThresholdBps: number | null,
   ): Promise<string> {
-    return await this.program.methods
-      .setBasktLiquidationThresholdBps(
-        newLiquidationThresholdBps !== null ? new BN(newLiquidationThresholdBps) : null,
-      )
-      .accountsPartial({
-        authority: this.getPublicKey(),
-        baskt: baskt,
-      })
-      .rpc();
+    return await this.sendAndConfirmRpc(
+      this.program.methods
+        .setBasktLiquidationThresholdBps(
+          newLiquidationThresholdBps !== null ? new BN(newLiquidationThresholdBps) : null,
+        )
+        .accountsPartial({
+          authority: this.getPublicKey(),
+          baskt: baskt,
+        })
+    );
   }
 
   public async updateBasktConfig(
@@ -1758,13 +1812,14 @@ export abstract class BaseClient {
           : currentConfig.liquidationThresholdBps,
     };
 
-    return await this.program.methods
-      .updateBasktConfig(updateParams)
-      .accountsPartial({
-        authority: this.getPublicKey(),
-        baskt: baskt,
-      })
-      .rpc();
+    return await this.sendAndConfirmRpc(
+      this.program.methods
+        .updateBasktConfig(updateParams)
+        .accountsPartial({
+          authority: this.getPublicKey(),
+          baskt: baskt,
+        })
+    );
   }
 
   public async readWithRetry(fn: () => Promise<any>, retries: number = 3, delay: number = 1000) {
