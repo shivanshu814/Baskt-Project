@@ -7,18 +7,8 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 
 async function main() {
   const { wallet, provider } = getProvider(
-    'https://fabled-indulgent-seed.solana-devnet.quiknode.pro/19abbec85e908d5bdf453cc6bf35fb6d8d559b80/',
+    'https://attentive-long-replica.solana-mainnet.quiknode.pro/5338b0732eff649c847a73b9132b485b8e9d7346/',
   );
-
-  const minuAuthority = Keypair.fromSecretKey(
-    Buffer.from(
-      'VaRGq1AFa5RE3fNLTPyccv4P+TxcGAdBIgnFels/9QAmgragKEoiByXnTP/diVXlNlnga0bjRQI7XtXkkMgXDQ==',
-      'base64',
-    ),
-  );
-  
-  console.log(minuAuthority.publicKey.toBase58());
-  
 
   const account = new PublicKey(process.argv[2]);
   const mint = new PublicKey(process.argv[3]);
