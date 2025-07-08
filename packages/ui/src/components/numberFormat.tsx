@@ -5,7 +5,8 @@ interface NumberFormatProps {
 
 const formatNumber = (value: number, isPrice: boolean = false): string => {
   if (isPrice) {
-    return `$${(value / 1e6).toFixed(2)}`;
+    const formattedValue = (value / 1e6).toFixed(2);
+    return `$${formattedValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   } else {
     return `${value.toFixed(2)}`;
   }

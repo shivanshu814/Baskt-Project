@@ -1,6 +1,7 @@
 import React from 'react';
-import { useOrderHistory } from '../../../hooks/baskt/trade/useOrderHistory';
+import { useOrderHistory } from '../../../../../hooks/baskt/trade/useOrderHistory';
 import { useBasktClient } from '@baskt/ui';
+import { formatDateTime } from '../../../../../utils/date';
 import {
   NumberFormat,
   Card,
@@ -24,13 +25,9 @@ export const BasktOrderHistory = ({ basktId }: { basktId?: string }) => {
   const positionHistory = history?.filter((item) => item.type === 'position') || [];
 
   const getPnlColor = (pnl?: string) => {
-    if (!pnl) return 'text-gray-500';
+    if (!pnl) return 'text-text';
     const pnlValue = parseFloat(pnl);
-    return pnlValue > 0 ? 'text-green-500' : pnlValue < 0 ? 'text-red-500' : 'text-gray-500';
-  };
-
-  const formatDate = (timestamp: string) => {
-    return new Date(parseInt(timestamp) * 1000).toLocaleDateString();
+    return pnlValue > 0 ? 'text-green-500' : pnlValue < 0 ? 'text-red-500' : 'text-text';
   };
 
   if (isLoading) {
@@ -73,48 +70,62 @@ export const BasktOrderHistory = ({ basktId }: { basktId?: string }) => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-xs sm:text-sm">Type</TableHead>
+                <TableHead className="text-xs sm:text-sm">Date</TableHead>
+                <TableHead className="text-xs sm:text-sm">Direction</TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">Entry Price</TableHead>
                 <TableHead className="text-xs sm:text-sm">Size</TableHead>
-                <TableHead className="text-xs sm:text-sm">Entry Price</TableHead>
-                <TableHead className="text-xs sm:text-sm">Exit Price</TableHead>
+                <TableHead className="text-xs sm:text-sm">Status</TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">Exit Price</TableHead>
                 <TableHead className="text-xs sm:text-sm">PnL</TableHead>
-                <TableHead className="text-right text-xs sm:text-sm">Date</TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">Order ID</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {!positionHistory || positionHistory.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <p className="text-muted-foreground text-sm">No order history found.</p>
                   </TableCell>
                 </TableRow>
               ) : (
                 positionHistory.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium text-xs sm:text-sm">
-                      {item.type === 'order'
-                        ? item.action === OrderAction.Open
-                          ? 'Open'
-                          : 'Close'
-                        : item.isLong
-                        ? 'Long'
-                        : 'Short'}
+                    <TableCell className="text-xs sm:text-sm whitespace-nowrap">
+                      {formatDateTime(item.timestamp)}
                     </TableCell>
-                    <TableCell className="text-xs sm:text-sm">
-                      {item.size ? <NumberFormat value={parseFloat(item.size) / 1e6} /> : '-'}
+                    <TableCell className="font-medium text-xs sm:text-sm">
+                      {item.type === 'order' ? (
+                        item.action === OrderAction.Open ? (
+                          'Open'
+                        ) : (
+                          'Close'
+                        )
+                      ) : item.isLong ? (
+                        <span className="text-green-500">Long</span>
+                      ) : (
+                        <span className="text-red-500">Short</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
                       {item.entryPrice ? (
                         <NumberFormat value={parseFloat(item.entryPrice)} isPrice />
                       ) : (
-                        '-'
+                        '---'
                       )}
+                    </TableCell>
+                    <TableCell className="text-xs sm:text-sm">
+                      {item.size ? <NumberFormat value={parseFloat(item.size) / 1e6} /> : '---'}
+                    </TableCell>
+                    <TableCell className="text-xs sm:text-sm">
+                      {item.status === item.status.toUpperCase()
+                        ? item.status.charAt(0).toUpperCase() + item.status.slice(1).toLowerCase()
+                        : item.status}
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
                       {item.exitPrice ? (
                         <NumberFormat value={parseFloat(item.exitPrice)} isPrice />
                       ) : (
-                        '-'
+                        '---'
                       )}
                     </TableCell>
                     <TableCell className={`text-xs sm:text-sm ${getPnlColor(item.pnl)}`}>
@@ -124,12 +135,10 @@ export const BasktOrderHistory = ({ basktId }: { basktId?: string }) => {
                           {item.pnlPercentage && ` (${item.pnlPercentage}%)`}
                         </>
                       ) : (
-                        '-'
+                        '---'
                       )}
                     </TableCell>
-                    <TableCell className="text-right text-xs sm:text-sm">
-                      {formatDate(item.timestamp)}
-                    </TableCell>
+                    <TableCell className="text-xs sm:text-sm">{item.positionId || '---'}</TableCell>
                   </TableRow>
                 ))
               )}

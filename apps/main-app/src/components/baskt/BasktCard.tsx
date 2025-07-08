@@ -31,7 +31,7 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
   const { totalOpenInterest, isLoading: oiLoading } = useBasktOI(baskt.basktId.toString());
 
   const { isPositive, changeColor, changeIcon, sparklineData } = useMemo(() => {
-    const change24h = baskt.change24h || 0;
+    const change24h = baskt?.performance?.day || baskt.change24h || 0;
     const isPositive = change24h >= 0;
 
     return {
@@ -67,7 +67,7 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
         </div>
         <div className={cn('flex items-center text-xs sm:text-sm font-medium', changeColor)}>
           {changeIcon}
-          <NumberFormat value={baskt.change24h} />%
+          <NumberFormat value={baskt?.performance?.day || 0} />%
         </div>
       </CardHeader>
 

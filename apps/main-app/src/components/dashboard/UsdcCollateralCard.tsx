@@ -18,7 +18,7 @@ const UsdcCollateralCard = ({
           <div className="flex flex-col items-start">
             <span className="text-xs text-muted-foreground mb-1">USDC Balance</span>
             <span className="text-2xl font-bold text-foreground">
-              $<NumberFormat value={usdcBalance} />
+              <NumberFormat value={usdcBalance * 1e6} isPrice={true} />
             </span>
           </div>
         </div>

@@ -3,9 +3,9 @@
 import { useParams } from 'next/navigation';
 import { BasktTradingForm } from '../../../components/baskt/details/BasktTradingForm';
 import { useBasktDetail } from '../../../hooks/baskt/useBasktDetail';
-import { BasktChart } from '../../../components/baskt/details/BasktChart';
-import { BasktTabs } from '../../../components/baskt/details/BasktTabs';
-import { BasktDetailSkeleton } from '../../../components/baskt/details/BasktDetailSkeleton';
+import { BasktChart } from '../../../components/baskt/details/graph/BasktChart';
+import { BasktTabs } from '../../../components/baskt/details/basktTabs/BasktTabs';
+import { BasktDetailSkeleton } from '../../../components/baskt/details/skeleton/BasktDetailSkeleton';
 
 export default function BasktDetailPage() {
   const params = useParams();

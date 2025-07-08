@@ -1,16 +1,24 @@
 import React, { useState } from 'react';
-import { BasktPosition } from './BasktPosition';
-import { BasktOpenOrders } from './BasktOpenOrders';
-import { BasktOrderHistory } from './BasktOrderHistory';
-import { IndexComposition } from './IndexComposition';
-import { BasktTabsProps } from '../../../types/baskt';
+import { BasktPosition } from './position/BasktPosition';
+import { BasktOpenOrders } from './orders/BasktOpenOrders';
+import { BasktOrderHistory } from './history/BasktOrderHistory';
+import { IndexComposition } from './composition/IndexComposition';
+import { BasktTabsProps } from '../../../../types/baskt';
+import { MetricsGrid } from './metrics/MetricsGrid';
 import BN from 'bn.js';
-import { MetricsGrid } from './MetricsGrid';
+import { useOpenPositions } from '../../../../hooks/baskt/trade/useOpenPositions';
+import { useOpenOrders } from '../../../../hooks/baskt/trade/useOpenOrders';
+import { useBasktClient } from '@baskt/ui';
 
 type TabType = 'composition' | 'position' | 'openOrders' | 'orderHistory' | 'metrics';
 
 export const BasktTabs = ({ baskt }: BasktTabsProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('composition');
+
+  const { client } = useBasktClient();
+  const userAddress = client?.wallet?.address?.toString();
+  const { positions = [] } = useOpenPositions(baskt.basktId, userAddress);
+  const { orders = [] } = useOpenOrders(baskt.basktId, userAddress);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -31,8 +39,8 @@ export const BasktTabs = ({ baskt }: BasktTabsProps) => {
 
   const tabs: { id: TabType | 'metrics'; label: string }[] = [
     { id: 'composition', label: 'Composition' },
-    { id: 'position', label: 'Position' },
-    { id: 'openOrders', label: 'Open Orders' },
+    { id: 'position', label: `Positions (${positions.length})` },
+    { id: 'openOrders', label: `Open Orders (${orders.length})` },
     { id: 'orderHistory', label: 'Order History' },
     { id: 'metrics', label: 'Metrics' },
   ];
