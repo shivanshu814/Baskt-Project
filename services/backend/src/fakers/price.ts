@@ -19,7 +19,7 @@ export function generateDailyNavHistory(baselineconfig: OnchainAssetConfig[], ba
       //   })),
       //   baselineNav,
       // ),
-      price: new BN(Math.random() * 2 * 1e6),
+      price: new BN(1e6 + (Math.random() - 0.5) * 0.1 * 1e6), // ±5% of 1e6
     }));
 }
 
