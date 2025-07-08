@@ -25,6 +25,9 @@ const createOrderOpen = async (args: string[]) => {
   const action = { open: {} };
   const targetPosition = null;
 
+  console.log(USDC_MINT.toBase58());
+
+
   const orderTx = await client.createOrderTx(
     orderId,
     new BN(0),

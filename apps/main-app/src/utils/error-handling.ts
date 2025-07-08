@@ -11,6 +11,7 @@ export interface ParsedError {
  */
 // eslint-disable-next-line
 export function parseSolanaError(error: any): ParsedError {
+  console.error(error);
   // If it's already a user-friendly error, return it as is
   if (error?.message && typeof error.message === 'string') {
     // Check if it's already a user-friendly message
