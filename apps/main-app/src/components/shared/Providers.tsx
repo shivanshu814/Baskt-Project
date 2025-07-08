@@ -13,6 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <Toaster
             position="bottom-left"
             closeButton={true}
+            duration={20000}
             toastOptions={{
               classNames: {
                 toast:

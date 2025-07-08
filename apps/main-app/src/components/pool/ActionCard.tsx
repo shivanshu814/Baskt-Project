@@ -7,6 +7,7 @@ import {
   CardTitle,
   Input,
   Button,
+  NumberFormat,
 } from '@baskt/ui';
 import { ActionCardProps } from '../../types/pool';
 
@@ -76,7 +77,7 @@ export const ActionCard = React.memo(
             </div>
             {tokenBalance && (
               <div className="text-xs text-muted-foreground mt-1">
-                Your {unit}: {tokenBalance}
+                Your {unit}: <NumberFormat value={Number(tokenBalance) * 1e6} isPrice={true} />
               </div>
             )}
             <div className="space-y-2 text-sm bg-foreground/5 p-3 rounded-lg">

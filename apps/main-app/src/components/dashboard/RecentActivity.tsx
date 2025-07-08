@@ -1,5 +1,6 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@baskt/ui';
 import { ClipboardList } from 'lucide-react';
+import { NumberFormat } from '@baskt/ui';
 
 interface ActivityItem {
   type: 'position' | 'order' | 'history';
@@ -50,7 +51,7 @@ const RecentActivity = ({ recentActivity }: RecentActivityProps) => {
                 </div>
                 <div className="text-sm font-medium text-foreground">
                   {activity.amount > 0 ? '+' : ''}
-                  {activity.amount.toFixed(2)}
+                  <NumberFormat value={activity.amount * 1e6} isPrice={true} />
                 </div>
               </div>
             ))}

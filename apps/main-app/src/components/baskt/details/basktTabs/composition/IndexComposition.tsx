@@ -1,5 +1,5 @@
 import { BasktAssetInfo } from '@baskt/types';
-import { IndexCompositionProps } from '../../../types/baskt';
+import { IndexCompositionProps } from '../../../../../types/baskt';
 import { calculateCurrentWeights } from '@baskt/sdk/src/math/weight';
 import {
   Card,
@@ -28,14 +28,18 @@ export function changeFromCurrentPrice(asset: BasktAssetInfo) {
 }
 
 export function IndexComposition({ assets }: IndexCompositionProps) {
-  // Calculate current weights whenever assets change
   const currentWeights = useMemo(() => {
-    // Only calculate if we have valid assets with prices
-    if (assets.length === 0 || assets.some(a => a.price === undefined || a.baselinePrice === undefined)) {
-      return assets.map(asset => asset.weight); // Return target weights if we can't calculate
+    if (
+      assets.length === 0 ||
+      assets.some((a) => a.price === undefined || a.baselinePrice === undefined)
+    ) {
+      return assets.map((asset) => asset.weight);
     }
     return calculateCurrentWeights(assets);
   }, [assets]);
+
+  // Add a utility class for gap between underline and text
+  // We'll use 'underline decoration-dashed underline-offset-4' for a bigger gap
 
   return (
     <Card className="rounded-none border-0 shadow-none">
@@ -52,32 +56,38 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                 <TableHead className="text-xs sm:text-sm">
                   <TooltipProvider>
                     <Tooltip>
-                      <TooltipTrigger className="flex items-center gap-1">
+                      <TooltipTrigger className="flex items-center gap-1 whitespace-nowrap">
                         Target Weight <InfoIcon size={14} />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="max-w-xs text-xs">Initial weight allocation when the basket was created</p>
+                        <p className="max-w-xs text-xs">
+                          Initial weight allocation when the basket was created
+                        </p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </TableHead>
-                <TableHead className="text-xs sm:text-sm">
+                <TableHead className="text-xs sm:text-sm underline decoration-dashed underline-offset-4">
                   <TooltipProvider>
                     <Tooltip>
-                      <TooltipTrigger className="flex items-center gap-1">
+                      <TooltipTrigger className="flex items-center gap-1 whitespace-nowrap">
                         Current Weight <InfoIcon size={14} />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="max-w-xs text-xs">Current weight based on price movements and directional exposure</p>
+                        <p className="max-w-xs text-xs">
+                          Current weight based on price movements and directional exposure
+                        </p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </TableHead>
-                <TableHead className="text-xs sm:text-sm whitespace-nowrap">
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap underline decoration-dashed underline-offset-4">
                   Baseline Price
                 </TableHead>
-                <TableHead className="text-xs sm:text-sm">Price</TableHead>
-                <TableHead className="text-right text-xs sm:text-sm whitespace-nowrap">
+                <TableHead className="text-xs sm:text-sm underline decoration-dashed underline-offset-4">
+                  Price
+                </TableHead>
+                <TableHead className="text-right text-xs sm:text-sm whitespace-nowrap underline decoration-dashed underline-offset-4">
                   Change (%)
                 </TableHead>
               </TableRow>
@@ -103,13 +113,25 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                     </div>
                   </TableCell>
                   <TableCell className="capitalize text-xs sm:text-sm">
-                    {asset.direction ? 'long' : 'short'}
+                    <span
+                      className={`font-medium ${
+                        asset.direction ? 'text-green-600' : 'text-red-600'
+                      }`}
+                    >
+                      {asset.direction ? 'long' : 'short'}
+                    </span>
                   </TableCell>
                   <TableCell className="text-xs sm:text-sm">
                     <NumberFormat value={asset.weight} />%
                   </TableCell>
-                  <TableCell 
-                    className={`text-xs sm:text-sm ${currentWeights[index] > asset.weight ? 'text-[#16C784]' : currentWeights[index] < asset.weight ? 'text-[#EA3943]' : ''}`}
+                  <TableCell
+                    className={`text-xs sm:text-sm ${
+                      currentWeights[index] > asset.weight
+                        ? 'text-[#16C784]'
+                        : currentWeights[index] < asset.weight
+                        ? 'text-[#EA3943]'
+                        : ''
+                    }`}
                   >
                     <NumberFormat value={currentWeights[index]} />%
                   </TableCell>

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { cn } from '@baskt/ui';
-import { TradingViewChartProps } from '../../../types/market';
-import { ChartPeriod, TooltipData } from '../../../types/baskt';
+import { TradingViewChartProps } from '../../../../types/market';
+import { ChartPeriod, TooltipData } from '../../../../types/baskt';
 import {
   createChart,
   ColorType,
@@ -10,7 +10,7 @@ import {
   AreaSeries,
   CrosshairMode,
 } from 'lightweight-charts';
-import { trpc } from '../../../utils/trpc';
+import { trpc } from '../../../../utils/trpc';
 
 const CHART_OPTIONS = {
   layout: {
@@ -268,22 +268,40 @@ export function TradingViewChart({
       <div ref={chartContainerRef} className="h-full w-full" />
       {tooltipData?.show && (
         <div
-          className="absolute z-20 px-2 py-1 text-xs text-white bg-black/90 rounded-md shadow-lg pointer-events-none border border-white"
+          className="absolute z-20 px-4 py-3 text-sm bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-xl pointer-events-none border border-gray-200/50 dark:border-gray-700/50"
           style={{
             left: tooltipData.x,
-            top: tooltipData.y - 32,
+            top: tooltipData.y - 40,
             transform: 'translate(-50%, -100%)',
             ...TOOLTIP_STYLES,
           }}
         >
-          <div style={{ marginBottom: 1 }}>
-            {tooltipData.time ? new Date(tooltipData.time * 1000).toLocaleDateString() : ''}
-          </div>
-          <div style={{ marginBottom: 2 }}>
-            {tooltipData.time ? new Date(tooltipData.time * 1000).toLocaleTimeString() : ''}
-          </div>
-          <div style={{ fontWeight: 600, fontSize: '1em' }}>
-            Price: {tooltipData.value != null ? `$${tooltipData.value.toFixed(4)}` : 'N/A'}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <div className="text-gray-600 dark:text-gray-300 font-semibold text-xs uppercase tracking-wide">
+                {tooltipData.time
+                  ? new Date(tooltipData.time * 1000).toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })
+                  : ''}
+              </div>
+            </div>
+            <div className="text-gray-500 dark:text-gray-400 text-xs font-medium">
+              {tooltipData.time
+                ? new Date(tooltipData.time * 1000).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true,
+                  })
+                : ''}
+            </div>
+            <div className="text-gray-900 dark:text-white font-bold text-lg">
+              ${tooltipData.value != null ? tooltipData.value.toFixed(4) : 'N/A'}
+            </div>
           </div>
         </div>
       )}

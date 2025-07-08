@@ -1,7 +1,7 @@
 export const getPnlColor = (pnl?: string) => {
-  if (!pnl) return 'text-gray-400';
+  if (!pnl) return 'text-text';
   const pnlValue = parseFloat(pnl);
-  return pnlValue > 0 ? 'text-green-500' : pnlValue < 0 ? 'text-red-500' : 'text-gray-400';
+  return pnlValue > 0 ? 'text-green-500' : pnlValue < 0 ? 'text-red-500' : 'text-text';
 };
 
 export const formatPnl = (pnl?: string, percentage?: string) => {

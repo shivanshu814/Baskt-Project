@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useOpenPositions } from '../../../hooks/baskt/trade/useOpenPositions';
+import { useOpenPositions } from '../../../../../hooks/baskt/trade/useOpenPositions';
 import {
   NumberFormat,
   useBasktClient,
@@ -15,24 +15,37 @@ import {
   TableRow,
   Button,
 } from '@baskt/ui';
+import { Pencil } from 'lucide-react';
 import { OnchainPosition } from '@baskt/types';
 import BN from 'bn.js';
 import AddCollateralDialog from './AddCollateralDialog';
-import { PositionData } from '../../../types/position';
+import { PositionData } from '../../../../../types/position';
 
-const calculatePnL = (position: PositionData, currentPrice: BN): number => {
-  if (!position.entryPrice) return 0;
+const calculatePnL = (
+  position: PositionData,
+  currentPrice: BN,
+): { value: number; percentage: number } => {
+  if (!position.entryPrice) return { value: 0, percentage: 0 };
 
   const entryPrice = new BN(position.entryPrice);
   const size = new BN(position.usdcSize || '0');
   const diff = currentPrice.sub(entryPrice).abs();
-  const pnl = diff.mul(size).div(entryPrice).toNumber();
-  return pnl;
+  const pnlValue = diff.mul(size).div(entryPrice).toNumber();
+  const collateral = new BN(position.collateral || '0');
+  const percentage = collateral.gt(new BN(0)) ? (pnlValue / collateral.toNumber()) * 100 : 0;
+
+  return { value: pnlValue, percentage };
 };
 
-// eslint-disable-next-line
 const calculateFees = (position: PositionData): number => {
-  return 0;
+  const OPENING_FEE_BPS = 10;
+  const CLOSING_FEE_BPS = 10;
+  const BPS_DIVISOR = 10000;
+  const totalFeeBps = OPENING_FEE_BPS + CLOSING_FEE_BPS;
+  const feeRate = totalFeeBps / BPS_DIVISOR;
+
+  const positionValue = new BN(position.usdcSize || '0').toNumber();
+  return positionValue * feeRate;
 };
 
 export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice?: BN }) => {
@@ -67,12 +80,23 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-xs sm:text-sm">Long/Short</TableHead>
+                  <TableHead className="text-xs sm:text-sm whitespace-nowrap">Long/Short</TableHead>
                   <TableHead className="text-xs sm:text-sm">Size</TableHead>
-                  <TableHead className="text-xs sm:text-sm">Collateral</TableHead>
-                  <TableHead className="text-xs sm:text-sm">Entry Price</TableHead>
-                  <TableHead className="text-xs sm:text-sm">Current Price</TableHead>
-                  <TableHead className="text-xs sm:text-sm">PnL</TableHead>
+                  <TableHead className="text-xs sm:text-sm whitespace-nowrap">
+                    Position Value
+                  </TableHead>
+                  <TableHead className="text-xs sm:text-sm whitespace-nowrap">
+                    Entry Price
+                  </TableHead>
+                  <TableHead className="text-xs sm:text-sm whitespace-nowrap underline decoration-dashed underline-offset-4 decoration-1">
+                    Current Price
+                  </TableHead>
+                  <TableHead className="text-xs sm:text-sm whitespace-nowrap underline decoration-dashed underline-offset-4 decoration-1">
+                    PNL (ROE) %
+                  </TableHead>
+                  <TableHead className="text-xs sm:text-sm underline decoration-dashed underline-offset-4 decoration-1">
+                    Collateral
+                  </TableHead>
                   <TableHead className="text-xs sm:text-sm">Fees</TableHead>
                   <TableHead className="text-right"></TableHead>
                 </TableRow>
@@ -89,17 +113,14 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
                       {position.size ? (
                         <NumberFormat value={new BN(position.size).toNumber() / 1e6} />
                       ) : (
-                        '-'
+                        '---'
                       )}
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
-                      {position.collateral ? (
-                        <NumberFormat
-                          value={new BN(position.collateral).toNumber()}
-                          isPrice={true}
-                        />
+                      {position.usdcSize ? (
+                        <NumberFormat value={new BN(position.usdcSize).toNumber()} isPrice={true} />
                       ) : (
-                        '-'
+                        '---'
                       )}
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
@@ -109,7 +130,7 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
                           isPrice={true}
                         />
                       ) : (
-                        '-'
+                        '---'
                       )}
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
@@ -119,7 +140,7 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
                           isPrice={true}
                         />
                       ) : (
-                        '-'
+                        '---'
                       )}
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
@@ -135,38 +156,59 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
                               : 'text-red-500'
                           }`}
                         >
-                          <NumberFormat value={calculatePnL(position, navPrice)} isPrice={true} />
+                          {(() => {
+                            const pnl = calculatePnL(position, navPrice);
+                            const isPositive = position.isLong
+                              ? navPrice.gt(new BN(position.entryPrice))
+                              : navPrice.lt(new BN(position.entryPrice));
+                            return (
+                              <>
+                                <span>{isPositive ? '+' : '-'}</span>
+                                <NumberFormat value={pnl.value} isPrice={true} />
+                                <span className="ml-1">
+                                  ({isPositive ? '+' : '-'}
+                                  {pnl.percentage.toFixed(2)}%)
+                                </span>
+                              </>
+                            );
+                          })()}
                         </span>
                       )}
+                    </TableCell>
+                    <TableCell className="text-xs sm:text-sm">
+                      <div className="flex items-center gap-2">
+                        {position.collateral ? (
+                          <NumberFormat
+                            value={new BN(position.collateral).toNumber()}
+                            isPrice={true}
+                          />
+                        ) : (
+                          '---'
+                        )}
+                        <Pencil
+                          className="h-3 w-3 text-muted-foreground cursor-pointer hover:text-foreground"
+                          onClick={() =>
+                            openAddCollateralDialog(position as unknown as OnchainPosition)
+                          }
+                        />
+                      </div>
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
                       {calculateFees(position) > 0 ? (
                         <NumberFormat value={calculateFees(position)} isPrice={true} />
                       ) : (
-                        <span className="text-muted-foreground">-</span>
+                        <span className="text-text">{'---'}</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex flex-col sm:flex-row justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="px-2 py-1 h-auto text-xs"
-                          onClick={() =>
-                            openAddCollateralDialog(position as unknown as OnchainPosition)
-                          }
-                        >
-                          Add Collateral
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="px-2 py-1 h-auto text-xs"
-                          onClick={() => closePosition(position as unknown as OnchainPosition)}
-                        >
-                          Close
-                        </Button>
-                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="px-3 py-1.5 h-auto text-xs border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors"
+                        onClick={() => closePosition(position as unknown as OnchainPosition)}
+                      >
+                        Close
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -183,7 +225,6 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
           </div>
         )}
 
-        {/* Add Collateral Dialog */}
         {isAddCollateralDialogOpen && selectedPosition && (
           <AddCollateralDialog
             position={selectedPosition}

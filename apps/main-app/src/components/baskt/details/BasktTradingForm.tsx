@@ -102,7 +102,7 @@ export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
               <div className="flex justify-between items-center">
                 <label className="text-xs sm:text-sm font-medium">Size</label>
                 <span className="text-xs sm:text-sm text-muted-foreground">
-                  Balance: ${usdcBalance}
+                  Balance: <NumberFormat value={Number(usdcBalance) * 1e6} isPrice={true} />
                 </span>
               </div>
               <Input
@@ -135,34 +135,7 @@ export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
 
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Liquidation Price:</span>
-                <TabsContent value="long" className="m-0 p-0">
-                  <span>
-                    {size > 0 &&
-                    getLiquidationPrice(size, 'long') !== null &&
-                    getLiquidationPrice(size, 'long') !== undefined &&
-                    !isNaN(getLiquidationPrice(size, 'long')) ? (
-                      <span className="text-[#EA3943]">
-                        <NumberFormat value={getLiquidationPrice(size, 'long')} isPrice />
-                      </span>
-                    ) : (
-                      '---'
-                    )}
-                  </span>
-                </TabsContent>
-                <TabsContent value="short" className="m-0 p-0">
-                  <span>
-                    {size > 0 &&
-                    getLiquidationPrice(size, 'short') !== null &&
-                    getLiquidationPrice(size, 'short') !== undefined &&
-                    !isNaN(getLiquidationPrice(size, 'short')) ? (
-                      <span className="text-[#EA3943]">
-                        <NumberFormat value={getLiquidationPrice(size, 'short')} isPrice />
-                      </span>
-                    ) : (
-                      '---'
-                    )}
-                  </span>
-                </TabsContent>
+                <span>---</span>
               </div>
             </div>
           </div>
@@ -173,7 +146,7 @@ export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
               onClick={() => handleTrade('long')}
               disabled={isLoading}
             >
-              {isLoading ? 'Loading...' : 'Trade'}
+              {isLoading ? 'Loading...' : 'Place Order'}
             </Button>
           </TabsContent>
 
@@ -183,7 +156,7 @@ export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
               onClick={() => handleTrade('short')}
               disabled={isLoading}
             >
-              {isLoading ? 'Loading...' : 'Trade'}
+              {isLoading ? 'Loading...' : 'Place Order'}
             </Button>
           </TabsContent>
         </Tabs>

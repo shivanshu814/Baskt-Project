@@ -5,7 +5,7 @@ import { Toaster as Sonner } from '@baskt/ui';
 export function ToasterWrapper() {
   return (
     <>
-      <Sonner />
+      <Sonner duration={20000} />
     </>
   );
 }
