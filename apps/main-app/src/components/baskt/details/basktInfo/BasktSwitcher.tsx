@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import {
   Button,
   Command,
@@ -55,7 +55,7 @@ export const BasktSwitcher = ({ currentBaskt }: BasktSwitcherProps) => {
           role="combobox"
           aria-expanded={open}
           aria-label="Select a baskt"
-          className="flex items-center gap-2 px-3 py-2 h-auto bg-transparent hover:bg-muted/50 "
+          className="flex items-center gap-2 px-3 py-2 h-auto bg-transparent hover:bg-muted/50 border-border border-2"
         >
           <div className="flex flex-row items-center">
             <span className="font-semibold text-lg sm:text-xl text-primary">
