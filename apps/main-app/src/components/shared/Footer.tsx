@@ -28,9 +28,9 @@ export function Footer({ className }: { className?: string }) {
                 <Globe className="h-5 w-5" />
                 <span className="sr-only">Website</span>
               </Link>
-              <Link href="#" className="text-muted-foreground hover:text-foreground">
+              <Link href="https://t.me/basktai" className="text-muted-foreground hover:text-foreground">
                 <MessageCircle className="h-5 w-5" />
-                <span className="sr-only">Discord</span>
+                <span className="sr-only">Telegram</span>
               </Link>
             </div>
           </div>
@@ -101,7 +101,9 @@ export function Footer({ className }: { className?: string }) {
               </li>
               <li className="flex items-center gap-2 text-muted-foreground">
                 <MessageCircle className="h-5 w-5" />
-                <span>Join our Discord</span>
+                <Link href="https://t.me/basktai" className="hover:text-primary">
+                  Join our Telegram
+                </Link>
               </li>
             </ul>
           </div>
