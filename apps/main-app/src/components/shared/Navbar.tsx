@@ -136,8 +136,14 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
                 {authenticated && user?.wallet?.address ? (
                   <div className="space-y-2">
                     <div className="p-2 text-sm rounded-md border text-center">
-                      <PublicKeyText publicKey={user.wallet.address} />
+                      <PublicKeyText publicKey={user.wallet.address} isCopy={true} />
                     </div>
+                    <Link href="/create-baskt" className="w-full block">
+                      <Button variant="outline" className="w-full">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Baskt
+                      </Button>
+                    </Link>
                     <Button variant="outline" className="w-full" onClick={copyAddress}>
                       <Copy className="h-4 w-4 mr-2" />
                       Copy Address
@@ -153,12 +159,6 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
                     Connect Wallet
                   </Button>
                 )}
-                <Link href="/create-baskt" className="w-full block">
-                  <Button variant="outline" className="w-full">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Baskt
-                  </Button>
-                </Link>
               </div>
             </SheetContent>
           </Sheet>
