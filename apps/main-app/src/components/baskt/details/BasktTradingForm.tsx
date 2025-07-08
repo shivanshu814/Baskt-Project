@@ -18,7 +18,7 @@ import { BN } from '@coral-xyz/anchor';
 export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
   const [size, setSize] = useState<number>(0);
   const [sizeInput, setSizeInput] = useState<string>('');
-  const { isLoading, openPosition, getLiquidationPrice, collateral, usdcBalance } = useOpenPosition(
+  const { isLoading, openPosition, collateral, usdcBalance } = useOpenPosition(
     {
       baskt,
       navPrice: new BN(baskt.price),
@@ -131,11 +131,6 @@ export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Collateral:</span>
                 <span>${collateral.toString()}</span>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Liquidation Price:</span>
-                <span>---</span>
               </div>
             </div>
           </div>
