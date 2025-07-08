@@ -3,7 +3,7 @@ name: Baskt CI + Deploy
 on:
   pull_request:
   push:
-    branches: ['dev', 'staging', 'main']
+    branches: ['dev', 'staging']
 
 jobs:
   test-and-build:

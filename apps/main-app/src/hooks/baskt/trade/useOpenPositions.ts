@@ -181,6 +181,7 @@ export function useOpenPosition({ baskt, usdcSize, navPrice }: UseOpenPositionPr
     refetch: refetchUSDCBalance,
   } = useUSDCBalance(publicKey);
 
+
   const collateral = calculateCollateralAmount(new BN(usdcSize));
 
   const getLiquidationPrice = (collateral: number, position: 'long' | 'short') => {
