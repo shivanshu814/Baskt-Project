@@ -72,7 +72,6 @@ export function useOpenPositions(basktId?: string, userAddress?: string, navPric
     }
 
     try {
-      console.log(USDC_MINT.toBase58());
       const tx = await client.createOrderTx(
         new BN(Date.now()),
         new BN(0),
@@ -181,8 +180,6 @@ export function useOpenPosition({ baskt, usdcSize, navPrice }: UseOpenPositionPr
     account: userUSDCAccount,
     refetch: refetchUSDCBalance,
   } = useUSDCBalance(publicKey);
-
-  console.log(USDC_MINT.toBase58())
 
 
   const collateral = calculateCollateralAmount(new BN(usdcSize));
