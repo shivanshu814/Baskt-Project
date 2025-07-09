@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, Tabs, TabsList, TabsTrigger, TabsContent } from '@baskt/ui';
+import { Card, Tabs, TabsList, TabsTrigger, TabsContent, NumberFormat } from '@baskt/ui';
 import { useState } from 'react';
 import { useUSDCBalance } from '../../hooks/pool/useUSDCBalance';
 import { useTokenBalance } from '../../hooks/pool/useTokenBalance';
@@ -73,15 +73,24 @@ export default function PoolPage() {
                   <Card className="bg-foreground/10 border-0 rounded-2xl p-4 mb-4">
                     <div>
                       <div className="text-muted-foreground text-sm mb-1">Your LP</div>
-                      <div className="text-2xl font-bold text-foreground">{userLpBalance} BLP</div>
+                      <div className="text-2xl font-bold text-foreground">
+                        {Number(userLpBalance).toLocaleString(undefined, {
+                          maximumFractionDigits: 6,
+                        })}{' '}
+                        BLP
+                      </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         {(() => {
                           const value =
                             parseFloat(userLpBalance || '0') * parseFloat(blpPrice || '0');
                           if (isNaN(value) || value === undefined) {
-                            return '~ $0.000';
+                            return '~ $0.00';
                           }
-                          return `~ $${value.toFixed(3)}`;
+                          return (
+                            <>
+                              ~ <NumberFormat value={value * 1e6} isPrice={true} />
+                            </>
+                          );
                         })()}
                       </div>
                     </div>

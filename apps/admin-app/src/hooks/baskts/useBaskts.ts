@@ -15,10 +15,28 @@ export function useBaskts() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const basktList = useMemo(
-    () => ((trpcResponse as BasktResponse)?.success ? (trpcResponse as BasktResponse).data : []),
-    [trpcResponse],
-  );
+  const basktList = useMemo(() => {
+    const response = trpcResponse as BasktResponse;
+    if (!response?.success || !Array.isArray(response.data)) {
+      return [];
+    }
+
+    const filteredBaskts = response.data.filter((baskt): baskt is BasktData => {
+      const isValid =
+        baskt !== null &&
+        baskt !== undefined &&
+        !!baskt.basktId &&
+        typeof baskt.basktId === 'string';
+
+      if (!isValid) {
+        toast.error('Invalid baskt found');
+      }
+
+      return isValid;
+    });
+
+    return filteredBaskts;
+  }, [trpcResponse]);
 
   useEffect(() => {
     const basktId = searchParams.get('basktId');
@@ -26,6 +44,9 @@ export function useBaskts() {
       const baskt = basktList.find((b) => b.basktId === basktId);
       if (baskt) {
         setSelectedBaskt(baskt);
+      } else {
+        toast.error('Baskt not found');
+        setSelectedBaskt(null);
       }
     } else {
       setSelectedBaskt(null);
@@ -33,12 +54,24 @@ export function useBaskts() {
   }, [basktList, searchParams]);
 
   const handleViewDetails = (basktId: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('basktId', basktId);
-    router.push(`?${params.toString()}`);
-    const baskt = basktList.find((b) => b.basktId === basktId);
-    if (baskt) {
-      setSelectedBaskt(baskt);
+    try {
+      if (!basktId || typeof basktId !== 'string') {
+        toast.error('Invalid baskt ID');
+        return;
+      }
+
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('basktId', basktId);
+      router.push(`?${params.toString()}`);
+
+      const baskt = basktList.find((b) => b && b.basktId === basktId);
+      if (baskt) {
+        setSelectedBaskt(baskt);
+      } else {
+        toast.error('Baskt not found');
+      }
+    } catch (error) {
+      toast.error('Error viewing baskt details');
     }
   };
 
@@ -50,11 +83,18 @@ export function useBaskts() {
   };
 
   const activateBaskt = async (basktId: string) => {
+    if (!basktId) {
+      toast.error('Invalid baskt ID');
+      return;
+    }
+
     setActivatingBasktId(basktId);
 
-    const basktInfo = basktList.find((baskt: BasktData) => baskt.basktId === basktId);
+    const basktInfo = basktList.find((baskt: BasktData) => baskt && baskt.basktId === basktId);
 
     if (!basktInfo) {
+      toast.error('Baskt not found');
+      setActivatingBasktId(null);
       return;
     }
 
@@ -63,6 +103,7 @@ export function useBaskts() {
         new PublicKey(basktId),
         basktInfo.assets.map((asset: BasktAsset) => new anchor.BN(asset.priceRaw)),
       );
+      toast.success('Baskt activated successfully');
     } catch (error) {
       toast.error('Error activating baskt');
     } finally {

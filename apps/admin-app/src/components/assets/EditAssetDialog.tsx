@@ -21,6 +21,7 @@ import {
 } from '@baskt/ui';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { providerOptions, EditAssetDialogProps } from '../../types/assets';
+import { toast } from 'sonner';
 
 const editAssetSchema = z.object({
   name: z.string().optional(),
@@ -145,6 +146,7 @@ export function EditAssetDialog({ isOpen, onClose, onSave, asset }: EditAssetDia
       }
 
       onSave(asset._id, updateData);
+      toast.success(`Asset "${asset.name} (${asset.ticker})" updated successfully.`);
     }
   };
 

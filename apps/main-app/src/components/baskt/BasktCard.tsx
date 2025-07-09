@@ -58,7 +58,7 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
   const gradientId = `gradient-${baskt.basktId}`;
 
   return (
-    <Card className={cn("w-full", className)}>
+    <Card className={cn('w-full', className)}>
       <CardHeader className="flex flex-row items-center justify-between pb-4">
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
@@ -81,11 +81,13 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
             <div className="text-2xl sm:text-3xl font-bold">
               <NumberFormat value={baskt.price} isPrice={true} />
             </div>
-            
+
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div className="text-center p-3 bg-muted/20 rounded-lg">
                 <div className="text-xs text-muted-foreground mb-1">AUM</div>
-                <div className="font-semibold">${formatNumberWithAbbreviation((baskt.aum || 0) / PRICE_PRECISION)}</div>
+                <div className="font-semibold">
+                  ${formatNumberWithAbbreviation((baskt.aum || 0) / PRICE_PRECISION)}
+                </div>
               </div>
               <div className="text-center p-3 bg-muted/20 rounded-lg">
                 <div className="text-xs text-muted-foreground mb-1">Assets</div>
@@ -134,25 +136,46 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-muted/10 rounded-lg">
             <div className="text-center">
               <div className="text-xs text-muted-foreground mb-1">24h</div>
-              <div className={cn('font-semibold', baskt.performance.day >= 0 ? 'text-success' : 'text-destructive')}>
-                {baskt.performance.day ? `${baskt.performance.day >= 0 ? '+' : ''}${baskt.performance.day}%` : '-'}
+              <div
+                className={cn(
+                  'font-semibold',
+                  baskt.performance.day >= 0 ? 'text-success' : 'text-destructive',
+                )}
+              >
+                {baskt.performance.day
+                  ? `${baskt.performance.day >= 0 ? '+' : ''}${baskt.performance.day}%`
+                  : '-'}
               </div>
             </div>
             <div className="text-center">
               <div className="text-xs text-muted-foreground mb-1">7d</div>
-              <div className={cn('font-semibold', baskt.performance.week >= 0 ? 'text-success' : 'text-destructive')}>
-                {baskt.performance.week ? `${baskt.performance.week >= 0 ? '+' : ''}${baskt.performance.week}%` : '-'}
+              <div
+                className={cn(
+                  'font-semibold',
+                  baskt.performance.week >= 0 ? 'text-success' : 'text-destructive',
+                )}
+              >
+                {baskt.performance.week
+                  ? `${baskt.performance.week >= 0 ? '+' : ''}${baskt.performance.week}%`
+                  : '-'}
               </div>
             </div>
             <div className="text-center">
               <div className="text-xs text-muted-foreground mb-1">30d</div>
-              <div className={cn('font-semibold', baskt.performance.month >= 0 ? 'text-success' : 'text-destructive')}>
-                {baskt.performance.month ? `${baskt.performance.month >= 0 ? '+' : ''}${baskt.performance.month}%` : '-'}
+              <div
+                className={cn(
+                  'font-semibold',
+                  baskt.performance.month >= 0 ? 'text-success' : 'text-destructive',
+                )}
+              >
+                {baskt.performance.month
+                  ? `${baskt.performance.month >= 0 ? '+' : ''}${baskt.performance.month}%`
+                  : '-'}
               </div>
             </div>
             <div className="text-center">
               <div className="text-xs text-muted-foreground mb-1">Sharpe</div>
-              <div className="font-semibold">{baskt.sharpeRatio || '1.2'}</div>
+              <div className="font-semibold">{'1.2'}</div>
             </div>
           </div>
         )}
@@ -166,12 +189,17 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {baskt.assets.slice(0, 6).map((asset, index) => (
-                <div key={asset.ticker || index} className="flex items-center justify-between p-2 bg-muted/10 rounded">
+                <div
+                  key={asset.ticker || index}
+                  className="flex items-center justify-between p-2 bg-muted/10 rounded"
+                >
                   <div className="flex items-center gap-2">
-                    <div className={cn(
-                      'w-2 h-2 rounded-full',
-                      asset.direction ? 'bg-success' : 'bg-destructive'
-                    )} />
+                    <div
+                      className={cn(
+                        'w-2 h-2 rounded-full',
+                        asset.direction ? 'bg-success' : 'bg-destructive',
+                      )}
+                    />
                     <span className="text-sm font-medium">{asset.ticker || asset.name}</span>
                   </div>
                   <div className="text-sm text-muted-foreground">
@@ -200,7 +228,7 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
               <span>Short</span>
             </div>
           </div>
-          
+
           <Button
             size="sm"
             onClick={() => router.push(`/baskts/${encodeURIComponent(baskt.name)}`)}

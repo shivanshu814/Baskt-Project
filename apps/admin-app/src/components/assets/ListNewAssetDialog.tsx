@@ -79,6 +79,7 @@ export function ListNewAssetDialog({ open, onOpenChange }: DialogProps) {
         toast.error('Client not initialized');
         return;
       }
+      toast.info('Listing new asset...');
       const { assetAddress, txSignature } = await client.addAsset(values.ticker, {
         allowLongs: values.permissions.allowLong,
         allowShorts: values.permissions.allowShort,
@@ -108,6 +109,7 @@ export function ListNewAssetDialog({ open, onOpenChange }: DialogProps) {
         description: `The asset ${values.ticker} has been listed`,
         txSignature,
       });
+      toast.success('Asset listed successfully!');
       onOpenChange(false);
       form.reset();
     } catch (error) {

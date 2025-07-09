@@ -57,7 +57,7 @@ export function AssetTableCell({ asset, id }: AssetTableCellProps) {
         <TableCell>
           {asset.latestPrice?.time
             ? new Date(asset.latestPrice.time * 1000).toLocaleString('en-US', DATE_FORMAT_OPTIONS)
-            : 'N/A'}
+            : '---'}
         </TableCell>
       );
 

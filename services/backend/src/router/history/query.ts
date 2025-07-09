@@ -45,26 +45,17 @@ export const getHistory = publicProcedure
         }
       }
 
-      // Fetch orders and positions with proper error handling
-      const [orders, positions] = await Promise.all([
-        OrderMetadataModel.find(orderFilter)
-          .sort({ createdAt: -1 })
-          .limit(limit)
-          .skip(offset)
-          .lean()
-          .exec(),
-        PositionMetadataModel.find(positionFilter)
-          .sort({ createdAt: -1 })
-          .limit(limit)
-          .skip(offset)
-          .lean()
-          .exec(),
+      const [allOrders, allPositions, totalOrders, totalPositions] = await Promise.all([
+        OrderMetadataModel.find(orderFilter).sort({ createdAt: -1 }).lean().exec(),
+        PositionMetadataModel.find(positionFilter).sort({ createdAt: -1 }).lean().exec(),
+        OrderMetadataModel.countDocuments(orderFilter),
+        PositionMetadataModel.countDocuments(positionFilter),
       ]);
 
       // Get unique baskt IDs and fetch baskt names
       const allBasktIds = [
-        ...orders.map((o) => o.basktId).filter(Boolean),
-        ...positions.map((p) => p.basktId).filter(Boolean),
+        ...allOrders.map((o) => o.basktId).filter(Boolean),
+        ...allPositions.map((p) => p.basktId).filter(Boolean),
       ];
       const basktIds = Array.from(new Set(allBasktIds));
 
@@ -78,7 +69,7 @@ export const getHistory = publicProcedure
         basktNameMap = new Map(basktNames.map((b) => [b.basktId, b.name]));
       }
 
-      const orderHistoryItems: HistoryItem[] = orders.map((order) => {
+      const orderHistoryItems: HistoryItem[] = allOrders.map((order) => {
         let pnl: string | undefined;
         let pnlPercentage: string | undefined;
 
@@ -88,7 +79,7 @@ export const getHistory = publicProcedure
           order.limitPrice
         ) {
           try {
-            const correspondingPosition = positions.find(
+            const correspondingPosition = allPositions.find(
               (pos) =>
                 pos.positionId === order.position ||
                 (pos.owner === order.owner &&
@@ -144,7 +135,7 @@ export const getHistory = publicProcedure
         };
       });
 
-      const positionHistoryItems: HistoryItem[] = positions
+      const positionHistoryItems: HistoryItem[] = allPositions
         .map((position) => {
           let pnl: string | undefined;
           let pnlPercentage: string | undefined;
@@ -204,17 +195,17 @@ export const getHistory = publicProcedure
         })
         .filter(Boolean) as HistoryItem[];
 
-      const allHistoryItems = [...orderHistoryItems, ...positionHistoryItems]
-        .sort((a, b) => {
-          const dateA = new Date(a.timestamp).getTime();
-          const dateB = new Date(b.timestamp).getTime();
-          return dateB - dateA;
-        })
-        .slice(0, limit);
+      const allHistoryItems = [...orderHistoryItems, ...positionHistoryItems].sort((a, b) => {
+        const dateA = new Date(a.timestamp).getTime();
+        const dateB = new Date(b.timestamp).getTime();
+        return dateB - dateA;
+      });
+
+      const paginatedItems = allHistoryItems.slice(offset, offset + limit);
 
       return {
         success: true,
-        data: allHistoryItems,
+        data: paginatedItems,
         total: allHistoryItems.length,
       };
     } catch (error) {

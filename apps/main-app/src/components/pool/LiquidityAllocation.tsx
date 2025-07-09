@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import { LiquidityAllocationProps } from '../../types/pool';
+import { NumberFormat } from '@baskt/ui';
 
 export const LiquidityAllocation = React.memo(
   ({ tvl, allocations, blpPrice, totalSupply }: LiquidityAllocationProps) => {
@@ -13,7 +14,9 @@ export const LiquidityAllocation = React.memo(
       <div className="bg-foreground/5 border border-border rounded-2xl p-8 flex flex-col gap-6">
         <div>
           <div className="text-sm font-semibold text-foreground mb-1">Total Value Locked</div>
-          <div className="text-3xl font-semibold text-primary mb-1">${actualTvl}</div>
+          <div className="text-3xl font-semibold text-primary mb-1">
+            <NumberFormat value={Number(actualTvl) * 1e6} isPrice={true} />
+          </div>
         </div>
 
         <div>
@@ -77,7 +80,9 @@ export const LiquidityAllocation = React.memo(
           </div>
           <div className="bg-foreground/10 rounded-xl p-4">
             <div className="text-sm text-muted-foreground mb-1">Total Supply</div>
-            <div className="text-xl font-bold text-foreground">{actualTotalSupply}</div>
+            <div className="text-xl font-bold text-foreground">
+              <NumberFormat value={Number(actualTotalSupply) * 1e6} isPrice={true} />
+            </div>
           </div>
         </div>
       </div>

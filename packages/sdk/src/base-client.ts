@@ -100,10 +100,10 @@ export abstract class BaseClient {
     const priorityFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
       microLamports: priorityFeeLamports,
     });
-    
+
     // Insert the priority fee instruction at the beginning of the transaction
     transaction.instructions.unshift(priorityFeeIx);
-    
+
     // Call the provider's sendAndConfirmLegacy method
     return await this.provider.sendAndConfirmLegacy(transaction);
   }
@@ -120,12 +120,12 @@ export abstract class BaseClient {
   ): Promise<string> {
     // Build the transaction
     const transaction = await transactionBuilder.transaction();
-    
+
     // Get the latest blockhash and set fee payer
     const { blockhash } = await this.connection.getLatestBlockhash();
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = this.getPublicKey();
-    
+
     // Send and confirm with priority fees
     return await this.sendAndConfirmLegacy(transaction, priorityFeeLamports);
   }
@@ -1554,7 +1554,7 @@ export abstract class BaseClient {
             isWritable: true,
             isSigner: false,
           },
-        ])
+        ]),
     );
   }
 
@@ -1585,7 +1585,7 @@ export abstract class BaseClient {
           ownerToken: params.ownerTokenAccount,
           position: params.position,
           protocol: protocol, // Explicitly provide protocol for constraint checking
-        })
+        }),
     );
   }
 
@@ -1631,7 +1631,7 @@ export abstract class BaseClient {
           treasury: params.treasury,
           fundingIndex: fundingIndex,
         })
-        .remainingAccounts(remainingAccounts)
+        .remainingAccounts(remainingAccounts),
     );
   }
   public async liquidatePosition(params: {
@@ -1683,7 +1683,7 @@ export abstract class BaseClient {
           treasury: params.treasury,
           escrowToken: escrowToken,
         })
-        .remainingAccounts(remainingAccounts)
+        .remainingAccounts(remainingAccounts),
     );
   }
 
@@ -1698,7 +1698,7 @@ export abstract class BaseClient {
         .accountsPartial({
           authority: this.getPublicKey(),
           baskt: baskt,
-        })
+        }),
     );
   }
 
@@ -1712,7 +1712,7 @@ export abstract class BaseClient {
         .accountsPartial({
           authority: this.getPublicKey(),
           baskt: baskt,
-        })
+        }),
     );
   }
 
@@ -1728,7 +1728,7 @@ export abstract class BaseClient {
         .accountsPartial({
           authority: this.getPublicKey(),
           baskt: baskt,
-        })
+        }),
     );
   }
 
@@ -1744,7 +1744,7 @@ export abstract class BaseClient {
         .accountsPartial({
           authority: this.getPublicKey(),
           baskt: baskt,
-        })
+        }),
     );
   }
 
@@ -1760,7 +1760,7 @@ export abstract class BaseClient {
         .accountsPartial({
           authority: this.getPublicKey(),
           baskt: baskt,
-        })
+        }),
     );
   }
 
@@ -1813,12 +1813,10 @@ export abstract class BaseClient {
     };
 
     return await this.sendAndConfirmRpc(
-      this.program.methods
-        .updateBasktConfig(updateParams)
-        .accountsPartial({
-          authority: this.getPublicKey(),
-          baskt: baskt,
-        })
+      this.program.methods.updateBasktConfig(updateParams).accountsPartial({
+        authority: this.getPublicKey(),
+        baskt: baskt,
+      }),
     );
   }
 
