@@ -315,6 +315,7 @@ export const useDashboardData = () => {
           amount: pos.usdcSize ? new BN(pos.usdcSize).toNumber() / 1e6 : 0,
           timestamp: pos.timestampOpen || Date.now(),
           basktName,
+          basktId: pos.basktId || '',
           isPositive: true,
         };
       }),

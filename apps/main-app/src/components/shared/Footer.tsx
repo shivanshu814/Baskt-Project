@@ -28,7 +28,10 @@ export function Footer({ className }: { className?: string }) {
                 <Globe className="h-5 w-5" />
                 <span className="sr-only">Website</span>
               </Link>
-              <Link href="https://t.me/basktai" className="text-muted-foreground hover:text-foreground">
+              <Link
+                href="https://t.me/basktai"
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <MessageCircle className="h-5 w-5" />
                 <span className="sr-only">Telegram</span>
               </Link>
@@ -49,13 +52,8 @@ export function Footer({ className }: { className?: string }) {
                 </Link>
               </li>
               <li>
-                <Link href="/my-portfolio" className="text-muted-foreground hover:text-primary">
-                  My Portfolio
-                </Link>
-              </li>
-              <li>
-                <Link href="/how-it-works" className="text-muted-foreground hover:text-primary">
-                  How It Works
+                <Link href="/dashboard" className="text-muted-foreground hover:text-primary">
+                  Dashboard
                 </Link>
               </li>
             </ul>
@@ -72,11 +70,6 @@ export function Footer({ className }: { className?: string }) {
               <li>
                 <Link href="#" className="text-muted-foreground hover:text-primary">
                   Documentation
-                </Link>
-              </li>
-              <li>
-                <Link href="#" className="text-muted-foreground hover:text-primary">
-                  Blog
                 </Link>
               </li>
               <li>

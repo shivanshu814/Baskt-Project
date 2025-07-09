@@ -80,6 +80,7 @@ export const processBasktData = (
         txSignature: baskt.txSignature || '',
         categories: baskt.categories || [],
         creator: baskt.creator || '',
+        account: baskt.account || null,
       };
 
       return processedBaskt;
