@@ -8,7 +8,7 @@ import {
   NumberFormat,
   PRICE_PRECISION,
 } from '@baskt/ui';
-import { ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowRightLeft, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { useMemo } from 'react';
 import { BasktCardProps } from '../../types/baskt';
@@ -58,90 +58,157 @@ export const BasktCard = ({ baskt, className }: BasktCardProps) => {
   const gradientId = `gradient-${baskt.basktId}`;
 
   return (
-    <Card className={className}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <div className="flex items-center gap-2">
-          <div>
-            <h3 className="text-sm sm:text-base font-semibold">{baskt.name || 'Unnamed Baskt'}</h3>
+    <Card className={cn("w-full", className)}>
+      <CardHeader className="flex flex-row items-center justify-between pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col">
+            <h3 className="text-lg sm:text-xl font-bold">{baskt.name || 'Unnamed Baskt'}</h3>
+            {baskt.description && (
+              <p className="text-sm text-muted-foreground mt-1">{baskt.description}</p>
+            )}
           </div>
         </div>
-        <div className={cn('flex items-center text-xs sm:text-sm font-medium', changeColor)}>
+        <div className={cn('flex items-center text-sm font-medium', changeColor)}>
           {changeIcon}
           <NumberFormat value={baskt?.performance?.day || 0} />%
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3 sm:space-y-4 pt-0">
-        <div className="text-xl sm:text-2xl font-bold">
-          <NumberFormat value={baskt.price} isPrice={true} />
-        </div>
+      <CardContent className="space-y-6 pt-0">
+        {/* Price and Chart Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div className="text-2xl sm:text-3xl font-bold">
+              <NumberFormat value={baskt.price} isPrice={true} />
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="text-center p-3 bg-muted/20 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">AUM</div>
+                <div className="font-semibold">${formatNumberWithAbbreviation((baskt.aum || 0) / PRICE_PRECISION)}</div>
+              </div>
+              <div className="text-center p-3 bg-muted/20 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">Assets</div>
+                <div className="font-semibold">{baskt.totalAssets || 0}</div>
+              </div>
+              <div className="text-center p-3 bg-muted/20 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">OI</div>
+                <div className="font-semibold">
+                  {oiLoading ? '...' : formatNumberWithAbbreviation(totalOpenInterest / 1e6)}
+                </div>
+              </div>
+            </div>
+          </div>
 
-        <div className="h-12 sm:h-16 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={sparklineData}>
-              <defs>
-                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor={`hsl(var(--${isPositive ? 'success' : 'destructive'}))`}
-                    stopOpacity={0.3}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor={`hsl(var(--${isPositive ? 'success' : 'destructive'}))`}
-                    stopOpacity={0}
-                  />
-                </linearGradient>
-              </defs>
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke={`hsl(var(--${isPositive ? 'success' : 'destructive'}))`}
-                strokeWidth={2}
-                fill={`url(#${gradientId})`}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm text-muted-foreground">
-          <div>Assets: {baskt.totalAssets || 0}</div>
-          <div className="text-right">
-            OI: {oiLoading ? '...' : formatNumberWithAbbreviation(totalOpenInterest / 1e6)}
+          <div className="h-32 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={sparklineData}>
+                <defs>
+                  <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="5%"
+                      stopColor={`hsl(var(--${isPositive ? 'success' : 'destructive'}))`}
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={`hsl(var(--${isPositive ? 'success' : 'destructive'}))`}
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke={`hsl(var(--${isPositive ? 'success' : 'destructive'}))`}
+                  strokeWidth={2}
+                  fill={`url(#${gradientId})`}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
+        {/* Performance Metrics */}
         {baskt.performance && (
-          <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm text-muted-foreground">
-            <div>24h: {baskt.performance.day ? `+${baskt.performance.day}%` : '-'}</div>
-            <div className="text-right">
-              7d: {baskt.performance.week ? `+${baskt.performance.week}%` : '-'}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-muted/10 rounded-lg">
+            <div className="text-center">
+              <div className="text-xs text-muted-foreground mb-1">24h</div>
+              <div className={cn('font-semibold', baskt.performance.day >= 0 ? 'text-success' : 'text-destructive')}>
+                {baskt.performance.day ? `${baskt.performance.day >= 0 ? '+' : ''}${baskt.performance.day}%` : '-'}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-xs text-muted-foreground mb-1">7d</div>
+              <div className={cn('font-semibold', baskt.performance.week >= 0 ? 'text-success' : 'text-destructive')}>
+                {baskt.performance.week ? `${baskt.performance.week >= 0 ? '+' : ''}${baskt.performance.week}%` : '-'}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-xs text-muted-foreground mb-1">30d</div>
+              <div className={cn('font-semibold', baskt.performance.month >= 0 ? 'text-success' : 'text-destructive')}>
+                {baskt.performance.month ? `${baskt.performance.month >= 0 ? '+' : ''}${baskt.performance.month}%` : '-'}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-xs text-muted-foreground mb-1">Sharpe</div>
+              <div className="font-semibold">{baskt.sharpeRatio || '1.2'}</div>
             </div>
           </div>
         )}
 
-        <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center">
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-success mr-1" />
-              Long
+        {/* Asset Composition */}
+        {baskt.assets && baskt.assets.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <h4 className="font-semibold">Asset Composition</h4>
             </div>
-            <div className="flex items-center">
-              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-destructive mr-1" />
-              Short
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {baskt.assets.slice(0, 6).map((asset, index) => (
+                <div key={asset.ticker || index} className="flex items-center justify-between p-2 bg-muted/10 rounded">
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      'w-2 h-2 rounded-full',
+                      asset.direction ? 'bg-success' : 'bg-destructive'
+                    )} />
+                    <span className="text-sm font-medium">{asset.ticker || asset.name}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {asset.weight ? `${(asset.weight / 100).toFixed(1)}%` : '-'}
+                  </div>
+                </div>
+              ))}
+              {baskt.assets.length > 6 && (
+                <div className="text-sm text-muted-foreground p-2">
+                  +{baskt.assets.length - 6} more assets
+                </div>
+              )}
             </div>
           </div>
-          <div>Risk: {baskt.risk || 'medium'}</div>
-        </div>
+        )}
 
-        <Button
-          className="w-full text-xs sm:text-sm"
-          size="sm"
-          onClick={() => router.push(`/baskts/${encodeURIComponent(baskt.name)}`)}
-        >
-          <ArrowRightLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-          Trade
-        </Button>
+        {/* Trading Options */}
+        <div className="flex items-center justify-between pt-4 border-t border-border">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-success" />
+              <span>Long</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 rounded-full bg-destructive" />
+              <span>Short</span>
+            </div>
+          </div>
+          
+          <Button
+            size="sm"
+            onClick={() => router.push(`/baskts/${encodeURIComponent(baskt.name)}`)}
+          >
+            <ArrowRightLeft className="h-4 w-4 mr-2" />
+            Trade
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

@@ -22,7 +22,7 @@ fn get_baskt_name_seed(baskt_name: &str) -> [u8; 32] {
 #[derive(Accounts)]
 pub struct InitializeFundingIndex<'info> {
     /// @dev Requires Owner role to initialize funding indices
-    #[account(mut, constraint = protocol.has_permission(authority.key(), Role::Owner) @ PerpetualsError::UnauthorizedRole)]
+    #[account(mut, constraint = protocol.has_permission(authority.key(), Role::FundingManager) @ PerpetualsError::UnauthorizedRole)]
     pub authority: Signer<'info>,
 
     #[account(

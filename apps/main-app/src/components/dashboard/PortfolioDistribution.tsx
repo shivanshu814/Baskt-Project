@@ -1,6 +1,7 @@
 import React from 'react';
-import { ArrowUpRight, BarChart2 } from 'lucide-react';
+import { BarChart2, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@baskt/ui';
 
 interface PortfolioDistributionProps {
   basktData: { name: string; value: number; percent: number; id?: string }[];
@@ -63,12 +64,11 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({ ba
                     : baskt.name}
                 </span>
                 {baskt.name && (
-                  <Link
-                    href={`/baskts/${encodeURIComponent(baskt.name)}`}
-                    className="flex items-center gap-1"
-                    title={`View ${baskt.name} details`}
-                  >
-                    <ArrowUpRight className="w-4 h-4 text-gray-400 hover:text-white hover:scale-110 transition-all duration-200" />
+                  <Link href={`/baskts/${encodeURIComponent(baskt.name)}`}>
+                    <Button variant="ghost" size="sm" className="h-6 px-2">
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      View
+                    </Button>
                   </Link>
                 )}
               </span>

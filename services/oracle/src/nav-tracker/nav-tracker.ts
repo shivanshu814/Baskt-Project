@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000/trpc';
 const TRACKING_INTERVAL_MINUTES = parseInt(process.env.TRACKING_INTERVAL_MINUTES || '5');
 
 class NavTracker {
@@ -17,7 +17,7 @@ class NavTracker {
 
   private async getAllBaskts(): Promise<any[]> {
     try {
-      const res = await axios.get<BasktResponse>(`${this.backendUrl}/trpc/baskt.getAllBaskts`);
+      const res = await axios.get<BasktResponse>(`${this.backendUrl}/baskt.getAllBaskts`);
       if (!res.data?.result?.data?.success) {
         console.error(
           'Failed to fetch Baskts:',

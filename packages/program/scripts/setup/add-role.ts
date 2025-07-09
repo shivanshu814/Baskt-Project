@@ -42,7 +42,7 @@ async function main() {
 //   );
 
   const role8 = await client.addRole(    
-    new PublicKey('BLMLnp7mYcHWRSeiZi39AH7yx7hLLmGC35uHzdYPzwkd'),
+    new PublicKey('BCCYwetDkCARUoMYUW71uAsCxcLgiJZn2yD3fqhLMejg'),
     AccessControlRole.Owner,
   );  
 

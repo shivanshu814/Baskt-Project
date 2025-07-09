@@ -18,7 +18,7 @@ import { BN } from '@coral-xyz/anchor';
 export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
   const [size, setSize] = useState<number>(0);
   const [sizeInput, setSizeInput] = useState<string>('');
-  const { isLoading, openPosition, getLiquidationPrice, collateral, usdcBalance } = useOpenPosition(
+  const { isLoading, openPosition, collateral, usdcBalance, getLiquidationPrice } = useOpenPosition(
     {
       baskt,
       navPrice: new BN(baskt.price),
@@ -132,10 +132,24 @@ export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
                 <span className="text-muted-foreground">Collateral:</span>
                 <span>${collateral.toString()}</span>
               </div>
-
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Liquidation Price:</span>
-                <span>---</span>
+                <TabsContent value="long" className="m-0 p-0">
+                  <span>---</span>
+                </TabsContent>
+                <TabsContent value="short" className="m-0 p-0">
+                  <span>
+                    {getLiquidationPrice(size, 'short') !== null &&
+                    getLiquidationPrice(size, 'short') !== undefined &&
+                    !isNaN(getLiquidationPrice(size, 'short')) ? (
+                      <span className="text-[#EA3943]">
+                        <NumberFormat value={getLiquidationPrice(size, 'short')} isPrice />
+                      </span>
+                    ) : (
+                      '---'
+                    )}
+                  </span>
+                </TabsContent>
               </div>
             </div>
           </div>
