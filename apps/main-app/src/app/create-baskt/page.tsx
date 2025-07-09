@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import leoProfanity from 'leo-profanity';
 import { AlertCircle } from 'lucide-react';
 import { Footer } from '../../components/shared/Footer';
@@ -28,6 +28,20 @@ const CreateBasktPage = () => {
   const { handleAddAsset, handleRemoveAsset, handleAssetPositionChange, handleAssetWeightChange } =
     useAssetManagement(formData, setFormData);
   const { isSubmitting, createBaskt, authenticated, ready, login } = useBasktCreation();
+
+  useEffect(() => {
+    if (error) {
+      if (error.includes('name') && formData.name.trim()) {
+        setError(null);
+      } else if (error.includes('assets') && formData.assets.length >= 2) {
+        setError(null);
+      } else if (error.includes('weightage') && totalWeightage === 100) {
+        setError(null);
+      } else if (error.includes('inappropriate') && !leoProfanity.check(formData.name)) {
+        setError(null);
+      }
+    }
+  }, [formData.name, formData.assets, totalWeightage, error, setError]);
 
   // eslint-disable-next-line
   const handleAssetSelect = (asset: any) => {

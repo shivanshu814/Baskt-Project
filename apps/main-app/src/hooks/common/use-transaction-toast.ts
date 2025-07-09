@@ -98,11 +98,6 @@ export const useTransactionToast = () => {
             break;
         }
 
-        if (status === 'success' && signature) {
-          const explorerUrl = getSolscanAddressUrl(signature);
-          baseDescription += `\n\n View on Explorer: ${explorerUrl}`;
-        }
-
         if (status === 'failed' && error) {
           baseDescription += `\n\n Error: ${error}`;
         }
@@ -115,7 +110,17 @@ export const useTransactionToast = () => {
       if (status === 'failed') {
         toast.error(message);
       } else if (status === 'success') {
-        toast.success(message);
+        if (signature) {
+          const explorerUrl = getSolscanAddressUrl(signature);
+          toast.success(message, {
+            action: {
+              label: 'View on Explorer',
+              onClick: () => window.open(explorerUrl, '_blank'),
+            },
+          });
+        } else {
+          toast.success(message);
+        }
       } else {
         toast(message);
       }

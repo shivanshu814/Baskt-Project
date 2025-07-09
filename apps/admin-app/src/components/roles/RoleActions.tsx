@@ -7,6 +7,7 @@ import {
   Button,
 } from '@baskt/ui';
 import { RoleActionsProps } from '../../types/roles';
+import { toast } from 'sonner';
 
 export function RoleActions({
   account,
@@ -15,6 +16,11 @@ export function RoleActions({
   onCopyAddress,
   onRemoveRole,
 }: RoleActionsProps) {
+  const handleCopyAddress = (address: string) => {
+    onCopyAddress(address);
+    toast.success('Address copied to clipboard');
+  };
+
   return (
     <div className="flex items-center gap-2">
       <DropdownMenu>
@@ -25,7 +31,7 @@ export function RoleActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => onCopyAddress(account)}>
+          <DropdownMenuItem onClick={() => handleCopyAddress(account)}>
             <Copy className="mr-2 h-4 w-4" />
             Copy Address
           </DropdownMenuItem>

@@ -70,12 +70,22 @@ export const BasktForm = ({
                 type="number"
                 min={1}
                 max={formData.rebalancePeriod.unit === 'day' ? 30 : 24}
-                value={formData.rebalancePeriod.value}
+                value={formData.rebalancePeriod.value === 0 ? '' : formData.rebalancePeriod.value}
                 onChange={(e) => {
-                  const value = Math.min(
-                    parseInt(e.target.value) || 1,
-                    formData.rebalancePeriod.unit === 'day' ? 30 : 24,
-                  );
+                  const raw = e.target.value;
+                  if (raw === '') {
+                    onRebalancePeriodChange(0, formData.rebalancePeriod.unit);
+                    return;
+                  }
+                  let value = parseInt(raw, 10);
+                  if (isNaN(value)) value = 0;
+                  onRebalancePeriodChange(value, formData.rebalancePeriod.unit);
+                }}
+                onBlur={(e) => {
+                  let value = parseInt(e.target.value, 10);
+                  if (isNaN(value) || value < 1) value = 1;
+                  if (formData.rebalancePeriod.unit === 'day' && value > 30) value = 30;
+                  if (formData.rebalancePeriod.unit === 'hour' && value > 24) value = 24;
                   onRebalancePeriodChange(value, formData.rebalancePeriod.unit);
                 }}
                 className="w-16 text-sm sm:text-base"
@@ -83,7 +93,11 @@ export const BasktForm = ({
               <Select
                 value={formData.rebalancePeriod.unit}
                 onValueChange={(value: 'day' | 'hour') => {
-                  onRebalancePeriodChange(formData.rebalancePeriod.value, value);
+                  let clampedValue = formData.rebalancePeriod.value;
+                  if (value === 'day' && clampedValue > 30) clampedValue = 30;
+                  if (value === 'hour' && clampedValue > 24) clampedValue = 24;
+                  if (clampedValue < 1) clampedValue = 1;
+                  onRebalancePeriodChange(clampedValue, value);
                 }}
               >
                 <SelectTrigger className="w-20 text-sm sm:text-base">

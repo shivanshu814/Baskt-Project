@@ -40,13 +40,22 @@ export async function getLatestAssetPricesInternal(assetIds: string[]) {
         },
       },
       order: [['time', 'DESC']],
+      limit: assetIds.length * 2,
     });
-    return assetPriceRows.map((row: any) => {
+
+    const priceMap = new Map();
+    assetPriceRows.forEach((row: any) => {
       const plain = row.toJSON();
-      return formatAssetPrice(plain);
+      const assetId = plain.asset_id;
+
+      if (!priceMap.has(assetId)) {
+        priceMap.set(assetId, formatAssetPrice(plain));
+      }
     });
+
+    const result = Array.from(priceMap.values());
+    return result;
   } catch (error) {
-    console.error('Error fetching assets:', error);
     throw new Error('Failed to fetch assets');
   }
 }
@@ -65,7 +74,6 @@ export async function getLatestAssetPriceInternal(assetId: string) {
     const plain = assetPriceRow.toJSON();
     return formatAssetPrice(plain);
   } catch (error) {
-    console.error('Error fetching assets:', error);
     throw new Error('Failed to fetch assets');
   }
 }
@@ -82,14 +90,11 @@ export async function getAssetPriceInternal(assetId: string, startDate: number, 
       },
       order: [['time', 'DESC']],
     });
-    // console.log(assetPriceRows[0].toJSON().time);
-    // console.log(assetPriceRows.length);
     return assetPriceRows.map((row: any) => {
       const plain = row.toJSON();
       return formatAssetPrice(plain);
     });
   } catch (error) {
-    console.error('Error fetching assets:', error);
     throw new Error('Failed to fetch assets');
   }
 }

@@ -55,6 +55,7 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
     positions = [],
     closePosition,
     addCollateral,
+    isClosingPosition,
   } = useOpenPositions(basktId, userAddress, navPrice);
   const [isAddCollateralDialogOpen, setIsAddCollateralDialogOpen] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<OnchainPosition | null>(null);
@@ -206,8 +207,9 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
                         size="sm"
                         className="px-3 py-1.5 h-auto text-xs border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors"
                         onClick={() => closePosition(position as unknown as OnchainPosition)}
+                        disabled={isClosingPosition}
                       >
-                        Close
+                        {isClosingPosition ? 'Closing...' : 'Close'}
                       </Button>
                     </TableCell>
                   </TableRow>

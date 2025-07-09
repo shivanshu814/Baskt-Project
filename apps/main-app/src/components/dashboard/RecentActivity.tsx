@@ -51,7 +51,7 @@ const RecentActivity = ({ recentActivity }: RecentActivityProps) => {
                     {activity.basktName} • {new Date(activity.timestamp).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <div className="text-sm font-medium text-foreground">
                     {activity.amount > 0 ? '+' : ''}
                     <NumberFormat value={activity.amount * 1e6} isPrice={true} />

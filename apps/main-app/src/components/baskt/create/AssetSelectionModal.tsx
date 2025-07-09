@@ -42,11 +42,22 @@ export function AssetSelectionModal({
   const { client } = useBasktClient();
   const [assets, setAssets] = useState<any[]>([]); // eslint-disable-line
   const [isLoading, setIsLoading] = useState(true);
-  const { data: assetsData, isSuccess: assetDataFetchSuccess } = trpc.asset.getAllAssets.useQuery();
+
+  const {
+    data: assetsData,
+    isSuccess: assetDataFetchSuccess,
+    isLoading: isQueryLoading,
+  } = trpc.asset.getAllAssets.useQuery(undefined, {
+    staleTime: 30 * 1000,
+    cacheTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
 
   useEffect(() => {
     const fetchAssets = async () => {
       if (!client && !assetDataFetchSuccess) return;
+
       try {
         setIsLoading(true);
         const backendAssets = assetsData?.data ?? [];
@@ -59,7 +70,7 @@ export function AssetSelectionModal({
     };
 
     fetchAssets();
-  }, [client, assetDataFetchSuccess]);
+  }, [client, assetDataFetchSuccess, assetsData]);
 
   const filteredAssets = assets.filter(
     (asset) =>
@@ -102,7 +113,7 @@ export function AssetSelectionModal({
             </div>
 
             <div className="flex-1 overflow-y-auto min-h-0">
-              {isLoading ? (
+              {isLoading || isQueryLoading ? (
                 <div className="space-y-1">
                   {Array.from({ length: 8 }).map((_, index) => (
                     <AssetSkeleton key={index} />
@@ -146,6 +157,7 @@ export function AssetSelectionModal({
 
                       <div className="flex flex-col items-end flex-shrink-0">
                         <span className="text-sm sm:text-base font-medium">
+                          $
                           {(() => {
                             const price = asset.priceRaw / 1e6;
                             return price < 1 ? price.toFixed(6) : price.toFixed(3);

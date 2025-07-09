@@ -18,13 +18,11 @@ import { BN } from '@coral-xyz/anchor';
 export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
   const [size, setSize] = useState<number>(0);
   const [sizeInput, setSizeInput] = useState<string>('');
-  const { isLoading, openPosition, collateral, usdcBalance, getLiquidationPrice } = useOpenPosition(
-    {
-      baskt,
-      navPrice: new BN(baskt.price),
-      usdcSize: size,
-    },
-  );
+  const { isLoading, openPosition, collateral, getLiquidationPrice, usdcBalance } = useOpenPosition({
+    baskt,
+    navPrice: new BN(baskt.price),
+    usdcSize: size,
+  });
   const { client } = useBasktClient();
   const publicKey = client?.wallet?.address;
   const { account: userUSDCAccount } = useUSDCBalance(publicKey);
@@ -160,7 +158,7 @@ export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
               onClick={() => handleTrade('long')}
               disabled={isLoading}
             >
-              {isLoading ? 'Loading...' : 'Place Order'}
+              {isLoading ? 'Confirming...' : 'Place Order'}
             </Button>
           </TabsContent>
 
@@ -170,7 +168,7 @@ export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
               onClick={() => handleTrade('short')}
               disabled={isLoading}
             >
-              {isLoading ? 'Loading...' : 'Place Order'}
+              {isLoading ? 'Confirming...' : 'Place Order'}
             </Button>
           </TabsContent>
         </Tabs>

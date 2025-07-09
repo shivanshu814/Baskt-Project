@@ -10,7 +10,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@baskt/ui';
-
 import { DeleteAssetDialogProps } from '../../types/assets';
 
 export function DeleteAssetDialog({ isOpen, onClose, onConfirm, asset }: DeleteAssetDialogProps) {

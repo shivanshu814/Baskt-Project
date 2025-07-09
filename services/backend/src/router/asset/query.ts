@@ -2,18 +2,31 @@ import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
 import { sdkClient } from '../../utils';
 import { AssetMetadataModel } from '../../utils/models';
-import { getLatestAssetPriceInternal } from '../assetPrice/query';
+import { getLatestAssetPricesInternal } from '../assetPrice/query';
 import { PublicKey } from '@solana/web3.js';
 
 const sdkClientInstance = sdkClient();
 const assetIdCache: Map<string, string> = new Map();
+const assetCache: Map<string, any> = new Map();
+const CACHE_TTL = 30 * 1000; // 30 seconds cache
+const cacheTimestamps: Map<string, number> = new Map();
 
 export const getAllAssets = publicProcedure.query(async () => {
-  return getAllAssetsInternal(false);
+  try {
+    const result = await getAllAssetsInternal(false);
+    return result;
+  } catch (error) {
+    throw error;
+  }
 });
 
 export const getAllAssetsWithConfig = publicProcedure.query(async () => {
-  return getAllAssetsInternal(true);
+  try {
+    const result = await getAllAssetsInternal(true);
+    return result;
+  } catch (error) {
+    throw error;
+  }
 });
 
 export const getAssetsByAddress = publicProcedure
@@ -22,41 +35,74 @@ export const getAssetsByAddress = publicProcedure
     return getAssetsByAddressInternal(input);
   });
 
-// Internal helpers (shared with mutation if needed)
-async function getAllAssetsInternal(config: boolean) {
-  try {
-    const assetConfigs = await AssetMetadataModel.find().sort({ createdAt: -1 });
-    const assets = await sdkClientInstance.getAllAssets();
-    const latestPrices = await Promise.all(
-      assetConfigs.map((assetConfig: any) =>
-        getLatestAssetPriceInternal(assetConfig._id.toString()),
-      ),
-    );
+export const getAssetPerformanceStats = publicProcedure.query(async () => {
+  const stats = getAssetCacheStats();
+  return {
+    cache: stats,
+    cacheTTL: CACHE_TTL,
+    timestamp: Date.now(),
+  };
+});
 
-    assetConfigs.forEach((assetConfig: any) => {
-      assetIdCache.set(assetConfig.assetAddress, assetConfig._id.toString());
-    });
+async function getAllAssetsInternal(config: boolean) {
+  const cacheKey = `assets_${config}`;
+  const now = Date.now();
+
+  // check cache first
+  if (assetCache.has(cacheKey)) {
+    const cacheTime = cacheTimestamps.get(cacheKey) || 0;
+    if (now - cacheTime < CACHE_TTL) {
+      return assetCache.get(cacheKey);
+    }
+  }
+
+  try {
+    // fetch asset configs and SDK assets in parallel
+    const [assetConfigs, assets] = await Promise.all([
+      AssetMetadataModel.find().sort({ createdAt: -1 }),
+      sdkClientInstance.getAllAssets(),
+    ]);
 
     if (!assets || !assetConfigs || assets.length === 0 || assetConfigs.length === 0) {
-      console.error('No assets found');
       return {
         success: false,
         data: [],
       };
     }
 
-    const combinedAssets = assetConfigs.map((assetConfig: any) => {
-      return combineAsset(
-        assets.find((asset: any) => asset.ticker.toString() === assetConfig.ticker.toString())!,
-        assetConfig,
-        latestPrices.find((price: any) => price?.id === assetConfig._id.toString())!,
-        config,
-      );
+    // batch fetch latest prices for all assets
+    const assetIds = assetConfigs.map((config: any) => config._id.toString());
+    const latestPrices = await getLatestAssetPricesInternal(assetIds);
+
+    // update cache
+    assetConfigs.forEach((assetConfig: any) => {
+      assetIdCache.set(assetConfig.assetAddress, assetConfig._id.toString());
     });
-    return {
+
+    // combine assets efficiently
+    const combinedAssets = assetConfigs
+      .map((assetConfig: any) => {
+        const matchingAsset = assets.find(
+          (asset: any) => asset.ticker.toString() === assetConfig.ticker.toString(),
+        );
+        const matchingPrice = latestPrices.find(
+          (price: any) => price?.id === assetConfig._id.toString(),
+        );
+
+        return combineAsset(matchingAsset, assetConfig, matchingPrice, config);
+      })
+      .filter((asset: any) => asset);
+
+    const result = {
       success: true,
-      data: combinedAssets.filter((asset: any) => asset),
+      data: combinedAssets,
     };
+
+    // cache the result
+    assetCache.set(cacheKey, result);
+    cacheTimestamps.set(cacheKey, now);
+
+    return result;
   } catch (error) {
     throw new Error('Failed to fetch assets');
   }
@@ -75,7 +121,8 @@ export async function getAssetFromAddress(assetAddress: string) {
   try {
     const asset = await AssetMetadataModel.findOne({ assetAddress }).exec();
     const onchainAsset = await sdkClientInstance.getAsset(new PublicKey(assetAddress));
-    const latestPrice = asset ? await getLatestAssetPriceInternal(asset._id.toString()) : null;
+    const latestPrices = asset ? await getLatestAssetPricesInternal([asset._id.toString()]) : [];
+    const latestPrice = latestPrices.length > 0 ? latestPrices[0] : null;
     return combineAsset(onchainAsset, asset, latestPrice, true);
   } catch (error) {
     return null;
@@ -148,4 +195,29 @@ export function combineAsset(
     latestPrice: latestPrice,
     basktIds: config.basktIds,
   };
+}
+
+// cache management functions
+export function clearAssetCache() {
+  assetCache.clear();
+  cacheTimestamps.clear();
+}
+
+export function getAssetCacheStats() {
+  const now = Date.now();
+  const stats = {
+    totalCached: assetCache.size,
+    validEntries: 0,
+    expiredEntries: 0,
+  };
+
+  cacheTimestamps.forEach((timestamp) => {
+    if (now - timestamp < CACHE_TTL) {
+      stats.validEntries++;
+    } else {
+      stats.expiredEntries++;
+    }
+  });
+
+  return stats;
 }
