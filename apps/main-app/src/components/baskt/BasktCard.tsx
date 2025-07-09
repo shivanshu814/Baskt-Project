@@ -1,243 +1,368 @@
-import { useRouter } from 'next/navigation';
 import {
-  Card,
-  CardContent,
-  CardHeader,
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
   Button,
-  cn,
   NumberFormat,
-  PRICE_PRECISION,
+  cn,
 } from '@baskt/ui';
-import { ArrowRightLeft, ChevronDown, ChevronUp, BarChart3 } from 'lucide-react';
-import { AreaChart, Area, ResponsiveContainer } from 'recharts';
-import { useMemo } from 'react';
-import { BasktCardProps } from '../../types/baskt';
+import { ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useBasktOI } from '../../hooks/baskt/useBasktOI';
+import { BasktInfo, BasktAssetInfo } from '@baskt/types';
+import { calculateCurrentWeights } from '@baskt/sdk/src/math/weight';
+interface BasktCardProps {
+  baskt: BasktInfo;
+  className?: string;
+}
+interface MetricCard {
+  label: string;
+  value: React.ReactNode;
+  color?: string;
+}
 
-const DEFAULT_SPARKLINE = Array(24).fill(0);
+// const REBALANCE_ANIMATION_KEYFRAMES = `
+//   @keyframes rebalance-bar-move {
+//     0% { left: 0; width: 30%; }
+//     50% { left: 60%; width: 40%; }
+//     100% { left: 0; width: 30%; }
+//   }
+//   .rebalance-bar-anim {
+//     animation: rebalance-bar-move 1.2s linear infinite;
+//   }
+// `;
 
-const formatNumberWithAbbreviation = (value: number): string => {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  } else if (value >= 1000) {
-    return `${(value / 1000).toFixed(0)}k`;
-  } else {
-    return value.toFixed(3);
+const ASSET_DISPLAY_LIMIT = 2;
+const SHARPE_RATIO = '1.2';
+
+// const RebalancingBar = React.memo(() => (
+//   <div className="flex flex-col items-center w-40">
+//     <style>{REBALANCE_ANIMATION_KEYFRAMES}</style>
+//     <div className="w-full h-2 bg-primary/20 rounded-full overflow-hidden relative">
+//       <div
+//         className="absolute top-0 h-2 bg-primary rounded-full rebalance-bar-anim"
+//         style={{ left: 0, width: '40%' }}
+//       />
+//     </div>
+//     <span className="text-xs text-primary font-medium mt-1">Rebalancing</span>
+//   </div>
+// ));
+
+// RebalancingBar.displayName = 'RebalancingBar';
+
+const AssetIcon = React.memo(({ asset }: { asset: BasktAssetInfo }) => {
+  const [imageError, setImageError] = useState(false);
+
+  const handleImageError = useCallback(() => {
+    setImageError(true);
+  }, []);
+
+  if (asset.logo && !imageError) {
+    return (
+      <img
+        src={asset.logo}
+        alt={asset.ticker || asset.name || 'Asset'}
+        className="w-7 h-7 rounded-full border border-border flex-shrink-0"
+        onError={handleImageError}
+      />
+    );
   }
-};
-
-export const BasktCard = ({ baskt, className }: BasktCardProps) => {
-  const router = useRouter();
-  const { totalOpenInterest, isLoading: oiLoading } = useBasktOI(baskt.basktId.toString());
-
-  const { isPositive, changeColor, changeIcon, sparklineData } = useMemo(() => {
-    const change24h = baskt?.performance?.day || baskt.change24h || 0;
-    const isPositive = change24h >= 0;
-
-    return {
-      isPositive,
-      changeColor: isPositive ? 'text-success' : 'text-destructive',
-      changeIcon: isPositive ? (
-        <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-      ) : (
-        <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-      ),
-      formattedPrice: (baskt.price || 0).toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }),
-      sparklineData: (baskt.sparkline || DEFAULT_SPARKLINE).map((value, index) => ({
-        value,
-        index,
-      })),
-      formattedAum: ((baskt.aum || 0) / PRICE_PRECISION).toFixed(1),
-      initials: baskt?.name,
-    };
-  }, [baskt]);
-
-  const gradientId = `gradient-${baskt.basktId}`;
 
   return (
-    <Card className={cn('w-full', className)}>
-      <CardHeader className="flex flex-row items-center justify-between pb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col">
-            <h3 className="text-lg sm:text-xl font-bold">{baskt.name || 'Unnamed Baskt'}</h3>
-            {baskt.description && (
-              <p className="text-sm text-muted-foreground mt-1">{baskt.description}</p>
-            )}
-          </div>
-        </div>
-        <div className={cn('flex items-center text-sm font-medium', changeColor)}>
-          {changeIcon}
-          <NumberFormat value={baskt?.performance?.day || 0} />%
-        </div>
-      </CardHeader>
+    <div
+      className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-foreground border border-border"
+      title={asset.name || asset.ticker}
+    >
+      {asset.ticker?.[0] || asset.name?.[0] || '?'}
+    </div>
+  );
+});
 
-      <CardContent className="space-y-6 pt-0">
-        {/* Price and Chart Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="text-2xl sm:text-3xl font-bold">
-              <NumberFormat value={baskt.price} isPrice={true} />
-            </div>
+AssetIcon.displayName = 'AssetIcon';
 
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div className="text-center p-3 bg-muted/20 rounded-lg">
-                <div className="text-xs text-muted-foreground mb-1">AUM</div>
-                <div className="font-semibold">
-                  ${formatNumberWithAbbreviation((baskt.aum || 0) / PRICE_PRECISION)}
-                </div>
-              </div>
-              <div className="text-center p-3 bg-muted/20 rounded-lg">
-                <div className="text-xs text-muted-foreground mb-1">Assets</div>
-                <div className="font-semibold">{baskt.totalAssets || 0}</div>
-              </div>
-              <div className="text-center p-3 bg-muted/20 rounded-lg">
-                <div className="text-xs text-muted-foreground mb-1">OI</div>
-                <div className="font-semibold">
-                  {oiLoading ? '...' : formatNumberWithAbbreviation(totalOpenInterest / 1e6)}
-                </div>
-              </div>
-            </div>
-          </div>
+const AssetRow = React.memo(
+  ({ asset, currentWeight }: { asset: BasktAssetInfo; currentWeight?: number }) => (
+    <div className="flex items-center px-2 sm:px-3 py-2 border-t border-border bg-background/80 text-xs sm:text-sm">
+      <span className="flex-1 flex items-center">
+        <span className="mr-2">
+          <AssetIcon asset={asset} />
+        </span>
+        <span className="truncate font-medium">{asset.name || asset.ticker}</span>
+      </span>
+      <span className="flex-1 text-center">
+        {asset.price !== undefined ? <NumberFormat value={asset.price} isPrice={true} /> : '-'}
+      </span>
+      <span className="flex-1 text-center">
+        <span className={asset.direction ? 'text-green-600' : 'text-red-600'}>
+          {asset.direction ? 'Long' : 'Short'}
+        </span>
+      </span>
+      <span className="flex-1 text-center">
+        {asset.weight !== undefined ? <NumberFormat value={asset.weight} /> : '-'}%
+      </span>
+      <span className="flex-1 text-right">
+        {currentWeight !== undefined ? <NumberFormat value={currentWeight} /> : '-'}%
+      </span>
+    </div>
+  ),
+);
 
-          <div className="h-32 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={sparklineData}>
-                <defs>
-                  <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor={`hsl(var(--${isPositive ? 'success' : 'destructive'}))`}
-                      stopOpacity={0.3}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor={`hsl(var(--${isPositive ? 'success' : 'destructive'}))`}
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke={`hsl(var(--${isPositive ? 'success' : 'destructive'}))`}
-                  strokeWidth={2}
-                  fill={`url(#${gradientId})`}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+AssetRow.displayName = 'AssetRow';
 
-        {/* Performance Metrics */}
-        {baskt.performance && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-muted/10 rounded-lg">
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-1">24h</div>
-              <div
-                className={cn(
-                  'font-semibold',
-                  baskt.performance.day >= 0 ? 'text-success' : 'text-destructive',
-                )}
-              >
-                {baskt.performance.day
-                  ? `${baskt.performance.day >= 0 ? '+' : ''}${baskt.performance.day}%`
-                  : '-'}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-1">7d</div>
-              <div
-                className={cn(
-                  'font-semibold',
-                  baskt.performance.week >= 0 ? 'text-success' : 'text-destructive',
-                )}
-              >
-                {baskt.performance.week
-                  ? `${baskt.performance.week >= 0 ? '+' : ''}${baskt.performance.week}%`
-                  : '-'}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-1">30d</div>
-              <div
-                className={cn(
-                  'font-semibold',
-                  baskt.performance.month >= 0 ? 'text-success' : 'text-destructive',
-                )}
-              >
-                {baskt.performance.month
-                  ? `${baskt.performance.month >= 0 ? '+' : ''}${baskt.performance.month}%`
-                  : '-'}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground mb-1">Sharpe</div>
-              <div className="font-semibold">{'1.2'}</div>
-            </div>
-          </div>
-        )}
+const MetricCard = React.memo(({ card }: { card: MetricCard }) => (
+  <div
+    className="flex-1 min-w-[110px] max-w-[180px] flex flex-col items-center bg-muted/30 rounded-md px-2 sm:px-3 py-2 text-center"
+    style={{ flexBasis: '120px' }}
+  >
+    <span className="text-xs sm:text-xs text-muted-foreground">{card.label}</span>
+    <span className={`font-semibold text-xs sm:text-sm ${card.color || ''}`}>{card.value}</span>
+  </div>
+));
 
-        {/* Asset Composition */}
-        {baskt.assets && baskt.assets.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              <h4 className="font-semibold">Asset Composition</h4>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {baskt.assets.slice(0, 6).map((asset, index) => (
-                <div
-                  key={asset.ticker || index}
-                  className="flex items-center justify-between p-2 bg-muted/10 rounded"
+MetricCard.displayName = 'MetricCard';
+
+export const BasktCard = React.memo(({ baskt, className }: BasktCardProps) => {
+  const router = useRouter();
+  const [open, setOpen] = useState<string | undefined>(undefined);
+
+  const { assetCount, assetImages, extraAssets, assetPrice, performanceData } = useMemo(() => {
+    const assets = baskt.assets || [];
+    const assetCount = assets.length;
+    const assetImages = assets.slice(0, ASSET_DISPLAY_LIMIT);
+    const extraAssets = assetCount > ASSET_DISPLAY_LIMIT ? assetCount - ASSET_DISPLAY_LIMIT : 0;
+    const assetPrice = baskt.price || 0;
+
+    const performanceData = {
+      day: baskt.performance?.day,
+      week: baskt.performance?.week,
+      month: baskt.performance?.month,
+    };
+
+    return {
+      assetCount,
+      assetImages,
+      extraAssets,
+      assetPrice,
+      performanceData,
+    };
+  }, [baskt.assets, baskt.price, baskt.performance]);
+
+  const currentWeights = useMemo(() => {
+    const assets = baskt.assets || [];
+    if (
+      assets.length === 0 ||
+      assets.some((a: any) => a.price === undefined || a.baselinePrice === undefined) //eslint-disable-line
+    ) {
+      return assets.map((asset: any) => asset.weight); //eslint-disable-line
+    }
+
+    // eslint-disable-next-line
+    const basktAssets = assets.map((asset: any) => ({
+      id: asset.id || asset.assetAddress || '',
+      name: asset.name || '',
+      ticker: asset.ticker || '',
+      price: asset.price || 0,
+      change24h: asset.change24h || 0,
+      volume24h: asset.volume24h || 0,
+      marketCap: asset.marketCap || 0,
+      assetAddress: asset.assetAddress || asset.id || '',
+      logo: asset.logo || '',
+      weight: asset.weight || 0,
+      direction: asset.direction || true,
+      baselinePrice: asset.baselinePrice || asset.price || 0,
+    }));
+    return calculateCurrentWeights(basktAssets);
+  }, [baskt.assets]);
+  const { totalOpenInterest } = useBasktOI(baskt.basktId as string);
+
+  const metricCards = useMemo(
+    (): MetricCard[] => [
+      {
+        label: 'OI',
+        value:
+          totalOpenInterest !== undefined ? (
+            <NumberFormat value={totalOpenInterest} isPrice={true} />
+          ) : (
+            '--'
+          ),
+      },
+      {
+        label: '24h',
+        value:
+          performanceData.day !== undefined
+            ? `${performanceData.day >= 0 ? '+' : ''}${performanceData.day}%`
+            : '--',
+        color:
+          performanceData.day !== undefined && performanceData.day >= 0
+            ? 'text-green-500'
+            : 'text-red-500',
+      },
+      {
+        label: '7d',
+        value:
+          performanceData.week !== undefined
+            ? `${performanceData.week >= 0 ? '+' : ''}${performanceData.week}%`
+            : '--',
+        color:
+          performanceData.week !== undefined && performanceData.week >= 0
+            ? 'text-green-500'
+            : 'text-red-500',
+      },
+      {
+        label: '30d',
+        value:
+          performanceData.month !== undefined
+            ? `${performanceData.month >= 0 ? '+' : ''}${performanceData.month}%`
+            : '--',
+        color:
+          performanceData.month !== undefined && performanceData.month >= 0
+            ? 'text-green-500'
+            : 'text-red-500',
+      },
+      { label: 'Sharpe', value: SHARPE_RATIO },
+    ],
+    [baskt.aum, assetCount, totalOpenInterest, performanceData],
+  );
+
+  const safeBasktName =
+    typeof baskt.name === 'string' && baskt.name.length > 0 ? baskt.name : 'unnamed';
+
+  const handleCardClick = useCallback((e: React.MouseEvent) => {
+    const trigger = (e.currentTarget as HTMLElement).querySelector('[data-accordion-trigger]');
+    if (trigger && trigger.contains(e.target as Node)) {
+      return;
+    }
+    setOpen((prev) => (prev === 'baskt' ? undefined : 'baskt'));
+  }, []);
+
+  const handleTradeClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      router.push(`/baskts/${encodeURIComponent(safeBasktName)}`);
+    },
+    [router, safeBasktName],
+  );
+
+  const handleAccordionTriggerClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  const handleExternalLinkClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
+
+  return (
+    <Accordion
+      type="single"
+      collapsible
+      value={open}
+      onValueChange={setOpen}
+      className={cn(
+        'rounded-xl !-mb-4 border border-border bg-background/80 hover:bg-background/90 transition-colors duration-200 cursor-pointer m-0',
+        className,
+      )}
+    >
+      <AccordionItem value="baskt" className="m-0 border-none px-2 py-2">
+        <div
+          className="flex w-full items-center justify-between gap-3 min-h-[64px] select-none"
+          onClick={handleCardClick}
+          style={{ cursor: 'pointer' }}
+        >
+          <AccordionTrigger
+            className="p-1 h-6 w-6 border-border border rounded-md"
+            data-accordion-trigger
+            onClick={handleAccordionTriggerClick}
+          />
+
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="flex flex-col min-w-0">
+              <span className="text-base font-semibold truncate max-w-[120px] flex items-center gap-1">
+                {baskt.name || 'Unnamed Baskt'}
+                <Link
+                  href={`/baskts/${encodeURIComponent(safeBasktName)}`}
+                  className="ml-1"
+                  onClick={handleExternalLinkClick}
                 >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={cn(
-                        'w-2 h-2 rounded-full',
-                        asset.direction ? 'bg-success' : 'bg-destructive',
-                      )}
-                    />
-                    <span className="text-sm font-medium">{asset.ticker || asset.name}</span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {asset.weight ? `${(asset.weight / 100).toFixed(1)}%` : '-'}
-                  </div>
+                  <ExternalLink className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                </Link>
+              </span>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <div className="flex -space-x-2">
+                  {assetImages.map((asset, idx) => (
+                    <div key={`${asset.ticker || asset.name || idx}`} className="relative z-10">
+                      <AssetIcon asset={asset} />
+                    </div>
+                  ))}
+                  {extraAssets > 0 && (
+                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground border border-border ml-1">
+                      +{extraAssets}
+                    </div>
+                  )}
                 </div>
-              ))}
-              {baskt.assets.length > 6 && (
-                <div className="text-sm text-muted-foreground p-2">
-                  +{baskt.assets.length - 6} more assets
-                </div>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {assetCount} asset{assetCount !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center flex-1 hidden sm:flex">
+            {/* Rebalancing indicator removed - not available in BasktInfo */}
+          </div>
+          <div className="flex items-right justify-end flex-1 mr-4">
+            <div className="flex flex-col items-right">
+              <span className="text-lg font-bold text-foreground whitespace-nowrap">
+                <NumberFormat value={assetPrice} isPrice={true} />
+              </span>
+              {performanceData.day !== undefined && (
+                <span
+                  className={`text-xs font-medium ${
+                    performanceData.day >= 0 ? 'text-green-500' : 'text-red-500'
+                  }`}
+                >
+                  {performanceData.day >= 0 ? '+' : ''}
+                  <NumberFormat value={performanceData.day} />%
+                </span>
               )}
             </div>
           </div>
-        )}
-
-        {/* Trading Options */}
-        <div className="flex items-center justify-between pt-4 border-t border-border">
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-success" />
-              <span>Long</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-destructive" />
-              <span>Short</span>
-            </div>
-          </div>
-
-          <Button
-            size="sm"
-            onClick={() => router.push(`/baskts/${encodeURIComponent(baskt.name)}`)}
-          >
-            <ArrowRightLeft className="h-4 w-4 mr-2" />
+          <Button size="sm" onClick={handleTradeClick} className="px-4 mr-4">
             Trade
           </Button>
         </div>
-      </CardContent>
-    </Card>
+
+        <AccordionContent className="px-2 sm:px-4 pb-3 pt-0 mt-8">
+          <div className="flex flex-wrap gap-2 gap-y-2 mb-4 items-center w-full overflow-x-auto justify-between">
+            {metricCards.map((card) => (
+              <MetricCard key={card.label} card={card} />
+            ))}
+          </div>
+
+          <div className="mt-2 rounded-lg border border-border bg-muted/10 overflow-x-auto">
+            <div className="min-w-[600px]">
+              <div className="flex items-center px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold text-muted-foreground">
+                <span className="flex-1 text-left">Asset</span>
+                <span className="flex-1 text-center">Price</span>
+                <span className="flex-1 text-center">Direction</span>
+                <span className="flex-1 text-center whitespace-nowrap">Target Weight</span>
+                <span className="flex-1 text-right whitespace-nowrap">Current Weight</span>
+              </div>
+              {(baskt.assets || []).map((asset, idx) => (
+                <AssetRow
+                  key={`${asset.ticker || asset.name || idx}`}
+                  asset={asset}
+                  currentWeight={currentWeights[idx]}
+                />
+              ))}
+            </div>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
-};
+});
+
+BasktCard.displayName = 'BasktCard';
