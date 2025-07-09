@@ -1,6 +1,6 @@
 import { Button, Loading } from '@baskt/ui';
 import Link from 'next/link';
-import { BasktCard } from '../baskt/BasktCard';
+import { BasktCards } from '../baskt/BasktCards';
 import { BasktInfo } from '@baskt/types';
 import { useMemo } from 'react';
 import { trpc } from '../../utils/trpc';
@@ -67,7 +67,7 @@ export function FeaturedBaskts() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {featuredBaskts.map((baskt) => (
-            <BasktCard
+            <BasktCards
               key={String(baskt.basktId)}
               baskt={baskt}
               className="hover:shadow-md transition-shadow"

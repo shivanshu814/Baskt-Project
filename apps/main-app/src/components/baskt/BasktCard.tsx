@@ -176,10 +176,7 @@ export const BasktCard = React.memo(({ baskt, className }: BasktCardProps) => {
     }));
     return calculateCurrentWeights(basktAssets);
   }, [baskt.assets]);
-
-  const { totalOpenInterest } = useBasktOI(
-    baskt.account.basktId?.toString() ?? baskt.basktId ?? '',
-  );
+  const { totalOpenInterest } = useBasktOI(baskt.basktId?.toString() ?? '');
 
   const metricCards = useMemo(
     (): MetricCard[] => [
