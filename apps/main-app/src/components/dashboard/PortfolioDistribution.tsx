@@ -65,9 +65,13 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({ ba
                 </span>
                 {baskt.name && (
                   <Link href={`/baskts/${encodeURIComponent(baskt.name)}`}>
-                    <Button variant="ghost" size="sm" className="h-6 px-2">
-                      <ExternalLink className="h-3 w-3 mr-1" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs text-primary hover:bg-primary/10 bg-primary/5"
+                    >
                       View
+                      <ExternalLink className="h-3 w-3 mr-1" />
                     </Button>
                   </Link>
                 )}

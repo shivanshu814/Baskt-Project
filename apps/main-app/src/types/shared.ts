@@ -16,3 +16,38 @@ export interface TruncatedTextProps {
   className?: string;
   copyOnClick?: boolean;
 }
+
+export interface Asset {
+  logo?: string;
+  ticker?: string;
+  name?: string;
+  price?: number;
+  direction?: boolean;
+  weight?: number;
+  currentWeight?: number;
+}
+
+export interface Performance {
+  day?: number;
+  week?: number;
+  month?: number;
+}
+
+export interface BasktAccount {
+  basktId?: string;
+}
+
+export interface Baskt {
+  name?: string;
+  price?: number;
+  aum?: number;
+  assets?: Asset[];
+  rebalancing?: boolean;
+  performance?: Performance;
+  account: BasktAccount;
+}
+
+export interface BasktCardProps {
+  baskt: Baskt;
+  className?: string;
+}

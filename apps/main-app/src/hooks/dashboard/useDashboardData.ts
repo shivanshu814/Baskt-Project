@@ -296,20 +296,29 @@ export const useDashboardData = () => {
             }))
         : [];
 
+    // Get baskets data for baskt name lookup
+    const baskets =
+      basketsData?.success && 'data' in basketsData && basketsData.data
+        ? basketsData.data.filter((b) => b !== null)
+        : [];
+
     const allActivity = [
       // eslint-disable-next-line
-      ...actualOpenPositions.map((pos: any) => ({
-        type: 'position' as const,
-        action: pos.isLong ? 'Long Position Opened' : 'Short Position Opened',
-        amount: pos.usdcSize ? new BN(pos.usdcSize).toNumber() / 1e6 : 0,
-        timestamp: pos.timestampOpen || Date.now(),
-        basktName:
-          portfolioSummary.assetExposures.find((e) =>
-            e.positions.some((p) => p.positionPDA === pos.positionPDA),
-          )?.assetName || 'Unknown',
-        basktId: pos.basktId || '',
-        isPositive: true,
-      })),
+      ...actualOpenPositions.map((pos: any) => {
+        // Find the corresponding basket to get the baskt name
+        const basket = baskets.find((b) => b.basktId === pos.basktId);
+        const basktName = basket?.name || 'Unknown Baskt';
+
+        return {
+          type: 'position' as const,
+          action: pos.isLong ? 'Long Position Opened' : 'Short Position Opened',
+          amount: pos.usdcSize ? new BN(pos.usdcSize).toNumber() / 1e6 : 0,
+          timestamp: pos.timestampOpen || Date.now(),
+          basktName,
+          basktId: pos.basktId || '',
+          isPositive: true,
+        };
+      }),
       // eslint-disable-next-line
       ...openOrders.map((order: any) => ({
         type: 'order' as const,
@@ -355,7 +364,7 @@ export const useDashboardData = () => {
       .slice(0, 5);
 
     return allActivity;
-  }, [positionsData, openOrders, orderHistory, portfolioSummary.assetExposures]);
+  }, [positionsData, basketsData, openOrders, orderHistory, portfolioSummary.assetExposures]);
 
   const isLoading = positionsLoading || basketsLoading;
 

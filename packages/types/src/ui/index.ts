@@ -1,4 +1,5 @@
 import { BasktMetadataModel } from '../models';
+import { OnchainBasktAccount } from '../onchain/baskt';
 
 export interface AssetInfo {
   id: string;
@@ -78,4 +79,5 @@ export interface BasktInfo extends Omit<BasktMetadataModel, 'assets'> {
   description?: string;
   risk?: 'low' | 'medium' | 'high';
   sharpeRatio?: string;
+  account: OnchainBasktAccount;
 }

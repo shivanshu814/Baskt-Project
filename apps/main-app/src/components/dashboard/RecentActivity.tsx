@@ -58,9 +58,13 @@ const RecentActivity = ({ recentActivity }: RecentActivityProps) => {
                   </div>
                   {activity.type === 'position' && activity.basktName && (
                     <Link href={`/baskts/${encodeURIComponent(activity.basktName)}`}>
-                      <Button variant="ghost" size="sm" className="h-6 px-2">
-                        <ExternalLink className="h-3 w-3 mr-1" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-primary hover:bg-primary/10 bg-primary/5"
+                      >
                         View
+                        <ExternalLink className="h-3 w-3 mr-1" />
                       </Button>
                     </Link>
                   )}
