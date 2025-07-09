@@ -14,6 +14,8 @@ import { parseSolanaError } from '../../../utils/error-handling';
 export function useOpenPositions(basktId?: string, userAddress?: string, navPrice?: BN) {
   const { client } = useBasktClient();
   const { account: userUSDCAccount, refetch: refetchUSDCBalance } = useUSDCBalance();
+  const [isClosingPosition, setIsClosingPosition] = useState(false);
+  const [isAddingCollateral, setIsAddingCollateral] = useState(false);
 
   const positionsByBasktAndUserQuery = trpc.position.getPositions.useQuery(
     { basktId: basktId || '', userId: userAddress || '' },
@@ -72,6 +74,9 @@ export function useOpenPositions(basktId?: string, userAddress?: string, navPric
     }
 
     try {
+      setIsClosingPosition(true);
+      toast.loading('Closing position...', { id: 'close-position' });
+
       const tx = await client.createOrderTx(
         new BN(Date.now()),
         new BN(0),
@@ -101,10 +106,18 @@ export function useOpenPositions(basktId?: string, userAddress?: string, navPric
       // Dispatch event for other components to listen to
       window.dispatchEvent(new Event('position-closed'));
 
-      toast.success('Position closed successfully');
+      toast.success(`Position closed successfully! `, {
+        id: 'close-position',
+        description: `Size: ${new BN(position.usdcSize || '0')
+          .div(new BN(PRICE_PRECISION))
+          .toNumber()
+          .toLocaleString()} USDC`,
+      });
     } catch (error) {
       const parsedError = parseSolanaError(error);
-      toast.error(parsedError.message);
+      toast.error(`Failed to close position: ${parsedError.message}`, { id: 'close-position' });
+    } finally {
+      setIsClosingPosition(false);
     }
   };
 
@@ -115,6 +128,12 @@ export function useOpenPositions(basktId?: string, userAddress?: string, navPric
     }
 
     try {
+      setIsAddingCollateral(true);
+      const collateralAmount = additionalCollateral.div(new BN(PRICE_PRECISION)).toNumber();
+      toast.loading(`Adding ${collateralAmount.toLocaleString()} USDC collateral...`, {
+        id: 'add-collateral',
+      });
+
       const tx = await client.addCollateral({
         position: new PublicKey(position.positionPDA),
         additionalCollateral,
@@ -134,11 +153,16 @@ export function useOpenPositions(basktId?: string, userAddress?: string, navPric
       // Dispatch event for other components to listen to
       window.dispatchEvent(new Event('collateral-added'));
 
-      toast.success('Collateral added successfully');
+      toast.success(`Collateral added successfully! `, {
+        id: 'add-collateral',
+        description: `Added ${collateralAmount.toLocaleString()} USDC to position`,
+      });
     } catch (error) {
       console.error(error);
       const parsedError = parseSolanaError(error);
-      toast.error(parsedError.message);
+      toast.error(`Failed to add collateral: ${parsedError.message}`, { id: 'add-collateral' });
+    } finally {
+      setIsAddingCollateral(false);
     }
   };
 
@@ -153,6 +177,8 @@ export function useOpenPositions(basktId?: string, userAddress?: string, navPric
       closePosition,
       addCollateral,
       refetch: positionsByBasktAndUserQuery.refetch,
+      isClosingPosition,
+      isAddingCollateral,
     };
   }
 
@@ -168,6 +194,8 @@ export function useOpenPositions(basktId?: string, userAddress?: string, navPric
     isError: positionsByBasktAndUserQuery.isError,
     error: positionsByBasktAndUserQuery.error,
     refetch: positionsByBasktAndUserQuery.refetch,
+    isClosingPosition,
+    isAddingCollateral,
   };
 }
 
@@ -180,7 +208,6 @@ export function useOpenPosition({ baskt, usdcSize, navPrice }: UseOpenPositionPr
     account: userUSDCAccount,
     refetch: refetchUSDCBalance,
   } = useUSDCBalance(publicKey);
-
 
   const collateral = calculateCollateralAmount(new BN(usdcSize));
 
@@ -210,6 +237,14 @@ export function useOpenPosition({ baskt, usdcSize, navPrice }: UseOpenPositionPr
 
     try {
       setIsLoading(true);
+      const positionType = position === 'long' ? 'Long' : 'Short';
+
+      toast.loading(
+        `Opening ${positionType.toLowerCase()} position with ${userInputSize.toLocaleString()} USDC...`,
+        {
+          id: 'open-position',
+        },
+      );
 
       const orderId = new BN(Date.now());
 
@@ -245,17 +280,16 @@ export function useOpenPosition({ baskt, usdcSize, navPrice }: UseOpenPositionPr
       window.dispatchEvent(new Event('position-opened'));
       window.dispatchEvent(new Event('order-created'));
 
-      toast.success(
-        `${
-          position === 'long' ? 'Long' : 'Short'
-        } position opened with ${collateral.toLocaleString()} USDT collateral`,
-      );
+      toast.success(`${positionType} position opened successfully!`, {
+        id: 'open-position',
+        description: `Size: ${userInputSize.toLocaleString()} USDC`,
+      });
 
       return true;
       // eslint-disable-next-line
     } catch (error: any) {
       const parsedError = parseSolanaError(error);
-      toast.error(parsedError.message);
+      toast.error(`Failed to open position: ${parsedError.message}`, { id: 'open-position' });
       return false;
     } finally {
       setIsLoading(false);
