@@ -644,6 +644,39 @@ export abstract class BaseClient {
     return await this.sendAndConfirmLegacy(tx);
   }
 
+  /**
+   * Activate a baskt and initialize its funding index in a single transaction
+   * @param basktId The public key of the baskt to activate
+   * @param prices Array of prices for each asset in the baskt
+   * @param maxPriceAgeSec The maximum price age in seconds
+   * @returns Transaction signature
+   */
+  public async activateBasktAndInitializeFundingIndex(
+    basktId: PublicKey,
+    prices: anchor.BN[],
+    maxPriceAgeSec: number = 60,
+  ): Promise<string> {
+    // activate baskt instruction
+    const activateIx = await this.program.methods
+      .activateBaskt({ prices, maxPriceAgeSec })
+      .accounts({
+        baskt: basktId,
+        authority: this.getPublicKey(),
+      })
+      .instruction();
+
+    //  initialize funding index instruction
+    const initializeFundingIx = await this.program.methods
+      .initializeFundingIndex()
+      .accounts({
+        authority: this.getPublicKey(),
+        baskt: basktId,
+      })
+      .instruction();
+
+    return await this.sendAndConfirm([activateIx, initializeFundingIx]);
+  }
+
   public async sendAndConfirm(instructions: TransactionInstruction[]) {
     // Send the signed transaction to the network
     const transaction = await this.getVersionTransaction(instructions);
