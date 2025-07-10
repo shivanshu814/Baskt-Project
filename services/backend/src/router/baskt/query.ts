@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { BasktMetadataModel } from '../../utils/models';
 import { sdkClient } from '../../utils';
 import { PublicKey } from '@solana/web3.js';
-import { getAssetFromAddress } from '../asset/query';
+import { getAllAssetsInternal } from '../asset/query';
 import { calculateNav, WEIGHT_PRECISION, calculateLiveNav } from '@baskt/sdk';
 import { OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
 import { BN } from 'bn.js';
@@ -41,13 +41,43 @@ const getBasktMetadataById = publicProcedure
 // get all baskts
 const getAllBaskts = publicProcedure.query(async () => {
   try {
+    // Fetch baskts metadata from MongoDB
     const baskts = await BasktMetadataModel.find().sort({ createdAt: -1 });
+
+    // Fetch onchain baskts from Solana
     const onchainBaskts = await sdkClientInstance.getAllBaskts();
 
     if (!baskts || !onchainBaskts || baskts.length === 0 || onchainBaskts.length === 0) {
       return { success: false, data: [] };
     }
 
+    // Collect all unique asset IDs from all baskts
+    const allAssetIds = new Set<string>();
+    const basktAssetMap = new Map<string, string[]>(); // basktId -> assetIds
+
+    onchainBaskts.forEach((basktConfig) => {
+      const basktId = basktConfig.account.basktId.toString();
+      const assetIds = basktConfig.account.currentAssetConfigs.map((asset: any) => 
+        asset.assetId.toString()
+      );
+      basktAssetMap.set(basktId, assetIds);
+      assetIds.forEach(id => allAssetIds.add(id));
+    });
+
+    // Fetch all assets once using getAllAssetsInternal
+    const allAssetsResult = await getAllAssetsInternal(false); // false for fast query, no need for latest prices
+
+    // Create asset lookup map by asset address
+    const assetLookup = new Map<string, any>();
+    if (allAssetsResult.success && allAssetsResult.data) {
+      allAssetsResult.data.forEach((asset: any) => {
+        if (asset && asset.assetAddress) {
+          assetLookup.set(asset.assetAddress, asset);
+        }
+      });
+    }
+
+    // Combine and convert baskts using cached assets
     const combinedBaskts = await Promise.all(
       onchainBaskts
         .map(async (basktConfig) => {
@@ -59,7 +89,12 @@ const getAllBaskts = publicProcedure.query(async () => {
             return;
           }
 
-          return await convertToBasktInfo(basktConfig.account, basktMetadata);
+          return await convertToBasktInfoWithAssets(
+            basktConfig.account, 
+            basktMetadata, 
+            assetLookup,
+            basktAssetMap.get(basktConfig.account.basktId.toString()) || []
+          );
         })
         .filter((baskt) => !!baskt),
     );
@@ -194,7 +229,24 @@ async function getBasktInfoFromAddress(basktId: string) {
   if (!onchainBaskt) {
     return null;
   }
-  return convertToBasktInfo(onchainBaskt, basktMetadata);
+  
+  // Get all assets and create lookup map
+  const allAssetsResult = await getAllAssetsInternal(true);
+  const assetLookup = new Map<string, any>();
+  if (allAssetsResult.success && allAssetsResult.data) {
+    allAssetsResult.data.forEach((asset: any) => {
+      if (asset && asset.assetAddress) {
+        assetLookup.set(asset.assetAddress, asset);
+      }
+    });
+  }
+  
+  // Get asset IDs for this baskt
+  const assetIds = onchainBaskt.currentAssetConfigs.map((asset: any) => 
+    asset.assetId.toString()
+  );
+  
+  return convertToBasktInfoWithAssets(onchainBaskt, basktMetadata, assetLookup, assetIds);
 }
 
 // get baskt info from name
@@ -224,38 +276,65 @@ async function getBasktInfoFromName(basktName: string) {
     console.log('Onchain baskt not found');
     return null;
   }
-  return convertToBasktInfo(onchainBaskt, basktMetadata);
+  
+  // Get all assets and create lookup map
+  const allAssetsResult = await getAllAssetsInternal(false); // false for fast query
+  const assetLookup = new Map<string, any>();
+  if (allAssetsResult.success && allAssetsResult.data) {
+    allAssetsResult.data.forEach((asset: any) => {
+      if (asset && asset.assetAddress) {
+        assetLookup.set(asset.assetAddress, asset);
+      }
+    });
+  }
+  
+  // Get asset IDs for this baskt
+  const assetIds = onchainBaskt.currentAssetConfigs.map((asset: any) => 
+    asset.assetId.toString()
+  );
+  
+  return convertToBasktInfoWithAssets(onchainBaskt, basktMetadata, assetLookup, assetIds);
 }
 
-// convert to baskt info
-async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
-  const assets = await Promise.all(
-    onchainBaskt.currentAssetConfigs.map(async (asset: any) => ({
-      ...(await getAssetFromAddress(asset.assetId.toString())),
+// convert to baskt info with pre-fetched assets
+async function convertToBasktInfoWithAssets(
+  onchainBaskt: any, 
+  basktMetadata: any, 
+  assetLookup: Map<string, any>,
+  assetIds: string[]
+) {
+  // Use pre-fetched assets instead of fetching individually
+  const assets = onchainBaskt.currentAssetConfigs.map((asset: any) => {
+    const assetId = asset.assetId.toString();
+    const fetchedAsset = assetLookup.get(assetId);
+    
+    return {
+      ...(fetchedAsset || {}),
       weight: (asset.weight.toNumber() * 100) / 10_000,
       direction: asset.direction,
-      id: asset.assetId.toString(),
+      id: assetId,
       baselinePrice: asset.baselinePrice.toNumber(),
       volume24h: 0,
       marketCap: 0,
-    })),
-  );
+    };
+  });
 
   const basktId =
     basktMetadata?.basktId?.toString() ||
     onchainBaskt.basktId?.toString() ||
     onchainBaskt.account?.basktId?.toString();
 
+  // Calculate price
   let price = new BN(0);
   try {
-    if (assets.length > 0 && assets.every((asset) => asset && asset.price > 0)) {
-      const assetsWithPriceConfig = assets.filter((asset) => asset.config?.priceConfig);
+    if (assets.length > 0 && assets.every((asset: any) => asset && asset.price > 0)) {
+      const assetsWithPriceConfig = assets.filter((asset: any) => asset.config?.priceConfig);
 
       if (assetsWithPriceConfig.length === 0) {
         throw new Error('No price config available');
       }
 
-      const basktAssets = assetsWithPriceConfig.map((asset) => {
+      const basktAssets = assetsWithPriceConfig.map((asset: any) => {
         const weightBN = new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100);
         return {
           assetId: asset.id,
@@ -275,7 +354,7 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     }
   } catch (error) {
     const formattedAssets = assets.map(
-      (asset) =>
+      (asset: any) =>
         ({
           assetId: new PublicKey(asset.id),
           direction: asset.direction,
@@ -297,10 +376,11 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
     }
   }
 
+  // Build final result
   const status = onchainBaskt.status;
   const account = (onchainBaskt.account || onchainBaskt) as OnchainBasktAccount;
 
-  return {
+  const result = {
     _id: basktMetadata?._id,
     basktId: basktId,
     name: basktMetadata?.name || '',
@@ -339,7 +419,11 @@ async function convertToBasktInfo(onchainBaskt: any, basktMetadata: any) {
       year: 45.6,
     },
   };
+
+  return result;
 }
+
+
 
 export const getRouter = {
   getBasktMetadataById,

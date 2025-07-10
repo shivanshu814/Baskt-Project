@@ -87,3 +87,8 @@ export const AssetMetadataSchema = new mongoose.Schema({
     ref: 'BasktMetadata',
   },
 });
+
+// Add indexes for frequently queried fields
+AssetMetadataSchema.index({ assetAddress: 1 });
+AssetMetadataSchema.index({ ticker: 1 });
+AssetMetadataSchema.index({ basktIds: 1 });
