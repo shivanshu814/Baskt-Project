@@ -14,10 +14,11 @@ const cacheTimestamps: Map<string, number> = new Map();
 export const getAllAssets = publicProcedure
   .input(z.object({
     withLatestPrices: z.boolean().default(false),
+    withConfig: z.boolean().default(false),
   }))
   .query(async ({ input }) => {
     try {
-      const result = await getAllAssetsInternal(input.withLatestPrices);
+      const result = await getAllAssetsInternal(input.withLatestPrices, input.withConfig);
       return result;
     } catch (error) {
       throw error;
@@ -40,8 +41,8 @@ export const getAssetPerformanceStats = publicProcedure.query(async () => {
 });
 
 // Shared internal function
-async function fetchAllAssetsCore({ withLatestPrices }: { withLatestPrices: boolean }) {
-  const cacheKey = withLatestPrices ? 'assets_with_latest_prices' : 'assets_mongo_only';
+async function fetchAllAssetsCore({ withLatestPrices, withConfig }: { withLatestPrices: boolean; withConfig: boolean }) {
+  const cacheKey = `${withLatestPrices ? 'with_prices' : 'no_prices'}_${withConfig ? 'with_config' : 'no_config'}`;
   const now = Date.now();
 
   // check cache first
@@ -83,7 +84,7 @@ async function fetchAllAssetsCore({ withLatestPrices }: { withLatestPrices: bool
         const matchingPrice = withLatestPrices
           ? latestPrices.find((price: any) => price?.id === assetConfig._id.toString())
           : null;
-        return combineAsset(matchingAsset, assetConfig, matchingPrice, false);
+        return combineAsset(matchingAsset, assetConfig, matchingPrice, withConfig);
       })
       .filter((asset: any) => asset);
 
@@ -102,8 +103,8 @@ async function fetchAllAssetsCore({ withLatestPrices }: { withLatestPrices: bool
 }
 
 // Single function that handles both cases
-export async function getAllAssetsInternal(withLatestPrices: boolean = false) {
-  return fetchAllAssetsCore({ withLatestPrices });
+export async function getAllAssetsInternal(withLatestPrices: boolean = false, withConfig: boolean = false) {
+  return fetchAllAssetsCore({ withLatestPrices, withConfig });
 }
 
 export async function getAssetsByAddressInternal(assetAddresses: string[]) {

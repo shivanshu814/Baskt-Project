@@ -65,7 +65,7 @@ const getAllBaskts = publicProcedure.query(async () => {
     });
 
     // Fetch all assets once using getAllAssetsInternal
-    const allAssetsResult = await getAllAssetsInternal(false); // false for fast query, no need for latest prices
+    const allAssetsResult = await getAllAssetsInternal(false, false); // false for fast query, no need for latest prices
 
     // Create asset lookup map by asset address
     const assetLookup = new Map<string, any>();
@@ -231,7 +231,7 @@ async function getBasktInfoFromAddress(basktId: string) {
   }
   
   // Get all assets and create lookup map
-  const allAssetsResult = await getAllAssetsInternal(true);
+  const allAssetsResult = await getAllAssetsInternal(true, false);
   const assetLookup = new Map<string, any>();
   if (allAssetsResult.success && allAssetsResult.data) {
     allAssetsResult.data.forEach((asset: any) => {
@@ -278,7 +278,7 @@ async function getBasktInfoFromName(basktName: string) {
   }
   
   // Get all assets and create lookup map
-  const allAssetsResult = await getAllAssetsInternal(false); // false for fast query
+  const allAssetsResult = await getAllAssetsInternal(false, false); // false for fast query
   const assetLookup = new Map<string, any>();
   if (allAssetsResult.success && allAssetsResult.data) {
     allAssetsResult.data.forEach((asset: any) => {

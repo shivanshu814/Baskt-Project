@@ -29,8 +29,8 @@ export const getPositions = publicProcedure
       
       // Batch asset lookup optimization
       if (input.assetId) {
-        // Fetch all assets once and create lookup map
-        const allAssetsResult = await getAllAssetsInternal(false);
+        // Get all assets and create lookup map
+        const allAssetsResult = await getAllAssetsInternal(false, false);
         const assetLookup = new Map<string, any>();
         
         if (allAssetsResult.success && allAssetsResult.data) {
