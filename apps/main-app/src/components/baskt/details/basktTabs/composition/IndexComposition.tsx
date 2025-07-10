@@ -74,21 +74,46 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                         Current Weight <InfoIcon size={14} />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="max-w-xs text-xs">
-                          Current weight based on price movements and directional exposure
-                        </p>
+                        <p className="max-w-xs text-xs">Current weight based on price movements</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </TableHead>
                 <TableHead className="text-xs sm:text-sm whitespace-nowrap underline decoration-dashed underline-offset-4">
-                  Baseline Price
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="flex items-center gap-1 whitespace-nowrap">
+                        Baseline Price <InfoIcon size={14} />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs text-xs">Price at last rebalance</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableHead>
                 <TableHead className="text-xs sm:text-sm underline decoration-dashed underline-offset-4">
-                  Price
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="flex items-center gap-1 whitespace-nowrap">
+                        Price <InfoIcon size={14} />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs text-xs">Current market price</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableHead>
                 <TableHead className="text-right text-xs sm:text-sm whitespace-nowrap underline decoration-dashed underline-offset-4">
-                  Change (%)
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="flex items-center gap-1 whitespace-nowrap">
+                        Change (%) <InfoIcon size={14} />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs text-xs">Price change from baseline</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableHead>
               </TableRow>
             </TableHeader>

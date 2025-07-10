@@ -8,7 +8,7 @@ export function useTokenBalance(
   mint: string | PublicKey,
   address?: string | PublicKey,
   decimals: number = 6,
-  refetchInterval: number = 30 * 1000,
+  refetchInterval: number = 10 * 1000, // Reduced to 10s for faster updates
 ) {
   const { authenticated } = usePrivy();
   const { client, wallet } = useBasktClient();
@@ -48,6 +48,25 @@ export function useTokenBalance(
       setLoading(false);
     }
   }, [authenticated, wallet, client, address, mint, decimals]);
+
+  // Listen for external transaction events
+  useEffect(() => {
+    const handleExternalTransaction = () => {
+      // Immediate fetch for manual refresh
+      fetchBalance();
+    };
+
+    // Listen for various transaction events that might affect balance
+    window.addEventListener('external-transaction', handleExternalTransaction);
+    window.addEventListener('token-received', handleExternalTransaction);
+    window.addEventListener('balance-updated', handleExternalTransaction);
+
+    return () => {
+      window.removeEventListener('external-transaction', handleExternalTransaction);
+      window.removeEventListener('token-received', handleExternalTransaction);
+      window.removeEventListener('balance-updated', handleExternalTransaction);
+    };
+  }, [fetchBalance]);
 
   useEffect(() => {
     fetchBalance();

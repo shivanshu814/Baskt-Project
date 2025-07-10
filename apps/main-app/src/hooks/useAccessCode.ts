@@ -61,6 +61,9 @@ export function useAccessCode() {
             recipient: walletAddress,
           });
           toast.success('Access granted! 100,000 USDC has been sent to your wallet.');
+
+          // Dispatch single event to trigger balance refresh across the app
+          window.dispatchEvent(new Event('token-received'));
         } catch (faucetError) {
           toast.warning(
             'Access granted! However, there was an issue sending USDC. Please contact support.',

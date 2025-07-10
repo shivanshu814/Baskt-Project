@@ -45,8 +45,34 @@ export const useUserBalances = ({ poolData }: UseUserBalancesProps) => {
     }
   }, [client, wallet, poolData]);
 
+  // Listen for external transaction events
+  useEffect(() => {
+    const handleExternalTransaction = () => {
+      // Immediate fetch for manual refresh
+      fetchBalances();
+    };
+
+    // Listen for various transaction events that might affect balance
+    window.addEventListener('external-transaction', handleExternalTransaction);
+    window.addEventListener('token-received', handleExternalTransaction);
+    window.addEventListener('balance-updated', handleExternalTransaction);
+
+    return () => {
+      window.removeEventListener('external-transaction', handleExternalTransaction);
+      window.removeEventListener('token-received', handleExternalTransaction);
+      window.removeEventListener('balance-updated', handleExternalTransaction);
+    };
+  }, [fetchBalances]);
+
   useEffect(() => {
     fetchBalances();
+
+    // Set up automatic refresh every 10 seconds for faster updates
+    const interval = setInterval(() => {
+      fetchBalances();
+    }, 10 * 1000);
+
+    return () => clearInterval(interval);
   }, [fetchBalances]);
 
   return {

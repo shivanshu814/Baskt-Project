@@ -19,12 +19,17 @@ import {
   TableHeader,
   TableRow,
   NumberFormat,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@baskt/ui';
 import { BasktFormProps } from '../../../types/baskt';
 
 export const BasktForm = ({
   formData,
   errors,
+  totalWeightage,
   onNameChange,
   onRebalancePeriodChange,
   onVisibilityChange,
@@ -150,10 +155,29 @@ export const BasktForm = ({
               Add assets to your Baskt and set their allocation weights.
             </p>
 
-            <Button onClick={onAddAsset} className="w-full sm:w-auto text-sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Asset
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => {
+                      if (totalWeightage < 100) {
+                        onAddAsset();
+                      }
+                    }}
+                    disabled={totalWeightage >= 100}
+                    className="w-full sm:w-auto text-sm"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Asset
+                  </Button>
+                </TooltipTrigger>
+                {totalWeightage >= 100 && (
+                  <TooltipContent>
+                    <p>Cannot add more assets when total allocation reaches 100%</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
           {formData.assets.length === 0 ? (

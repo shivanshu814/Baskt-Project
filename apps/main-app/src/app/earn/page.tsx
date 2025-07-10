@@ -1,10 +1,10 @@
 'use client';
 
-import { Card, Tabs, TabsList, TabsTrigger, TabsContent, NumberFormat } from '@baskt/ui';
+import { Card, Tabs, TabsList, TabsTrigger, TabsContent, NumberFormat, Button } from '@baskt/ui';
 import { useState } from 'react';
 import { useUSDCBalance } from '../../hooks/pool/useUSDCBalance';
 import { useTokenBalance } from '../../hooks/pool/useTokenBalance';
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, RefreshCw } from 'lucide-react';
 import { useBasktClient } from '@baskt/ui';
 import { ActionCard } from '../../components/pool/ActionCard';
 import { PoolInfo } from '../../components/pool/PoolInfo';
@@ -13,6 +13,7 @@ import { usePoolData } from '../../hooks/pool/usePoolData';
 import { useDeposit } from '../../hooks/pool/useDeposit';
 import { useWithdraw } from '../../hooks/pool/useWithdraw';
 import { usePoolRefresh } from '../../hooks/pool/usePoolRefresh';
+import { useBalanceRefresh } from '../../hooks/pool/useBalanceRefresh';
 import { poolAllocations } from '../../data/pool-allocations';
 
 export default function PoolPage() {
@@ -22,6 +23,7 @@ export default function PoolPage() {
   const { refreshAll } = usePoolRefresh();
   const { balance: userUSDCBalance } = useUSDCBalance();
   const { balance: userLpBalance } = useTokenBalance(poolData?.lpMint ?? '', wallet?.address ?? '');
+  const { triggerBalanceRefresh, isRefreshing } = useBalanceRefresh();
 
   const { depositAmount, setDepositAmount, isDepositing, isDepositValid, handleDeposit } =
     useDeposit({
@@ -55,7 +57,9 @@ export default function PoolPage() {
     <div className="min-h-screen w-full flex flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-[85rem] mx-auto flex flex-col lg:flex-row gap-8 mb-8">
         <div className="flex-1 min-w-0">
-          <PoolInfo apy={randomAPY} lastUpdated="5/29/2025" />
+          <div className="flex justify-between items-center mb-4">
+            <PoolInfo apy={randomAPY} lastUpdated="5/29/2025" />
+          </div>
           <div className="mt-8">
             <LiquidityAllocation
               tvl={tvl}
@@ -95,14 +99,32 @@ export default function PoolPage() {
                       </div>
                     </div>
                   </Card>
+                  {/* Tabs and Refresh button in same row */}
+                  <div className="flex items-center justify-between mb-4">
+                    <Tabs
+                      value={activeTab}
+                      onValueChange={(val) => setActiveTab(val as 'deposit' | 'withdraw')}
+                    >
+                      <TabsList>
+                        <TabsTrigger value="deposit">Deposit</TabsTrigger>
+                        <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={triggerBalanceRefresh}
+                      disabled={isRefreshing}
+                      className="flex items-center gap-2 ml-2"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                      {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                    </Button>
+                  </div>
                   <Tabs
                     value={activeTab}
                     onValueChange={(val) => setActiveTab(val as 'deposit' | 'withdraw')}
                   >
-                    <TabsList className="mb-4">
-                      <TabsTrigger value="deposit">Deposit</TabsTrigger>
-                      <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
-                    </TabsList>
                     <>
                       <TabsContent value="deposit">
                         <ActionCard

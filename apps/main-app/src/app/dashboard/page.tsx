@@ -11,6 +11,9 @@ import RecentActivity from '../../components/dashboard/RecentActivity';
 import { DashboardSkeleton } from '../../components/dashboard/DashboardSkeleton';
 // import PortfolioValueGraph from '../../components/dashboard/PortfolioValueGraph';
 import { useDashboardData } from '../../hooks/dashboard/useDashboardData';
+import { useBalanceRefresh } from '../../hooks/pool/useBalanceRefresh';
+import { Button } from '@baskt/ui';
+import { RefreshCw } from 'lucide-react';
 
 export default function DashboardPage() {
   const {
@@ -22,6 +25,8 @@ export default function DashboardPage() {
     isLoading,
     myBaskts,
   } = useDashboardData();
+
+  const { triggerBalanceRefresh, isRefreshing } = useBalanceRefresh();
 
   const myBasktsData = (myBaskts || [])
     // eslint-disable-next-line
@@ -73,11 +78,23 @@ export default function DashboardPage() {
 
   return (
     <main className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Trading Dashboard</h1>
-        <p className="text-muted-foreground">
-          Monitor your portfolio, track positions, and analyze market performance
-        </p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Trading Dashboard</h1>
+          <p className="text-muted-foreground">
+            Monitor your portfolio, track positions, and analyze market performance
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={triggerBalanceRefresh}
+          disabled={isRefreshing}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh Balances'}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

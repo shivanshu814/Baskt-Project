@@ -16,6 +16,10 @@ import {
   TableRow,
   PRICE_PRECISION,
   Button,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@baskt/ui';
 import { useUSDCBalance } from '../../../../../hooks/pool/useUSDCBalance';
 import { OrderType } from '@baskt/types';
@@ -23,6 +27,7 @@ import { BN } from 'bn.js';
 import { toast } from 'sonner';
 import { parseSolanaError } from '../../../../../utils/error-handling';
 import { formatDateTime } from '../../../../../utils/date';
+import { InfoIcon } from 'lucide-react';
 
 export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
   const { client } = useBasktClient();
@@ -112,7 +117,18 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
                 <TableHead className="text-xs sm:text-sm">Price</TableHead>
                 <TableHead className="text-xs sm:text-sm">Limit Price</TableHead>
                 <TableHead className="text-xs sm:text-sm underline decoration-dashed underline-offset-4 decoration-1">
-                  Collateral
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="flex items-center gap-1 whitespace-nowrap">
+                        Collateral <InfoIcon size={14} />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs text-xs">
+                          Live collateral amount that can be adjusted
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableHead>
                 <TableHead className="text-right text-xs sm:text-sm">Actions</TableHead>
               </TableRow>
