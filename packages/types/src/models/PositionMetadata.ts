@@ -108,9 +108,9 @@ export const PositionMetadataSchema = new mongoose.Schema<PositionMetadataModel>
 );
 
 // Add indexes for frequently queried fields
-PositionMetadataSchema.index({ basktId: 1, owner: 1 });
-PositionMetadataSchema.index({ positionPDA: 1 });
-PositionMetadataSchema.index({ status: 1 });
-PositionMetadataSchema.index({ owner: 1 });
-PositionMetadataSchema.index({ isLong: 1 });
-PositionMetadataSchema.index({ createdAt: -1 });
+// PositionMetadataSchema.index({ basktId: 1, owner: 1 });
+// PositionMetadataSchema.index({ positionPDA: 1 });
+// PositionMetadataSchema.index({ status: 1 });
+// PositionMetadataSchema.index({ owner: 1 });
+// PositionMetadataSchema.index({ isLong: 1 });
+// PositionMetadataSchema.index({ createdAt: -1 });

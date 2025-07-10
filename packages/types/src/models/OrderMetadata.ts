@@ -116,9 +116,9 @@ export const OrderSchema = new mongoose.Schema(
 );
 
 // Add indexes for frequently queried fields
-OrderSchema.index({ basktId: 1, owner: 1 });
-OrderSchema.index({ orderPDA: 1 });
-OrderSchema.index({ orderStatus: 1 });
-OrderSchema.index({ orderAction: 1 });
-OrderSchema.index({ owner: 1 });
-OrderSchema.index({ createdAt: -1 });
+// OrderSchema.index({ basktId: 1, owner: 1 });
+// OrderSchema.index({ orderPDA: 1 });
+// OrderSchema.index({ orderStatus: 1 });
+// OrderSchema.index({ orderAction: 1 });
+// OrderSchema.index({ owner: 1 });
+// OrderSchema.index({ createdAt: -1 });

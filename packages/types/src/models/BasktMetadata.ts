@@ -78,7 +78,7 @@ export const BasktMetadataSchema = new mongoose.Schema(
 );
 
 // Add indexes for frequently queried fields
-BasktMetadataSchema.index({ basktId: 1 });
-BasktMetadataSchema.index({ name: 1 });
-BasktMetadataSchema.index({ creator: 1 });
-BasktMetadataSchema.index({ createdAt: -1 });
+// BasktMetadataSchema.index({ basktId: 1 });
+// BasktMetadataSchema.index({ name: 1 });
+// BasktMetadataSchema.index({ creator: 1 });
+// BasktMetadataSchema.index({ createdAt: -1 });

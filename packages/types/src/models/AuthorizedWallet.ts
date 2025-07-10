@@ -34,5 +34,5 @@ export const AuthorizedWalletSchema = new mongoose.Schema<AuthorizedWalletModel>
   },
 });
 
-AuthorizedWalletSchema.index({ isActive: 1 });
-AuthorizedWalletSchema.index({ authorizedAt: 1 });
+// AuthorizedWalletSchema.index({ isActive: 1 });
+// AuthorizedWalletSchema.index({ authorizedAt: 1 });

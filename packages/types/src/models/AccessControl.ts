@@ -40,5 +40,5 @@ export const AccessCodeSchema = new mongoose.Schema<AccessCodeModel>({
   },
 });
 
-AccessCodeSchema.index({ isUsed: 1 });
-AccessCodeSchema.index({ expiresAt: 1 });
+// AccessCodeSchema.index({ isUsed: 1 });
+// AccessCodeSchema.index({ expiresAt: 1 });

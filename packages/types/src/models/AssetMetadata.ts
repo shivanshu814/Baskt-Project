@@ -89,6 +89,6 @@ export const AssetMetadataSchema = new mongoose.Schema({
 });
 
 // Add indexes for frequently queried fields
-AssetMetadataSchema.index({ assetAddress: 1 });
-AssetMetadataSchema.index({ ticker: 1 });
-AssetMetadataSchema.index({ basktIds: 1 });
+// AssetMetadataSchema.index({ assetAddress: 1 });
+// AssetMetadataSchema.index({ ticker: 1 });
+// AssetMetadataSchema.index({ basktIds: 1 });
