@@ -92,6 +92,10 @@ export default function Faucet() {
       await sendAndConfirmRawTransaction(connection, Buffer.from(tx.serialize()));
       setStatus({ type: 'success', message: 'Successfully minted 10,000 USDC!' });
       await refetchUSDCBalance();
+
+      // Dispatch single event to trigger balance refresh across the app
+      window.dispatchEvent(new Event('token-received'));
+
       // eslint-disable-next-line
     } catch (e: any) {
       setStatus({ type: 'error', message: e.message || 'Mint failed' });

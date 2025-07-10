@@ -23,11 +23,18 @@ const BasktFormSchema = z.object({
     .refine(
       (assets) => {
         const addresses = assets.map((a) => a.assetAddress);
-        const weights = assets.every((a) => a.weight >= 5);
-        return new Set(addresses).size === addresses.length && weights;
+        return new Set(addresses).size === addresses.length;
       },
       {
         message: 'Duplicate assets are not allowed',
+      },
+    )
+    .refine(
+      (assets) => {
+        return assets.every((a) => a.weight >= 5);
+      },
+      {
+        message: 'All assets must have a minimum weight of 5%',
       },
     ),
   isPublic: z.boolean(),

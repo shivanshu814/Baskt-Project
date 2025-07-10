@@ -14,8 +14,12 @@ import {
   TableHeader,
   TableRow,
   Button,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@baskt/ui';
-import { Pencil } from 'lucide-react';
+import { Pencil, InfoIcon } from 'lucide-react';
 import { OnchainPosition } from '@baskt/types';
 import BN from 'bn.js';
 import AddCollateralDialog from './AddCollateralDialog';
@@ -90,13 +94,44 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
                     Entry Price
                   </TableHead>
                   <TableHead className="text-xs sm:text-sm whitespace-nowrap underline decoration-dashed underline-offset-4 decoration-1">
-                    Current Price
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1 whitespace-nowrap">
+                          Current Price <InfoIcon size={14} />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs text-xs">
+                            Live market price that updates in real-time
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableHead>
                   <TableHead className="text-xs sm:text-sm whitespace-nowrap underline decoration-dashed underline-offset-4 decoration-1">
-                    PNL (ROE) %
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1 whitespace-nowrap">
+                          PNL (ROE) % <InfoIcon size={14} />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs text-xs">Live profit/loss and return on equity</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableHead>
                   <TableHead className="text-xs sm:text-sm underline decoration-dashed underline-offset-4 decoration-1">
-                    Collateral
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1 whitespace-nowrap">
+                          Collateral <InfoIcon size={14} />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs text-xs">
+                            Live collateral amount that can be adjusted
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableHead>
                   <TableHead className="text-xs sm:text-sm">Fees</TableHead>
                   <TableHead className="text-right"></TableHead>

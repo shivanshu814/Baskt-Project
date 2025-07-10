@@ -9,6 +9,7 @@ import { TRPCProvider } from '../../providers/TRPCProvider';
 import { usePrivy } from '@privy-io/react-auth';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
+import { BalanceNotification } from './BalanceNotification';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -88,6 +89,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
       <Navbar />
       <main className="pt-16">{children}</main>
       <FeedbackButton />
+      <BalanceNotification />
     </>
   );
 }
