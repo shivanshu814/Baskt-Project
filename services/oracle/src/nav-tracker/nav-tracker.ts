@@ -32,26 +32,6 @@ class NavTracker {
     }
   }
 
-  private async getBasktNav(basktId: string): Promise<number | null> {
-    try {
-      const input = encodeURIComponent(JSON.stringify({ basktId }));
-      const res = await axios.get<NavResponse>(
-        `${this.backendUrl}/trpc/baskt.getBasktMetadataById?input=${input}`,
-      );
-      if (!res.data?.result?.data?.success) {
-        console.error(
-          `Failed to fetch NAV for Baskt ${basktId}:`,
-          res.data?.result?.data?.message || 'Unknown error',
-        );
-        return null;
-      }
-      return res.data.result.data.data.price;
-    } catch (err) {
-      console.error(`Error fetching NAV for Baskt ${basktId}:`, err);
-      return null;
-    }
-  }
-
   private async storeNavData(navData: AssetPriceData[]): Promise<void> {
     try {
       if (!navData.length) return;
@@ -77,7 +57,8 @@ class NavTracker {
       const now = new Date();
 
       for (const b of baskts) {
-        const nav = await this.getBasktNav(b.basktId);
+        if(b === null || !b) continue;
+        const nav = b.price;
         if (nav !== null) {
           navData.push({ asset_id: b.basktId, price: nav, time: now });
           console.log(`NAV for ${b.basktId}: ${nav}`);
