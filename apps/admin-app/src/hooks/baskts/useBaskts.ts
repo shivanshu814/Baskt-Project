@@ -27,11 +27,6 @@ export function useBaskts() {
         baskt !== undefined &&
         !!baskt.basktId &&
         typeof baskt.basktId === 'string';
-
-      if (!isValid) {
-        toast.error('Invalid baskt found');
-      }
-
       return isValid;
     });
 
@@ -64,7 +59,8 @@ export function useBaskts() {
       params.set('basktId', basktId);
       router.push(`?${params.toString()}`);
 
-      const baskt = basktList.find((b) => b && b.basktId === basktId);
+
+      const baskt = basktList.find((b) => b && b !== null && b.basktId === basktId);
       if (baskt) {
         setSelectedBaskt(baskt);
       } else {

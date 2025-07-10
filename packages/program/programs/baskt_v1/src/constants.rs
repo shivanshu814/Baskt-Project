@@ -47,8 +47,8 @@ pub const FUNDING_PRECISION: u64 = 10u64.pow(6); // 6 decimal places
 pub const SECONDS_IN_HOUR: i64 = 3600;
 
 // Escrow mint
-// pub const ESCROW_MINT: Pubkey = pubkey!("6uBc97h6XMKY4kqQ3DJA9R8y9AXC7yUMsm7AUxM8QKpr");
-pub const ESCROW_MINT: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+pub const ESCROW_MINT: Pubkey = pubkey!("6uBc97h6XMKY4kqQ3DJA9R8y9AXC7yUMsm7AUxM8QKpr");
+// pub const ESCROW_MINT: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
 // Baskt constants
 pub const BASE_NAV: u64 = 1; // Base NAV value for new baskts ($1)
