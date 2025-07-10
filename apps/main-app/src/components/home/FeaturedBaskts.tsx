@@ -29,7 +29,7 @@ export function FeaturedBaskts() {
             }
           : undefined,
         creationDate: baskt?.creationDate ? new Date(baskt.creationDate) : new Date(),
-        assets: baskt?.assets?.map((asset) => ({
+        assets: baskt?.assets?.map((asset: any) => ({
           ...asset,
           weight: Number(asset.weight),
           weightage: Number(asset.weightage),

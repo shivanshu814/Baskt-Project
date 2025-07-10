@@ -129,7 +129,6 @@ export const getOpenInterestForAsset = publicProcedure
       const positions = await PositionMetadataModel.find(filter);
 
       // Batch baskt fetching optimization
-      const uniqueBasktIds = [...new Set(positions.map((pos: any) => pos.basktId))];
       const basktLookup = new Map<string, any>();
       
       // Fetch all baskts once

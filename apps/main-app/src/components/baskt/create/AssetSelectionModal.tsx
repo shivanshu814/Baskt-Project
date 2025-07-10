@@ -47,7 +47,7 @@ export function AssetSelectionModal({
     data: assetsData,
     isSuccess: assetDataFetchSuccess,
     isLoading: isQueryLoading,
-  } = trpc.asset.getAllAssets.useQuery(undefined, {
+  } = trpc.asset.getAllAssets.useQuery({ withLatestPrices: false }, {
     staleTime: 30 * 1000,
     cacheTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
