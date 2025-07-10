@@ -6,6 +6,7 @@ import { OrderAction, OnchainOrder } from '@baskt/types';
 import mongoose from 'mongoose';
 import { calculateUsdcSize } from '@baskt/sdk';
 import { BN } from 'bn.js';
+import { getAllAssetsInternal } from '../asset/query';
 
 const sdkClientInstance = sdkClient();
 
@@ -25,14 +26,33 @@ export const getOrders = publicProcedure
     try {
       const onchainOrders: OnchainOrder[] = await sdkClientInstance.getAllOrders();
       const filter: any = {};
+      
+      // Batch asset lookup optimization
       if (input.assetId) {
+        // Fetch all assets once and create lookup map
+        const allAssetsResult = await getAllAssetsInternal(false);
+        const assetLookup = new Map<string, any>();
+        
+        if (allAssetsResult.success && allAssetsResult.data) {
+          allAssetsResult.data.forEach((asset: any) => {
+            if (asset && asset.assetAddress) {
+              assetLookup.set(asset.assetAddress, asset);
+            }
+            if (asset && asset._id) {
+              assetLookup.set(asset._id.toString(), asset);
+            }
+          });
+        }
+        
+        // Try to find asset by ID or address
         let asset = null;
         if (mongoose.Types.ObjectId.isValid(input.assetId)) {
-          asset = await AssetMetadataModel.findById(input.assetId).lean();
+          asset = assetLookup.get(input.assetId);
         }
         if (!asset) {
-          asset = await AssetMetadataModel.findOne({ assetAddress: input.assetId }).lean();
+          asset = assetLookup.get(input.assetId);
         }
+        
         if (!asset) {
           return {
             success: false,
@@ -43,6 +63,7 @@ export const getOrders = publicProcedure
       } else if (input.basktId) {
         filter.basktId = input.basktId;
       }
+      
       if (input.userId) filter.owner = { $regex: input.userId, $options: 'i' };
       if (input.orderStatus) filter.orderStatus = input.orderStatus;
       if (input.orderAction) filter.orderAction = input.orderAction;

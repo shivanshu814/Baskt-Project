@@ -11,23 +11,18 @@ const assetCache: Map<string, any> = new Map();
 const CACHE_TTL = 30 * 1000; // 30 seconds cache
 const cacheTimestamps: Map<string, number> = new Map();
 
-export const getAllAssets = publicProcedure.query(async () => {
-  try {
-    const result = await getAllAssetsInternal(false);
-    return result;
-  } catch (error) {
-    throw error;
-  }
-});
-
-export const getAllAssetsWithConfig = publicProcedure.query(async () => {
-  try {
-    const result = await getAllAssetsInternal(true);
-    return result;
-  } catch (error) {
-    throw error;
-  }
-});
+export const getAllAssets = publicProcedure
+  .input(z.object({
+    withLatestPrices: z.boolean().default(false),
+  }))
+  .query(async ({ input }) => {
+    try {
+      const result = await getAllAssetsInternal(input.withLatestPrices);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  });
 
 export const getAssetsByAddress = publicProcedure
   .input(z.array(z.string()))
@@ -44,8 +39,9 @@ export const getAssetPerformanceStats = publicProcedure.query(async () => {
   };
 });
 
-async function getAllAssetsInternal(config: boolean) {
-  const cacheKey = `assets_${config}`;
+// Shared internal function
+async function fetchAllAssetsCore({ withLatestPrices }: { withLatestPrices: boolean }) {
+  const cacheKey = withLatestPrices ? 'assets_with_latest_prices' : 'assets_mongo_only';
   const now = Date.now();
 
   // check cache first
@@ -57,7 +53,6 @@ async function getAllAssetsInternal(config: boolean) {
   }
 
   try {
-    // fetch asset configs and SDK assets in parallel
     const [assetConfigs, assets] = await Promise.all([
       AssetMetadataModel.find().sort({ createdAt: -1 }),
       sdkClientInstance.getAllAssets(),
@@ -70,26 +65,25 @@ async function getAllAssetsInternal(config: boolean) {
       };
     }
 
-    // batch fetch latest prices for all assets
-    const assetIds = assetConfigs.map((config: any) => config._id.toString());
-    const latestPrices = await getLatestAssetPricesInternal(assetIds);
+    let latestPrices: any[] = [];
+    if (withLatestPrices) {
+      const assetIds = assetConfigs.map((config: any) => config._id.toString());
+      latestPrices = await getLatestAssetPricesInternal(assetIds);
+    }
 
-    // update cache
     assetConfigs.forEach((assetConfig: any) => {
       assetIdCache.set(assetConfig.assetAddress, assetConfig._id.toString());
     });
 
-    // combine assets efficiently
     const combinedAssets = assetConfigs
       .map((assetConfig: any) => {
         const matchingAsset = assets.find(
           (asset: any) => asset.ticker.toString() === assetConfig.ticker.toString(),
         );
-        const matchingPrice = latestPrices.find(
-          (price: any) => price?.id === assetConfig._id.toString(),
-        );
-
-        return combineAsset(matchingAsset, assetConfig, matchingPrice, config);
+        const matchingPrice = withLatestPrices
+          ? latestPrices.find((price: any) => price?.id === assetConfig._id.toString())
+          : null;
+        return combineAsset(matchingAsset, assetConfig, matchingPrice, false);
       })
       .filter((asset: any) => asset);
 
@@ -98,7 +92,6 @@ async function getAllAssetsInternal(config: boolean) {
       data: combinedAssets,
     };
 
-    // cache the result
     assetCache.set(cacheKey, result);
     cacheTimestamps.set(cacheKey, now);
 
@@ -106,6 +99,11 @@ async function getAllAssetsInternal(config: boolean) {
   } catch (error) {
     throw new Error('Failed to fetch assets');
   }
+}
+
+// Single function that handles both cases
+export async function getAllAssetsInternal(withLatestPrices: boolean = false) {
+  return fetchAllAssetsCore({ withLatestPrices });
 }
 
 export async function getAssetsByAddressInternal(assetAddresses: string[]) {

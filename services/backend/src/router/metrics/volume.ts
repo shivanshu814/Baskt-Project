@@ -4,6 +4,7 @@ import { AssetMetadataModel, PositionMetadataModel } from '../../utils/models';
 import { sdkClient } from '../../utils';
 import { PublicKey } from '@solana/web3.js';
 import { PositionStatus } from '@baskt/types';
+import { getAllAssetsInternal } from '../asset/query';
 
 const sdkClientInstance = sdkClient();
 
@@ -72,10 +73,26 @@ export const getVolumeForAsset = publicProcedure
         throw new Error('Asset ID is required');
       }
 
-      const assetMetadata = await AssetMetadataModel.findOne({ assetAddress: assetId }).lean();
+      // Batch asset lookup optimization
+      const allAssetsResult = await getAllAssetsInternal(false);
+      const assetLookup = new Map<string, any>();
+      
+      if (allAssetsResult.success && allAssetsResult.data) {
+        allAssetsResult.data.forEach((asset: any) => {
+          if (asset && asset.assetAddress) {
+            assetLookup.set(asset.assetAddress, asset);
+          }
+          if (asset && asset._id) {
+            assetLookup.set(asset._id.toString(), asset);
+          }
+        });
+      }
+      
+      const assetMetadata = assetLookup.get(assetId);
       if (!assetMetadata) {
         throw new Error('Asset not found');
       }
+      
       const basktIds = assetMetadata.basktIds || [];
       if (basktIds.length === 0) {
         return {
@@ -94,20 +111,31 @@ export const getVolumeForAsset = publicProcedure
 
       const positions = await PositionMetadataModel.find(filter);
 
+      // Batch baskt fetching optimization
+      const uniqueBasktIds = [...new Set(positions.map((pos: any) => pos.basktId))];
+      const basktLookup = new Map<string, any>();
+      
+      // Fetch all baskts once
+      const onchainBaskts = await sdkClientInstance.getAllBaskts();
+      onchainBaskts.forEach((baskt: any) => {
+        const basktId = baskt.account.basktId.toString();
+        basktLookup.set(basktId, baskt);
+      });
+
       const longPositions: any[] = [];
       const shortPositions: any[] = [];
 
       for (const pos of positions) {
         try {
-          const onchainBaskt = await sdkClientInstance.getBaskt(new PublicKey(pos.basktId));
+          const onchainBaskt = basktLookup.get(pos.basktId);
           if (!onchainBaskt) {
-            return;
+            continue;
           }
-          const currentAssetConfig = onchainBaskt.currentAssetConfigs.find(
+          const currentAssetConfig = onchainBaskt.account.currentAssetConfigs.find(
             (asset: any) => asset.assetId.toString() === assetId,
           );
           if (!currentAssetConfig) {
-            return;
+            continue;
           }
           const isLong = currentAssetConfig.direction;
           const weight = Number(currentAssetConfig.weight.toNumber());
@@ -127,7 +155,7 @@ export const getVolumeForAsset = publicProcedure
             });
           }
         } catch (error) {
-          console.error('Error fetching open interest:', error);
+          console.error('Error processing position:', error);
         }
       }
 
