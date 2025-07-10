@@ -88,7 +88,7 @@ export const getOpenInterestForAsset = publicProcedure
       }
 
       // Batch asset lookup optimization
-      const allAssetsResult = await getAllAssetsInternal(false);
+      const allAssetsResult = await getAllAssetsInternal(false, false);
       const assetLookup = new Map<string, any>();
       
       if (allAssetsResult.success && allAssetsResult.data) {
