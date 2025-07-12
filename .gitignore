@@ -70,3 +70,5 @@ infrastructure/terraform/.terraform.tfstate
 *.tfvars.backup
 
 .terraform.tfstate.lock.info
+
+.vercel/
