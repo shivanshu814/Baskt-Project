@@ -1,5 +1,4 @@
-import { trpcClient } from '../../utils/config';
-import { basktClient } from '../../utils/config';
+import { querierClient, basktClient } from '../../utils/config';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { OnchainPosition } from '@baskt/types';
@@ -56,7 +55,7 @@ async function positionOpenedHandler(event: ObserverEvent) {
     console.log('Found Order PDA: ', orderPDA.toString());
     console.log('Found Position PDA: ', positionPDA.toString());
 
-    const positionResult = await trpcClient.position.createPosition.mutate({
+    const positionResult = await querierClient.metadata.createPosition({
       positionPDA: positionPDA.toString(),
       positionId: onchainPosition.positionId.toString(),
       basktId: onchainPosition.basktId.toString(),
@@ -73,12 +72,8 @@ async function positionOpenedHandler(event: ObserverEvent) {
       isLong: onchainPosition.isLong,
     });
 
-    if (!positionResult.success || !('data' in positionResult)) {
-      throw new Error(
-        `Failed to create position: ${
-          'message' in positionResult ? positionResult.message : 'Unknown error'
-        }`,
-      );
+    if (!positionResult) {
+      throw new Error('Failed to create position');
     }
 
     console.log('Position created successfully in DB');

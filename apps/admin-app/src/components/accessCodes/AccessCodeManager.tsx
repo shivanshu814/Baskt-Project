@@ -51,13 +51,13 @@ export function AccessCodeManager() {
         </div>
         <div className="bg-white/5 rounded-lg p-4 border border-white/10">
           <div className="text-2xl font-bold text-green-400">
-            {accessCodes?.filter((code) => !code.isUsed).length || 0}
+            {accessCodes?.filter((code: any) => !code.isUsed).length || 0}
           </div>
           <div className="text-white/60 text-sm">Available Codes</div>
         </div>
         <div className="bg-white/5 rounded-lg p-4 border border-white/10">
           <div className="text-2xl font-bold text-blue-400">
-            {accessCodes?.filter((code) => code.isUsed).length || 0}
+            {accessCodes?.filter((code: any) => code.isUsed).length || 0}
           </div>
           <div className="text-white/60 text-sm">Used Codes</div>
         </div>
@@ -92,29 +92,27 @@ export function AccessCodeManager() {
         <div className="p-6">
           <h3 className="text-lg font-semibold text-white mb-4">All Access Codes</h3>
 
-          {!accessCodes || accessCodes.length === 0 ? (
+          {!accessCodes || accessCodes?.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-white/60">No access codes generated yet</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {accessCodes.map((code) => (
+              {accessCodes.map((code: any) => (
                 <div
                   key={code.code}
-                  className={`flex items-center justify-between p-4 rounded-lg border ${
-                    code.isUsed ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white/5 border-white/10'
-                  }`}
+                  className={`flex items-center justify-between p-4 rounded-lg border ${code.isUsed ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white/5 border-white/10'
+                    }`}
                 >
                   <div className="flex items-center space-x-4">
                     <div>
                       <code className="font-mono text-lg text-white">{code.code}</code>
                       <div className="flex items-center space-x-4 mt-1 text-sm">
                         <span
-                          className={`px-2 py-1 rounded ${
-                            code.isUsed
-                              ? 'bg-blue-500/20 text-blue-400'
-                              : 'bg-green-500/20 text-green-400'
-                          }`}
+                          className={`px-2 py-1 rounded ${code.isUsed
+                            ? 'bg-blue-500/20 text-blue-400'
+                            : 'bg-green-500/20 text-green-400'
+                            }`}
                         >
                           {code.isUsed ? 'Used' : 'Available'}
                         </span>

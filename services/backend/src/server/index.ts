@@ -6,12 +6,13 @@ import express from 'express';
 import cors from 'cors';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import { appRouter } from '../router/';
-import { connectMongoDB, disconnectMongoDB } from '../config/mongo';
+import { initializeQuerier, shutdownQuerier } from '../utils/querier';
 
 const app = express();
 const port = process.env.PORT || 4000;
 
-connectMongoDB();
+// Initialize querier
+initializeQuerier().catch(console.error);
 
 app.use(cors());
 app.use(express.json());
@@ -35,8 +36,8 @@ const server = app.listen(port, () => {
 
 process.on('SIGTERM', () => {
   console.log('SIGTERM received. Shutting down gracefully');
-  server.close(() => {
+  server.close(async () => {
     console.log('Process terminated');
-    disconnectMongoDB();
+    await shutdownQuerier();
   });
 });

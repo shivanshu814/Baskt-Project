@@ -1,4 +1,4 @@
-import { trpcClient, basktClient } from '../../utils/config';
+import { querierClient, basktClient } from '../../utils/config';
 import BN from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
 import { EventSource, ObserverEvent } from '../../types';
@@ -35,21 +35,18 @@ async function positionClosedHandler(event: ObserverEvent) {
       positionClosedData.owner,
     );
 
-    const result = await trpcClient.position.closePosition.mutate({
-      positionPDA: positionPDA.toString(),
+    const result = await querierClient.metadata.updatePosition(positionPDA.toString(), {
       exitPrice: positionClosedData.exitPrice.toString(),
       tx,
       ts: positionClosedData.timestamp.toString(),
       closeOrder: orderPDA.toString(),
+      status: 'CLOSED',
     });
 
     console.log('result', result);
 
-    if (!result.success) {
-      console.error(
-        'Failed to close position in DB:',
-        'message' in result ? result.message : 'Unknown error',
-      );
+    if (!result) {
+      console.error('Failed to close position in DB');
     } else {
       console.log('Position closed successfully in DB');
     }

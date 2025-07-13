@@ -13,13 +13,6 @@ export const useBasktDetail = (basktName: string) => {
   const [retryCount, setRetryCount] = useState(0);
   const [isNewlyCreated, setIsNewlyCreated] = useState(false);
 
-  const { data: cryptoNews = [] } = trpc.crypto.getCryptoNews.useQuery(undefined, {
-    staleTime: 120 * 60 * 1000,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  });
-
   const {
     data: basktInfo,
     isSuccess: isBasktDataLoaded,
@@ -39,10 +32,10 @@ export const useBasktDetail = (basktName: string) => {
   );
 
   const { data: basktNavData, isSuccess: isBasktNavDataLoaded } = trpc.baskt.getBasktNAV.useQuery(
-    { basktId: basktInfo?.success && 'data' in basktInfo ? basktInfo.data.basktId : '' },
+    { basktId: basktInfo?.success && 'data' in basktInfo && basktInfo.data ? basktInfo.data.basktId : '' },
     {
       refetchInterval: 2 * 1000,
-      enabled: basktInfo?.success && 'data' in basktInfo && !!basktInfo.data.basktId,
+      enabled: basktInfo?.success && 'data' in basktInfo && basktInfo.data && !!basktInfo.data.basktId,
     },
   );
 
@@ -62,16 +55,13 @@ export const useBasktDetail = (basktName: string) => {
   useEffect(() => {
     if (!isBasktNavDataLoaded) return;
     if (!baskt) return;
-    // @ts-expect-error data is expected to be present
     if (!basktNavData?.data?.nav) return;
     const basktCopy = baskt;
     if (!basktCopy) return;
-    // @ts-expect-error data is expected to be present
     if (basktNavData?.data?.nav === basktCopy.price) return;
 
     setBaskt({
       ...basktCopy,
-      // @ts-expect-error data is expected to be present
       price: basktNavData?.data?.nav,
     });
   }, [baskt, isBasktNavDataLoaded, basktNavData]);
@@ -92,7 +82,7 @@ export const useBasktDetail = (basktName: string) => {
         try {
           const processedBaskt = processBasktData({
             success: true,
-            data: [basktInfo.data],
+            data: [basktInfo.data as any],
           })[0];
 
           if (processedBaskt) {
@@ -135,6 +125,5 @@ export const useBasktDetail = (basktName: string) => {
     setChartPeriod,
     chartType,
     setChartType,
-    cryptoNews,
   };
 };

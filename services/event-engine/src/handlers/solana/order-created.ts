@@ -2,9 +2,8 @@
 
 import { PublicKey } from '@solana/web3.js';
 import { OnchainOrder, OrderAction, OrderStatus } from '@baskt/types';
-import { basktClient } from '../../utils/config';
+import { basktClient, querierClient } from '../../utils/config';
 import { BN } from 'bn.js';
-import { trpcClient } from '../../utils/config';
 import { EventSource, ObserverEvent } from '../../types';
 
 export interface OrderCreatedEvent {
@@ -20,18 +19,15 @@ export interface OrderCreatedEvent {
 }
 
 async function getCurrentNavForBaskt(basktId: PublicKey) {
-  const baskt = await trpcClient.baskt.getBasktNAV.query({
-    basktId: basktId.toString(),
-  });
+  const baskt = await querierClient.baskt.getBasktNAV(basktId.toString());
 
   if (!baskt.success) {
-    const errorMessage =
-      'error' in baskt ? baskt.error : 'message' in baskt ? baskt.message : 'Unknown error';
+    const errorMessage = baskt.error || baskt.message || 'Unknown error';
     console.error('Failed to fetch baskt metadata:', errorMessage);
     throw new Error('Failed to fetch baskt metadata');
   }
 
-  if (!('data' in baskt)) {
+  if (!baskt.data) {
     console.error('Baskt metadata not found for baskt:', basktId.toString());
     throw new Error('Baskt metadata not found');
   }
@@ -63,8 +59,7 @@ async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder
     const positionPDA = await basktClient.getPositionPDA(onchainOrder.owner, positionId);
 
     // update order status in db
-    await trpcClient.order.updateOrderStatus.mutate({
-      orderPDA: onchainOrder.address.toString(),
+    await querierClient.metadata.updateOrder(onchainOrder.address.toString(), {
       orderStatus: 'FILLED',
       orderFullFillTx: tx,
       orderFullfillTs: onchainOrder.timestamp.toString(),
@@ -102,8 +97,7 @@ async function handleCloseOrder(orderCreatedData: OrderCreatedEvent, onchainOrde
     });
 
     // update order status in db
-    await trpcClient.order.updateOrderStatus.mutate({
-      orderPDA: onchainOrder.address.toString(),
+    await querierClient.metadata.updateOrder(onchainOrder.address.toString(), {
       orderStatus: 'FILLED',
       orderFullFillTx: tx,
       orderFullfillTs: onchainOrder.timestamp.toString(),
@@ -136,11 +130,9 @@ async function orderCreatedHandler(event: ObserverEvent) {
       100,
     );
 
-    const baskt = await trpcClient.baskt.getBasktMetadataById.query({
-      basktId: onchainOrder.basktId.toString(),
-    });
+    const baskt = await querierClient.baskt.getBasktById(onchainOrder.basktId.toString());
 
-    if (!baskt.success || !('data' in baskt) || !baskt.data) {
+    if (!baskt.success || !baskt.data) {
       throw new Error('Baskt metadata not found or invalid response');
     }
 
@@ -148,7 +140,7 @@ async function orderCreatedHandler(event: ObserverEvent) {
 
     // Create the order
     try {
-      const orderResult = await trpcClient.order.createOrder.mutate({
+      const orderResult = await querierClient.metadata.createOrder({
         orderPDA: onchainOrder.address.toString(),
         orderId: onchainOrder.orderId.toString(),
         basktId: onchainOrder.basktId.toString(),
@@ -169,11 +161,9 @@ async function orderCreatedHandler(event: ObserverEvent) {
 
       console.log('Order created successfully in DB');
 
-      if (!orderResult.success) {
+      if (!orderResult) {
         console.error('Failed to create order:', orderResult);
-        throw new Error(
-          `Failed to create order: ${'error' in orderResult ? orderResult.error : 'Unknown error'}`,
-        );
+        throw new Error('Failed to create order');
       }
 
       try {
@@ -184,8 +174,7 @@ async function orderCreatedHandler(event: ObserverEvent) {
         }
       } catch (error) {
         console.error('Error handling order:', error);
-        await trpcClient.order.updateOrderStatus.mutate({
-          orderPDA: onchainOrder.address.toString(),
+        await querierClient.metadata.updateOrder(onchainOrder.address.toString(), {
           orderStatus: 'FAILED',
         });
         throw error;

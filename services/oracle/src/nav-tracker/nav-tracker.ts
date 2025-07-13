@@ -1,31 +1,25 @@
-import axios from 'axios';
 import { AssetPrice } from '../config/sequelize';
-import { BasktResponse, NavResponse, AssetPriceData } from './types';
+import { AssetPriceData } from './types';
+import { querierClient } from '../config/client';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:4000/trpc';
 const TRACKING_INTERVAL_MINUTES = parseInt(process.env.TRACKING_INTERVAL_MINUTES || '5');
 
 class NavTracker {
-  private backendUrl: string;
-
-  constructor(backendUrl: string = BACKEND_URL) {
-    this.backendUrl = backendUrl;
+  constructor() {
+    // Initialize querier client
   }
 
   private async getAllBaskts(): Promise<any[]> {
     try {
-      const res = await axios.get<BasktResponse>(`${this.backendUrl}/baskt.getAllBaskts`);
-      if (!res.data?.result?.data?.success) {
-        console.error(
-          'Failed to fetch Baskts:',
-          res.data?.result?.data?.message || 'Unknown error',
-        );
+      const result = await querierClient.baskt.getAllBaskts();
+      if (!result.success) {
+        console.error('Failed to fetch Baskts:', result.error || result.message || 'Unknown error');
         return [];
       }
-      return res.data.result.data.data;
+      return result.data || [];
     } catch (err) {
       console.error('Error fetching Baskts:', err);
       return [];
@@ -45,6 +39,9 @@ class NavTracker {
   async trackNav(): Promise<void> {
     console.log(`[${new Date().toISOString()}] Starting NAV tracking...`);
     try {
+      // Initialize the querier client
+      await querierClient.init();
+      
       const baskts = await this.getAllBaskts();
       console.log(`Found ${baskts.length} Baskts`);
 

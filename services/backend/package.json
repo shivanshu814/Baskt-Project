@@ -11,6 +11,7 @@
     "test": "mocha"
   },
   "dependencies": {
+    "@baskt/querier": "workspace:*",
     "@baskt/sdk": "workspace:*",
     "@baskt/types": "workspace:*",
     "@coral-xyz/anchor": "0.31.0",

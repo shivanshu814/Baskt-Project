@@ -1,7 +1,6 @@
 import { PublicKey } from '@solana/web3.js';
-import { basktClient } from '../../utils/config';
+import { basktClient, querierClient } from '../../utils/config';
 import { OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
-import { trpcClient } from '../../utils/config';
 import { MAX_ASSET_PRICE_AGE_MS } from '@baskt/sdk';
 import { BN } from 'bn.js';
 import { ObserverEvent } from '../../types';
@@ -22,7 +21,7 @@ async function createBasktMutation(
   basktCreatedData: BasktCreatedEvent,
 ) {
   try {
-    const result = await trpcClient.baskt.createBasktMetadata.mutate({
+    const result = await querierClient.metadata.createBaskt({
       basktId: basktId,
       name: basktCreatedData.basktName,
       creator: basktCreatedData.creator,
@@ -37,7 +36,7 @@ async function createBasktMutation(
       txSignature: 'pending',
     });
 
-    if (!result.success) {
+    if (!result) {
       throw new Error('Failed to create baskt metadata');
     }
   } catch (error) {
@@ -59,19 +58,21 @@ export default {
     )) as OnchainBasktAccount;
 
     const onchainAssetList = onchainBaskt.currentAssetConfigs;
-    const assets = await trpcClient.asset.getAssetsByAddress.query(
+    const assetsResult = await querierClient.asset.getAssetsByAddress(
       onchainAssetList.map((assetConfig: OnchainAssetConfig) => assetConfig.assetId.toString()),
+      { withLatestPrices: true },
     );
     const currentTime = Math.floor(Date.now());
 
-    if (!assets || assets.length === 0) {
+    if (!assetsResult.success || !assetsResult.data || assetsResult.data.length === 0) {
       return;
     }
 
+    const assets = assetsResult.data;
     const activeAssets = assets.filter(
       (asset: any) =>
-        asset.priceMetrics?.price > 0 &&
-        Math.abs(currentTime - asset.priceMetrics?.timestamp) < MAX_ASSET_PRICE_AGE_MS,
+        asset.price > 0 &&
+        Math.abs(currentTime - (asset.latestPrice?.time || 0)) < MAX_ASSET_PRICE_AGE_MS,
     );
 
     if (activeAssets.length !== onchainAssetList.length) {

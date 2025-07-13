@@ -16,12 +16,12 @@ export function useBaskts() {
   const searchParams = useSearchParams();
 
   const basktList = useMemo(() => {
-    const response = trpcResponse as BasktResponse;
+    const response = trpcResponse as any;
     if (!response?.success || !Array.isArray(response.data)) {
       return [];
     }
 
-    const filteredBaskts = response.data.filter((baskt): baskt is BasktData => {
+    const filteredBaskts = response.data.filter((baskt: any): baskt is BasktData => {
       const isValid =
         baskt !== null &&
         baskt !== undefined &&
@@ -36,7 +36,7 @@ export function useBaskts() {
   useEffect(() => {
     const basktId = searchParams.get('basktId');
     if (basktId && basktList.length > 0) {
-      const baskt = basktList.find((b) => b.basktId === basktId);
+      const baskt = basktList.find((b: any) => b.basktId === basktId);
       if (baskt) {
         setSelectedBaskt(baskt);
       } else {
@@ -60,7 +60,7 @@ export function useBaskts() {
       router.push(`?${params.toString()}`);
 
 
-      const baskt = basktList.find((b) => b && b !== null && b.basktId === basktId);
+      const baskt = basktList.find((b: any) => b && b !== null && b.basktId === basktId);
       if (baskt) {
         setSelectedBaskt(baskt);
       } else {

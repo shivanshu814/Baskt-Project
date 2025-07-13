@@ -13,10 +13,9 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@backend/*": ["../backend/src/*"],
       "@baskt/*": ["../../packages/*"]
     }
   },
-  "include": ["src/**/*", "../backend/src/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules"]
 }

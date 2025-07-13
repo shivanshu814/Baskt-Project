@@ -195,7 +195,7 @@ const AssetPriceHistoryPage: React.FC<AssetPriceHistoryPageProps> = ({
           <CardTitle>Price History</CardTitle>
           {fetchParams && (
             <span className="text-sm text-white/60">
-              Showing {paginatedData.length} of {prices?.length || 0} price records
+              Showing {paginatedData.length} of {prices?.data?.length || 0} price records
             </span>
           )}
         </CardHeader>

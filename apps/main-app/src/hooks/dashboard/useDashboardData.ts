@@ -46,11 +46,7 @@ export const useDashboardData = () => {
   }, [basketsData, userAddress]);
 
   const portfolioSummary = useMemo((): PortfolioSummary => {
-    const hasPositionsData =
-      positionsData?.success && 'data' in positionsData && positionsData.data;
-    const hasBasketsData = basketsData?.success && 'data' in basketsData && basketsData.data;
-
-    if (!hasPositionsData || !hasBasketsData) {
+    if (!basketsData || !basketsData.data || !positionsData || !positionsData.data) {
       return {
         totalPnL: 0,
         totalPnLPercentage: 0,

@@ -4,12 +4,16 @@
 import { ObserverRouter } from './observer-router';
 import { initSolanaAdapter } from './adapters/solana';
 import registerAllHandlers from './handlers/solana';
+import { querierClient } from './utils/config';
 
 /**
  * Initialize the event engine with all adapters and handlers
  */
 export async function initEventEngine(): Promise<void> {
   try {
+    // Initialize the querier client
+    await querierClient.init();
+
     // Create the observer router
     const router = new ObserverRouter();
 

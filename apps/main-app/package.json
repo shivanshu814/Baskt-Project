@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@baskt/querier": "workspace:*",
     "@baskt/sdk": "workspace:*",
     "@baskt/types": "workspace:*",
     "@baskt/ui": "workspace:*",

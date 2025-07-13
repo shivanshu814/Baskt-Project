@@ -24,6 +24,9 @@ importers:
         specifier: ^8.16.0
         version: 8.16.0
     devDependencies:
+      '@next/eslint-plugin-next':
+        specifier: ^15.3.5
+        version: 15.3.5
       '@types/js-cookie':
         specifier: ^3.0.6
         version: 3.0.6
@@ -45,6 +48,9 @@ importers:
 
   apps/admin-app:
     dependencies:
+      '@baskt/querier':
+        specifier: workspace:*
+        version: link:../../packages/querier
       '@baskt/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -124,6 +130,9 @@ importers:
 
   apps/main-app:
     dependencies:
+      '@baskt/querier':
+        specifier: workspace:*
+        version: link:../../packages/querier
       '@baskt/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
@@ -279,6 +288,67 @@ importers:
       tsx:
         specifier: ^4.10.1
         version: 4.19.4
+
+  packages/querier:
+    dependencies:
+      '@baskt/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@baskt/types':
+        specifier: workspace:*
+        version: link:../types
+      '@coral-xyz/anchor':
+        specifier: 0.31.0
+        version: 0.31.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
+      '@solana/spl-token':
+        specifier: ^0.4.13
+        version: 0.4.13(@solana/web3.js@1.98.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10))(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10)
+      '@solana/web3.js':
+        specifier: 1.98.0
+        version: 1.98.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
+      bn.js:
+        specifier: ^5.2.1
+        version: 5.2.1
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
+      mongoose:
+        specifier: ^8.13.2
+        version: 8.13.2(@aws-sdk/credential-providers@3.798.0)(socks@2.8.4)
+      pg:
+        specifier: ^8.16.0
+        version: 8.16.0
+      redis:
+        specifier: ^4.6.0
+        version: 4.7.1
+      sequelize:
+        specifier: ^6.37.7
+        version: 6.37.7(pg@8.16.0)
+      zod:
+        specifier: ^3.24.2
+        version: 3.24.2
+    devDependencies:
+      '@eslint/js':
+        specifier: ^8.57.0
+        version: 8.57.1
+      '@types/bn.js':
+        specifier: ^5.1.6
+        version: 5.2.0
+      '@types/pg':
+        specifier: ^8.11.0
+        version: 8.15.4
+      '@types/sequelize':
+        specifier: ^4.28.20
+        version: 4.28.20
+      tsup:
+        specifier: ^8.0.2
+        version: 8.5.0(@swc/core@1.11.13(@swc/helpers@0.5.15))(jiti@1.21.7)(postcss@8.5.3)(tsx@4.19.4)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: ^5.4.2
+        version: 5.8.3
+      typescript-eslint:
+        specifier: ^7.2.0
+        version: 7.18.0(eslint@9.24.0(jiti@1.21.7))(typescript@5.8.3)
 
   packages/sdk:
     dependencies:
@@ -507,6 +577,9 @@ importers:
 
   services/backend:
     dependencies:
+      '@baskt/querier':
+        specifier: workspace:*
+        version: link:../../packages/querier
       '@baskt/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
@@ -583,6 +656,9 @@ importers:
 
   services/event-engine:
     dependencies:
+      '@baskt/querier':
+        specifier: workspace:*
+        version: link:../../packages/querier
       '@baskt/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
@@ -595,9 +671,6 @@ importers:
       '@solana/web3.js':
         specifier: 1.98.0
         version: 1.98.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
-      '@trpc/client':
-        specifier: ^10.45.1
-        version: 10.45.2(@trpc/server@10.45.2)
       bn.js:
         specifier: ^5.2.1
         version: 5.2.1
@@ -626,6 +699,9 @@ importers:
 
   services/oracle:
     dependencies:
+      '@baskt/querier':
+        specifier: workspace:*
+        version: link:../../packages/querier
       '@baskt/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
@@ -638,9 +714,6 @@ importers:
       '@solana/web3.js':
         specifier: 1.98.0
         version: 1.98.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
-      '@trpc/client':
-        specifier: ^10.45.1
-        version: 10.45.2(@trpc/server@10.45.2)
       axios:
         specifier: ^1.8.4
         version: 1.8.4
@@ -2110,6 +2183,9 @@ packages:
   '@next/env@15.2.4':
     resolution: {integrity: sha512-+SFtMgoiYP3WoSswuNmxJOCwi06TdWE733D+WPjpXIe4LXGULwEaofiiAy6kbS0+XjM5xF5n3lKuBwN2SnqD9g==}
 
+  '@next/eslint-plugin-next@15.3.5':
+    resolution: {integrity: sha512-BZwWPGfp9po/rAnJcwUBaM+yT/+yTWIkWdyDwc74G9jcfTrNrmsHe+hXHljV066YNdVs8cxROxX5IgMQGX190w==}
+
   '@next/swc-darwin-arm64@15.2.4':
     resolution: {integrity: sha512-1AnMfs655ipJEDC/FHkSr0r3lXBgpqKo4K1kiwfUf3iE68rDFXZ1TtHdMvf7D0hMItgDZ7Vuq3JgNMbt/+3bYw==}
     engines: {node: '>= 10'}
@@ -2948,6 +3024,35 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
+  '@redis/bloom@1.2.0':
+    resolution: {integrity: sha512-HG2DFjYKbpNmVXsa0keLHp/3leGJz1mjh09f2RLGGLQZzSHpkmZWuwJbAvo3QcRY8p80m5+ZdXZdYOSBLlp7Cg==}
+    peerDependencies:
+      '@redis/client': ^1.0.0
+
+  '@redis/client@1.6.1':
+    resolution: {integrity: sha512-/KCsg3xSlR+nCK8/8ZYSknYxvXHwubJrU82F3Lm1Fp6789VQ0/3RJKfsmRXjqfaTA++23CvC3hqmqe/2GEt6Kw==}
+    engines: {node: '>=14'}
+
+  '@redis/graph@1.1.1':
+    resolution: {integrity: sha512-FEMTcTHZozZciLRl6GiiIB4zGm5z5F3F6a6FZCyrfxdKOhFlGkiAqlexWMBzCi4DcRoyiOsuLfW+cjlGWyExOw==}
+    peerDependencies:
+      '@redis/client': ^1.0.0
+
+  '@redis/json@1.0.7':
+    resolution: {integrity: sha512-6UyXfjVaTBTJtKNG4/9Z8PSpKE6XgSyEb8iwaqDcy+uKrd/DGYHTWkUdnQDyzm727V7p21WUMhsqz5oy65kPcQ==}
+    peerDependencies:
+      '@redis/client': ^1.0.0
+
+  '@redis/search@1.2.0':
+    resolution: {integrity: sha512-tYoDBbtqOVigEDMAcTGsRlMycIIjwMCgD8eR2t0NANeQmgK/lvxNAvYyb6bZDD4frHRhIHkJu2TBRvB0ERkOmw==}
+    peerDependencies:
+      '@redis/client': ^1.0.0
+
+  '@redis/time-series@1.1.0':
+    resolution: {integrity: sha512-c1Q99M5ljsIuc4YdaCwfUEXsofakb9c8+Zse2qxTadu8TalLXuAESzLvFAvNVbkmSlvlzIQOLpBCmWI9wTOt+g==}
+    peerDependencies:
+      '@redis/client': ^1.0.0
+
   '@rollup/rollup-android-arm-eabi@4.44.1':
     resolution: {integrity: sha512-JAcBr1+fgqx20m7Fwe1DxPUl/hPkee6jA6Pl7n1v2EFiktAHenTaXl5aIFjUIEsfn9w3HE4gK1lEgNGMzBDs1w==}
     cpu: [arm]
@@ -3494,6 +3599,9 @@ packages:
   '@types/babel__traverse@7.20.7':
     resolution: {integrity: sha512-dkO5fhS7+/oos4ciWxyEyjWe48zmG6wbCheo/G2ZnHx4fs3EU6YC6UM8rk56gAjNJ9P3MTH2jo5jb92/K6wbng==}
 
+  '@types/bluebird@3.5.42':
+    resolution: {integrity: sha512-Jhy+MWRlro6UjVi578V/4ZGNfeCOcNCp0YaFNIUGFKlImowqwb1O/22wDVk3FDGMLqxdpOV3qQHD5fPEH4hK6A==}
+
   '@types/bn.js@5.1.6':
     resolution: {integrity: sha512-Xh8vSwUeMKeYYrj3cX4lGQgFSF/N03r+tv4AiLl1SucqV+uTQpxRcnM8AkXKHwYP9ZPXOYXRr2KPXpVlIvqh9w==}
 
@@ -3508,6 +3616,9 @@ packages:
 
   '@types/connect@3.4.38':
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
+
+  '@types/continuation-local-storage@3.2.7':
+    resolution: {integrity: sha512-Q7dPOymVpRG5Zpz90/o26+OAqOG2Sw+FED7uQmTrJNCF/JAPTylclZofMxZKd6W7g1BDPmT9/C/jX0ZcSNTQwQ==}
 
   '@types/cors@2.8.17':
     resolution: {integrity: sha512-8CGDvrBj1zgo2qE+oS3pOCyYNqCPryMWY2bGfwA0dcfopWGgxs+78df0Rs3rc9THP4JkOhLsAa+15VdpAqkcUA==}
@@ -3581,6 +3692,9 @@ packages:
   '@types/leo-profanity@1.5.4':
     resolution: {integrity: sha512-f6PiIeXhT14VM6P06MIuzEG9JpcZ3CgjDbV8Rx5fQPkL1A8Zk3dFQRqFr/x1eQlshRFfBorpuzVnfDC042KY8A==}
 
+  '@types/lodash@4.17.20':
+    resolution: {integrity: sha512-H3MHACvFUEiujabxhaI/ImO6gUrd8oOurg7LQtS7mbwIXA/cUqWrvBsaeJ23aZEPk1TAYkurjfMbSELfoCXlGA==}
+
   '@types/mime@1.3.5':
     resolution: {integrity: sha512-/pyBZWSLD2n0dcHE3hq8s8ZvcETHtEuF+3E7XVt0Ig2nvsVQXdghHVcEkIWjy9A0wKfTn97a/PSDYohKIlnP/w==}
 
@@ -3598,6 +3712,9 @@ packages:
 
   '@types/node@22.13.14':
     resolution: {integrity: sha512-Zs/Ollc1SJ8nKUAgc7ivOEdIBM8JAKgrqqUYi2J997JuKO7/tpQC+WCetQ1sypiKCQWHdvdg9wBNpUPEWZae7w==}
+
+  '@types/pg@8.15.4':
+    resolution: {integrity: sha512-I6UNVBAoYbvuWkkU3oosC8yxqH21f4/Jc4DK71JLG3dT2mdlGe1z+ep/LQGXaKaOgcvUrsQoPRqfgtMcvZiJhg==}
 
   '@types/prop-types@15.7.14':
     resolution: {integrity: sha512-gNMvNH49DJ7OJYv+KAKn0Xp45p8PLl6zo2YnvDIbTd4J6MER2BmWN49TG7n9LvkyihINxeKW8+3bfS2yDC9dzQ==}
@@ -3618,6 +3735,9 @@ packages:
 
   '@types/send@0.17.4':
     resolution: {integrity: sha512-x2EM6TJOybec7c52BX0ZspPodMsQUd5L6PRwOunVyVUhXiBSKf3AezDL8Dgvgt5o0UfKNfuA0eMLr2wLT4AiBA==}
+
+  '@types/sequelize@4.28.20':
+    resolution: {integrity: sha512-XaGOKRhdizC87hDgQ0u3btxzbejlF+t6Hhvkek1HyphqCI4y7zVBIVAGmuc4cWJqGpxusZ1RiBToHHnNK/Edlw==}
 
   '@types/serve-static@1.15.7':
     resolution: {integrity: sha512-W8Ym+h8nhuRwaKPaDw34QUkwsGi6Rc4yYqvKFo5rm2FUEhCFbzVWrxXUxuKK8TASjWsysJY0nsmNCGhCOIsrOw==}
@@ -4757,6 +4877,10 @@ packages:
     resolution: {integrity: sha512-V7/RktU11J3I36Nwq2JnZEM7tNm17eBJz+u25qdxBZeCKiX6BkVSZQjwWIr+IobgnZy+ag73tTZgZi7tr0LrBw==}
     engines: {node: '>=6.0.0'}
 
+  fast-glob@3.3.1:
+    resolution: {integrity: sha512-kNFPyjhh5cKjrUltxs+wFx+ZkbRaxxmZ+X0ZU31SOsxCEtP9VPgtq2teZw1DebupL5GmDaNQ6yKMMVcM41iqDg==}
+    engines: {node: '>=8.6.0'}
+
   fast-glob@3.3.3:
     resolution: {integrity: sha512-7MptL8U0cqcFdzIzwOTHoilX9x5BrNqye7Z/LuC7kCMRio1EMSyqRK3BEAUD7sXRq4iT4AzTVuZdhgQ2TCvYLg==}
     engines: {node: '>=8.6.0'}
@@ -4927,6 +5051,10 @@ packages:
 
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
+
+  generic-pool@3.9.0:
+    resolution: {integrity: sha512-hymDOu5B53XvN4QT9dBmZxPX4CWhBPPLguTZ9MMFeFa/Kg0xWVfylOVNlJji/E7yTZWFd/q9GO5TxDLq156D7g==}
+    engines: {node: '>= 4'}
 
   gensync@1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
@@ -5952,9 +6080,6 @@ packages:
   pg-cloudflare@1.2.5:
     resolution: {integrity: sha512-OOX22Vt0vOSRrdoUPKJ8Wi2OpE/o/h9T8X1s4qSkCedbNah9ei2W2765be8iMVxQUsvgT7zIAT2eIa9fs5+vtg==}
 
-  pg-connection-string@2.7.0:
-    resolution: {integrity: sha512-PI2W9mv53rXJQEOb8xNR8lH7Hr+EKa6oJa38zsK0S/ky2er16ios1wLKhZyxzD7jUReiWokc9WK5nxSnC7W1TA==}
-
   pg-connection-string@2.9.0:
     resolution: {integrity: sha512-P2DEBKuvh5RClafLngkAuGe9OUlFV7ebu8w1kmaaOgPcpJd1RIFh7otETfI6hAR8YupOLFTY7nuvvIn7PLciUQ==}
 
@@ -6348,6 +6473,9 @@ packages:
   redis-parser@3.0.0:
     resolution: {integrity: sha512-DJnGAeenTdpMEH6uAJRK/uiyEIH9WVsUmoLwzudwGJUwZPp80PDBWPHXSAGNPwNvIXAbe7MSUB1zQFugFml66A==}
     engines: {node: '>=4'}
+
+  redis@4.7.1:
+    resolution: {integrity: sha512-S1bJDnqLftzHXHP8JsT5II/CtHWQrASX5K96REjWjlmWKrviSOLWmM7QnRLstAWsu1VBBV1ffV6DzCvxNP0UJQ==}
 
   regenerate-unicode-properties@10.2.0:
     resolution: {integrity: sha512-DqHn3DwbmmPVzeKj9woBadqmXxLvQoQIwu7nopMc72ztvxVmVk2SBhSnx67zuye5TP+lJsb/TBQsjLKhnDf3MA==}
@@ -7362,6 +7490,9 @@ packages:
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
+
+  yallist@4.0.0:
+    resolution: {integrity: sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==}
 
   yaml@2.7.0:
     resolution: {integrity: sha512-+hSoy/QHluxmC9kCIJyL/uyFmLmc+e5CFR5Wa+bpIhIj85LVb9ZH2nVnqrHoSvKogwODv0ClqZkmiSSaIH5LTA==}
@@ -9552,6 +9683,10 @@ snapshots:
 
   '@next/env@15.2.4': {}
 
+  '@next/eslint-plugin-next@15.3.5':
+    dependencies:
+      fast-glob: 3.3.1
+
   '@next/swc-darwin-arm64@15.2.4':
     optional: true
 
@@ -10583,6 +10718,32 @@ snapshots:
     dependencies:
       react: 18.3.1
 
+  '@redis/bloom@1.2.0(@redis/client@1.6.1)':
+    dependencies:
+      '@redis/client': 1.6.1
+
+  '@redis/client@1.6.1':
+    dependencies:
+      cluster-key-slot: 1.1.2
+      generic-pool: 3.9.0
+      yallist: 4.0.0
+
+  '@redis/graph@1.1.1(@redis/client@1.6.1)':
+    dependencies:
+      '@redis/client': 1.6.1
+
+  '@redis/json@1.0.7(@redis/client@1.6.1)':
+    dependencies:
+      '@redis/client': 1.6.1
+
+  '@redis/search@1.2.0(@redis/client@1.6.1)':
+    dependencies:
+      '@redis/client': 1.6.1
+
+  '@redis/time-series@1.1.0(@redis/client@1.6.1)':
+    dependencies:
+      '@redis/client': 1.6.1
+
   '@rollup/rollup-android-arm-eabi@4.44.1':
     optional: true
 
@@ -11301,6 +11462,8 @@ snapshots:
       '@babel/types': 7.27.0
     optional: true
 
+  '@types/bluebird@3.5.42': {}
+
   '@types/bn.js@5.1.6':
     dependencies:
       '@types/node': 22.13.14
@@ -11319,6 +11482,10 @@ snapshots:
       '@types/deep-eql': 4.0.2
 
   '@types/connect@3.4.38':
+    dependencies:
+      '@types/node': 22.13.14
+
+  '@types/continuation-local-storage@3.2.7':
     dependencies:
       '@types/node': 22.13.14
 
@@ -11401,6 +11568,8 @@ snapshots:
 
   '@types/leo-profanity@1.5.4': {}
 
+  '@types/lodash@4.17.20': {}
+
   '@types/mime@1.3.5': {}
 
   '@types/mocha@10.0.10': {}
@@ -11417,6 +11586,12 @@ snapshots:
   '@types/node@22.13.14':
     dependencies:
       undici-types: 6.20.0
+
+  '@types/pg@8.15.4':
+    dependencies:
+      '@types/node': 22.13.14
+      pg-protocol: 1.10.0
+      pg-types: 2.2.0
 
   '@types/prop-types@15.7.14': {}
 
@@ -11437,6 +11612,13 @@ snapshots:
     dependencies:
       '@types/mime': 1.3.5
       '@types/node': 22.13.14
+
+  '@types/sequelize@4.28.20':
+    dependencies:
+      '@types/bluebird': 3.5.42
+      '@types/continuation-local-storage': 3.2.7
+      '@types/lodash': 4.17.20
+      '@types/validator': 13.15.0
 
   '@types/serve-static@1.15.7':
     dependencies:
@@ -13041,6 +13223,14 @@ snapshots:
 
   fast-equals@5.2.2: {}
 
+  fast-glob@3.3.1:
+    dependencies:
+      '@nodelib/fs.stat': 2.0.5
+      '@nodelib/fs.walk': 1.2.8
+      glob-parent: 5.1.2
+      merge2: 1.4.1
+      micromatch: 4.0.8
+
   fast-glob@3.3.3:
     dependencies:
       '@nodelib/fs.stat': 2.0.5
@@ -13212,6 +13402,8 @@ snapshots:
     optional: true
 
   function-bind@1.1.2: {}
+
+  generic-pool@3.9.0: {}
 
   gensync@1.0.0-beta.2:
     optional: true
@@ -14448,8 +14640,6 @@ snapshots:
   pg-cloudflare@1.2.5:
     optional: true
 
-  pg-connection-string@2.7.0: {}
-
   pg-connection-string@2.9.0: {}
 
   pg-int8@1.0.1: {}
@@ -14911,6 +15101,15 @@ snapshots:
     dependencies:
       redis-errors: 1.2.0
 
+  redis@4.7.1:
+    dependencies:
+      '@redis/bloom': 1.2.0(@redis/client@1.6.1)
+      '@redis/client': 1.6.1
+      '@redis/graph': 1.1.1(@redis/client@1.6.1)
+      '@redis/json': 1.0.7(@redis/client@1.6.1)
+      '@redis/search': 1.2.0(@redis/client@1.6.1)
+      '@redis/time-series': 1.1.0(@redis/client@1.6.1)
+
   regenerate-unicode-properties@10.2.0:
     dependencies:
       regenerate: 1.4.2
@@ -15083,7 +15282,7 @@ snapshots:
       lodash: 4.17.21
       moment: 2.30.1
       moment-timezone: 0.5.48
-      pg-connection-string: 2.7.0
+      pg-connection-string: 2.9.0
       retry-as-promised: 7.1.1
       semver: 7.7.1
       sequelize-pool: 7.1.0
@@ -15920,6 +16119,8 @@ snapshots:
 
   yallist@3.1.1:
     optional: true
+
+  yallist@4.0.0: {}
 
   yaml@2.7.0: {}
 
