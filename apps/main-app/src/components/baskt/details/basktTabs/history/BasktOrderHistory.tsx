@@ -128,7 +128,9 @@ export const BasktOrderHistory = ({ basktId }: { basktId?: string }) => {
                         '---'
                       )}
                     </TableCell>
-                    <TableCell className={`text-xs sm:text-sm ${getPnlColor(item.pnl)}`}>
+                    <TableCell
+                      className={`text-xs sm:text-sm whitespace-nowrap ${getPnlColor(item.pnl)}`}
+                    >
                       {item.pnl ? (
                         <>
                           <NumberFormat value={parseFloat(item.pnl)} isPrice />

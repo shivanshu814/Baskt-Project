@@ -28,6 +28,9 @@ export interface AssetSelectionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAssetSelect: (asset: AssetInfo) => void;
+  onMultipleAssetSelect?: (assets: AssetInfo[]) => void;
+  multipleSelection?: boolean;
+  selectedAssets?: AssetInfo[];
 }
 
 export interface BasicInfoFormProps {

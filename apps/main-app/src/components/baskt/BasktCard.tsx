@@ -14,6 +14,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useBasktOI } from '../../hooks/baskt/useBasktOI';
 import { BasktInfo, BasktAssetInfo } from '@baskt/types';
 import { calculateCurrentWeights } from '@baskt/sdk/src/math/weight';
+import Image from 'next/image';
 interface BasktCardProps {
   baskt: BasktInfo;
   className?: string;
@@ -61,12 +62,16 @@ const AssetIcon = React.memo(({ asset }: { asset: BasktAssetInfo }) => {
   }, []);
 
   if (asset.logo && !imageError) {
+    // eslint-disable-next-line @next/next/no-img-element
     return (
-      <img
+      <Image
         src={asset.logo}
         alt={asset.ticker || asset.name || 'Asset'}
-        className="w-7 h-7 rounded-full border border-border flex-shrink-0"
+        width={28}
+        height={28}
+        className="w-7 h-7 rounded-full border border-border flex-shrink-0 object-cover"
         onError={handleImageError}
+        unoptimized
       />
     );
   }
@@ -90,7 +95,7 @@ const AssetRow = React.memo(
         <span className="mr-2">
           <AssetIcon asset={asset} />
         </span>
-        <span className="truncate font-medium">{asset.name || asset.ticker}</span>
+        <span className="truncate font-medium">{asset.ticker || asset.name}</span>
       </span>
       <span className="flex-1 text-center">
         {asset.price !== undefined ? <NumberFormat value={asset.price} isPrice={true} /> : '-'}

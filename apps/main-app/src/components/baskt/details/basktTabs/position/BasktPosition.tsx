@@ -41,17 +41,6 @@ const calculatePnL = (
   return { value: pnlValue, percentage };
 };
 
-const calculateFees = (position: PositionData): number => {
-  const OPENING_FEE_BPS = 10;
-  const CLOSING_FEE_BPS = 10;
-  const BPS_DIVISOR = 10000;
-  const totalFeeBps = OPENING_FEE_BPS + CLOSING_FEE_BPS;
-  const feeRate = totalFeeBps / BPS_DIVISOR;
-
-  const positionValue = new BN(position.usdcSize || '0').toNumber();
-  return positionValue * feeRate;
-};
-
 export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice?: BN }) => {
   const { client } = useBasktClient();
   const userAddress = client?.wallet?.address?.toString();
@@ -138,117 +127,122 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {positions.map((position: PositionData) => (
-                  <TableRow key={position.positionPDA}>
-                    <TableCell className="font-medium text-xs sm:text-sm">
-                      <span className={`${position.isLong ? 'text-green-500' : 'text-red-500'}`}>
-                        {position.isLong ? 'Long' : 'Short'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm">
-                      {position.size ? (
-                        <NumberFormat value={new BN(position.size).toNumber() / 1e6} />
-                      ) : (
-                        '---'
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm">
-                      {position.usdcSize ? (
-                        <NumberFormat value={new BN(position.usdcSize).toNumber()} isPrice={true} />
-                      ) : (
-                        '---'
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm">
-                      {position.entryPrice ? (
-                        <NumberFormat
-                          value={new BN(position.entryPrice).toNumber()}
-                          isPrice={true}
-                        />
-                      ) : (
-                        '---'
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm">
-                      {navPrice ? (
-                        <NumberFormat
-                          value={new BN(navPrice.toNumber()).toNumber()}
-                          isPrice={true}
-                        />
-                      ) : (
-                        '---'
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm">
-                      {navPrice && (
-                        <span
-                          className={`${
-                            position.isLong
-                              ? navPrice.gt(new BN(position.entryPrice))
-                                ? 'text-green-500'
-                                : 'text-red-500'
-                              : navPrice.lt(new BN(position.entryPrice))
-                              ? 'text-green-500'
-                              : 'text-red-500'
-                          }`}
-                        >
-                          {(() => {
-                            const pnl = calculatePnL(position, navPrice);
-                            const isPositive = position.isLong
-                              ? navPrice.gt(new BN(position.entryPrice))
-                              : navPrice.lt(new BN(position.entryPrice));
-                            return (
-                              <>
-                                <span>{isPositive ? '+' : '-'}</span>
-                                <NumberFormat value={pnl.value} isPrice={true} />
-                                <span className="ml-1">
-                                  ({isPositive ? '+' : '-'}
-                                  {pnl.percentage.toFixed(2)}%)
-                                </span>
-                              </>
-                            );
-                          })()}
+                {positions.map((position: PositionData) => {
+                  return (
+                    <TableRow key={position.positionPDA}>
+                      <TableCell className="font-medium text-xs sm:text-sm">
+                        <span className={`${position.isLong ? 'text-green-500' : 'text-red-500'}`}>
+                          {position.isLong ? 'Long' : 'Short'}
                         </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm">
-                      <div className="flex items-center gap-2">
-                        {position.collateral ? (
+                      </TableCell>
+                      <TableCell className="text-xs sm:text-sm">
+                        {position.size ? (
+                          <NumberFormat value={new BN(position.size).toNumber() / 1e6} />
+                        ) : (
+                          '---'
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs sm:text-sm">
+                        {position.usdcSize && position.usdcSize !== '0' ? (
                           <NumberFormat
-                            value={new BN(position.collateral).toNumber()}
+                            value={new BN(position.usdcSize).toNumber()}
                             isPrice={true}
                           />
                         ) : (
                           '---'
                         )}
-                        <Pencil
-                          className="h-3 w-3 text-muted-foreground cursor-pointer hover:text-foreground"
-                          onClick={() =>
-                            openAddCollateralDialog(position as unknown as OnchainPosition)
-                          }
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm">
-                      {calculateFees(position) > 0 ? (
-                        <NumberFormat value={calculateFees(position)} isPrice={true} />
-                      ) : (
-                        <span className="text-text">{'---'}</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="px-3 py-1.5 h-auto text-xs border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors"
-                        onClick={() => closePosition(position as unknown as OnchainPosition)}
-                        disabled={isClosingPosition}
-                      >
-                        {isClosingPosition ? 'Closing...' : 'Close'}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-xs sm:text-sm">
+                        {position.entryPrice ? (
+                          <NumberFormat
+                            value={new BN(position.entryPrice).toNumber()}
+                            isPrice={true}
+                          />
+                        ) : (
+                          '---'
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs sm:text-sm">
+                        {navPrice ? (
+                          <NumberFormat
+                            value={new BN(navPrice.toNumber()).toNumber()}
+                            isPrice={true}
+                          />
+                        ) : (
+                          '---'
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs sm:text-sm">
+                        {navPrice && (
+                          <span
+                            className={`${
+                              position.isLong
+                                ? navPrice.gt(new BN(position.entryPrice))
+                                  ? 'text-green-500'
+                                  : 'text-red-500'
+                                : navPrice.lt(new BN(position.entryPrice))
+                                ? 'text-green-500'
+                                : 'text-red-500'
+                            }`}
+                          >
+                            {(() => {
+                              const pnl = calculatePnL(position, navPrice);
+                              const isPositive = position.isLong
+                                ? navPrice.gt(new BN(position.entryPrice))
+                                : navPrice.lt(new BN(position.entryPrice));
+                              return (
+                                <>
+                                  <span>{isPositive ? '+' : '-'}</span>
+                                  <NumberFormat value={pnl.value} isPrice={true} />
+                                  <span className="ml-1">
+                                    ({isPositive ? '+' : '-'}
+                                    {pnl.percentage.toFixed(2)}%)
+                                  </span>
+                                </>
+                              );
+                            })()}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs sm:text-sm">
+                        <div className="flex items-center gap-2">
+                          {position.collateral ? (
+                            <NumberFormat
+                              value={new BN(position.collateral).toNumber()}
+                              isPrice={true}
+                            />
+                          ) : (
+                            '---'
+                          )}
+                          <Pencil
+                            className="h-3 w-3 text-muted-foreground cursor-pointer hover:text-foreground"
+                            onClick={() =>
+                              openAddCollateralDialog(position as unknown as OnchainPosition)
+                            }
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs sm:text-sm">
+                        {position.fees && position.fees > 0 ? (
+                          <NumberFormat value={position.fees} isPrice={true} />
+                        ) : (
+                          <span className="text-text">{'---'}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="px-3 py-1.5 h-auto text-xs border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors"
+                          onClick={() => closePosition(position as unknown as OnchainPosition)}
+                          disabled={isClosingPosition}
+                        >
+                          {isClosingPosition ? 'Closing...' : 'Close'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

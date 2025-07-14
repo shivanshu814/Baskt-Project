@@ -25,7 +25,7 @@ import {
   TooltipTrigger,
 } from '@baskt/ui';
 import { BasktFormProps } from '../../../types/baskt';
-
+import Image from 'next/image';
 export const BasktForm = ({
   formData,
   errors,
@@ -209,10 +209,12 @@ export const BasktForm = ({
                           <div className="flex items-center gap-2">
                             <div className="bg-primary/10 h-6 w-6 sm:h-8 sm:w-8 rounded-full flex items-center justify-center overflow-hidden">
                               {asset.logo ? (
-                                <img
+                                <Image
                                   src={asset.logo}
                                   alt={asset.ticker}
                                   className="w-4 h-4 sm:w-6 sm:h-6 object-contain"
+                                  width={24}
+                                  height={24}
                                 />
                               ) : (
                                 <span className="font-medium text-primary text-xs">
@@ -223,7 +225,9 @@ export const BasktForm = ({
                             <div>
                               <div className="font-medium text-xs sm:text-sm">{asset.ticker}</div>
                               <div className="text-xs text-muted-foreground hidden sm:block">
-                                {asset.name}
+                                {asset.name.length > 40
+                                  ? `${asset.name.slice(0, 5)}...${asset.name.slice(-8)}`
+                                  : asset.name}
                               </div>
                             </div>
                           </div>

@@ -115,7 +115,7 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
                 <TableHead className="text-xs sm:text-sm">Direction</TableHead>
                 <TableHead className="text-xs sm:text-sm">Size</TableHead>
                 <TableHead className="text-xs sm:text-sm">Price</TableHead>
-                <TableHead className="text-xs sm:text-sm">Limit Price</TableHead>
+                <TableHead className="text-xs sm:text-sm whitespace-nowrap">Limit Price</TableHead>
                 <TableHead className="text-xs sm:text-sm underline decoration-dashed underline-offset-4 decoration-1">
                   <TooltipProvider>
                     <Tooltip>
@@ -151,7 +151,7 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
                   const positionSize = getPositionSizeForOrder(order);
                   return (
                     <TableRow key={order.orderId.toString()}>
-                      <TableCell className="text-xs sm:text-sm">
+                      <TableCell className="text-xs sm:text-sm whitespace-nowrap">
                         {order.createOrder?.ts ? formatDateTime(order.createOrder.ts) : '-'}
                       </TableCell>
                       <TableCell className="font-medium text-xs sm:text-sm">

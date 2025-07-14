@@ -20,6 +20,7 @@ export interface CombinedPosition {
   collateral: string;
   isLong: boolean;
   usdcSize: string;
+  fees: number;
 }
 
 /**
@@ -29,7 +30,7 @@ export enum PositionStatus {
   OPEN = 'OPEN',
   CLOSED = 'CLOSED',
   LIQUIDATED = 'LIQUIDATED',
-  CANCELLED = 'CANCELLED'
+  CANCELLED = 'CANCELLED',
 }
 
 /**
@@ -75,4 +76,4 @@ export interface UserPositionSummary {
   totalCollateral: string;
   pnl: string;
   winRate: number;
-} 
+}

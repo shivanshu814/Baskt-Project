@@ -2,7 +2,7 @@
 import React from 'react';
 import { LiquidityAllocationProps } from '../../types/pool';
 import { NumberFormat } from '@baskt/ui';
-
+import Image from 'next/image';
 export const LiquidityAllocation = React.memo(
   ({ tvl, allocations, blpPrice, totalSupply }: LiquidityAllocationProps) => {
     const fees = 1_000;
@@ -35,7 +35,13 @@ export const LiquidityAllocation = React.memo(
                 {allocations.map((token) => (
                   <tr key={token.symbol}>
                     <td className="px-4 py-3 flex items-center gap-3">
-                      <img src={token.image} alt={token.symbol} className="w-7 h-7 rounded-full" />
+                      <Image
+                        src={token.image}
+                        alt={token.symbol}
+                        className="w-7 h-7 rounded-full"
+                        width={28}
+                        height={28}
+                      />
                       <div>
                         <div className="font-semibold text-foreground">{token.symbol}</div>
                       </div>

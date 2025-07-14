@@ -3,6 +3,12 @@ import { PositionOptions, QueryResult } from '../models/types';
 import { handleQuerierError } from '../utils/error-handling';
 import { BaseClient } from '@baskt/sdk';
 import { CombinedPosition } from '../types/position';
+import BN from 'bn.js';
+
+// Fee constants from the program
+const OPENING_FEE_BPS = 10; // 0.1%
+const CLOSING_FEE_BPS = 10; // 0.1%
+const BPS_DIVISOR = 10000; // 100%
 
 /**
  * Position Querier
@@ -15,6 +21,34 @@ export class PositionQuerier {
   private basktClient: BaseClient;
   constructor(basktClient: BaseClient) {
     this.basktClient = basktClient;
+  }
+
+  /**
+   * Calculate USDC size from position size and entry price
+   */
+  private calculateUsdcSize(position: any): string {
+    if (position.usdcSize && new BN(position.usdcSize).gt(new BN(0))) {
+      return position.usdcSize;
+    }
+
+    if (position.size && position.entryPrice) {
+      const sizeBN = new BN(position.size);
+      const entryPriceBN = new BN(position.entryPrice);
+      const usdcSize = sizeBN.mul(entryPriceBN).div(new BN(1000000));
+      return usdcSize.toString();
+    }
+
+    return '0';
+  }
+
+  /**
+   * Calculate fees for a position
+   */
+  private calculateFees(usdcSize: string): number {
+    const totalFeeBps = OPENING_FEE_BPS + CLOSING_FEE_BPS;
+    const feeRate = totalFeeBps / BPS_DIVISOR;
+    const positionValue = new BN(usdcSize || '0').toNumber();
+    return positionValue * feeRate;
   }
 
   /**
@@ -35,13 +69,15 @@ export class PositionQuerier {
 
       const positionMetadatas = await PositionMetadataModel.find(filter);
       // Combine onchain and metadata positions
-      const combinedPositions = onchainPositions.map((onchainPosition) => {
-        const meta = positionMetadatas.find(
-          (m: any) =>
-            m.positionPDA.toLowerCase() === onchainPosition.positionPDA.toString().toLowerCase(),
-        );
-        return this.convertPosition(onchainPosition, meta);
-      }).filter((position): position is CombinedPosition => position !== null);
+      const combinedPositions = onchainPositions
+        .map((onchainPosition) => {
+          const meta = positionMetadatas.find(
+            (m: any) =>
+              m.positionPDA.toLowerCase() === onchainPosition.positionPDA.toString().toLowerCase(),
+          );
+          return this.convertPosition(onchainPosition, meta);
+        })
+        .filter((position): position is CombinedPosition => position !== null);
 
       // Also include position metadata that don't have corresponding on-chain positions
       const onchainPositionPDAs = onchainPositions.map((position) =>
@@ -69,10 +105,16 @@ export class PositionQuerier {
     }
   }
 
-  private convertPosition(onchainPosition: any | null, positionMetadata: any): CombinedPosition | null {
+  private convertPosition(
+    onchainPosition: any | null,
+    positionMetadata: any,
+  ): CombinedPosition | null {
     if (!positionMetadata) return null;
 
     if (!onchainPosition) {
+      const usdcSize = this.calculateUsdcSize(positionMetadata);
+      const fees = this.calculateFees(usdcSize);
+
       return {
         positionId: positionMetadata.positionId,
         positionPDA: positionMetadata.positionPDA,
@@ -89,9 +131,13 @@ export class PositionQuerier {
         size: positionMetadata.size || '0',
         collateral: positionMetadata.collateral || '0',
         isLong: positionMetadata.isLong,
-        usdcSize: positionMetadata.usdcSize || '0',
+        usdcSize: usdcSize,
+        fees: fees,
       } as CombinedPosition;
     }
+
+    const usdcSize = this.calculateUsdcSize(onchainPosition);
+    const fees = this.calculateFees(usdcSize);
 
     return {
       positionId: onchainPosition.positionId?.toString(),
@@ -109,7 +155,8 @@ export class PositionQuerier {
       size: onchainPosition.size?.toString(),
       collateral: onchainPosition.collateral?.toString(),
       isLong: onchainPosition.isLong,
-      usdcSize: '0', // Placeholder for USDC size calculation
+      usdcSize: usdcSize,
+      fees: fees,
     } as CombinedPosition;
   }
 }

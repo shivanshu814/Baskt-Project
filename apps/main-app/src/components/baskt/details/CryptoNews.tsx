@@ -1,6 +1,6 @@
 import { ArrowUpRight } from 'lucide-react';
 import { CryptoNewsProps, Card, CardContent, CardHeader, CardTitle } from '@baskt/ui';
-
+import Image from 'next/image';
 export function CryptoNews({ news }: CryptoNewsProps) {
   return (
     <Card className="!rounded-none !-mt-1 -ml-1">
@@ -17,7 +17,13 @@ export function CryptoNews({ news }: CryptoNewsProps) {
             <CardContent className="p-3">
               <div className="flex items-start gap-3">
                 <div className="h-8 w-8 rounded-md overflow-hidden shrink-0">
-                  <img src={item.cover} alt={item.title} className="w-full h-full object-cover" />
+                  <Image
+                    src={item.cover}
+                    alt={item.title}
+                    className="w-full h-full object-cover"
+                    width={32}
+                    height={32}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">

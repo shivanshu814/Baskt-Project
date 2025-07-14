@@ -32,10 +32,14 @@ export const useBasktDetail = (basktName: string) => {
   );
 
   const { data: basktNavData, isSuccess: isBasktNavDataLoaded } = trpc.baskt.getBasktNAV.useQuery(
-    { basktId: basktInfo?.success && 'data' in basktInfo && basktInfo.data ? basktInfo.data.basktId : '' },
+    {
+      basktId:
+        basktInfo?.success && 'data' in basktInfo && basktInfo.data ? basktInfo.data.basktId : '',
+    },
     {
       refetchInterval: 2 * 1000,
-      enabled: basktInfo?.success && 'data' in basktInfo && basktInfo.data && !!basktInfo.data.basktId,
+      enabled:
+        basktInfo?.success && 'data' in basktInfo && basktInfo.data && !!basktInfo.data.basktId,
     },
   );
 

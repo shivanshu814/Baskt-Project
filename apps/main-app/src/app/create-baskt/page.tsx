@@ -25,8 +25,13 @@ const CreateBasktPage = () => {
     validateForm,
     totalWeightage,
   } = useCreateBasktForm();
-  const { handleAddAsset, handleRemoveAsset, handleAssetPositionChange, handleAssetWeightChange } =
-    useAssetManagement(formData, setFormData);
+  const {
+    handleAddAsset,
+    handleAddMultipleAssets,
+    handleRemoveAsset,
+    handleAssetPositionChange,
+    handleAssetWeightChange,
+  } = useAssetManagement(formData, setFormData);
   const { isSubmitting, createBaskt, authenticated, ready, login } = useBasktCreation();
 
   useEffect(() => {
@@ -46,6 +51,12 @@ const CreateBasktPage = () => {
   // eslint-disable-next-line
   const handleAssetSelect = (asset: any) => {
     handleAddAsset(asset);
+    setIsAssetModalOpen(false);
+  };
+
+  // eslint-disable-next-line
+  const handleMultipleAssetSelect = (assets: any[]) => {
+    handleAddMultipleAssets(assets);
     setIsAssetModalOpen(false);
   };
 
@@ -153,6 +164,8 @@ const CreateBasktPage = () => {
         open={isAssetModalOpen}
         onOpenChange={setIsAssetModalOpen}
         onAssetSelect={handleAssetSelect}
+        onMultipleAssetSelect={handleMultipleAssetSelect}
+        multipleSelection={true}
       />
 
       <Footer />

@@ -20,7 +20,7 @@ import {
 } from '@baskt/ui';
 import { InfoIcon } from 'lucide-react';
 import { useMemo } from 'react';
-
+import Image from 'next/image';
 export function changeFromCurrentPrice(asset: BasktAssetInfo) {
   const change = asset.price - (asset.baselinePrice || asset.price);
   const changePercentage = (change / (asset.baselinePrice || asset.price)) * 100;
@@ -123,16 +123,20 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                   <TableCell className="font-medium text-xs sm:text-sm">
                     <div className="flex items-center gap-2 sm:gap-3">
                       {asset.logo && (
-                        <img
+                        <Image
                           src={asset.logo}
                           alt={asset.ticker}
                           className="h-6 w-6 sm:h-8 sm:w-8 rounded-full"
+                          width={24}
+                          height={24}
                         />
                       )}
                       <div className="flex flex-col">
                         <span>{asset.ticker}</span>
                         <span className="text-xs text-muted-foreground hidden sm:block">
-                          {asset.name}
+                          {asset.name.length > 40
+                            ? `${asset.name.slice(0, 5)}...${asset.name.slice(-8)}`
+                            : asset.name}
                         </span>
                       </div>
                     </div>
