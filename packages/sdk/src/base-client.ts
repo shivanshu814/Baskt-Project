@@ -950,7 +950,8 @@ export abstract class BaseClient {
     // Sign with the LP mint keypair
     tx.partialSign(lpMintKeypair);
 
-    return await this.sendAndConfirmLegacy(tx);
+    // DO NOT USE sendAndConfirm HERE - We require a special signer
+    return await this.provider.sendAndConfirmLegacy(tx);
   }
 
   /**
