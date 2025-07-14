@@ -1,7 +1,7 @@
 import { OnchainAssetConfig } from '@baskt/types';
 import BN from 'bn.js';
 
-export const NAV_PRECISION = new BN(10 ** 6);
+export const NAV_PRECISION = new BN(10 ** 6).mul(new BN(100)); // 10^8 = 100 * 10^6 to account for BASE_NAV of 100
 export const WEIGHT_PRECISION = new BN(10 ** 4);
 
 // TODO: What happens if there is an asset with one huge loss and making the price zero or negative

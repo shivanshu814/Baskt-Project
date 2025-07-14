@@ -62,7 +62,7 @@ pub struct CreateOrder<'info> {
     pub owner_token: Account<'info, TokenAccount>,
 
     #[account(
-        constraint = escrow_mint.key() == ESCROW_MINT @ PerpetualsError::InvalidMint
+        constraint = escrow_mint.key() == protocol.escrow_mint @ PerpetualsError::InvalidMint
     )]
     pub escrow_mint: Account<'info, Mint>,
 
@@ -208,6 +208,10 @@ pub fn create_order(
                 .checked_add(opening_fee)
                 .ok_or(PerpetualsError::MathOverflow)?;
 
+            msg!("total_required: {}", total_required);
+            msg!("expected_collateral: {}", expected_collateral);
+            msg!("collateral: {}", collateral);
+
             require!(
                 collateral >= total_required && collateral >= expected_collateral,
                 PerpetualsError::InsufficientCollateral
@@ -303,7 +307,7 @@ pub struct CancelOrder<'info> {
         constraint = owner_token.owner == owner.key() @ PerpetualsError::UnauthorizedTokenOwner,
         constraint = owner_token.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
         constraint = owner_token.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority,
-        constraint = owner_token.mint == ESCROW_MINT @ PerpetualsError::InvalidMint
+        constraint = owner_token.mint == protocol.escrow_mint @ PerpetualsError::InvalidMint
     )]
     pub owner_token: Account<'info, TokenAccount>,
 

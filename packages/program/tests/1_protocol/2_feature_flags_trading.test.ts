@@ -3,17 +3,14 @@ import { describe, it, before, after } from 'mocha';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
-// Using TestClient static method instead of importing from test-setup
 import { BN } from '@coral-xyz/anchor';
 import { AccessControlRole } from '@baskt/types';
 import { BASELINE_PRICE } from '../utils/test-constants';
+import { USDC_MINT } from '@baskt/sdk';
 
 describe('protocol feature flags - trading operations', () => {
   // Get the test client instance
   const client = TestClient.getInstance();
-
-  // USDC mint constant from the program
-  const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
   // Test users
   let matcher: Keypair;
@@ -25,7 +22,7 @@ describe('protocol feature flags - trading operations', () => {
   let userClient: TestClient;
 
   // Test parameters
-  const ORDER_SIZE = new BN(10_000_000); // 10 units
+  const ORDER_SIZE = new BN(1_000_00); // 0.1 units
   const COLLATERAL_AMOUNT = new BN(11_150_000); // 11.15 USDC (enough for 100% collateral + fees)
   const TICKER = 'BTC_FF';
 
@@ -667,7 +664,7 @@ describe('protocol feature flags - trading operations', () => {
 
       // Create a highly leveraged position for liquidation
       const orderId = new BN(Date.now() + 3000);
-      const size = new BN(10 * 1e6); // 10 USDC
+      const size = ORDER_SIZE;
       const collateral = new BN(11.15 * 1e6); // 11.15 USDC (enough for 110% collateral + fees)
 
       await userClient.createOrder({

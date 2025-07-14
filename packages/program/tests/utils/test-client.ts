@@ -1,10 +1,11 @@
 import * as anchor from '@coral-xyz/anchor';
 import { Program } from '@coral-xyz/anchor';
 import { Keypair, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { BaseClient } from '@baskt/sdk';
+import { BaseClient, USDC_MINT } from '@baskt/sdk';
 import { Baskt } from '../../target/types/baskt';
 import { AccessControlRole, OnchainAssetPermissions } from '@baskt/types';
 import { waitForTx, waitForNextSlot } from './chain-helpers';
+import { calculateNAVWithPrecision } from './test-constants';
 import {
   createAccount,
   createAssociatedTokenAccount,
@@ -326,8 +327,6 @@ export class TestClient extends BaseClient {
       minDeposit = new BN(0),
     } = params;
 
-    const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
-
     // Initialize protocol and roles
     await TestClient.initializeProtocolAndRoles(client);
 
@@ -396,7 +395,7 @@ export class TestClient extends BaseClient {
       client,
       orderSize = new BN(10_000_000), // 10 units
       collateralAmount = new BN(1_200_000_000), // 1200 USDC
-      entryPrice = new BN(100_000_000), // NAV starts at 100 with 6 decimals
+      entryPrice = calculateNAVWithPrecision(100), // NAV starts at 100 with proper precision
       ticker = 'BTC',
       isLong = true,
     } = params;
@@ -462,7 +461,7 @@ export class TestClient extends BaseClient {
     // Since weight is 100% (10000 bps), the asset price should equal the target NAV
     await client.activateBaskt(
       basktId,
-      [new BN(100_000_000)], // NAV = 100 with 6 decimals
+      [calculateNAVWithPrecision(100)], // NAV = 100 with proper precision
       60, // maxPriceAgeSec
     );
 
@@ -490,7 +489,7 @@ export class TestClient extends BaseClient {
     // Mint USDC tokens to user (enough for all tests including high price scenarios)
     await client.mintUSDC(
       userTokenAccount,
-      new BN(10_000_000_000).toNumber(), // 10,000 USDC for all tests
+      calculateNAVWithPrecision(10000).toNumber(), // 10,000 USDC for all tests
     );
 
     // Set up a minimal liquidity pool (required for registry initialization)
@@ -770,7 +769,7 @@ export class TestClient extends BaseClient {
   public async mintUSDC(destination: PublicKey, amount: number | BN): Promise<string> {
     const provider = this.program.provider as anchor.AnchorProvider;
     const payer = provider.wallet.payer as Keypair;
-    const usdcMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+    const usdcMint = USDC_MINT;
     // Convert amount for minting
     const mintAmount = typeof amount === 'number' ? amount : BigInt(amount.toString());
 
@@ -934,7 +933,7 @@ export class TestClient extends BaseClient {
     depositTxSignature: string;
   }> {
     // Use the USDC mint for pool collateral
-    const collateralMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+    const collateralMint = USDC_MINT;
 
     // Create or fetch USDC token accounts for provider and treasury
     const providerTokenAccount = await this.getOrCreateUSDCAccount(params.provider.publicKey);

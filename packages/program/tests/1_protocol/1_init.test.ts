@@ -5,6 +5,7 @@ import { BN } from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
 import { AccessControlRole } from '@baskt/types';
 import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
+import { USDC_MINT } from '@baskt/sdk';
 
 describe('protocol', () => {
   // Get the test client instance
@@ -50,14 +51,13 @@ describe('protocol', () => {
   });
 
   it('Successfully initializes the BLP', async () => {
-    const collateralMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
     // Create a liquidity pool with initial liquidity
     const { lpMint } = await client.setupLiquidityPool({
       depositFeeBps: DEPOSIT_FEE_BPS,
       withdrawalFeeBps: WITHDRAWAL_FEE_BPS,
       minDeposit: MIN_DEPOSIT,
-      collateralMint,
+      collateralMint: USDC_MINT,
     });
 
     const liquidityPoolState = await client.getLiquidityPool();

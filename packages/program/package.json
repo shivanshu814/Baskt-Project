@@ -7,7 +7,7 @@
     "build:anchor": "anchor build && pnpm --filter @baskt/sdk build",
     "clean": "rimraf dist",
     "localnet": "pnpm run generate:mocks && anchor localnet",
-    "test": "anchor build && pnpm --filter @baskt/sdk build && anchor test",
+    "test": "NEXT_PUBLIC_USDC_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v anchor build && pnpm --filter @baskt/sdk build && anchor test",
     "test:file": "anchor build && pnpm --filter @baskt/sdk build && anchor test --run",
     "lint": "eslint tests --ext test.ts",
     "deploy:local": "npx tsx scripts/deploy-local.ts",
