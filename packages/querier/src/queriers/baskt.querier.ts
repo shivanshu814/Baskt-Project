@@ -152,6 +152,7 @@ export class BasktQuerier {
 
       return result;
     } catch (error) {
+      console.error('Error fetching baskt metadata:', error);
       const querierError = handleQuerierError(error);
       return {
         success: false,
@@ -311,9 +312,9 @@ export class BasktQuerier {
 
   private async getBasktFromOnchain(basktId: string): Promise<any> {
     try {
-      return this.basktClient.getBaskt(basktId);
+      return this.basktClient.getBaskt(new PublicKey(basktId));
     } catch (error) {
-      throw createQuerierError('Failed to fetch baskt from onchain', 'ONCHAIN_ERROR', 500, error);
+        throw createQuerierError('Failed to fetch baskt from onchain', 'ONCHAIN_ERROR', 500, error);
     }
   }
 
