@@ -12,6 +12,7 @@ import {
   AssetPriceData,
   AssetConfig 
 } from '../types/asset';
+import { OnchainAsset } from '@baskt/types';
 
 /**
  * Asset Querier
@@ -269,12 +270,9 @@ export class AssetQuerier {
   }
 
   // Onchain data fetching methods
-  private async getAssetsFromOnchain(): Promise<any[]> {
+  private async getAssetsFromOnchain(): Promise<OnchainAsset[]> {
     try {
-      const config = getOnchainConfig();
-      // This would need to be implemented based on your SDK
-      // For now, returning empty array as placeholder
-      return [];
+      return this.basktClient.getAllAssets();
     } catch (error) {
       throw createQuerierError('Failed to fetch assets from onchain', 'ONCHAIN_ERROR', 500, error);
     }

@@ -4,7 +4,9 @@ import { createQuerierError, handleQuerierError } from '../utils/error-handling'
 import { BasktOptions, QueryResult } from '../models/types';
 import { AssetQuerier } from './asset.querier';
 import { BN } from 'bn.js';
-import { BaseClient } from '@baskt/sdk';
+import { BaseClient, calculateNav, WEIGHT_PRECISION, calculateLiveNav } from '@baskt/sdk';
+import { OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
+import { PublicKey } from '@solana/web3.js';
 import { 
   CombinedBaskt, 
   CombinedBasktAsset, 
@@ -65,7 +67,7 @@ export class BasktQuerier {
       const combinedBaskts = await Promise.all(
         onchainBaskts.map(async (onchainBaskt) => {
           const basktMetadata = basktConfigs.find(
-            (b) => b.basktId === onchainBaskt.basktId?.toString(),
+            (b) => b.basktId === onchainBaskt.account?.basktId?.toString(),
           );
 
           if (!basktMetadata) {
@@ -73,9 +75,9 @@ export class BasktQuerier {
           }
 
           const assetIds =
-            onchainBaskt.currentAssetConfigs?.map((asset: any) => asset.assetId?.toString()) || [];
+            onchainBaskt.account?.currentAssetConfigs?.map((asset: any) => asset.assetId?.toString()) || [];
 
-          return this.combineBasktData(
+          return await this.combineBasktData(
             onchainBaskt,
             basktMetadata,
             assetLookup,
@@ -133,9 +135,9 @@ export class BasktQuerier {
       }
 
       const assetIds =
-        onchainBaskt?.currentAssetConfigs?.map((asset: any) => asset.assetId?.toString()) || [];
+        onchainBaskt?.account?.currentAssetConfigs?.map((asset: any) => asset.assetId?.toString()) || [];
 
-      const combinedBaskt = this.combineBasktData(
+      const combinedBaskt = await this.combineBasktData(
         onchainBaskt,
         basktMetadata,
         assetLookup,
@@ -191,9 +193,9 @@ export class BasktQuerier {
       }
 
       const assetIds =
-        onchainBaskt?.currentAssetConfigs?.map((asset: any) => asset.assetId?.toString()) || [];
+        onchainBaskt?.account?.currentAssetConfigs?.map((asset: any) => asset.assetId?.toString()) || [];
 
-      const combinedBaskt = this.combineBasktData(
+      const combinedBaskt = await this.combineBasktData(
         onchainBaskt,
         basktMetadata,
         assetLookup,
@@ -301,10 +303,7 @@ export class BasktQuerier {
   // Onchain data fetching methods
   private async getBasktsFromOnchain(): Promise<any[]> {
     try {
-      const config = getOnchainConfig();
-      // This would need to be implemented based on your SDK
-      // For now, returning empty array as placeholder
-      return [];
+      return this.basktClient.getAllBaskts();
     } catch (error) {
       throw createQuerierError('Failed to fetch baskts from onchain', 'ONCHAIN_ERROR', 500, error);
     }
@@ -312,62 +311,99 @@ export class BasktQuerier {
 
   private async getBasktFromOnchain(basktId: string): Promise<any> {
     try {
-      const config = getOnchainConfig();
-      // This would need to be implemented based on your SDK
-      // For now, returning null as placeholder
-      return null;
+      return this.basktClient.getBaskt(basktId);
     } catch (error) {
       throw createQuerierError('Failed to fetch baskt from onchain', 'ONCHAIN_ERROR', 500, error);
     }
   }
 
   // Data combination methods
-  private combineBasktData(
+  private async combineBasktData(
     onchainBaskt: any,
     basktMetadata: any,
     assetLookup: Map<string, any>,
     assetIds: string[],
     withConfig: boolean,
-  ): CombinedBaskt | undefined {
+  ): Promise<CombinedBaskt | undefined> {
     if (!onchainBaskt && !basktMetadata) {
       return undefined;
     }
 
-    // Get assets for this baskt
-    const assets = assetIds
-      .map((assetId) => {
-        const asset = assetLookup.get(assetId);
-        if (!asset) return null;
+    // Get assets for this baskt using the same logic as the original
+    const assets = onchainBaskt?.account?.currentAssetConfigs?.map((asset: any) => {
+      const assetId = asset.assetId.toString();
+      const fetchedAsset = assetLookup.get(assetId);
+      
+      return {
+        ...(fetchedAsset || {}),
+        weight: (asset.weight.toNumber() * 100) / 10_000,
+        direction: asset.direction,
+        id: assetId,
+        baselinePrice: asset.baselinePrice.toNumber(),
+        volume24h: 0,
+        marketCap: 0,
+      };
+    }) || [];
 
-        const onchainAsset = onchainBaskt?.currentAssetConfigs?.find(
-          (config: any) => config.assetId?.toString() === assetId,
-        );
+    const basktId = basktMetadata?.basktId?.toString() || onchainBaskt?.account?.basktId?.toString();
 
-        return {
-          ...asset,
-          weight: onchainAsset ? (onchainAsset.weight?.toNumber() * 100) / 10_000 : 0,
-          direction: onchainAsset?.direction || false,
-          id: assetId,
-          baselinePrice: onchainAsset?.baselinePrice?.toNumber() || 0,
-          volume24h: 0,
-          marketCap: 0,
-        };
-      })
-      .filter(Boolean);
-
-    // Calculate NAV
+    // Calculate NAV with proper logic from the original
     let price = new BN(0);
     try {
       if (assets.length > 0 && assets.every((asset: any) => asset && asset.price > 0)) {
-        // This would need to be implemented based on your NAV calculation logic
-        price = new BN(0);
+        const assetsWithPriceConfig = assets.filter((asset: any) => asset.config?.priceConfig);
+
+        if (assetsWithPriceConfig.length === 0) {
+          throw new Error('No price config available');
+        }
+
+        const basktAssets = assetsWithPriceConfig.map((asset: any) => {
+          const weightBN = new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100);
+          return {
+            assetId: asset.id,
+            weight: weightBN,
+            direction: asset.direction ? 1 : 0,
+            baselinePrice: new BN(asset.baselinePrice),
+            priceConfig: asset.config.priceConfig,
+          };
+        });
+
+        const { liveNav } = await calculateLiveNav(
+          basktAssets,
+          new BN(onchainBaskt?.account?.baselineNav || 0),
+        );
+
+        price = liveNav;
       }
     } catch (error) {
-      console.error('Error calculating NAV:', error);
-      price = new BN(0);
+      // Fallback to calculateNav if calculateLiveNav fails
+      const formattedAssets = assets.map(
+        (asset: any) =>
+          ({
+            assetId: new PublicKey(asset.id),
+            direction: asset.direction,
+            weight: new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100),
+            baselinePrice: new BN(asset.baselinePrice),
+          } as OnchainAssetConfig),
+      );
+
+      try {
+        price = calculateNav(
+          onchainBaskt?.account?.currentAssetConfigs?.map((asset: any) => ({
+            ...asset,
+          })) || [],
+          formattedAssets,
+          new BN(onchainBaskt?.account?.baselineNav || 0),
+        );
+      } catch (fallbackError) {
+        console.error('Error calculating NAV:', fallbackError);
+        price = new BN(0);
+      }
     }
 
-    const basktId = basktMetadata?.basktId?.toString() || onchainBaskt?.basktId?.toString();
+    // Build final result with proper account structure conversion
+    const status = onchainBaskt?.status || {};
+    const account = (onchainBaskt?.account || onchainBaskt || {}) as OnchainBasktAccount;
 
     return {
       _id: basktMetadata?._id,
@@ -382,7 +418,23 @@ export class BasktQuerier {
       change24h: 0,
       aum: 0,
       sparkline: [],
-      account: onchainBaskt || {},
+      account: {
+        ...account,
+        creationTime: account?.creationTime?.toString() || '',
+        lastRebalanceTime: account?.lastRebalanceTime?.toString() || '',
+        baselineNav: account?.baselineNav?.toString() || '0',
+        currentAssetConfigs: account?.currentAssetConfigs?.map((asset: any) => ({
+          ...asset,
+          weight: asset?.weight?.toString() || '0',
+          baselinePrice: asset?.baselinePrice?.toString() || '0',
+        })) || [],
+        oracle: {
+          ...account?.oracle,
+          price: account?.oracle?.price?.toString() || '0',
+          publishTime: account?.oracle?.publishTime?.toString() || '0',
+        },
+        isActive: status?.['active'] || false,
+      },
       creationDate: basktMetadata?.creationDate || new Date().toISOString(),
       priceHistory: { daily: [] }, // Placeholder
       performance: {
