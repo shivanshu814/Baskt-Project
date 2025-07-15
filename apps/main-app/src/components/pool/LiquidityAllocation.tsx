@@ -3,7 +3,8 @@ import React from 'react';
 import { LiquidityAllocationProps } from '../../types/pool';
 import { NumberFormat, Skeleton } from '@baskt/ui';
 import Image from 'next/image';
-import { trpc } from '../../utils/trpc';
+import { trpc } from '../../utils/common/trpc';
+
 export const LiquidityAllocation = React.memo(
   ({ tvl, blpPrice, totalSupply }: LiquidityAllocationProps) => {
     const fees = 1_000;

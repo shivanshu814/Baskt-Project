@@ -14,7 +14,6 @@ import { useDeposit } from '../../hooks/pool/useDeposit';
 import { useWithdraw } from '../../hooks/pool/useWithdraw';
 import { usePoolRefresh } from '../../hooks/pool/usePoolRefresh';
 import { useBalanceRefresh } from '../../hooks/pool/useBalanceRefresh';
-import { poolAllocations } from '../../data/pool-allocations';
 
 export default function PoolPage() {
   const { wallet } = useBasktClient();
@@ -65,7 +64,6 @@ export default function PoolPage() {
               tvl={tvl}
               blpPrice={blpPrice}
               totalSupply={totalSupply}
-              allocations={poolAllocations}
             />
           </div>
         </div>
