@@ -65,10 +65,11 @@ export default {
     const currentTime = Math.floor(Date.now());
 
     if (!assetsResult.success || !assetsResult.data || assetsResult.data.length === 0) {
+      console.log('No assets found');
       return;
     }
 
-    const assets = assetsResult.data;
+    const assets = assetsResult.data;0
     const activeAssets = assets.filter(
       (asset: any) =>
         asset.price > 0 &&
@@ -89,7 +90,7 @@ export default {
       const assetMetrics: any = activeAssets.find(
         (a: any) => a.assetAddress.toLowerCase() === asset.assetId.toString().toLowerCase(),
       );
-      return new BN(Math.floor(assetMetrics.priceMetrics.price));
+      return new BN(Math.floor(assetMetrics.latestPrice.price));
     });
 
     try {

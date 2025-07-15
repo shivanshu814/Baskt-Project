@@ -30,6 +30,7 @@ export {
 export * from './models/types';
 export type { QueryResult } from './models/types';
 export * from './types';
+export * from './types/fee-event';
 
 // Export individual queriers (will be added as we implement them)
 export * from './queriers/asset.querier';
@@ -37,6 +38,7 @@ export * from './queriers/baskt.querier';
 export * from './queriers/price.querier';
 export * from './queriers/order.querier';
 export * from './queriers/position.querier';
+export * from './queriers/fee-event.querier';
 export * from './queriers/history.querier';
 export * from './queriers/metrics.querier';
 export * from './queriers/access.querier';

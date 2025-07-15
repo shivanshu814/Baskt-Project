@@ -11,6 +11,8 @@ const activateBaskt = async (args: string[]) => {
       throw new Error('Usage: activate-baskt <basktId> <price1> <price2> <maxPriceAgeSec>');
     }
 
+    console.log('args', args);
+
     const basktId = args[0];
     const prices = args.slice(1, args.length - 1).map((price) => new BN(price).muln(1e6));
     const maxPriceAgeSec = parseInt(args[args.length - 1]) || 60;

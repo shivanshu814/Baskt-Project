@@ -2,8 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import assetConfig from './assets.json';
-import { AssetMetadataModel } from '../../../services/backend/src/utils/models';
-import { connectMongoDB } from '../../../services/backend/src/config/mongo';
+import { AssetMetadataModel, connectMongoDB } from '../../querier/dist';
 
 const lastPrice: Record<string, number> = {};
 

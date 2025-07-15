@@ -85,7 +85,7 @@ async function calculateTotalDeviation(
     });
 
     // Fetch current prices
-    const currentPrices = await fetchAssetPrices(priceConfigs);
+    const currentPrices = await fetchAssetPrices(priceConfigs, basktAssets.map((asset) => asset.assetId.toString()));
 
     // Calculate weighted deviation for each asset
     let totalWeightedDeviation = 0;

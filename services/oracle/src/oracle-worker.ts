@@ -25,7 +25,7 @@ const pricingWorker = new Worker(
     const priceDBID = oracleConfig.ticker;
 
     try {
-      const prices = await fetchAssetPrices([oracleConfig.priceConfig]);
+      const prices = await fetchAssetPrices([oracleConfig.priceConfig], [oracleConfig.assetAddress]);
       const currentPrice = Number(prices[0].priceUSD);
 
       await AssetPrice.create({

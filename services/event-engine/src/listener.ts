@@ -11,7 +11,7 @@ import { querierClient } from './utils/config';
  */
 export async function initEventEngine(): Promise<void> {
   try {
-    // Initialize the querier client
+    // Initialize the querier client (handles MongoDB connection internally)
     await querierClient.init();
 
     // Create the observer router

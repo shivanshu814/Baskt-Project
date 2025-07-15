@@ -18,6 +18,7 @@ import { MetricsQuerier } from './queriers/metrics.querier';
 import { AccessQuerier } from './queriers/access.querier';
 import { FaucetQuerier } from './queriers/faucet.querier';
 import { PoolQuerier } from './queriers/pool.querier';
+import { FeeEventQuerier } from './queriers/fee-event.querier';
 
 // Import metadata manager
 import { metadataManager } from './models/metadata-manager';
@@ -50,6 +51,7 @@ export class Querier {
   public access: AccessQuerier;
   public faucet: FaucetQuerier;
   public pool: PoolQuerier;
+  public feeEvent: FeeEventQuerier;
 
   // Metadata manager
   public metadata = metadataManager;
@@ -66,6 +68,7 @@ export class Querier {
     this.access = new AccessQuerier();
     this.faucet = new FaucetQuerier(basktClient);
     this.pool = new PoolQuerier(basktClient);
+    this.feeEvent = new FeeEventQuerier(basktClient);
   }
 
   public static getInstance(basktClient: any): Querier {
