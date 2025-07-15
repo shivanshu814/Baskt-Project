@@ -1,6 +1,6 @@
 'use client';
 
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useSolanaWallets } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
 import { Wallet, LogOut, Plus, Copy, Menu } from 'lucide-react';
 import Link from 'next/link';
@@ -22,6 +22,7 @@ import {
   SheetTrigger,
 } from '@baskt/ui';
 import { toast } from 'sonner';
+import { useEffect, useMemo, useState } from 'react';
 
 interface NavbarProps {
   setSidebarOpen?: (open: boolean) => void;
@@ -29,8 +30,28 @@ interface NavbarProps {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function Navbar({ setSidebarOpen }: NavbarProps) {
-  const { user, logout, authenticated, login } = usePrivy();
+  const { logout, authenticated, login } = usePrivy();
+  const { wallets } = useSolanaWallets();
   const router = useRouter();
+  const [userAddress, setUserAddress] = useState<string | null>(null);
+
+  useEffect(() => {
+    if(!authenticated) {
+      return
+    }
+
+    if(authenticated && wallets.length === 0) {
+      logout();
+      return
+    }
+
+    if(wallets.length > 0) {
+      setUserAddress(wallets[0].address);
+    } 
+    
+  }, [wallets, authenticated]);
+
+ 
 
   const handleLogout = async () => {
     await logout();
@@ -39,8 +60,8 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
   };
 
   const copyAddress = () => {
-    if (user?.wallet?.address) {
-      navigator.clipboard.writeText(user.wallet.address);
+    if (userAddress) {
+      navigator.clipboard.writeText(userAddress);
       toast.success('Address copied to clipboard');
     }
   };
@@ -81,12 +102,12 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
                 Create Baskt
               </Button>
             </Link>
-            {authenticated && user?.wallet?.address ? (
+            {authenticated && userAddress ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-3 sm:px-4 rounded-lg text-sm font-medium border border-border flex items-center gap-2">
                     <Wallet className="h-4 w-4" />
-                    <PublicKeyText publicKey={user.wallet.address} />
+                    <PublicKeyText publicKey={userAddress} />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -133,10 +154,10 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
                 </div>
               </div>
               <div className="border-t p-4 space-y-3">
-                {authenticated && user?.wallet?.address ? (
+                {authenticated && userAddress ? (
                   <div className="space-y-2">
                     <div className="p-2 text-sm rounded-md border text-center">
-                      <PublicKeyText publicKey={user.wallet.address} isCopy={true} />
+                      <PublicKeyText publicKey={userAddress} isCopy={true} />
                     </div>
                     <Link href="/create-baskt" className="w-full block">
                       <Button variant="outline" className="w-full">

@@ -21,10 +21,8 @@ const ProtocolClientContext = createContext<ProtocolClientContextType>({
 // Provider component for the protocol client
 export function BasktClientProvider({ children }: { children: React.ReactNode }) {
   const { user } = usePrivy();
-  const { wallets } = useSolanaWallets();
+  const { wallets, ready } = useSolanaWallets();
 
-  // TODO Shivanshu/Nishay is user.wallet.walletIndex is undefined it means wallet is not connected, 
-  //  we should ask the user to reconnect the wallet
   const activeWallet = wallets[user?.wallet?.walletIndex || 0];
   const [client, setClient] = useState<any | null>(null); //eslint-disable-line
   const [connection, setConnection] = useState<Connection | null>(null);

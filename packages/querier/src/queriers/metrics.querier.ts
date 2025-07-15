@@ -353,20 +353,25 @@ export class MetricsQuerier {
 
     for (const pos of filteredPositions) {
       try {
-        const isLong = pos.isLong;
         const baskt = basktMap.get(pos.basktId);
         if (!baskt) {
           throw new Error('Baskt not found');
         }
 
-        const weight = baskt.currentAssetConfigs.find(
+        const { weight, direction } = baskt.currentAssetConfigs.find(
           (assetConfig: any) => assetConfig.assetId.toString() === assetMetadata.assetAddress,
-        )?.weight;
+        ) || {  };
 
-        if (!weight) {
+        if (!weight || !direction) {
           throw new Error('Asset not found in baskt');
         }
 
+        const positionIsLong = pos.isLong;
+        const isAssetLong = direction;
+
+        // XOR logic: Long when both values are the same, Short when different
+        let isLong = positionIsLong === isAssetLong;
+        
         if (isLong) {
           longPositions.push({
             position: pos,

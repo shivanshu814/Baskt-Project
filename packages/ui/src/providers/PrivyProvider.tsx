@@ -39,11 +39,6 @@ function PrivyProviderComponent({ children }: { children: React.ReactNode }) {
           showWalletLoginFirst: true,
           walletChainType: 'solana-only',
         },
-        embeddedWallets: {
-          solana: {
-            createOnLogin: 'all-users',
-          },
-        },
         externalWallets: {
           solana: {
             connectors,
