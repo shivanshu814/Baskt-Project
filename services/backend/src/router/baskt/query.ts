@@ -24,7 +24,7 @@ const getBasktMetadataById = publicProcedure
 // get all baskts
 const getAllBaskts = publicProcedure.query(async () => {
   try {
-    const result = await querier.baskt.getAllBaskts();
+    const result = await querier.baskt.getAllBaskts({ withConfig: true });
     return result;
   } catch (error) {
     console.error('Error fetching baskts:', error);
@@ -116,7 +116,7 @@ const getBasktMetadataByName = publicProcedure
   .input(z.object({ basktName: z.string() }))
   .query(async ({ input }) => {
     try {
-      const result = await querier.baskt.getBasktByName(input.basktName);
+      const result = await querier.baskt.getBasktByName(input.basktName, { withConfig: true });
       return result;
     } catch (error) {
       console.error('Error fetching baskt metadata:', error);

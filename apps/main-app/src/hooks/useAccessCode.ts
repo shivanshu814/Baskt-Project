@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { trpc } from '../utils/trpc';
+import { trpc } from '../utils/common/trpc';
 import { toast } from 'sonner';
 
 export function useAccessCode() {

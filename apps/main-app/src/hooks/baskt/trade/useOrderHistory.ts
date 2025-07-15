@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { trpc } from '../../../utils/trpc';
+import { trpc } from '../../../utils/common/trpc';
 import { HistoryItem } from '@baskt/types';
 
 export const useOrderHistory = (userAddress?: string, basktId?: string) => {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { trpc } from '../../utils/trpc';
+import { trpc } from '../../../utils/common/trpc';
 import { BasktInfo } from '@baskt/types';
-import { processBasktData } from '../../utils/baskt/processBasktData';
+import { processBasktData } from '../../../utils/baskt/processBasktData';
 import { toast } from 'sonner';
 
 export const useBasktDetail = (basktName: string) => {

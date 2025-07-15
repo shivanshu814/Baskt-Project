@@ -2,8 +2,8 @@ import React from 'react';
 import { TradingViewChart } from './TradingViewChart';
 import { BasktChartProps } from '../../../../types/baskt';
 import { useBasktList } from '../../../../hooks/baskt/useBasktList';
-import { useBasktOI } from '../../../../hooks/baskt/useBasktOI';
-import { useBasktVolume } from '../../../../hooks/baskt/useBasktVolume';
+import { useBasktOI } from '../../../../hooks/baskt/details/useBasktOI';
+import { useBasktVolume } from '../../../../hooks/baskt/details/useBasktVolume';
 import { DesktopMetrics } from '../basktInfo/DesktopMetrics';
 import { MobileBasktHeader } from '../basktInfo/MobileBasktHeader';
 

@@ -10,7 +10,7 @@ import {
   AreaSeries,
   CrosshairMode,
 } from 'lightweight-charts';
-import { trpc } from '../../../../utils/trpc';
+import { trpc } from '../../../../utils/common/trpc';
 
 const CHART_OPTIONS = {
   layout: {
@@ -281,22 +281,22 @@ export function TradingViewChart({
               <div className="text-gray-600 dark:text-gray-300 font-semibold text-xs uppercase tracking-wide">
                 {tooltipData.time
                   ? new Date(tooltipData.time * 1000).toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })
                   : ''}
               </div>
             </div>
             <div className="text-gray-500 dark:text-gray-400 text-xs font-medium">
               {tooltipData.time
                 ? new Date(tooltipData.time * 1000).toLocaleTimeString('en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                  hour12: true,
-                })
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true,
+                  })
                 : ''}
             </div>
             <div className="text-gray-900 dark:text-white font-bold text-lg">

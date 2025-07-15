@@ -1,7 +1,7 @@
 import React from 'react';
 import { useOrderHistory } from '../../../../../hooks/baskt/trade/useOrderHistory';
 import { useBasktClient } from '@baskt/ui';
-import { formatDateTime } from '../../../../../utils/date';
+import { formatDateTime } from '../../../../../utils/common/date';
 import {
   NumberFormat,
   Card,

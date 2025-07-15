@@ -1,5 +1,5 @@
 import { OnchainPosition, PositionStatus } from '@baskt/types';
-import { trpc } from '../../../utils/trpc';
+import { trpc } from '../../../utils/common/trpc';
 import { USDC_MINT, useBasktClient } from '@baskt/ui';
 import BN from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { UseOpenPositionProps } from '../../../types/baskt';
 import { calculateCollateralAmount, calculateLiquidationPrice } from '@baskt/sdk';
 import { PRICE_PRECISION, STANDARD_SLIPPAGE_BPS } from '@baskt/ui';
-import { parseSolanaError } from '../../../utils/error-handling';
+import { parseSolanaError } from '../../../utils/common/error-handling';
 
 export function useOpenPositions(basktId?: string, userAddress?: string, navPrice?: BN) {
   const { client } = useBasktClient();
@@ -106,12 +106,22 @@ export function useOpenPositions(basktId?: string, userAddress?: string, navPric
       // Dispatch event for other components to listen to
       window.dispatchEvent(new Event('position-closed'));
 
+      const usdcSizeNum = new BN(position.usdcSize || '0').div(new BN(PRICE_PRECISION)).toNumber();
+      let usdcSizeStr: string;
+      if (usdcSizeNum < 1) {
+        usdcSizeStr = usdcSizeNum.toLocaleString(undefined, {
+          minimumFractionDigits: 5,
+          maximumFractionDigits: 5,
+        });
+      } else {
+        usdcSizeStr = usdcSizeNum.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      }
       toast.success(`Position closed successfully! `, {
         id: 'close-position',
-        description: `Size: ${new BN(position.usdcSize || '0')
-          .div(new BN(PRICE_PRECISION))
-          .toNumber()
-          .toLocaleString()} USDC`,
+        description: `Size: ${usdcSizeStr} USDC`,
       });
     } catch (error) {
       const parsedError = parseSolanaError(error);

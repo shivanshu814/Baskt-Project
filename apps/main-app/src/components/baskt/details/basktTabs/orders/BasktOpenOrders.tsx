@@ -25,8 +25,8 @@ import { useUSDCBalance } from '../../../../../hooks/pool/useUSDCBalance';
 import { OrderType } from '@baskt/types';
 import { BN } from 'bn.js';
 import { toast } from 'sonner';
-import { parseSolanaError } from '../../../../../utils/error-handling';
-import { formatDateTime } from '../../../../../utils/date';
+import { parseSolanaError } from '../../../../../utils/common/error-handling';
+import { formatDateTime } from '../../../../../utils/common/date';
 import { InfoIcon } from 'lucide-react';
 
 export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {

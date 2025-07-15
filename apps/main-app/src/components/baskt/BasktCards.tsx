@@ -12,7 +12,7 @@ import { ArrowRightLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { useMemo } from 'react';
 import { BasktCardProps } from '../../types/baskt';
-import { useBasktOI } from '../../hooks/baskt/useBasktOI';
+import { useBasktOI } from '../../hooks/baskt/details/useBasktOI';
 
 const DEFAULT_SPARKLINE = Array(24).fill(0);
 

@@ -3,11 +3,15 @@ import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { useTransactionToast, getTransactionToastConfig } from '../../common/use-transaction-toast';
 import { useBasktClient } from '@baskt/ui';
-import * as anchor from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
+import * as anchor from '@coral-xyz/anchor';
 import { BasktFormData } from './useCreateBasktForm';
 import { OnchainAssetConfig } from '@baskt/types';
-import { parseSolanaError } from '../../../utils/error-handling';
+import {
+  checkBasktNameExists,
+  checkDuplicateAssetConfig,
+} from '../../../utils/baskt/nameValidation';
+import { trpc } from '../../../utils/common/trpc';
 
 export type TransactionStatus = 'waiting' | 'confirmed' | 'processing' | 'success' | 'failed';
 
@@ -22,19 +26,23 @@ export const useBasktCreation = () => {
   const [error, setError] = useState<string | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
 
+  const { data: existingBasktsData } = trpc.baskt.getAllBaskts.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
   const createBaskt = async (basktData: BasktFormData) => {
     if (!wallet) return;
+
+    const config = getTransactionToastConfig('basktCreation');
+
     try {
       setIsSubmitting(true);
       setTransactionStatus('waiting');
 
-      const config = getTransactionToastConfig('basktCreation');
-
-      showTransactionToast('waiting', config);
-
-      // Check if baskt name already exists
-      const nameExists = await basktClient?.doesBasktNameExist(basktData.name);
-      if (nameExists) {
+      const nameCheck = await checkBasktNameExists(basktData.name, basktClient);
+      if (nameCheck.exists) {
         setTransactionStatus('failed');
         setError('A baskt with this name already exists. Please choose a different name.');
         showTransactionToast(
@@ -45,6 +53,43 @@ export const useBasktCreation = () => {
         );
         return;
       }
+
+      if (existingBasktsData?.success && existingBasktsData.data) {
+        const duplicateCheck = checkDuplicateAssetConfig(
+          basktData.assets.map((asset) => ({
+            assetAddress: asset.assetAddress,
+            weight: asset.weight,
+            direction: asset.direction,
+          })),
+          existingBasktsData.data
+            .filter((baskt: any) => baskt !== null && baskt !== undefined)
+            .map((baskt: any) => ({
+              name: baskt.name || 'Unknown Baskt',
+              assets:
+                baskt.assets?.map((asset: any) => ({
+                  assetAddress: asset.assetAddress,
+                  weight: asset.weight,
+                  direction: asset.direction,
+                })) || [],
+            })),
+        );
+
+        if (duplicateCheck.isDuplicate) {
+          setTransactionStatus('failed');
+          setError(
+            `A baskt with the same asset configuration already exists: ${duplicateCheck.duplicateBaskt}. Please modify your asset selection or weights.`,
+          );
+          showTransactionToast(
+            'failed',
+            config,
+            undefined,
+            `A baskt with the same asset configuration already exists: ${duplicateCheck.duplicateBaskt}. Please modify your asset selection or weights.`,
+          );
+          return;
+        }
+      }
+
+      showTransactionToast('waiting', config);
 
       const result = await basktClient?.createBaskt(
         basktData.name,
@@ -73,14 +118,14 @@ export const useBasktCreation = () => {
       setSignature(txSignature);
       setTransactionStatus('success');
       showTransactionToast('success', config, txSignature);
-      router.push(`/baskts/${encodeURIComponent(basktData.name)}`);
+
+      const basktName = basktData.name;
+      router.push(`/baskts/${encodeURIComponent(basktName)}`);
     } catch (error) {
       setTransactionStatus('failed');
-      const parsedError = parseSolanaError(error);
-      setError(parsedError.message);
-
-      const config = getTransactionToastConfig('basktCreation');
-      showTransactionToast('failed', config, signature || undefined, parsedError.message);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create baskt';
+      setError(errorMessage);
+      showTransactionToast('failed', config, undefined, errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -94,16 +139,14 @@ export const useBasktCreation = () => {
 
   return {
     isSubmitting,
-    setIsSubmitting,
     transactionStatus,
-    setTransactionStatus,
     error,
     setError,
+    signature,
     createBaskt,
-    handleRetry,
     authenticated,
     ready,
     login,
-    signature,
+    client: basktClient,
   };
 };

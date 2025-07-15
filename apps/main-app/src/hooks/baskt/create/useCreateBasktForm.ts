@@ -1,9 +1,23 @@
 import { useState } from 'react';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { validateBasktName } from '../../../utils/baskt/nameValidation';
 
 const BasktFormSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(30, 'Name must be 30 characters or less'),
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(10, 'Name must be 10 characters or less')
+    .refine(
+      (name) => {
+        const validation = validateBasktName(name);
+        return validation.isValid;
+      },
+      (name) => {
+        const validation = validateBasktName(name);
+        return { message: validation.error || 'Invalid name' };
+      },
+    ),
   rebalancePeriod: z.object({
     value: z.number().min(1),
     unit: z.enum(['day', 'hour']),

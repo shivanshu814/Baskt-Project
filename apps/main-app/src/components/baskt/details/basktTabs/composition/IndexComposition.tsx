@@ -21,6 +21,7 @@ import {
 import { InfoIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import Image from 'next/image';
+import { generateAssetUrl } from '../../../../../utils/asset/assetUtils';
 export function changeFromCurrentPrice(asset: BasktAssetInfo) {
   const change = asset.price - (asset.baselinePrice || asset.price);
   const changePercentage = (change / (asset.baselinePrice || asset.price)) * 100;
@@ -132,7 +133,19 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                         />
                       )}
                       <div className="flex flex-col">
-                        <span>{asset.ticker}</span>
+                        <button
+                          onClick={() => {
+                            const assetUrl = generateAssetUrl(asset);
+                            if (assetUrl) {
+                              window.open(assetUrl, '_blank');
+                            }
+                          }}
+                          className={`text-left hover:underline cursor-pointer ${
+                            generateAssetUrl(asset) ? '' : 'cursor-default'
+                          }`}
+                        >
+                          {asset.ticker}
+                        </button>
                         <span className="text-xs text-muted-foreground hidden sm:block">
                           {asset.name.length > 40
                             ? `${asset.name.slice(0, 5)}...${asset.name.slice(-8)}`

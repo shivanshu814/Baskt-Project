@@ -1,4 +1,4 @@
-import { trpc } from '../../utils/trpc';
+import { trpc } from '../../../utils/common/trpc';
 
 export const useBasktVolume = (basktId: string) => {
   const { data, isLoading, error } = trpc.metrics.getVolumeForBaskt.useQuery(

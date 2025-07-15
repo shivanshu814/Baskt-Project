@@ -14,10 +14,11 @@ import {
 } from '@baskt/ui';
 import { Search, X, X as XIcon, CheckCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import { trpc } from '../../../utils/trpc';
+import { trpc } from '../../../utils/common/trpc';
 import { AssetSelectionModalProps } from '../../../types/baskt';
-import { generateAssetUrl } from '../../../utils/assetUtils';
+import { generateAssetUrl } from '../../../utils/asset/assetUtils';
 import Image from 'next/image';
+
 const AssetSkeleton = () => (
   <div className="flex items-center justify-between py-3 px-3 animate-pulse">
     <div className="flex items-center gap-3">
@@ -237,17 +238,19 @@ export function AssetSelectionModal({
                         key={asset.assetAddress}
                         className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 group hover:bg-primary/20 transition-all duration-200"
                       >
-                        <Image
-                          src={asset.logo}
-                          alt={asset.ticker}
-                          className="h-4 w-4 rounded-full flex-shrink-0 object-cover ring-1 ring-border/20"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                          width={16}
-                          height={16}
-                          unoptimized
-                        />
+                        <div className="h-4 w-4 rounded-full flex-shrink-0 ring-1 ring-border/20 overflow-hidden">
+                          <Image
+                            src={asset.logo}
+                            alt={asset.ticker}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                            width={16}
+                            height={16}
+                            unoptimized
+                          />
+                        </div>
                         <span className="text-xs font-medium text-foreground truncate max-w-20">
                           {asset.ticker}
                         </span>
@@ -304,16 +307,19 @@ export function AssetSelectionModal({
                           }`}
                         >
                           <div className="flex items-center mr-4">
-                            <Image
-                              src={asset.logo}
-                              alt={asset.ticker}
-                              className="h-6 w-6 sm:h-10 sm:w-10 rounded-full flex-shrink-0 object-cover ring-1 ring-border/20 group-hover:ring-border/40 transition-all duration-200 bg-muted"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                              width={24}
-                              height={24}
-                            />
+                            <div className="h-6 w-6 sm:h-10 sm:w-10 rounded-full flex-shrink-0 ring-1 ring-border/20 group-hover:ring-border/40 transition-all duration-200 bg-muted overflow-hidden">
+                              <Image
+                                src={asset.logo}
+                                alt={asset.ticker}
+                                className="w-full h-full object-contain"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                                width={40}
+                                height={40}
+                                unoptimized
+                              />
+                            </div>
                           </div>
                           <div className="flex flex-1 flex-row justify-between items-center w-full">
                             <div className="flex flex-col justify-center min-w-0">

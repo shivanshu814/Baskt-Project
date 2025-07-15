@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { BasktCards } from '../baskt/BasktCards';
 import { BasktInfo } from '@baskt/types';
 import { useMemo } from 'react';
-import { trpc } from '../../utils/trpc';
+import { trpc } from '../../utils/common/trpc';
 
 export function FeaturedBaskts() {
   const { data: basktsData, isLoading } = trpc.baskt.getAllBaskts.useQuery(undefined, {

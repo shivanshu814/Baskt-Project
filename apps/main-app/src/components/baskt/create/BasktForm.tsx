@@ -25,7 +25,9 @@ import {
   TooltipTrigger,
 } from '@baskt/ui';
 import { BasktFormProps } from '../../../types/baskt';
+import { filterBasktName } from '../../../utils/baskt/nameValidation';
 import Image from 'next/image';
+
 export const BasktForm = ({
   formData,
   errors,
@@ -57,7 +59,10 @@ export const BasktForm = ({
               id="name"
               placeholder="e.g. DeFi Index"
               value={formData.name}
-              onChange={(e) => onNameChange(e.target.value)}
+              onChange={(e) => {
+                const filteredValue = filterBasktName(e.target.value);
+                onNameChange(filteredValue);
+              }}
               maxLength={10}
               className="text-sm sm:text-base"
             />

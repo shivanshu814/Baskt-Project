@@ -4,7 +4,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useTransactionToast, getTransactionToastConfig } from '../../common/use-transaction-toast';
 import { useBasktClient } from '@baskt/ui';
 import { BasktFormData } from '../create/useCreateBasktForm';
-import { parseSolanaError } from '../../../utils/error-handling';
+import { parseSolanaError } from '../../../utils/common/error-handling';
 
 export type TransactionStatus = 'waiting' | 'confirmed' | 'processing' | 'success' | 'failed';
 

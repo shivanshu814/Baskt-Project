@@ -190,3 +190,9 @@ export interface BasktFormProps {
   onAssetWeightChange: (ticker: string, weight: string) => void;
   title?: string;
 }
+
+export interface MetricCardType {
+  label: string;
+  value: React.ReactNode;
+  color?: string;
+}

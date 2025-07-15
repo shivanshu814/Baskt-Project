@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { useBasktClient } from '@baskt/ui';
-import { trpc } from '../../utils/trpc';
+import { trpc } from '../../utils/common/trpc';
 import { PositionStatus } from '@baskt/types';
 import BN from 'bn.js';
 import { PortfolioPosition, PortfolioSummary } from '../../types/portfolio';

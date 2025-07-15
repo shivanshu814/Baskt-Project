@@ -9,26 +9,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@baskt/ui';
-import {
-  MessageCircle,
-  Users,
-  LifeBuoy,
-  PartyPopper,
-} from 'lucide-react';
-
-interface AccessCodeSuccessDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-interface TextLinkProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  linkText: string;
-  onClick: () => void;
-  color: string;
-}
+import { MessageCircle, Users, LifeBuoy, PartyPopper } from 'lucide-react';
+import { AccessCodeSuccessDialogProps, TextLinkProps } from '../../types/access';
 
 function TextLink({ icon, title, description, linkText, onClick, color }: TextLinkProps) {
   return (
@@ -38,8 +20,8 @@ function TextLink({ icon, title, description, linkText, onClick, color }: TextLi
         <h3 className="font-medium text-white">{title}</h3>
         <p className="text-white/60 text-sm">
           {description}{' '}
-          <span 
-            onClick={onClick} 
+          <span
+            onClick={onClick}
             className={`text-${color}-400 underline cursor-pointer hover:text-${color}-300`}
           >
             {linkText}
@@ -90,7 +72,7 @@ export function AccessCodeSuccessDialog({ isOpen, onClose }: AccessCodeSuccessDi
     const telegramUrl = process.env.NEXT_PUBLIC_TELEGRAM_GROUP_URL || 'https://t.me/basktai';
     window.open(telegramUrl, '_blank', 'noopener,noreferrer');
   };
-  
+
   const handleSupportClick = () => {
     const supportUrl = process.env.NEXT_PUBLIC_SUPPORT_CONTACT_URL || 'https://t.me/basktai';
     window.open(supportUrl, '_blank', 'noopener,noreferrer');
@@ -99,7 +81,6 @@ export function AccessCodeSuccessDialog({ isOpen, onClose }: AccessCodeSuccessDi
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-full max-w-md bg-background border border-white/10 shadow-lg rounded-lg p-0">
-
         <DialogHeader className="px-5 pt-5 pb-2">
           <DialogTitle className="text-center text-xl font-bold text-white flex items-center justify-center gap-2">
             Welcome to Baskt!
@@ -112,8 +93,8 @@ export function AccessCodeSuccessDialog({ isOpen, onClose }: AccessCodeSuccessDi
 
         <div className="p-4">
           <FeedbackInfo />
-          
-          <TextLink 
+
+          <TextLink
             icon={<Users className="h-5 w-5" />}
             title="Join Our Community"
             description="Connect with other Baskt users via our"
@@ -121,8 +102,8 @@ export function AccessCodeSuccessDialog({ isOpen, onClose }: AccessCodeSuccessDi
             onClick={handleTelegramClick}
             color="green"
           />
-          
-          <TextLink 
+
+          <TextLink
             icon={<LifeBuoy className="h-5 w-5" />}
             title="Need Help?"
             description="Get support for any questions via"
