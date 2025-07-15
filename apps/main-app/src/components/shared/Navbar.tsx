@@ -22,7 +22,7 @@ import {
   SheetTrigger,
 } from '@baskt/ui';
 import { toast } from 'sonner';
-import { useEffect, useMemo, useState } from 'react';
+import { useUser } from '@baskt/ui';
 
 interface NavbarProps {
   setSidebarOpen?: (open: boolean) => void;
@@ -31,27 +31,10 @@ interface NavbarProps {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function Navbar({ setSidebarOpen }: NavbarProps) {
   const { logout, authenticated, login } = usePrivy();
-  const { wallets } = useSolanaWallets();
   const router = useRouter();
-  const [userAddress, setUserAddress] = useState<string | null>(null);
 
-  useEffect(() => {
-    if(!authenticated) {
-      return
-    }
+  const { userAddress, isAuthenticated, wallet } = useUser();
 
-    if(authenticated && wallets.length === 0) {
-      logout();
-      return
-    }
-
-    if(wallets.length > 0) {
-      setUserAddress(wallets[0].address);
-    } 
-    
-  }, [wallets, authenticated]);
-
- 
 
   const handleLogout = async () => {
     await logout();

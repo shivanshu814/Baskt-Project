@@ -8,42 +8,45 @@ import { useAccessCode, useWalletAuthorization } from '../../hooks/useAccessCode
 import { toast } from 'sonner';
 import { AccessCodeEntryProps } from '../../types/access';
 import { AccessCodeSuccessDialog } from './AccessCodeSuccessDialog';
+import { useUser } from '@baskt/ui';
 
 export function AccessCodeEntry({ onSuccess }: AccessCodeEntryProps) {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const { user, authenticated, login, logout } = usePrivy();
+  const { userAddress, isAuthenticated, wallet } = useUser();
+  const { login, logout } = usePrivy();
+
 
   const { isValidating, validateAccessCode, showSuccessDialog, closeSuccessDialog } =
     useAccessCode();
-  const { walletHasAccess } = useWalletAuthorization(user?.wallet?.address);
+  const { walletHasAccess } = useWalletAuthorization(userAddress || undefined);
 
   useEffect(() => {
-    if (walletHasAccess && user?.wallet?.address) {
+    if (walletHasAccess && userAddress) {
       toast.success('Welcome back! You are already authorized.');
       setTimeout(() => {
-        if (user?.wallet?.address) {
-          onSuccess(user.wallet.address);
+        if (userAddress) {
+          onSuccess(userAddress);
         }
       }, 1500);
     }
-  }, [walletHasAccess, user?.wallet?.address, onSuccess]);
+  }, [walletHasAccess, userAddress, onSuccess]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       if (!code.trim()) return;
 
-      if (!authenticated || !user?.wallet?.address) {
+      if (!isAuthenticated || !userAddress) {
         toast.error('Please connect your wallet first to use access code');
         setError('Please connect your wallet first to use access code');
         return;
       }
 
       setError(null);
-      await validateAccessCode(code, user.wallet.address);
+      await validateAccessCode(code, userAddress);
     },
-    [code, authenticated, user?.wallet?.address, validateAccessCode, onSuccess],
+    [code, isAuthenticated, userAddress, validateAccessCode, onSuccess],
   );
 
   const handleCodeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,7 +63,7 @@ export function AccessCodeEntry({ onSuccess }: AccessCodeEntryProps) {
     await logout();
   }, [logout]);
 
-  if (walletHasAccess && user?.wallet?.address) {
+  if (walletHasAccess && userAddress) {
     return (
       <div className="flex items-center justify-center min-h-[300px] sm:min-h-[400px] px-4 sm:px-6">
         <div className="text-center space-y-4 sm:space-y-6 w-full max-w-sm">
@@ -96,7 +99,7 @@ export function AccessCodeEntry({ onSuccess }: AccessCodeEntryProps) {
             </div>
           </div>
 
-          {!authenticated ? (
+          {!isAuthenticated ? (
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 sm:p-4">
               <div className="flex items-center space-x-2">
                 <Wallet className="h-4 w-4 text-yellow-400 flex-shrink-0" />
@@ -121,7 +124,7 @@ export function AccessCodeEntry({ onSuccess }: AccessCodeEntryProps) {
                 <span className="text-green-400 text-xs sm:text-sm">Wallet connected</span>
               </div>
               <p className="text-white/60 text-xs sm:text-sm mt-1 font-mono break-all">
-                {user?.wallet?.address}
+                {userAddress}
               </p>
               <Button
                 onClick={handleDisconnectWallet}
@@ -144,7 +147,7 @@ export function AccessCodeEntry({ onSuccess }: AccessCodeEntryProps) {
                 placeholder="Enter 8-character code"
                 maxLength={8}
                 className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent text-center text-base sm:text-lg font-mono tracking-wider"
-                disabled={isValidating || !authenticated}
+                disabled={isValidating || !isAuthenticated}
               />
             </div>
 
@@ -158,7 +161,7 @@ export function AccessCodeEntry({ onSuccess }: AccessCodeEntryProps) {
             <Button
               type="submit"
               className="w-full"
-              disabled={!code.trim() || code.length !== 8 || isValidating || !authenticated}
+              disabled={!code.trim() || code.length !== 8 || isValidating || !isAuthenticated}
             >
               {isValidating ? (
                 <div className="flex items-center gap-2">
@@ -177,8 +180,8 @@ export function AccessCodeEntry({ onSuccess }: AccessCodeEntryProps) {
         isOpen={showSuccessDialog}
         onClose={() => {
           closeSuccessDialog();
-          if (user?.wallet?.address) {
-            onSuccess(user.wallet.address);
+          if (userAddress) {
+            onSuccess(userAddress);
           }
         }}
       />

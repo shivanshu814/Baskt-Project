@@ -4,15 +4,15 @@ import { getOnchainConfig } from '../config/onchain';
 import { createQuerierError, handleQuerierError } from '../utils/error-handling';
 import { AssetOptions, QueryResult } from '../models/types';
 import { PublicKey } from '@solana/web3.js';
-import { BaseClient, fetchAssetPrices } from '@baskt/sdk';
-import { 
-  CombinedAsset, 
-  AssetCacheStats, 
+import { BaseClient } from '@baskt/sdk';
+import {
+  CombinedAsset,
+  AssetCacheStats,
   AssetQueryOptions,
   AssetPriceData,
   AssetConfig,
 } from '../types/asset';
-import { AssetPriceProviderConfig, OnchainAsset } from '@baskt/types';
+import { OnchainAsset } from '@baskt/types';
 
 /**
  * Asset Querier
@@ -128,14 +128,13 @@ export class AssetQuerier {
       const { withLatestPrices = false, withConfig = false } = options;
 
       // Fetch data from multiple sources
-      const [assetConfigs, onchainAssets] = await Promise.all([
+      const [assetConfigs, onchainAssets, latestPrices] = await Promise.all([
         this.getAssetConfigsByAddressFromMongoDB(assetAddresses),
         Promise.all(assetAddresses.map((addr) => this.getAssetFromOnchain(addr).catch(() => null))),
         withLatestPrices ? this.getLatestPricesForAssets(assetAddresses) : Promise.resolve([]),
       ]);
-      const latestPrices = withLatestPrices ? await this.getLatestPricesForAssets(assetConfigs) : [];
+
       if (!assetConfigs || assetConfigs.length === 0) {
-        console.log('No assets found from Querier');
         return {
           success: false,
           data: [],
@@ -143,19 +142,22 @@ export class AssetQuerier {
         };
       }
 
-      const combinedAssets = assetConfigs.map((assetConfig: any, index: number) => {
-        const matchingOnchainAsset = onchainAssets[index];
-        const matchingPrice = latestPrices.find(
-          (price: any) => price?.id === assetConfig.assetAddress?.toString(),
-        );
+      // Combine data from all sources
+      const combinedAssets = assetConfigs
+        .map((assetConfig: any, index: number) => {
+          const matchingOnchainAsset = onchainAssets[index];
+          const matchingPrice = latestPrices.find(
+            (price: any) => price?.id === assetConfig._id?.toString(),
+          );
 
-        return this.combineSingleAssetData(
-          assetConfig,
-          matchingOnchainAsset,
-          matchingPrice,
-          withConfig,
-        );
-      }).filter((asset: any): asset is CombinedAsset => asset !== undefined);
+          return this.combineSingleAssetData(
+            assetConfig,
+            matchingOnchainAsset,
+            matchingPrice,
+            withConfig,
+          );
+        })
+        .filter((asset: any): asset is CombinedAsset => asset !== undefined);
 
       const result: QueryResult<CombinedAsset[]> = {
         success: true,
@@ -335,14 +337,18 @@ export class AssetQuerier {
     }
   }
 
-
-  private async getLatestPricesForAssets(assetMetadata: any[]): Promise<any[]> {
+  private async getLatestPricesForAssets(assetAddresses: string[]): Promise<any[]> {
     try {
-      const prices = await fetchAssetPrices(assetMetadata.map((asset) => asset.priceConfig), assetMetadata.map((asset) => asset.assetAddress));
-      return prices.map((price) => ({
-        id: price.assetAddress,
-        price: price.priceUSD,
-        time: price.timestamp
+      const prices = await AssetPrice.findAll({
+        where: { asset_id: assetAddresses },
+        order: [['time', 'DESC']],
+        limit: assetAddresses.length,
+      });
+
+      return prices.map((price: any) => ({
+        id: price.asset_id,
+        price: price.price,
+        time: price.time,
       }));
     } catch (error) {
       throw createQuerierError(
@@ -406,7 +412,7 @@ export class AssetQuerier {
       };
     }
 
-    const price = latestPrice?.price || 0;
+    const price = assetConfig.priceMetrics?.price || latestPrice?.price || 0;
     const change24h = assetConfig.priceMetrics?.change24h || 0;
 
     return {
