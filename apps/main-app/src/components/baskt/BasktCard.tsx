@@ -11,18 +11,12 @@ import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useState, useCallback, useMemo } from 'react';
-import { useBasktOI } from '../../hooks/baskt/useBasktOI';
-import { BasktInfo, BasktAssetInfo } from '@baskt/types';
+import { useBasktOI } from '../../hooks/baskt/details/useBasktOI';
+import { BasktAssetInfo } from '@baskt/types';
 import { calculateCurrentWeights } from '@baskt/sdk/src/math/weight';
-interface BasktCardProps {
-  baskt: BasktInfo;
-  className?: string;
-}
-interface MetricCard {
-  label: string;
-  value: React.ReactNode;
-  color?: string;
-}
+import Image from 'next/image';
+import { generateAssetUrl } from '../../utils/asset/assetUtils';
+import { BasktCardProps, MetricCardType } from '../../types/baskt';
 
 // const REBALANCE_ANIMATION_KEYFRAMES = `
 //   @keyframes rebalance-bar-move {
@@ -61,12 +55,16 @@ const AssetIcon = React.memo(({ asset }: { asset: BasktAssetInfo }) => {
   }, []);
 
   if (asset.logo && !imageError) {
+    // eslint-disable-next-line @next/next/no-img-element
     return (
-      <img
+      <Image
         src={asset.logo}
         alt={asset.ticker || asset.name || 'Asset'}
-        className="w-7 h-7 rounded-full border border-border flex-shrink-0"
+        width={28}
+        height={28}
+        className="w-7 h-7 rounded-full border border-border flex-shrink-0 object-cover"
         onError={handleImageError}
+        unoptimized
       />
     );
   }
@@ -84,35 +82,53 @@ const AssetIcon = React.memo(({ asset }: { asset: BasktAssetInfo }) => {
 AssetIcon.displayName = 'AssetIcon';
 
 const AssetRow = React.memo(
-  ({ asset, currentWeight }: { asset: BasktAssetInfo; currentWeight?: number }) => (
-    <div className="flex items-center px-2 sm:px-3 py-2 border-t border-border bg-background/80 text-xs sm:text-sm">
-      <span className="flex-1 flex items-center">
-        <span className="mr-2">
-          <AssetIcon asset={asset} />
+  ({ asset, currentWeight }: { asset: BasktAssetInfo; currentWeight?: number }) => {
+    const assetUrl = useMemo(() => generateAssetUrl(asset), [asset]);
+
+    const handleAssetClick = useCallback(() => {
+      if (assetUrl) {
+        window.open(assetUrl, '_blank');
+      }
+    }, [assetUrl]);
+
+    return (
+      <div className="flex items-center px-2 sm:px-3 py-2 border-t border-border bg-background/80 text-xs sm:text-sm">
+        <span className="flex-1 flex items-center">
+          <span className="mr-2">
+            <AssetIcon asset={asset} />
+          </span>
+          <button
+            onClick={handleAssetClick}
+            disabled={!assetUrl}
+            className={`truncate font-medium ${
+              assetUrl ? 'hover:underline cursor-pointer' : 'cursor-default'
+            }`}
+          >
+            {asset.ticker || asset.name}
+          </button>
         </span>
-        <span className="truncate font-medium">{asset.name || asset.ticker}</span>
-      </span>
-      <span className="flex-1 text-center">
-        {asset.price !== undefined ? <NumberFormat value={asset.price} isPrice={true} /> : '-'}
-      </span>
-      <span className="flex-1 text-center">
-        <span className={asset.direction ? 'text-green-600' : 'text-red-600'}>
-          {asset.direction ? 'Long' : 'Short'}
+        <span className="flex-1 text-center">
+          {asset.price !== undefined ? <NumberFormat value={asset.price} isPrice={true} /> : '-'}
         </span>
-      </span>
-      <span className="flex-1 text-center">
-        {asset.weight !== undefined ? <NumberFormat value={asset.weight} /> : '-'}%
-      </span>
-      <span className="flex-1 text-right">
-        {currentWeight !== undefined ? <NumberFormat value={currentWeight} /> : '-'}%
-      </span>
-    </div>
-  ),
+        <span className="flex-1 text-center">
+          <span className={asset.direction ? 'text-green-600' : 'text-red-600'}>
+            {asset.direction ? 'Long' : 'Short'}
+          </span>
+        </span>
+        <span className="flex-1 text-center">
+          {asset.weight !== undefined ? <NumberFormat value={asset.weight} /> : '-'}%
+        </span>
+        <span className="flex-1 text-right">
+          {currentWeight !== undefined ? <NumberFormat value={currentWeight} /> : '-'}%
+        </span>
+      </div>
+    );
+  },
 );
 
 AssetRow.displayName = 'AssetRow';
 
-const MetricCard = React.memo(({ card }: { card: MetricCard }) => (
+const MetricCard = React.memo(({ card }: { card: MetricCardType }) => (
   <div
     className="flex-1 min-w-[110px] max-w-[180px] flex flex-col items-center bg-muted/30 rounded-md px-2 sm:px-3 py-2 text-center"
     style={{ flexBasis: '120px' }}
@@ -179,7 +195,7 @@ export const BasktCard = React.memo(({ baskt, className }: BasktCardProps) => {
   const { totalOpenInterest } = useBasktOI(baskt.basktId as string);
 
   const metricCards = useMemo(
-    (): MetricCard[] => [
+    (): MetricCardType[] => [
       {
         label: 'OI',
         value:
@@ -279,16 +295,16 @@ export const BasktCard = React.memo(({ baskt, className }: BasktCardProps) => {
 
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <div className="flex flex-col min-w-0">
-              <span className="text-base font-semibold truncate max-w-[120px] flex items-center gap-1">
-                {baskt.name || 'Unnamed Baskt'}
-                <Link
-                  href={`/baskts/${encodeURIComponent(safeBasktName)}`}
-                  className="ml-1"
-                  onClick={handleExternalLinkClick}
-                >
-                  <ExternalLink className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                </Link>
-              </span>
+              <Link
+                href={`/baskts/${encodeURIComponent(safeBasktName)}`}
+                className="group flex items-center gap-1 max-w-[120px] truncate text-base font-semibold"
+                onClick={handleExternalLinkClick}
+              >
+                <span className="truncate group-hover:underline group-focus:underline">
+                  {baskt.name || 'Unnamed Baskt'}
+                </span>
+                <ExternalLink className="ml-2 w-4 h-4 text-muted-foreground hover:text-foreground" />
+              </Link>
               <div className="flex items-center gap-1.5 mt-1.5">
                 <div className="flex -space-x-2">
                   {assetImages.map((asset, idx) => (

@@ -6,8 +6,8 @@ import { OnchainAssetConfig } from '@baskt/types';
 import { PublicKey } from '@solana/web3.js';
 
 // NAV constants for testing
-const TEST_BASE_NAV = 1; // Base NAV value for testing ($1)
-const TEST_INITIAL_NAV = 100; // Initial NAV value for random simulations
+const TEST_BASE_NAV = 100; // Base NAV value for testing ($100)
+const TEST_INITIAL_NAV = 10000; // Initial NAV value for random simulations (100 * 100)
 
 interface NavSimulationAsset {
   baselinePrice: number;

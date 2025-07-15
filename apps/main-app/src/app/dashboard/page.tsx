@@ -82,7 +82,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold mb-2">Trading Dashboard</h1>
           <p className="text-muted-foreground">
-            Monitor your portfolio, track positions, and analyze market performance
+            Monitor your portfolio, track positions, and analyze market performance.
           </p>
         </div>
         <Button

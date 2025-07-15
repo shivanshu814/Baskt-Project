@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { useBasktClient } from '@baskt/ui';
 import { toast } from 'sonner';
-import { trpc } from '../../utils/trpc';
+import { trpc } from '../../utils/common/trpc';
 import type { PoolData, PoolResponse } from '../../types/pool';
 import { usePoolCalculations } from './usePoolCalculations';
 

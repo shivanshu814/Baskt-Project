@@ -13,10 +13,10 @@ describe('Bad Debt Accounting Fix', () => {
   const client = TestClient.getInstance();
 
   // Test parameters for underwater liquidation scenarios - TRUE BAD DEBT SCENARIO
-  const ORDER_SIZE = new BN(10_000_000); // 10 units (reasonable position size)
+  const ORDER_SIZE = new BN(100_000); // 0.1 units (reasonable position size)
   const ENTRY_PRICE = BASELINE_PRICE; // NAV starts at 1 with 6 decimals
-  const NEW_ORACLE_PRICE = new BN(10 * 1e6); // Oracle price surges to 10 USDC (900% moon)
-  const LIQUIDATION_PRICE = new BN(9 * 1e6); // Liquidate at 9 USDC (within 20% of new oracle price)
+  const NEW_ORACLE_PRICE = new BN(1000 * 1e6); // Oracle price surges to 10 USDC (900% moon)
+  const LIQUIDATION_PRICE = new BN(900 * 1e6); // Liquidate at 9 USDC (within 20% of new oracle price)
 
   // Calculate required collateral for normal position opening
   // Base notional = 10 units * 1 USDC = 10 USDC

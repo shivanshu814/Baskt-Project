@@ -48,7 +48,7 @@ export const useHistory = (filters?: {
           setTotalCount(historyData.length);
         }
       } else if (!data.success && 'message' in data) {
-        setError(data.message);
+        setError(String(data.message));
       }
     }
   }, [data, queryLoading, queryError]);

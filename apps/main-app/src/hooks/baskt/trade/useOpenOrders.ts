@@ -1,11 +1,11 @@
 import { OrderStatus } from '@baskt/types';
-import { trpc } from '../../../utils/trpc';
+import { trpc } from '../../../utils/common/trpc';
 import { useBasktClient } from '@baskt/ui';
 import { BN } from 'bn.js';
 import { useUSDCBalance } from '../../../hooks/pool/useUSDCBalance';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
-import { parseSolanaError } from '../../../utils/error-handling';
+import { parseSolanaError } from '../../../utils/common/error-handling';
 
 export function useOpenOrders(basktId?: string, userAddress?: string) {
   const { client } = useBasktClient();

@@ -3,8 +3,7 @@ import { rebalanceQueue, connection } from '../config/queue';
 import { BasktMetadataSchema, BasktMetadataModel } from '@baskt/types';
 import { connectMongoDB } from '../config/mongo';
 import { PublicKey } from '@solana/web3.js';
-import { basktClient } from '../config/client';
-import { trpcClient } from '../config/client';
+import { basktClient, querierClient } from '../config/client';
 import mongoose from 'mongoose';
 import BN from 'bn.js';
 import { fetchAssetPrices } from '@baskt/sdk';
@@ -86,7 +85,7 @@ async function calculateTotalDeviation(
     });
 
     // Fetch current prices
-    const currentPrices = await fetchAssetPrices(priceConfigs);
+    const currentPrices = await fetchAssetPrices(priceConfigs, basktAssets.map((asset) => asset.assetId.toString()));
 
     // Calculate weighted deviation for each asset
     let totalWeightedDeviation = 0;
@@ -137,6 +136,8 @@ const rebalanceWorker = new Worker(
     console.log(`\n[${new Date().toLocaleTimeString()}] starting rebalance: ${job.data.basktId}`);
     console.log('─'.repeat(60));
 
+    // Initialize querier and MongoDB
+    await querierClient.init();
     await connectMongoDB();
 
     const basktConfig = job.data;
@@ -192,22 +193,15 @@ const rebalanceWorker = new Worker(
       );
 
       const getCurrentNavForBaskt = async (basktId: PublicKey) => {
-        const navResult = await trpcClient.baskt.getBasktNAV.query({
-          basktId: basktId.toString(),
-        });
+        const navResult = await querierClient.baskt.getBasktNAV(basktId.toString());
 
         if (!navResult.success) {
-          const errorMessage =
-            'error' in navResult
-              ? navResult.error
-              : 'message' in navResult
-              ? navResult.message
-              : 'Unknown error';
+          const errorMessage = navResult.error || navResult.message || 'Unknown error';
           console.error('Failed to fetch baskt metadata:', errorMessage);
           throw new Error('Failed to fetch baskt metadata');
         }
 
-        if (!('data' in navResult)) {
+        if (!navResult.data) {
           console.error('Baskt metadata not found for baskt:', basktId.toString());
           throw new Error('Baskt metadata not found');
         }

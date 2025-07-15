@@ -18,11 +18,11 @@ export default defineConfig({
   platform: 'node',
   external: [
     // External dependencies that should not be bundled
+    '@baskt/querier',
     '@baskt/types',
     '@solana/web3.js',
     '@coral-xyz/anchor',
     '@baskt/sdk',
-    '@trpc/client',
     'axios',
     'bn.js',
     'bullmq',

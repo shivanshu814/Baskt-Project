@@ -89,10 +89,6 @@ export function Footer({ className }: { className?: string }) {
             <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-muted-foreground">
-                <Mail className="h-5 w-5" />
-                <span>support@baskt.fun</span>
-              </li>
-              <li className="flex items-center gap-2 text-muted-foreground">
                 <MessageCircle className="h-5 w-5" />
                 <Link href="https://t.me/basktai" className="hover:text-primary">
                   Join our Telegram

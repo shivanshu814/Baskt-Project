@@ -25,7 +25,13 @@ export const BasktTabs = ({ baskt }: BasktTabsProps) => {
       case 'composition':
         return <IndexComposition assets={baskt?.assets || []} />;
       case 'position':
-        return <BasktPosition basktId={baskt.basktId} navPrice={new BN(baskt.price)} />;
+        return (
+          <BasktPosition
+            key={`${baskt.basktId}-${baskt.price}`}
+            basktId={baskt.basktId}
+            navPrice={baskt.price ? new BN(baskt.price) : undefined}
+          />
+        );
       case 'openOrders':
         return <BasktOpenOrders basktId={baskt.basktId} />;
       case 'orderHistory':

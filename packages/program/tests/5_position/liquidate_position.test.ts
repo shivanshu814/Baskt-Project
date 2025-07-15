@@ -31,8 +31,8 @@ describe('Liquidate Position', () => {
   const COLLATERAL_AMOUNT = MIN_COLLATERAL.add(OPENING_FEE).muln(105).divn(100); // Total + 5% buffer
 
   // With 40% liquidation threshold, SHORT position needs ~60% price rise to be liquidatable
-  const LIQUIDATION_PRICE = new BN(1_730_000); // $1.73 with 6 decimals (73% price rise for SHORT liquidation)
-  const NON_LIQUIDATION_PRICE = new BN(1_200_000); // $1.20 with 6 decimals (20% price rise - not enough for liquidation)
+  const LIQUIDATION_PRICE = new BN(1_730_00000); // $173 with 6 decimals (73% price rise for SHORT liquidation)
+  const NON_LIQUIDATION_PRICE = new BN(1_20000_000); // $120 with 6 decimals (20% price rise - not enough for liquidation)
   const TICKER = 'BTC';
 
   // Test accounts
@@ -338,9 +338,9 @@ describe('Liquidate Position', () => {
     const vaultBefore = await getAccount(client.connection, tokenVault);
 
     // Update oracle price in ≤20% increments to reach liquidation threshold
-    await client.updateOraclePrice(basktId, new BN(1.2 * 1e6)); // +20% (1 -> 1.2)
-    await client.updateOraclePrice(basktId, new BN(1.44 * 1e6)); // +20% (1.2 -> 1.44)
-    await client.updateOraclePrice(basktId, new BN(1.73 * 1e6)); // +20% (1.44 -> 1.73)
+    await client.updateOraclePrice(basktId, new BN(120 * 1e6)); // +20% (1 -> 1.2)
+    await client.updateOraclePrice(basktId, new BN(144 * 1e6)); // +20% (1.2 -> 1.44)
+    await client.updateOraclePrice(basktId, new BN(173 * 1e6)); // +20% (1.44 -> 1.73)
 
     // Liquidate the SHORT position (73% price rise makes it liquidatable)
     await liquidatorClient.liquidatePosition({
@@ -444,9 +444,9 @@ describe('Liquidate Position', () => {
     });
 
     // Update oracle price to make SHORT position liquidatable
-    await client.updateOraclePrice(basktId, new BN(1.2 * 1e6)); // +20%
-    await client.updateOraclePrice(basktId, new BN(1.44 * 1e6)); // +20%
-    await client.updateOraclePrice(basktId, new BN(1.73 * 1e6)); // +20%
+    await client.updateOraclePrice(basktId, new BN(120 * 1e6)); // +20%
+    await client.updateOraclePrice(basktId, new BN(144 * 1e6)); // +20%
+    await client.updateOraclePrice(basktId, new BN(173 * 1e6)); // +20%
 
     // Try to liquidate the position with a non-liquidator (should fail)
     try {
@@ -473,8 +473,8 @@ describe('Liquidate Position', () => {
 
     // With 40% liquidation threshold, SHORT position needs ~54% price rise to be liquidatable
     // Use 160 USDC (60% rise) to ensure liquidation while staying within 20% oracle bounds
-    const validLiquidationPriceHigh = new BN(1.6 * 1e6); // 1.6 - sufficient for liquidation
-    const validLiquidationPriceLow = new BN(0.8 * 1e6); // 0.8 - within 20% bound
+    const validLiquidationPriceHigh = new BN(160 * 1e6); // 1.6 - sufficient for liquidation
+    const validLiquidationPriceLow = new BN(80 * 1e6); // 0.8 - within 20% bound
 
     // Test with high valid liquidation price - SHORT position will be liquidatable when price rises
     const highOrderId = new BN(Date.now() + 800);
@@ -521,8 +521,8 @@ describe('Liquidate Position', () => {
 
     // Update oracle price in ≤20% increments to reach liquidation threshold
 
-    await client.updateOraclePrice(basktId, new BN(120_000_000)); // +20% (100 -> 120)
-    await client.updateOraclePrice(basktId, new BN(144_000_000)); // +20% (120 -> 144)
+    await client.updateOraclePrice(basktId, new BN(120 * 1e6)); // +20% (100 -> 120)
+    await client.updateOraclePrice(basktId, new BN(144 * 1e6)); // +20% (120 -> 144)
     await client.updateOraclePrice(basktId, validLiquidationPriceHigh); // +11% (144 -> 160)
 
     // --- DEBUG: compute equity & minCollateral on-chain before attempting liquidation ---
@@ -600,9 +600,9 @@ describe('Liquidate Position', () => {
     });
 
     // Update oracle price to make the new SHORT position liquidatable
-    const secondLiquidationPrice = new BN(1.7 * 1e6); // Use a different high price
-    await client.updateOraclePrice(basktId, new BN(1.2 * 1e6)); // +20% (1 -> 1.2)
-    await client.updateOraclePrice(basktId, new BN(1.44 * 1e6)); // +20% (1.2 -> 1.44)
+    const secondLiquidationPrice = new BN(170 * 1e6); // Use a different high price
+    await client.updateOraclePrice(basktId, new BN(120 * 1e6)); // +20% (1 -> 1.2)
+    await client.updateOraclePrice(basktId, new BN(144 * 1e6)); // +20% (1.2 -> 1.44)
     await client.updateOraclePrice(basktId, secondLiquidationPrice); // +18% (144 -> 170)
 
     // Should succeed with valid high liquidation price for SHORT position
@@ -629,8 +629,8 @@ describe('Liquidate Position', () => {
     // 20% deviation for liquidation = ±20_000_000
     // Invalid range: <80_000_000 or >120_000_000
 
-    const invalidLiquidationPriceHigh = new BN(125_000_000); // 125 - outside 20% bound
-    const invalidLiquidationPriceLow = new BN(75_000_000); // 75 - outside 20% bound
+    const invalidLiquidationPriceHigh = new BN(125 * 1e6); // 125 - outside 20% bound
+    const invalidLiquidationPriceLow = new BN(75 * 1e6); // 75 - outside 20% bound
 
     // Test with invalid high liquidation price
     const highOrderId = new BN(Date.now() + 900);
@@ -821,7 +821,7 @@ describe('Liquidate Position', () => {
 
     // Oracle price is NAV = 100 with 6 decimals = 100_000_000
     // Price at 22% deviation: should be valid for open/close but invalid for liquidation
-    const strictBoundPrice = new BN(1.22 * 1e6); // 1.22 - 22% deviation
+    const strictBoundPrice = new BN(122 * 1e6); // 1.22 - 22% deviation
 
     const testOrderId = new BN(Date.now() + 1100);
     const testPositionId = new BN(Date.now() + 1101);

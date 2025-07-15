@@ -5,14 +5,15 @@ import BN from 'bn.js';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 // Using TestClient static method instead of importing from test-setup
 import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
+import { BASELINE_PRICE } from '../utils/test-constants';
 
 describe('Oracle Price Validation Edge Cases', () => {
   // Get the test client instance
   const client = TestClient.getInstance();
 
   // Test parameters
-  const ORDER_SIZE = new BN(10_000_000); // 10 units
-  const ENTRY_PRICE = new BN(1_000_000); // NAV starts at 1 with 6 decimals
+  const ORDER_SIZE = new BN(100_000); // 10 units
+  const ENTRY_PRICE = BASELINE_PRICE; // NAV starts at 1 with 6 decimals
   const TICKER = 'BTC';
 
   // Helper function to calculate required collateral for a given limit price
@@ -41,16 +42,16 @@ describe('Oracle Price Validation Edge Cases', () => {
   // Valid range for liquidation: 80_000_000 to 120_000_000
 
   // Regular operation boundaries (25%)
-  const REGULAR_LOWER_BOUNDARY = new BN(75_000_0); // Exactly 25% below
-  const REGULAR_UPPER_BOUNDARY = new BN(125_000_0); // Exactly 25% above
-  const REGULAR_INVALID_LOW = new BN(74_999_9); // Just below 25%
-  const REGULAR_INVALID_HIGH = new BN(125_000_1); // Just above 25%
+  const REGULAR_LOWER_BOUNDARY = new BN(75 * 1e6); // Exactly 25% below
+  const REGULAR_UPPER_BOUNDARY = new BN(125 * 1e6); // Exactly 25% above
+  const REGULAR_INVALID_LOW = new BN(74999999); // Just below 25%
+  const REGULAR_INVALID_HIGH = new BN(125000001); // Just above 25%
 
   // Liquidation boundaries (20%)
-  const LIQUIDATION_LOWER_BOUNDARY = new BN(80_000_0); // Exactly 20% below
-  const LIQUIDATION_UPPER_BOUNDARY = new BN(120_000_0); // Exactly 20% above
-  const LIQUIDATION_INVALID_LOW = new BN(79_999_9); // Just below 20%
-  const LIQUIDATION_INVALID_HIGH = new BN(120_000_1); // Just above 20%
+  const LIQUIDATION_LOWER_BOUNDARY = new BN(80 * 1e6); // Exactly 20% below
+  const LIQUIDATION_UPPER_BOUNDARY = new BN(120 * 1e6); // Exactly 20% above
+  const LIQUIDATION_INVALID_LOW = new BN(79999999); // Just below 20%
+  const LIQUIDATION_INVALID_HIGH = new BN(120000001); // Just above 20%
 
   // Test accounts
   let user: Keypair;
@@ -142,7 +143,7 @@ describe('Oracle Price Validation Edge Cases', () => {
     // Since weight is 100% (10000 bps), the asset price should equal the target NAV
     await client.activateBaskt(
       basktId,
-      [new BN(100_000_000)], // NAV = 100 with 6 decimals
+      [BASELINE_PRICE], // NAV = 100 with 6 decimals
       60, // maxPriceAgeSec
     );
 
@@ -428,10 +429,10 @@ describe('Oracle Price Validation Edge Cases', () => {
   it('Liquidates position within 20% oracle deviation bounds', async () => {
     // With 40% liquidation threshold, demonstrate that liquidation can occur within oracle bounds
     // Use very small position size to make liquidation achievable with smaller price movements
-    const LIQUIDATION_ORDER_SIZE = new BN(100_000); // 0.1 unit for easy liquidation
+    const LIQUIDATION_ORDER_SIZE = new BN(10000); // 0.1 unit for easy liquidation
     // For 0.1 unit: worst-case notional = 10.1 USDC, min collateral = 11.11 USDC, opening fee = 0.0101 USDC
     // Use exactly minimum required: 11.1201 USDC
-    const LIQUIDATION_COLLATERAL = new BN(11_130_000); // 11.13 USDC - exactly minimum required
+    const LIQUIDATION_COLLATERAL = new BN(1113000); // 11.13 USDC - exactly minimum required
 
     // Test upper boundary - for a short position to be liquidatable when price goes up significantly
     const upperOrderId = new BN(Date.now() + 40);
@@ -479,9 +480,9 @@ describe('Oracle Price Validation Edge Cases', () => {
     // Update oracle price to reach liquidation threshold
     // With 0.1 unit and 11.13 USDC collateral, SHORT position becomes liquidatable at ~151 USDC
     // Update oracle in steps to reach 160 USDC
-    await client.updateOraclePrice(basktId, new BN(120_000_000)); // +20% (100 -> 120)
-    await client.updateOraclePrice(basktId, new BN(144_000_000)); // +20% (120 -> 144)
-    await client.updateOraclePrice(basktId, new BN(160_000_000)); // +11% (144 -> 160)
+    await client.updateOraclePrice(basktId, new BN(120 * 1e6)); // +20% (100 -> 120)
+    await client.updateOraclePrice(basktId, new BN(144 * 1e6)); // +20% (120 -> 144)
+    await client.updateOraclePrice(basktId, new BN(160 * 1e6)); // +11% (144 -> 160)
 
     // Should succeed with price sufficient for liquidation and within oracle bounds
     await liquidatorClient.liquidatePosition({
@@ -623,7 +624,7 @@ describe('Oracle Price Validation Edge Cases', () => {
 
   it('Validates that 22% deviation works for open/close but fails for liquidation', async () => {
     // Price at 22% deviation: valid for regular ops (25% bound) but invalid for liquidation (20% bound)
-    const edgeCasePrice = new BN(1.22 * 1e6); // 22% above oracle price (1)
+    const edgeCasePrice = new BN(122 * 1e6); // 22% above oracle price (1)
     const entryCollateral = calculateRequiredCollateral(ENTRY_PRICE);
 
     // Test opening position (should succeed)

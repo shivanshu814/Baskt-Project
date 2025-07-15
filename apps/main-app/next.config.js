@@ -68,6 +68,9 @@ const nextConfig = {
       },
     ];
   },
+  images: {
+    domains: ['assets.coingecko.com', 'dd.dexscreener.com', 'binance.com', 's2.coinmarketcap.com'],
+  },
 };
 
 module.exports = nextConfig;

@@ -53,6 +53,7 @@ async function addAssetsToTrpc(
         updateFrequencySeconds: 15,
       },
     });
+    console.log('Asset added to Trpc:', asset.ticker);
   }
 }
 

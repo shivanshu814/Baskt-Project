@@ -24,6 +24,34 @@ export const useAssetManagement = (
     });
   };
 
+  const handleAddMultipleAssets = (assets: AssetInfo[]) => {
+    const newAssets: BasktAssetInfo[] = [];
+    const existingAddresses = new Set(formData.assets.map((a) => a.assetAddress));
+
+    for (const asset of assets) {
+      if (!existingAddresses.has(asset.assetAddress)) {
+        newAssets.push({
+          ...asset,
+          weight: 0,
+          direction: true,
+        });
+        existingAddresses.add(asset.assetAddress);
+      } else {
+        toast.error(`${asset.ticker} has already been added to your Baskt.`);
+      }
+    }
+
+    if (newAssets.length > 0) {
+      setFormData({
+        ...formData,
+        assets: [...formData.assets, ...newAssets],
+      });
+      toast.success(
+        `Added ${newAssets.length} asset${newAssets.length > 1 ? 's' : ''} to your Baskt.`,
+      );
+    }
+  };
+
   const handleRemoveAsset = (assetticker: string) => {
     setFormData({
       ...formData,
@@ -54,6 +82,7 @@ export const useAssetManagement = (
 
   return {
     handleAddAsset,
+    handleAddMultipleAssets,
     handleRemoveAsset,
     handleAssetPositionChange,
     handleAssetWeightChange,

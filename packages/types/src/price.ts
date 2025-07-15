@@ -2,6 +2,7 @@ export interface AssetPrice {
   priceUSD: string;
   assetId: string;
   timestamp: number;
+  assetAddress: string;
 }
 
 export interface AssetPriceDBValue {

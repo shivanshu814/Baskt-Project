@@ -1,6 +1,6 @@
 import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
-import { OrderMetadataModel } from '../../utils/models';
+import { querier } from '../../utils/querier';
 import { OrderAction, OrderType } from '@baskt/types';
 
 // create an order
@@ -27,8 +27,7 @@ export const createOrder = publicProcedure
   )
   .mutation(async ({ input }) => {
     try {
-      const order = new OrderMetadataModel(input);
-      await order.save();
+      const order = await querier.metadata.createOrder(input);
       return {
         success: true,
         data: order,
@@ -57,20 +56,14 @@ export const updateOrderStatus = publicProcedure
   .mutation(async ({ input }) => {
     try {
       const { orderPDA, ...updateData } = input;
-      const order = await OrderMetadataModel.findOneAndUpdate(
-        { orderPDA },
-        {
-          $set: {
-            orderStatus: updateData.orderStatus,
-            fullFillOrder: {
-              tx: updateData.orderFullFillTx,
-              ts: updateData.orderFullfillTs,
-            },
-            position: updateData.position,
-          },
+      const order = await querier.metadata.updateOrder(orderPDA, {
+        orderStatus: updateData.orderStatus,
+        fullFillOrder: {
+          tx: updateData.orderFullFillTx,
+          ts: updateData.orderFullfillTs,
         },
-        { new: true },
-      );
+        position: updateData.position,
+      });
       return {
         success: true,
         data: order,

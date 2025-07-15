@@ -1,16 +1,7 @@
-/** @format */
-
 import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
-import { sdkClient } from '../../utils';
-import { AssetMetadataModel, OrderMetadataModel, PositionMetadataModel } from '../../utils/models';
-import { OrderAction, OnchainPosition, PositionStatus } from '@baskt/types';
-import mongoose from 'mongoose';
-import { BN } from 'bn.js';
-import { calculateUsdcSize } from '@baskt/sdk';
-import { getAllAssetsInternal } from '../asset/query';
-
-const sdkClientInstance = sdkClient();
+import { querier } from '../../utils/querier';
+import { PositionStatus } from '@baskt/types';
 
 // get all positions
 export const getPositions = publicProcedure
@@ -24,68 +15,8 @@ export const getPositions = publicProcedure
   )
   .query(async ({ input }) => {
     try {
-      const positions = await sdkClientInstance.getAllPositions();
-      const filter: any = {};
-      
-      // Batch asset lookup optimization
-      if (input.assetId) {
-        // Get all assets and create lookup map
-        const allAssetsResult = await getAllAssetsInternal(false, false);
-        const assetLookup = new Map<string, any>();
-        
-        if (allAssetsResult.success && allAssetsResult.data) {
-          allAssetsResult.data.forEach((asset: any) => {
-            if (asset && asset.assetAddress) {
-              assetLookup.set(asset.assetAddress, asset);
-            }
-            if (asset && asset._id) {
-              assetLookup.set(asset._id.toString(), asset);
-            }
-          });
-        }
-        
-        // Try to find asset by ID or address
-        let asset = null;
-        if (mongoose.Types.ObjectId.isValid(input.assetId)) {
-          asset = assetLookup.get(input.assetId);
-        }
-        if (!asset) {
-          asset = assetLookup.get(input.assetId);
-        }
-        
-        if (!asset) {
-          return {
-            success: false,
-            message: 'Asset not found',
-          };
-        }
-        filter.basktId = { $in: asset.basktIds || [] };
-      } else if (input.basktId) {
-        filter.basktId = input.basktId;
-      }
-      
-      if (input.userId) filter.owner = { $regex: input.userId, $options: 'i' };
-      if (typeof input.isActive === 'boolean') {
-        filter.status = input.isActive ? PositionStatus.OPEN : PositionStatus.CLOSED;
-      }
-      const positionMetadatas = await PositionMetadataModel.find(filter);
-      const convertedPositions = await Promise.all(
-        positions
-          .map((position) => {
-            const pos = positionMetadatas.find(
-              (metadata) =>
-                metadata.positionPDA.toLowerCase() ===
-                position.positionPDA.toString().toLowerCase(),
-            );
-            return convertPosition(position, pos);
-          })
-          .filter((pos) => pos !== null),
-      );
-      const filteredPositions = convertedPositions.filter((pos) => pos !== null);
-      return {
-        success: true,
-        data: filteredPositions,
-      };
+      const result = await querier.position.getPositions(input);
+      return result;
     } catch (error) {
       console.error('Error fetching positions:', error);
       return {
@@ -96,30 +27,7 @@ export const getPositions = publicProcedure
     }
   });
 
-async function convertPosition(position: OnchainPosition, positionMetadata: any) {
-  if (!positionMetadata || !positionMetadata) {
-    return null;
-  }
-  //TODO: Shivanshu Need to be able to return the position Metadata if the position account is closed
-  return {
-    positionId: position.positionId.toString(),
-    positionPDA: position.positionPDA.toString(),
-    basktId: position.basktId,
-    openOrder: positionMetadata?.openOrder,
-    closeOrder: positionMetadata?.closeOrder,
-    openPosition: positionMetadata?.openPosition,
-    closePosition: positionMetadata?.closePosition,
-    positionStatus: position.status,
-    entryPrice: position.entryPrice?.toString() || '',
-    exitPrice: position.exitPrice?.toString() || '',
-    owner: position.owner.toString(),
-    status: position.status,
-    size: position.size.toString(),
-    collateral: position.collateral.toString(),
-    isLong: position.isLong,
-    usdcSize: calculateUsdcSize(new BN(position.size), position.entryPrice.toNumber()).toString(),
-  };
-}
+
 
 // // get historical open interest for an asset
 // export const getHistoricalOpenInterest = publicProcedure

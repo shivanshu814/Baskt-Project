@@ -1,4 +1,4 @@
-import { trpc } from '../../utils/trpc';
+import { trpc } from '../../../utils/common/trpc';
 import { PositionStatus } from '@baskt/types';
 
 export const useBasktOI = (basktId: string) => {

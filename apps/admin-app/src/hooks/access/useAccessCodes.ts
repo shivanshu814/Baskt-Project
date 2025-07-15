@@ -62,7 +62,7 @@ export function useAccessCodes() {
   }, []);
 
   return {
-    accessCodes,
+    accessCodes: accessCodes?.data || [],
     isLoading,
     newCode,
     copiedCode,

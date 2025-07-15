@@ -1,7 +1,7 @@
 import React from 'react';
 import { useOrderHistory } from '../../../../../hooks/baskt/trade/useOrderHistory';
 import { useBasktClient } from '@baskt/ui';
-import { formatDateTime } from '../../../../../utils/date';
+import { formatDateTime } from '../../../../../utils/common/date';
 import {
   NumberFormat,
   Card,
@@ -128,7 +128,9 @@ export const BasktOrderHistory = ({ basktId }: { basktId?: string }) => {
                         '---'
                       )}
                     </TableCell>
-                    <TableCell className={`text-xs sm:text-sm ${getPnlColor(item.pnl)}`}>
+                    <TableCell
+                      className={`text-xs sm:text-sm whitespace-nowrap ${getPnlColor(item.pnl)}`}
+                    >
                       {item.pnl ? (
                         <>
                           <NumberFormat value={parseFloat(item.pnl)} isPrice />

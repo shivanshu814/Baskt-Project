@@ -1,6 +1,6 @@
 import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
-import { AssetMetadataModel } from '../../utils/models';
+import { querier } from '../../utils/querier';
 
 // create an asset
 export const createAsset = publicProcedure
@@ -27,17 +27,13 @@ export const createAsset = publicProcedure
   )
   .mutation(async ({ input }) => {
     try {
-      const existingAsset = await AssetMetadataModel.findOne({ ticker: input.ticker });
+      const existingAsset = await querier.metadata.findAssetByAddress(input.assetAddress);
       if (existingAsset) {
-        return { success: false, message: 'Ticker already exists' };
+        return { success: false, message: 'Asset address already exists' };
       }
-      const asset = new AssetMetadataModel({
+      const asset = await querier.metadata.createAsset({
         ...input,
       });
-      if (input.coingeckoId) {
-        asset.set('coingeckoId', input.coingeckoId);
-      }
-      await asset.save();
       return { success: true, data: asset };
     } catch (error) {
       console.error('Error creating asset:', error);
@@ -50,14 +46,14 @@ export const updateAssetBasktIds = publicProcedure
   .input(z.object({ assetId: z.string(), basktId: z.string() }))
   .mutation(async ({ input }) => {
     try {
-      const asset = await AssetMetadataModel.findById(input.assetId);
+      const asset = await querier.metadata.findAssetById(input.assetId);
       if (!asset) {
         return { success: false, message: 'Asset not found' };
       }
       if (!asset.basktIds) asset.basktIds = [];
       if (!asset.basktIds.includes(input.basktId)) {
         asset.basktIds.push(input.basktId);
-        await asset.save();
+        await querier.metadata.updateAsset(input.assetId, asset);
       }
       return { success: true, data: asset };
     } catch (error) {
@@ -91,59 +87,63 @@ export const updateAssetPriceConfig = publicProcedure
   .mutation(async ({ input }) => {
     try {
       const { assetId, name, logo, priceConfig, coingeckoId } = input;
-      const asset = await AssetMetadataModel.findById(assetId);
+      const asset = await querier.metadata.findAssetById(assetId);
 
       if (!asset) {
         return { success: false, message: 'Asset not found' };
       }
 
-      // Only update fields that are provided
+      // Build update object
+      const updateData: any = {};
+      
       if (name) {
-        asset.name = name;
+        updateData.name = name;
       }
       
       if (logo) {
-        asset.logo = logo;
+        updateData.logo = logo;
       }
       
       if (coingeckoId) {
-        asset.set('coingeckoId', coingeckoId);
+        updateData.coingeckoId = coingeckoId;
       }
       
       if (priceConfig) {
+        updateData.priceConfig = { ...asset.priceConfig };
+        
         // Update provider fields if provided
         if (priceConfig.provider) {
           if (priceConfig.provider.name) {
-            asset.priceConfig.provider.name = priceConfig.provider.name;
+            updateData.priceConfig.provider.name = priceConfig.provider.name;
           }
           if (priceConfig.provider.id) {
-            asset.priceConfig.provider.id = priceConfig.provider.id;
+            updateData.priceConfig.provider.id = priceConfig.provider.id;
           }
           if (priceConfig.provider.chain) {
-            asset.priceConfig.provider.chain = priceConfig.provider.chain;
+            updateData.priceConfig.provider.chain = priceConfig.provider.chain;
           }
         }
         
         // Update TWP if provided
         if (priceConfig.twp?.seconds) {
-          if (!asset.priceConfig.twp) asset.priceConfig.twp = { seconds: 60 };
-          asset.priceConfig.twp.seconds = priceConfig.twp.seconds;
+          if (!updateData.priceConfig.twp) updateData.priceConfig.twp = { seconds: 60 };
+          updateData.priceConfig.twp.seconds = priceConfig.twp.seconds;
         }
         
         // Update update frequency if provided
         if (priceConfig.updateFrequencySeconds) {
-          asset.priceConfig.updateFrequencySeconds = priceConfig.updateFrequencySeconds;
+          updateData.priceConfig.updateFrequencySeconds = priceConfig.updateFrequencySeconds;
         }
         
         // Update units if provided
         if (priceConfig.units) {
-          (asset.priceConfig as any).units = priceConfig.units;
+          updateData.priceConfig.units = priceConfig.units;
         }
       }
       
-      await asset.save();
+      const updatedAsset = await querier.metadata.updateAsset(assetId, updateData);
 
-      return { success: true, data: asset };
+      return { success: true, data: updatedAsset };
     } catch (error) {
       console.error('Error updating asset:', error);
       return { success: false, message: 'Failed to update asset' };
@@ -156,7 +156,7 @@ export const deleteAsset = publicProcedure
   .mutation(async ({ input }) => {
     try {
       const { assetId } = input;
-      const result = await AssetMetadataModel.findByIdAndDelete(assetId);
+      const result = await querier.metadata.deleteAsset(assetId);
 
       if (!result) {
         return { success: false, message: 'Asset not found' };

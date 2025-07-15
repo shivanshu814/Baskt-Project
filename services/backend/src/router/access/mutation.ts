@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { publicProcedure } from '../../trpc/trpc';
 import { TRPCError } from '@trpc/server';
-import { AccessCode, AuthorizedWallet } from '../../utils/models';
+import { querier } from '../../utils/querier';
 
 // generate random 8-character code
 function generateAccessCode(): string {
@@ -26,7 +26,7 @@ export const generateAccessCodeMutation = publicProcedure
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
     // check if code already exists (very unlikely but safe)
-    const existingCode = await AccessCode.findOne({ code });
+    const existingCode = await querier.metadata.findAccessCode(code);
     if (existingCode) {
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
@@ -34,15 +34,18 @@ export const generateAccessCodeMutation = publicProcedure
       });
     }
 
-    const accessCode = new AccessCode({
+    const result = await querier.access.createAccessCode({
       code,
-      isUsed: false,
-      createdAt: now,
-      expiresAt,
       description: input.description,
+      expiresAt,
     });
 
-    await accessCode.save();
+    if (!result.success) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: result.error || 'Failed to create access code',
+      });
+    }
 
     return {
       code,
@@ -61,52 +64,18 @@ export const validateAccessCode = publicProcedure
   )
   .mutation(async ({ input }) => {
     const { code, userIdentifier } = input;
-    const accessCode = await AccessCode.findOne({ code: code.toUpperCase() });
 
-    if (!accessCode) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Invalid access code',
-      });
-    }
-
-    if (accessCode.isUsed) {
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'Access code has already been used',
-      });
-    }
-
-    if (new Date() > accessCode.expiresAt) {
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'Access code has expired',
-      });
-    }
-
-    const existingWallet = await AuthorizedWallet.findOne({
+    const result = await querier.access.useAccessCode({
+      code: code.toUpperCase(),
       walletAddress: userIdentifier.toLowerCase(),
     });
-    if (existingWallet && existingWallet.isActive) {
+
+    if (!result.success) {
       throw new TRPCError({
         code: 'FORBIDDEN',
-        message: 'Wallet is already authorized',
+        message: result.error || 'Failed to validate access code',
       });
     }
-
-    accessCode.isUsed = true;
-    accessCode.usedBy = userIdentifier;
-    await accessCode.save();
-
-    const authorizedWallet = new AuthorizedWallet({
-      walletAddress: userIdentifier.toLowerCase(),
-      authorizedAt: new Date(),
-      accessCodeUsed: code.toUpperCase(),
-      lastLoginAt: new Date(),
-      isActive: true,
-    });
-
-    await authorizedWallet.save();
 
     return {
       success: true,
@@ -124,9 +93,9 @@ export const revokeWalletAccess = publicProcedure
   .mutation(async ({ input }) => {
     const { walletAddress } = input;
 
-    const authorizedWallet = await AuthorizedWallet.findOne({
-      walletAddress: walletAddress.toLowerCase(),
-    });
+    const authorizedWallet = await querier.metadata.findAuthorizedWallet(
+      walletAddress.toLowerCase(),
+    );
 
     if (!authorizedWallet) {
       throw new TRPCError({
@@ -135,8 +104,9 @@ export const revokeWalletAccess = publicProcedure
       });
     }
 
-    authorizedWallet.isActive = false;
-    await authorizedWallet.save();
+    await querier.metadata.updateAuthorizedWallet(walletAddress.toLowerCase(), {
+      isActive: false,
+    });
 
     return {
       success: true,
@@ -154,9 +124,9 @@ export const reactivateWallet = publicProcedure
   .mutation(async ({ input }) => {
     const { walletAddress } = input;
 
-    const authorizedWallet = await AuthorizedWallet.findOne({
-      walletAddress: walletAddress.toLowerCase(),
-    });
+    const authorizedWallet = await querier.metadata.findAuthorizedWallet(
+      walletAddress.toLowerCase(),
+    );
 
     if (!authorizedWallet) {
       throw new TRPCError({
@@ -165,9 +135,10 @@ export const reactivateWallet = publicProcedure
       });
     }
 
-    authorizedWallet.isActive = true;
-    authorizedWallet.lastLoginAt = new Date();
-    await authorizedWallet.save();
+    await querier.metadata.updateAuthorizedWallet(walletAddress.toLowerCase(), {
+      isActive: true,
+      lastLoginAt: new Date(),
+    });
 
     return {
       success: true,
@@ -185,7 +156,7 @@ export const deleteAccessCode = publicProcedure
   .mutation(async ({ input }) => {
     const { code } = input;
 
-    const deletedCode = await AccessCode.findOneAndDelete({ code: code.toUpperCase() });
+    const deletedCode = await querier.metadata.deleteAccessCode(code.toUpperCase());
 
     if (!deletedCode) {
       throw new TRPCError({

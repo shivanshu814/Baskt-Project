@@ -1,7 +1,6 @@
-import { AssetPrice } from '../../config/timescale';
-import { Op } from 'sequelize';
 import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
+import { querier } from '../../utils/querier';
 
 export const getAssetPrice = publicProcedure
   .input(
@@ -12,7 +11,20 @@ export const getAssetPrice = publicProcedure
     }),
   )
   .query(async ({ input }) => {
-    return getAssetPriceInternal(input.assetId, input.startDate, input.endDate);
+    try {
+      const result = await querier.price.getPriceHistory({
+        assetId: input.assetId,
+        startDate: input.startDate,
+        endDate: input.endDate,
+      });
+      return result;
+    } catch (error) {
+      console.error('Error fetching asset price:', error);
+      return {
+        success: false,
+        error: 'Failed to fetch asset price',
+      };
+    }
   });
 
 export const getLatestAssetPrice = publicProcedure
@@ -22,92 +34,34 @@ export const getLatestAssetPrice = publicProcedure
     }),
   )
   .query(async ({ input }) => {
-    return getLatestAssetPriceInternal(input.assetId);
+    try {
+      const result = await querier.price.getLatestPrice(input.assetId);
+      return result;
+    } catch (error) {
+      console.error('Error fetching latest asset price:', error);
+      return {
+        success: false,
+        error: 'Failed to fetch latest asset price',
+      };
+    }
   });
 
 export const getLatestAssetPrices = publicProcedure
   .input(z.array(z.object({ assetId: z.string().min(1) })))
   .query(async ({ input }) => {
-    return getLatestAssetPricesInternal(input.map((asset) => asset.assetId));
+    try {
+      const result = await querier.price.getLatestPrices(input.map((asset) => asset.assetId));
+      return result;
+    } catch (error) {
+      console.error('Error fetching latest asset prices:', error);
+      return {
+        success: false,
+        error: 'Failed to fetch latest asset prices',
+      };
+    }
   });
 
-export async function getLatestAssetPricesInternal(assetIds: string[]) {
-  try {
-    const assetPriceRows = await AssetPrice.findAll({
-      where: {
-        asset_id: {
-          [Op.in]: assetIds,
-        },
-      },
-      order: [['time', 'DESC']],
-      limit: assetIds.length * 2,
-    });
 
-    const priceMap = new Map();
-    assetPriceRows.forEach((row: any) => {
-      const plain = row.toJSON();
-      const assetId = plain.asset_id;
-
-      if (!priceMap.has(assetId)) {
-        priceMap.set(assetId, formatAssetPrice(plain));
-      }
-    });
-
-    const result = Array.from(priceMap.values());
-    return result;
-  } catch (error) {
-    throw new Error('Failed to fetch assets');
-  }
-}
-
-export async function getLatestAssetPriceInternal(assetId: string) {
-  try {
-    const assetPriceRow = await AssetPrice.findOne({
-      where: {
-        asset_id: assetId,
-      },
-      order: [['time', 'DESC']],
-    });
-    if (!assetPriceRow) {
-      return null;
-    }
-    const plain = assetPriceRow.toJSON();
-    return formatAssetPrice(plain);
-  } catch (error) {
-    throw new Error('Failed to fetch assets');
-  }
-}
-
-export async function getAssetPriceInternal(assetId: string, startDate: number, endDate: number) {
-  try {
-    const assetPriceRows = await AssetPrice.findAll({
-      where: {
-        asset_id: assetId,
-        // time: {
-        //   [Op.gte]: new Date(startDate * 1000),
-        //   [Op.lte]: new Date(endDate * 1000),
-        // },
-      },
-      order: [['time', 'DESC']],
-    });
-    return assetPriceRows.map((row: any) => {
-      const plain = row.toJSON();
-      return formatAssetPrice(plain);
-    });
-  } catch (error) {
-    throw new Error('Failed to fetch assets');
-  }
-}
-
-export function formatAssetPrice(assetPrice: any) {
-  return {
-    id: assetPrice.asset_id,
-    time: assetPrice.time ? Math.floor(new Date(assetPrice.time).getTime() / 1000) : null,
-    price:
-      assetPrice.price && !isNaN(Number(assetPrice.price)) ? Number(assetPrice.price) / 1e6 : null,
-    rawPrice: assetPrice.price,
-  };
-}
 
 export const getRouter = {
   getAssetPrice,

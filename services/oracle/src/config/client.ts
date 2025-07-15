@@ -1,19 +1,10 @@
-import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
-import type { AppRouter } from '@backend/router';
 import { BaseClient } from '@baskt/sdk';
 import { Connection, Keypair } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
 import { join } from 'path';
 import { homedir } from 'os';
 import { readFileSync } from 'fs';
-
-export const trpcClient = createTRPCProxyClient<AppRouter>({
-  links: [
-    httpBatchLink({
-      url: process.env.BACKEND_URL || 'http://localhost:4000/trpc',
-    }),
-  ],
-});
+import { createQuerier } from '@baskt/querier';
 
 export class SDKClient extends BaseClient {
   public keypair: Keypair;
@@ -54,3 +45,5 @@ export class SDKClient extends BaseClient {
 }
 
 export const basktClient: SDKClient = new SDKClient();
+
+export const querierClient = createQuerier(basktClient);

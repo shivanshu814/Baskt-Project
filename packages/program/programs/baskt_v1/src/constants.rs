@@ -38,20 +38,22 @@ pub const MAX_ORDER_SIZE: u64 = 1_000_000_000_000; // 1M tokens
                                                    // USDC decimals
 pub const USDC_DECIMALS: u8 = 6;
 
-// Price precision - aligned with USDC decimals
-pub const PRICE_EXPONENT: u32 = 6;
-pub const PRICE_PRECISION: u64 = 10u64.pow(6); // 6 decimal places to match USDC
+
 
 // Position constants
 pub const FUNDING_PRECISION: u64 = 10u64.pow(6); // 6 decimal places
 pub const SECONDS_IN_HOUR: i64 = 3600;
 
 // Escrow mint
-pub const ESCROW_MINT: Pubkey = pubkey!("6uBc97h6XMKY4kqQ3DJA9R8y9AXC7yUMsm7AUxM8QKpr");
 // pub const ESCROW_MINT: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+pub const ESCROW_MINT: Pubkey = pubkey!("6uBc97h6XMKY4kqQ3DJA9R8y9AXC7yUMsm7AUxM8QKpr");
 
 // Baskt constants
-pub const BASE_NAV: u64 = 1; // Base NAV value for new baskts ($1)
+pub const BASE_NAV: u64 = 100; // Base NAV value for new baskts ($100)
+pub const PRICE_EXPONENT: u32 = 6;
+pub const PRICE_PRECISION: u64 = 10u64.pow(PRICE_EXPONENT); // 6 decimal places to match USDC
+
+
 pub const MIN_GRACE_PERIOD: i64 = 1; // 1 second
 pub const MAX_GRACE_PERIOD: i64 = 604800; // 7 days
 

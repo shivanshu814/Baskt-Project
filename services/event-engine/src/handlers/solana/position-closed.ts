@@ -1,7 +1,12 @@
-import { trpcClient, basktClient } from '../../utils/config';
+import { querierClient, basktClient } from '../../utils/config';
 import BN from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
 import { EventSource, ObserverEvent } from '../../types';
+import { 
+  createPositionFeeEvent, 
+  calculatePositionFees, 
+  convertTimestampToDate 
+} from '../../utils/fee-utils';
 
 export type PositionClosedEvent = {
   orderId: BN;
@@ -19,48 +24,63 @@ export type PositionClosedEvent = {
   timestamp: BN;
 };
 
+/**
+ * Create fee event for position closed
+ */
+async function createPositionClosedFeeEvent(
+  positionClosedData: PositionClosedEvent,
+  tx: string
+): Promise<void> {
+  const fees = calculatePositionFees(positionClosedData.feeToTreasury, positionClosedData.feeToBlp);
+  const timestamp = convertTimestampToDate(positionClosedData.timestamp);
+
+  await createPositionFeeEvent(
+    'POSITION_CLOSED',
+    tx,
+    timestamp,
+    positionClosedData.basktId.toString(),
+    positionClosedData.owner.toString(),
+    fees.feeToTreasury,
+    fees.feeToBlp,
+    fees.totalFee,
+    positionClosedData.positionId.toString(),
+    {
+      orderId: positionClosedData.orderId.toString(),
+      positionSize: positionClosedData.size.toString(),
+      exitPrice: positionClosedData.exitPrice.toString(),
+    }
+  );
+}
+
 async function positionClosedHandler(event: ObserverEvent) {
-  console.log('Position closed event:', event);
   const positionClosedData = event.payload.event as PositionClosedEvent;
   const tx = event.payload.signature;
 
   try {
     const positionPDA = await basktClient.getPositionPDA(
       positionClosedData.owner,
-      positionClosedData.positionId,
+      positionClosedData.positionId
     );
 
-    const orderPDA = await basktClient.getOrderPDA(
-      positionClosedData.orderId,
-      positionClosedData.owner,
-    );
-
-    const result = await trpcClient.position.closePosition.mutate({
-      positionPDA: positionPDA.toString(),
+    // Update position status to CLOSED
+    await querierClient.metadata.updatePosition(positionPDA.toString(), {
+      status: 'CLOSED',
       exitPrice: positionClosedData.exitPrice.toString(),
-      tx,
-      ts: positionClosedData.timestamp.toString(),
-      closeOrder: orderPDA.toString(),
+      closePosition: {
+        tx: tx,
+        ts: positionClosedData.timestamp.toString(),
+      },
     });
 
-    console.log('result', result);
-
-    if (!result.success) {
-      console.error(
-        'Failed to close position in DB:',
-        'message' in result ? result.message : 'Unknown error',
-      );
-    } else {
-      console.log('Position closed successfully in DB');
-    }
+    // Create fee event record
+    await createPositionClosedFeeEvent(positionClosedData, tx);
   } catch (error) {
-    console.error('Error in positionClosedHandler:', error);
-    throw error;
+    console.error('Error processing position closed event:', error);
   }
 }
 
 export default {
-  source: EventSource.SOLANA,
   type: 'positionClosedEvent',
   handler: positionClosedHandler,
+  source: EventSource.SOLANA,
 };

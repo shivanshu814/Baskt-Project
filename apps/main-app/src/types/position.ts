@@ -23,5 +23,6 @@ export interface PositionData {
   collateral: string;
   isLong: boolean;
   usdcSize: string;
+  fees: number;
   timestampOpen?: string;
 }

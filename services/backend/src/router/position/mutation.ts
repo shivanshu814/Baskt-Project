@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { PositionStatus } from '@baskt/types';
 import { publicProcedure } from '../../trpc/trpc';
-import { PositionMetadataModel } from '../../utils/models';
+import { querier } from '../../utils/querier';
 
 // create a position
 export const createPosition = publicProcedure
@@ -27,7 +27,7 @@ export const createPosition = publicProcedure
   )
   .mutation(async ({ input }) => {
     try {
-      const position = await PositionMetadataModel.create(input);
+      const position = await querier.metadata.createPosition(input);
       return {
         success: true,
         data: position,
@@ -56,7 +56,7 @@ export const closePosition = publicProcedure
     try {
       const { positionPDA, exitPrice, tx, ts, closeOrder } = input;
 
-      const position = await PositionMetadataModel.findOne({ positionPDA: positionPDA });
+      const position = await querier.metadata.findPositionById(positionPDA);
 
       if (!position) {
         return {
@@ -65,22 +65,21 @@ export const closePosition = publicProcedure
         };
       }
 
-      (position as any).status = PositionStatus.CLOSED;
-      (position as any).exitPrice = exitPrice;
-      (position as any).closePosition = {
-        tx,
-        ts,
+      const updateData = {
+        status: PositionStatus.CLOSED,
+        exitPrice,
+        closePosition: {
+          tx,
+          ts,
+        },
+        ...(closeOrder && { closeOrder }),
       };
 
-      if (closeOrder) {
-        (position as any).closeOrder = closeOrder;
-      }
-
-      await position.save();
+      const updatedPosition = await querier.metadata.updatePosition(positionPDA, updateData);
 
       return {
         success: true,
-        data: position,
+        data: updatedPosition,
       };
     } catch (error) {
       console.error('Error closing position:', error);

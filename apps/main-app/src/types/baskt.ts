@@ -28,6 +28,9 @@ export interface AssetSelectionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAssetSelect: (asset: AssetInfo) => void;
+  onMultipleAssetSelect?: (assets: AssetInfo[]) => void;
+  multipleSelection?: boolean;
+  selectedAssets?: AssetInfo[];
 }
 
 export interface BasicInfoFormProps {
@@ -186,4 +189,10 @@ export interface BasktFormProps {
   onAssetPositionChange: (ticker: string, position: 'long' | 'short') => void;
   onAssetWeightChange: (ticker: string, weight: string) => void;
   title?: string;
+}
+
+export interface MetricCardType {
+  label: string;
+  value: React.ReactNode;
+  color?: string;
 }

@@ -14,7 +14,6 @@ import { useDeposit } from '../../hooks/pool/useDeposit';
 import { useWithdraw } from '../../hooks/pool/useWithdraw';
 import { usePoolRefresh } from '../../hooks/pool/usePoolRefresh';
 import { useBalanceRefresh } from '../../hooks/pool/useBalanceRefresh';
-import { poolAllocations } from '../../data/pool-allocations';
 
 export default function PoolPage() {
   const { wallet } = useBasktClient();
@@ -65,7 +64,6 @@ export default function PoolPage() {
               tvl={tvl}
               blpPrice={blpPrice}
               totalSupply={totalSupply}
-              allocations={poolAllocations}
             />
           </div>
         </div>
@@ -129,7 +127,7 @@ export default function PoolPage() {
                       <TabsContent value="deposit">
                         <ActionCard
                           title="Deposit"
-                          description="Add liquidity to the pool"
+                          description="Add liquidity to the pool."
                           icon={<ArrowUpRight className="h-5 w-5 text-green-400" />}
                           inputValue={depositAmount}
                           setInputValue={setDepositAmount}
@@ -148,7 +146,7 @@ export default function PoolPage() {
                       <TabsContent value="withdraw">
                         <ActionCard
                           title="Withdraw"
-                          description="Remove liquidity from the pool"
+                          description="Remove liquidity from the pool."
                           icon={<ArrowDownRight className="h-5 w-5 text-red-400" />}
                           inputValue={withdrawAmount}
                           setInputValue={setWithdrawAmount}

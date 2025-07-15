@@ -1,10 +1,14 @@
-import { trpcClient } from '../../utils/config';
-import { basktClient } from '../../utils/config';
+import { querierClient, basktClient } from '../../utils/config';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { OnchainPosition } from '@baskt/types';
 import { PositionStatus } from '@baskt/types';
 import { EventSource, ObserverEvent } from '../../types';
+import { 
+  createPositionFeeEvent, 
+  calculatePositionFees, 
+  convertTimestampToDate 
+} from '../../utils/fee-utils';
 
 interface PositionOpenedEvent {
   orderId: BN;
@@ -16,85 +20,85 @@ interface PositionOpenedEvent {
   isLong: number;
   entryPrice: BN;
   entryFundingIndex: BN;
+  feeToTreasury: BN;
+  feeToBlp: BN;
   timestamp: BN;
 }
 
+/**
+ * Create fee event for position opened
+ */
+async function createPositionOpenedFeeEvent(
+  positionOpenedData: PositionOpenedEvent,
+  tx: string,
+  isLong: boolean
+): Promise<void> {
+  const fees = calculatePositionFees(positionOpenedData.feeToTreasury, positionOpenedData.feeToBlp);
+  const timestamp = convertTimestampToDate(positionOpenedData.timestamp);
+
+  await createPositionFeeEvent(
+    'POSITION_OPENED',
+    tx,
+    timestamp,
+    positionOpenedData.basktId.toString(),
+    positionOpenedData.owner.toString(),
+    fees.feeToTreasury,
+    fees.feeToBlp,
+    fees.totalFee,
+    positionOpenedData.positionId.toString(),
+    {
+      orderId: positionOpenedData.orderId.toString(),
+      positionSize: positionOpenedData.size.toString(),
+      entryPrice: positionOpenedData.entryPrice.toString(),
+      isLong,
+    }
+  );
+}
+
 async function positionOpenedHandler(event: ObserverEvent) {
-  console.log('Received position opened event data: ', event);
   const positionOpenedData = event.payload.event as PositionOpenedEvent;
   const tx = event.payload.signature;
 
   try {
-    if (!positionOpenedData.positionId) {
-      throw new Error('positionId is undefined in the event data');
-    }
+    const positionId = positionOpenedData.positionId instanceof BN 
+      ? positionOpenedData.positionId 
+      : new BN(positionOpenedData.positionId.toString());
 
-    const positionId: BN =
-      positionOpenedData.positionId instanceof BN
-        ? positionOpenedData.positionId
-        : new BN(positionOpenedData.positionId.toString());
-
-    const positionPDA = await basktClient.getPositionPDA(positionOpenedData.owner, positionId);
-
-    const onchainPosition: OnchainPosition = await basktClient.readWithRetry(
-      async () => await basktClient.getPosition(positionPDA, 'confirmed'),
-      2,
-      100,
-    );
-    if (!onchainPosition) {
-      throw new Error(`Onchain position not found for PDA: ${positionPDA.toString()}`);
-    }
-
-    const orderPDA = await basktClient.getOrderPDA(
-      positionOpenedData.orderId,
+    const positionPDA = await basktClient.getPositionPDA(
       positionOpenedData.owner,
+      positionId
     );
-    if (!orderPDA) {
-      throw new Error('Order PDA could not be derived');
-    }
 
-    console.log('Found Order PDA: ', orderPDA.toString());
-    console.log('Found Position PDA: ', positionPDA.toString());
+    const isLong = positionOpenedData.isLong === 1;
 
-    const positionResult = await trpcClient.position.createPosition.mutate({
+    const positionData = {
       positionPDA: positionPDA.toString(),
-      positionId: onchainPosition.positionId.toString(),
-      basktId: onchainPosition.basktId.toString(),
-      openOrder: orderPDA.toString(),
+      positionId: positionId.toString(),
+      owner: positionOpenedData.owner.toString(),
+      basktId: positionOpenedData.basktId.toString(),
+      size: positionOpenedData.size.toString(),
+      collateral: positionOpenedData.collateral.toString(),
+      entryPrice: positionOpenedData.entryPrice.toString(),
+      status: PositionStatus.OPEN,
+      isLong: isLong,
+      openOrder: positionOpenedData.orderId.toString(),
       openPosition: {
         tx: tx,
-        ts: onchainPosition.timestampOpen.toString(),
+        ts: positionOpenedData.timestamp.toString(),
       },
-      entryPrice: onchainPosition.entryPrice.toString(),
-      owner: onchainPosition.owner.toString(),
-      status: PositionStatus.OPEN,
-      size: onchainPosition.size.toString(),
-      collateral: onchainPosition.collateral.toString(),
-      isLong: onchainPosition.isLong,
-    });
+    };
 
-    if (!positionResult.success || !('data' in positionResult)) {
-      throw new Error(
-        `Failed to create position: ${
-          'message' in positionResult ? positionResult.message : 'Unknown error'
-        }`,
-      );
-    }
+    await querierClient.metadata.createPosition(positionData);
 
-    console.log('Position created successfully in DB');
-
-    return;
+    // Create fee event record
+    await createPositionOpenedFeeEvent(positionOpenedData, tx, isLong);
   } catch (error) {
-    console.error(
-      'Error in positionOpenedHandler:',
-      error instanceof Error ? error.message : error,
-    );
-    throw error;
+    console.error('Error processing position opened event:', error);
   }
 }
 
 export default {
-  source: EventSource.SOLANA,
   type: 'positionOpenedEvent',
   handler: positionOpenedHandler,
+  source: EventSource.SOLANA,
 };

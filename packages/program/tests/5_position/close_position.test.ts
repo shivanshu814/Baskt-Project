@@ -619,9 +619,10 @@ describe('Close Position', () => {
       });
       expect.fail('Transaction should have failed due to missing matcher role');
     } catch (error: any) {
+
       // This error should come from the on-chain unauthorized check
-      // console.debug('Non-matcher close error:', error.toString());
-      expect(error.error.errorName || error.toString()).to.include('Unauthorized');
+      console.debug('Non-matcher close error:', error.toString());
+      expect(error?.error?.errorName || error.toString()).to.include('Unauthorized');
     }
   });
 
@@ -630,8 +631,8 @@ describe('Close Position', () => {
     // 25% deviation = ±25 = ±25_000_000
     // Valid range: 75_000_000 to 125_000_000
 
-    const validExitPriceHigh = new BN(124_000_0); // 1.24 - within 25% bound
-    const validExitPriceLow = new BN(76_000_0); // 0.76 - within 25% bound
+    const validExitPriceHigh = new BN(124 * 1e6); // 1.24 - within 25% bound
+    const validExitPriceLow = new BN(76 * 1e6); // 0.76 - within 25% bound
 
     // Create positions for testing valid price ranges
     const highOrderId = new BN(Date.now() + 500);

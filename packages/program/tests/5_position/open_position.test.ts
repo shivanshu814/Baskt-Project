@@ -9,7 +9,7 @@ import { BASELINE_PRICE } from '../utils/test-constants';
 
 describe('Position Opening', () => {
   // Constants for test
-  const ORDER_SIZE = new BN(10_000_000); // 10 units
+  const ORDER_SIZE = new BN(100_000); // 10 units
   const COLLATERAL_AMOUNT = new BN(12_000_000); // 12 USDC (enough for $1 limit price)
   const ENTRY_PRICE = BASELINE_PRICE; // NAV starts at $1 with 6 decimals
 
@@ -189,8 +189,8 @@ describe('Position Opening', () => {
     // 25% deviation = ±250_000
     // Valid range: 750_000 to 1250_000
 
-    const validPriceHigh = new BN(1_240_000); // $1.24 - within 25% bound
-    const validPriceLow = new BN(760_000); // $0.76 - within 25% bound
+    const validPriceHigh = new BN(124 * 1e6); // $1.24 - within 25% bound
+    const validPriceLow = new BN(76 * 1e6); // $0.76 - within 25% bound
 
     // Calculate required collateral for high price ($1.24)
     // Base notional = 10 * 1.24 = 12.4 USDC, slippage = 0.62 USDC, worst-case = 13.02 USDC
@@ -295,8 +295,8 @@ describe('Position Opening', () => {
     // 25% deviation = ±250_000
     // Invalid range: <750_000 or >1250_000
 
-    const invalidPriceHigh = new BN(130_000_0); // 1.3 - outside 25% bound
-    const invalidPriceLow = new BN(70_000_0); // 0.7 - outside 25% bound
+    const invalidPriceHigh = new BN(130 * 1e6); // 1.3 - outside 25% bound
+    const invalidPriceLow = new BN(70 * 1e6); // 0.7 - outside 25% bound
 
     // Calculate required collateral for high price (130 USDC)
     const highPriceCollateral = new BN(1_600_000_000); // 1600 USDC with buffer

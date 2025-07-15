@@ -16,7 +16,7 @@ export function BasktList({ onActivate, activatingBasktId, onViewDetails }: Bask
     }
   }, [error]);
 
-  const validBaskts = basktList.filter((baskt): baskt is BasktData => {
+  const validBaskts = basktList.filter((baskt: any): baskt is BasktData => {
     return (
       baskt !== null &&
       baskt !== undefined &&
@@ -54,7 +54,7 @@ export function BasktList({ onActivate, activatingBasktId, onViewDetails }: Bask
               </TableCell>
             </TableRow>
           ) : validBaskts.length > 0 ? (
-            validBaskts.map((baskt) => {
+            validBaskts.map((baskt: any) => {
               const key = baskt.basktId || `baskt-${Math.random()}`;
               return (
                 <BasktRow

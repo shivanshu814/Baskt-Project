@@ -110,7 +110,7 @@ export function usePool({
   const isInitialized = liquidityPool?.success === true && 'data' in liquidityPool;
 
   const poolData = useMemo(() => {
-    if (!liquidityPool || !isInitialized) return null;
+    if (!liquidityPool || !isInitialized || !liquidityPool.data) return null;
 
     const rawData: PoolData = {
       totalLiquidity: Number(liquidityPool.data.totalLiquidity) / USDC_DECIMALS,

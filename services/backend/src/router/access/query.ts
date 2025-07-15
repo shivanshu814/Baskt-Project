@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { publicProcedure } from '../../trpc/trpc';
-import { AccessCode, AuthorizedWallet } from '../../utils/models';
+import { querier } from '../../utils/querier';
 
 // check if wallet is authorized
 export const checkWalletAccess = publicProcedure
@@ -10,57 +10,42 @@ export const checkWalletAccess = publicProcedure
     }),
   )
   .query(async ({ input }) => {
-    const { walletAddress } = input;
-
-    const authorizedWallet = await AuthorizedWallet.findOne({
-      walletAddress: walletAddress.toLowerCase(),
-      isActive: true,
-    });
-
-    if (!authorizedWallet) {
+    try {
+      const result = await querier.access.checkWalletAccess(input);
+      return result;
+    } catch (error) {
+      console.error('Error checking wallet access:', error);
       return {
         hasAccess: false,
-        message: 'Wallet not authorized',
+        message: 'Error checking wallet access',
       };
     }
-
-    // Update last login time
-    authorizedWallet.lastLoginAt = new Date();
-    await authorizedWallet.save();
-
-    return {
-      hasAccess: true,
-      authorizedAt: authorizedWallet.authorizedAt.toISOString(),
-      accessCodeUsed: authorizedWallet.accessCodeUsed,
-      lastLoginAt: authorizedWallet.lastLoginAt?.toISOString(),
-      message: 'Wallet is authorized',
-    };
   });
 
 // get all authorized wallets (for admin)
 export const getAuthorizedWallets = publicProcedure.query(async () => {
-  const wallets = await AuthorizedWallet.find({ isActive: true }).sort({ authorizedAt: -1 }).lean();
-
-  return wallets.map((wallet: any) => ({
-    id: wallet._id,
-    walletAddress: wallet.walletAddress,
-    authorizedAt: wallet.authorizedAt.toISOString(),
-    accessCodeUsed: wallet.accessCodeUsed,
-    lastLoginAt: wallet.lastLoginAt?.toISOString(),
-    isActive: wallet.isActive,
-  }));
+  try {
+    const result = await querier.access.getAuthorizedWallets();
+    return result;
+  } catch (error) {
+    console.error('Error fetching authorized wallets:', error);
+    return {
+      success: false,
+      error: 'Failed to fetch authorized wallets',
+    };
+  }
 });
 
 // get all access codes (for admin)
 export const getAllAccessCodes = publicProcedure.query(async () => {
-  const codes = await AccessCode.find().sort({ createdAt: -1 }).lean();
-
-  return codes.map((code: any) => ({
-    code: code.code,
-    isUsed: code.isUsed,
-    usedBy: code.usedBy,
-    createdAt: code.createdAt.toISOString(),
-    expiresAt: code.expiresAt.toISOString(),
-    description: code.description,
-  }));
+  try {
+    const result = await querier.access.getAllAccessCodes();
+    return result;
+  } catch (error) {
+    console.error('Error fetching access codes:', error);
+    return {
+      success: false,
+      error: 'Failed to fetch access codes',
+    };
+  }
 });

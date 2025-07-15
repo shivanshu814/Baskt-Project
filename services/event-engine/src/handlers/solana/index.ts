@@ -8,6 +8,8 @@ import positionClosedHandler from './position-closed';
 import positionLiquidatedHandler from './position-liquidated';
 import orderCancelledHandler from './order-cancelled';
 import collateralAddedHandler from './collateral-added';
+import liquidityAddedHandler from './liquidity-added';
+import liquidityRemovedHandler from './liquidity-removed';
 
 export default function registerAllHandlers(router: ObserverRouter) {
   router.register(EventSource.SOLANA, basktCreatedHandler.type, basktCreatedHandler.handler);
@@ -21,4 +23,6 @@ export default function registerAllHandlers(router: ObserverRouter) {
   );
   router.register(EventSource.SOLANA, orderCancelledHandler.type, orderCancelledHandler.handler);
   router.register(EventSource.SOLANA, collateralAddedHandler.type, collateralAddedHandler.handler);
+  router.register(EventSource.SOLANA, liquidityAddedHandler.type, liquidityAddedHandler.handler);
+  router.register(EventSource.SOLANA, liquidityRemovedHandler.type, liquidityRemovedHandler.handler);
 }

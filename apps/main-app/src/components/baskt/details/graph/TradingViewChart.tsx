@@ -10,7 +10,7 @@ import {
   AreaSeries,
   CrosshairMode,
 } from 'lightweight-charts';
-import { trpc } from '../../../../utils/trpc';
+import { trpc } from '../../../../utils/common/trpc';
 
 const CHART_OPTIONS = {
   layout: {
@@ -136,7 +136,7 @@ export function TradingViewChart({
       }
 
       const crosshairTime = Number(param.time);
-      const closest = tradingData.data.reduce((closest, current) => {
+      const closest = tradingData?.data?.reduce((closest, current) => {
         const currentDiff = Math.abs(Number(current.time) - crosshairTime);
         const closestDiff = Math.abs(Number(closest.time) - crosshairTime);
         return currentDiff < closestDiff ? current : closest;

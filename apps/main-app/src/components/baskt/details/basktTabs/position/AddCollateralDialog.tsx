@@ -15,7 +15,7 @@ import {
 import { useUSDCBalance } from '../../../../../hooks/pool/useUSDCBalance';
 import BN from 'bn.js';
 import { AddCollateralDialogProps } from '../../../../../types/baskt';
-import { parseSolanaError } from '../../../../../utils/error-handling';
+import { parseSolanaError } from '../../../../../utils/common/error-handling';
 import { DollarSign, AlertCircle, ShieldCheck, Loader2 } from 'lucide-react';
 
 const AddCollateralDialog: React.FC<AddCollateralDialogProps> = ({

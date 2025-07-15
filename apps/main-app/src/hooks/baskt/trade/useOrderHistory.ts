@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { trpc } from '../../../utils/trpc';
+import { trpc } from '../../../utils/common/trpc';
 import { HistoryItem } from '@baskt/types';
 
 export const useOrderHistory = (userAddress?: string, basktId?: string) => {
@@ -33,7 +33,7 @@ export const useOrderHistory = (userAddress?: string, basktId?: string) => {
         const historyData = data.data as HistoryItem[];
         setHistory(historyData);
       } else if (!data.success && 'message' in data) {
-        setError(data.message);
+        setError(String(data.message));
       }
     }
   }, [data, queryLoading, queryError]);
