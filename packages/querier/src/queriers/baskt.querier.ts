@@ -57,6 +57,7 @@ export class BasktQuerier {
         });
       }
 
+
       // Combine baskts with asset data
       const combinedBaskts = await Promise.all(
         onchainBaskts.map(async (onchainBaskt) => {
@@ -387,7 +388,9 @@ export class BasktQuerier {
 
         price = liveNav;
       }
+      console.log("No Data", assets.map((asset: any) => asset.price));
     } catch (error) {
+      console.log(error);
       // Fallback to calculateNav if calculateLiveNav fails
       const formattedAssets = assets.map(
         (asset: any) =>
