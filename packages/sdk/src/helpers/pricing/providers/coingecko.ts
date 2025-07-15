@@ -1,16 +1,16 @@
 import axios from 'axios';
-const API_KEY = process.env.COINGECKO_API;
+const API_KEY = process.env.COINGECKO_API || "CG-dJdNszURo45oVKUV3YxiBDwr";
 
 export default async function getCoinGeckoData(coinId: string) {
-  const url = `https://api.coingecko.com/api/v3/coins/${coinId}`;
+  const url = `https://pro-api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`;
   const options = {
     method: 'GET',
-    headers: { accept: 'application/json', 'x-cg-demo-api-key': API_KEY },
+    headers: { accept: 'application/json', 'x-cg-pro-api-key': API_KEY },
   };
 
   try {
     const response = await axios.get(url, options);
-    return response.data;
+    return response.data[coinId].usd;
   } catch (error) {
     console.error('Error fetching data from CoinGecko:', error);
   }

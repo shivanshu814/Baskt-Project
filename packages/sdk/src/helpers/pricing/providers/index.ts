@@ -2,6 +2,18 @@ import BN from 'bn.js';
 import getOxFunData from './oxfun';
 import getDexScreenerData from './dexscreener';
 import getBinanceData from './binance';
+import getCoinGeckoData from './coingecko';
+
+export async function callCoinGeckoAPI(id: string) {
+  const price = await getCoinGeckoData(id);
+  if (!price) {
+    return null;
+  }
+  return {
+    priceUSD: new BN(price * 1e6),
+  };
+}
+
 
 // Function to call oxfun API
 async function callOxfunAPI(id: string) {
@@ -49,6 +61,8 @@ export async function routePrice(
     return await callOxfunAPI(id);
   } else if (priceProvider.toLowerCase() === 'binance') {
     return await callBinanceAPI(id);
+  } else if (priceProvider.toLowerCase() === 'coingecko') {
+    return await callCoinGeckoAPI(id);
   } else if (priceProvider.toLowerCase() === 'usdc') {
     return {
       priceUSD: new BN(1e6),

@@ -130,11 +130,12 @@ export const FeeEventMetadataSchema = new mongoose.Schema(
 );
 
 // Create indexes for efficient querying
-FeeEventMetadataSchema.index({ eventId: 1 });
-FeeEventMetadataSchema.index({ eventType: 1 });
-FeeEventMetadataSchema.index({ transactionSignature: 1 });
-FeeEventMetadataSchema.index({ timestamp: -1 });
-FeeEventMetadataSchema.index({ basktId: 1 });
-FeeEventMetadataSchema.index({ owner: 1 });
-FeeEventMetadataSchema.index({ eventType: 1, timestamp: -1 });
-FeeEventMetadataSchema.index({ basktId: 1, timestamp: -1 }); 
+// FeeEventMetadataSchema.index({ eventId: 1 });
+// FeeEventMetadataSchema.index({ eventType: 1 });
+// FeeEventMetadataSchema.index({ transactionSignature: 1 });
+// FeeEventMetadataSchema.index({ timestamp: -1 });
+// FeeEventMetadataSchema.index({ basktId: 1 });
+// FeeEventMetadataSchema.index({ owner: 1 });
+// FeeEventMetadataSchema.index({ eventType: 1, timestamp: -1 });
+// FeeEventMetadataSchema.index({ basktId: 1, timestamp: -1 }); 
+
