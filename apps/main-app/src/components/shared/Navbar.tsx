@@ -47,7 +47,7 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
 
   const navigationItems = [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/baskts', label: 'Baskts' },
+    { href: '/baskts', label: 'Trade' },
     { href: '/earn', label: 'Earn' },
   ];
 

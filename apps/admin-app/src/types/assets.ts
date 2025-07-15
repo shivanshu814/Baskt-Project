@@ -100,7 +100,7 @@ export interface FetchParams {
   endDate: number;
 }
 
-export const providerOptions = ['Binance', 'Dexscreener', 'USDC'] as const;
+export const providerOptions = ['Binance', 'Dexscreener', 'USDC', 'Coingecko'] as const;
 
 export const assetFormSchema = z.object({
   ticker: z.string().min(1, { message: 'Ticker is required' }),
