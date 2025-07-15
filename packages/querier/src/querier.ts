@@ -19,9 +19,9 @@ import { AccessQuerier } from './queriers/access.querier';
 import { FaucetQuerier } from './queriers/faucet.querier';
 import { PoolQuerier } from './queriers/pool.querier';
 
-
 // Import metadata manager
 import { metadataManager } from './models/metadata-manager';
+import { BaseClient } from '@baskt/sdk';
 
 /**
  * Querier
@@ -54,7 +54,7 @@ export class Querier {
   // Metadata manager
   public metadata = metadataManager;
 
-  private constructor(basktClient: any) {
+  private constructor(basktClient: BaseClient) {
     this.basktClient = basktClient;
     this.asset = new AssetQuerier(basktClient);
     this.baskt = new BasktQuerier(this.asset, basktClient);
@@ -62,7 +62,7 @@ export class Querier {
     this.order = new OrderQuerier(basktClient);
     this.position = new PositionQuerier(basktClient);
     this.history = new HistoryQuerier();
-    this.metrics = new MetricsQuerier(basktClient);
+    this.metrics = new MetricsQuerier(this.asset);
     this.access = new AccessQuerier();
     this.faucet = new FaucetQuerier(basktClient);
     this.pool = new PoolQuerier(basktClient);

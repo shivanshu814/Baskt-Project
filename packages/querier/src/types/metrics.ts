@@ -1,10 +1,12 @@
 import { QueryResult } from '../models/types';
 import { PositionStatus } from '@baskt/types';
+import { CombinedAsset } from './asset';
 
 /**
  * Open interest data structure
  */
 export interface OpenInterestData {
+  assetMetadata?: CombinedAsset;
   totalOpenInterest: number;
   totalPositions: number;
   longOpenInterest: number;
@@ -56,11 +58,6 @@ export interface AssetVolumeParams {
 /**
  * Open interest query result
  */
-export interface OpenInterestResult {
-  success: boolean;
-  data?: OpenInterestData;
-  error?: string;
-}
 
 /**
  * Volume query result
@@ -109,4 +106,4 @@ export interface PlatformMetrics {
   activeBaskts: number;
   activeAssets: number;
   longShortRatio: number;
-} 
+}

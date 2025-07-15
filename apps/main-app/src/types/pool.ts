@@ -75,7 +75,6 @@ export interface TokenAllocation {
 
 export interface LiquidityAllocationProps {
   tvl: string;
-  allocations: TokenAllocation[];
   blpPrice: string;
   totalSupply: string;
 }

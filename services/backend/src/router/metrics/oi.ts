@@ -69,3 +69,16 @@ export const getOpenInterestForAsset = publicProcedure
       };
     }
   });
+
+export const getOpenInterestForAllAssets = publicProcedure.query(async () => {
+  try {
+    const result = await querier.metrics.getOpenInterestForAllAsset();
+    return result;
+  } catch (error) {
+    console.error('Error fetching open interest:', error);
+    return {
+      success: false,
+      message: 'Failed to fetch open interest',
+    };
+  }
+});

@@ -5,12 +5,12 @@ import { createQuerierError, handleQuerierError } from '../utils/error-handling'
 import { AssetOptions, QueryResult } from '../models/types';
 import { PublicKey } from '@solana/web3.js';
 import { BaseClient } from '@baskt/sdk';
-import { 
-  CombinedAsset, 
-  AssetCacheStats, 
+import {
+  CombinedAsset,
+  AssetCacheStats,
   AssetQueryOptions,
   AssetPriceData,
-  AssetConfig 
+  AssetConfig,
 } from '../types/asset';
 import { OnchainAsset } from '@baskt/types';
 
@@ -22,7 +22,7 @@ import { OnchainAsset } from '@baskt/types';
  *
  */
 export class AssetQuerier {
-  private basktClient: BaseClient;
+  public basktClient: BaseClient;
   constructor(basktClient: BaseClient) {
     this.basktClient = basktClient;
   }
@@ -130,7 +130,7 @@ export class AssetQuerier {
       // Fetch data from multiple sources
       const [assetConfigs, onchainAssets, latestPrices] = await Promise.all([
         this.getAssetConfigsByAddressFromMongoDB(assetAddresses),
-        Promise.all(assetAddresses.map(addr => this.getAssetFromOnchain(addr).catch(() => null))),
+        Promise.all(assetAddresses.map((addr) => this.getAssetFromOnchain(addr).catch(() => null))),
         withLatestPrices ? this.getLatestPricesForAssets(assetAddresses) : Promise.resolve([]),
       ]);
 
@@ -143,19 +143,21 @@ export class AssetQuerier {
       }
 
       // Combine data from all sources
-      const combinedAssets = assetConfigs.map((assetConfig: any, index: number) => {
-        const matchingOnchainAsset = onchainAssets[index];
-        const matchingPrice = latestPrices.find(
-          (price: any) => price?.id === assetConfig._id?.toString(),
-        );
+      const combinedAssets = assetConfigs
+        .map((assetConfig: any, index: number) => {
+          const matchingOnchainAsset = onchainAssets[index];
+          const matchingPrice = latestPrices.find(
+            (price: any) => price?.id === assetConfig._id?.toString(),
+          );
 
-        return this.combineSingleAssetData(
-          assetConfig,
-          matchingOnchainAsset,
-          matchingPrice,
-          withConfig,
-        );
-      }).filter((asset: any): asset is CombinedAsset => asset !== undefined);
+          return this.combineSingleAssetData(
+            assetConfig,
+            matchingOnchainAsset,
+            matchingPrice,
+            withConfig,
+          );
+        })
+        .filter((asset: any): asset is CombinedAsset => asset !== undefined);
 
       const result: QueryResult<CombinedAsset[]> = {
         success: true,
@@ -176,7 +178,10 @@ export class AssetQuerier {
   /**
    * Get asset by ID
    */
-  async getAssetById(assetId: string, options: AssetQueryOptions = {}): Promise<QueryResult<CombinedAsset>> {
+  async getAssetById(
+    assetId: string,
+    options: AssetQueryOptions = {},
+  ): Promise<QueryResult<CombinedAsset>> {
     try {
       const assetConfig = await this.getAssetConfigByIdFromMongoDB(assetId);
       if (!assetConfig) {
