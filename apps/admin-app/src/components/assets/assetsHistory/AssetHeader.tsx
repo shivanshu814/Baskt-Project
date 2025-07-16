@@ -1,6 +1,7 @@
 import React from 'react';
 import { AssetHeaderProps } from '../../../types/assets';
 import { PublicKeyText, Card } from '@baskt/ui';
+import Image from 'next/image';
 
 export const AssetHeader: React.FC<AssetHeaderProps> = ({
   assetName,
@@ -12,10 +13,12 @@ export const AssetHeader: React.FC<AssetHeaderProps> = ({
     <Card className="p-4 bg-[#010b1d] border-white/10">
       <div className="flex items-center gap-4">
         {assetLogo && (
-          <img
+          <Image
             src={assetLogo}
             alt={assetName}
-            className="w-12 h-12 rounded-full border border-white/10"
+            className="w-12 h-12 rounded-full border border-white/10 object-cover"
+            width={48}
+            height={48}
           />
         )}
         <div>

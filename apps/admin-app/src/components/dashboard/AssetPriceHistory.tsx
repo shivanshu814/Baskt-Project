@@ -18,6 +18,7 @@ import { AssetPriceHistoryPageProps, FetchParams } from '../../types/assets';
 import { getDefaultDateRange, getTimestampFromDate } from '../../utils/date';
 import { getPaginatedData, getTotalPages } from '../../utils/pagination';
 import { PriceHistoryTable } from '../assets/assetsHistory/PriceHistoryTable';
+import Image from 'next/image';
 
 const PAGE_SIZE = 20;
 
@@ -104,10 +105,12 @@ const AssetPriceHistoryPage: React.FC<AssetPriceHistoryPageProps> = ({
           </Button>
           <div className="flex items-center gap-4">
             {assetLogo && (
-              <img
+              <Image
                 src={assetLogo}
                 alt={assetName}
-                className="w-12 h-12 rounded-full border border-white/10"
+                className="w-12 h-12 rounded-full border border-white/10 object-cover"
+                width={48}
+                height={48}
               />
             )}
             <div>

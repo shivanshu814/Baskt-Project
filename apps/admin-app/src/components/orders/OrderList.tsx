@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // Added React and useState
+import React, { useState, useMemo } from 'react'; // Added React and useState
 import { useOrders } from '../../hooks/orders/useOrders';
 import {
   Table,
@@ -32,6 +32,15 @@ const OrderList = () => {
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
   const [selectedOrderForClose, setSelectedOrderForClose] = useState<OnchainOrder | null>(null);
 
+  // Calculate order counts
+  const orderCounts = useMemo(() => {
+    const total = orders.length;
+    const pending = orders.filter(
+      (order: OnchainOrder) => order.status === OrderStatus.PENDING,
+    ).length;
+    return { total, pending };
+  }, [orders]);
+
   const openFillDialog = (order: OnchainOrder) => {
     setSelectedOrderForFill(order);
     setIsFillDialogOpen(true);
@@ -53,132 +62,141 @@ const OrderList = () => {
   };
 
   return (
-    <div className="mt-6 rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Order ID / Owner</TableHead>
-            <TableHead>Baskt ID</TableHead>
-            <TableHead>Position</TableHead>
-            <TableHead>Action</TableHead>
-            <TableHead>Collateral</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Time</TableHead>
-            <TableHead>Limit Price</TableHead>
-            <TableHead>Max Slippage</TableHead>
-            <TableHead>Order Type</TableHead>
-            <TableHead className="text-right"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {orders.length === 0 ? (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="mt-2 text-2xl font-bold text-white">Orders ({orderCounts.total})</h2>
+          <p className="text-white/60 mt-1">Manage and monitor all orders in the system</p>
+        </div>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={9} className="text-center text-gray-400 py-8">
-                No orders found.
-              </TableCell>
+              <TableHead>Order ID / Owner</TableHead>
+              <TableHead>Baskt ID</TableHead>
+              <TableHead>Position</TableHead>
+              <TableHead>Action</TableHead>
+              <TableHead>Collateral</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Time</TableHead>
+              <TableHead>Limit Price</TableHead>
+              <TableHead>Max Slippage</TableHead>
+              <TableHead>Order Type</TableHead>
+              <TableHead className="text-right"></TableHead>
             </TableRow>
-          ) : (
-            orders.map((order: OnchainOrder) => (
-              <TableRow key={order.orderId.toString()}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="text-sm font-medium text-gray-200 truncate cursor-pointer"
-                      onClick={() =>
-                        handleCopy(order.orderId.toString(), `orderId-${order.orderId}`)
-                      }
-                    >
-                      <PublicKeyText
-                        publicKey={order.orderId.toString()}
-                        isCopy={true}
-                        noFormat={true}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div
-                      className="text-sm text-gray-500 cursor-pointer"
-                      onClick={() => handleCopy(order.owner.toBase58(), `owner-${order.orderId}`)}
-                    >
-                      <PublicKeyText publicKey={order.owner.toBase58()} isCopy={true} />
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm text-gray-200">
-                    <PublicKeyText publicKey={order.basktId.toBase58()} isCopy={true} />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className={`text-sm font-medium ${getActionColor(order.isLong)}`}>
-                    {order.isLong ? 'Long' : 'Short'}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm text-gray-200">{order.action}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm text-gray-200">
-                    <NumberFormat value={parseFloat(order.collateral.toString())} isPrice />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className={`text-sm font-medium ${getStatusColor(order.status)}`}>
-                    {order.status}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm text-gray-500">
-                    {formatDate(order.timestamp.toNumber())}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm text-gray-500">{order.limitPrice.toString()}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm text-gray-500">{order.maxSlippage.toString()}</div>
-                </TableCell>
-                <TableCell>
-                  <div className="text-sm text-gray-500">{order.orderType}</div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="p-1 rounded hover:bg-gray-700 focus:outline-none">
-                        <MoreHorizontal className="w-5 h-5 text-gray-400" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => openFillDialog(order)}
-                        disabled={
-                          !(
-                            order.action === OrderAction.Open &&
-                            order.status === OrderStatus.PENDING
-                          )
-                        }
-                      >
-                        Fill Position
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => openCloseDialog(order)}
-                        disabled={
-                          !(
-                            order.action === OrderAction.Close &&
-                            order.status === OrderStatus.PENDING
-                          )
-                        }
-                      >
-                        Close Position
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+          </TableHeader>
+          <TableBody>
+            {orders.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={11} className="text-center text-gray-400 py-8">
+                  No orders found.
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              orders.map((order: OnchainOrder) => (
+                <TableRow key={order.orderId.toString()}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="text-sm font-medium text-gray-200 truncate cursor-pointer"
+                        onClick={() =>
+                          handleCopy(order.orderId.toString(), `orderId-${order.orderId}`)
+                        }
+                      >
+                        <PublicKeyText
+                          publicKey={order.orderId.toString()}
+                          isCopy={true}
+                          noFormat={true}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div
+                        className="text-sm text-gray-500 cursor-pointer"
+                        onClick={() => handleCopy(order.owner.toBase58(), `owner-${order.orderId}`)}
+                      >
+                        <PublicKeyText publicKey={order.owner.toBase58()} isCopy={true} />
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-gray-200">
+                      <PublicKeyText publicKey={order.basktId.toBase58()} isCopy={true} />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className={`text-sm font-medium ${getActionColor(order.isLong)}`}>
+                      {order.isLong ? 'Long' : 'Short'}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-gray-200">{order.action}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-gray-200">
+                      <NumberFormat value={parseFloat(order.collateral.toString())} isPrice />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className={`text-sm font-medium ${getStatusColor(order.status)}`}>
+                      {order.status}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-gray-500">
+                      {formatDate(order.timestamp.toNumber())}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-gray-500">{order.limitPrice.toString()}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-gray-500">{order.maxSlippage.toString()}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-gray-500">{order.orderType}</div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1 rounded hover:bg-gray-700 focus:outline-none">
+                          <MoreHorizontal className="w-5 h-5 text-gray-400" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => openFillDialog(order)}
+                          disabled={
+                            !(
+                              order.action === OrderAction.Open &&
+                              order.status === OrderStatus.PENDING
+                            )
+                          }
+                        >
+                          Fill Position
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => openCloseDialog(order)}
+                          disabled={
+                            !(
+                              order.action === OrderAction.Close &&
+                              order.status === OrderStatus.PENDING
+                            )
+                          }
+                        >
+                          Close Position
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
       {isFillDialogOpen && selectedOrderForFill && (
         <FillPositionDialog
           order={selectedOrderForFill}

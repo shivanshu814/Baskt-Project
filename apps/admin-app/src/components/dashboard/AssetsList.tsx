@@ -8,6 +8,7 @@ import { ASSET_TABLE_CONFIG } from '../../config/assets';
 import { Asset } from '../../types/assets';
 import { EditAssetDialog } from '../assets/EditAssetDialog';
 import { DeleteAssetDialog } from '../assets/DeleteAssetDialog';
+import { useMemo } from 'react';
 
 export function AdminAssetsList() {
   const {
@@ -27,6 +28,13 @@ export function AdminAssetsList() {
     handleUpdateAsset,
     handleDeleteAsset,
   } = useAssets();
+
+  // Calculate asset counts
+  const assetCounts = useMemo(() => {
+    const total = assets.length;
+    const listed = assets.filter((asset: Asset) => asset.account.isActive).length;
+    return { total, listed };
+  }, [assets]);
 
   const renderPriceHistory = (asset: Asset) => (
     <AssetPriceHistoryPage
@@ -70,7 +78,14 @@ export function AdminAssetsList() {
   }
 
   return (
-    <>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="mt-2 text-2xl font-bold text-white">Assets ({assetCounts.total})</h2>
+          <p className="text-white/60 mt-1">Manage and monitor all assets in the system</p>
+        </div>
+      </div>
+
       <div className="rounded-md border border-white/10">
         {error && renderError()}
         {renderTable()}
@@ -87,6 +102,6 @@ export function AdminAssetsList() {
         onConfirm={handleDeleteAsset}
         asset={assetToModify}
       />
-    </>
+    </div>
   );
 }

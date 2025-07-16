@@ -30,6 +30,16 @@ export const TAB_CONFIG: TabConfig[] = [
     component: AdminBasktsList,
   },
   {
+    id: TAB_IDS.USERS,
+    label: 'Users',
+    component: UsersManagement as ComponentType<TabProps>,
+  },
+  {
+    id: TAB_IDS.ACCESS_CODES,
+    label: 'Access Codes',
+    component: AccessCodeManager,
+  },
+  {
     id: TAB_IDS.ORDERS,
     label: 'Orders',
     component: OrderList,
@@ -38,11 +48,6 @@ export const TAB_CONFIG: TabConfig[] = [
     id: TAB_IDS.POSITIONS,
     label: 'Positions',
     component: PositionList,
-  },
-  {
-    id: TAB_IDS.PROTOCOL,
-    label: 'Protocol',
-    component: ProtocolDetails,
   },
   {
     id: TAB_IDS.ROLES,
@@ -60,13 +65,8 @@ export const TAB_CONFIG: TabConfig[] = [
     component: HistoryList,
   },
   {
-    id: TAB_IDS.ACCESS_CODES,
-    label: 'Access Codes',
-    component: AccessCodeManager,
-  },
-  {
-    id: TAB_IDS.USERS,
-    label: 'Users',
-    component: UsersManagement as ComponentType<TabProps>,
+    id: TAB_IDS.PROTOCOL,
+    label: 'Protocol',
+    component: ProtocolDetails,
   },
 ];

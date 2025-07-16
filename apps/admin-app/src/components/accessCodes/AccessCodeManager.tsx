@@ -35,7 +35,7 @@ export function AccessCodeManager() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Access Code Management</h2>
+          <h2 className="mt-2 text-2xl font-bold text-white">Access Code Management</h2>
           <p className="text-white/60 mt-1">Generate and manage access codes for platform users</p>
         </div>
         <Button onClick={handleGenerateCode} disabled={generateCodeMutation.isLoading}>
@@ -101,18 +101,20 @@ export function AccessCodeManager() {
               {accessCodes.map((code: any) => (
                 <div
                   key={code.code}
-                  className={`flex items-center justify-between p-4 rounded-lg border ${code.isUsed ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white/5 border-white/10'
-                    }`}
+                  className={`flex items-center justify-between p-4 rounded-lg border ${
+                    code.isUsed ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white/5 border-white/10'
+                  }`}
                 >
                   <div className="flex items-center space-x-4">
                     <div>
                       <code className="font-mono text-lg text-white">{code.code}</code>
                       <div className="flex items-center space-x-4 mt-1 text-sm">
                         <span
-                          className={`px-2 py-1 rounded ${code.isUsed
-                            ? 'bg-blue-500/20 text-blue-400'
-                            : 'bg-green-500/20 text-green-400'
-                            }`}
+                          className={`px-2 py-1 rounded ${
+                            code.isUsed
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : 'bg-green-500/20 text-green-400'
+                          }`}
                         >
                           {code.isUsed ? 'Used' : 'Available'}
                         </span>

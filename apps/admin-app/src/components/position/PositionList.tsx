@@ -55,6 +55,14 @@ const EmptyState: React.FC<{ colSpan: number }> = ({ colSpan }) => (
 const PositionList = () => {
   const { data: positions = [], isLoading, error } = usePositions();
 
+  const positionCounts = useMemo(() => {
+    const total = positions.length;
+    const open = positions.filter(
+      (position: any) => position.status === PositionStatus.OPEN,
+    ).length;
+    return { total, open };
+  }, [positions]);
+
   const tableHeaders = [
     'Position ID',
     'Owner',
@@ -118,7 +126,7 @@ const PositionList = () => {
       position: any, // eslint-disable-line
     ) => (
       <div className="text-sm text-gray-200">
-        <NumberFormat value={position.size.toNumber() / 1e6} />
+        <NumberFormat value={position.size?.toNumber() / 1e6 || 0} />
       </div>
     ),
     [],
@@ -129,7 +137,7 @@ const PositionList = () => {
       position: any, // eslint-disable-line
     ) => (
       <div className="text-sm text-gray-200">
-        <NumberFormat value={position.collateral.toNumber()} isPrice={true} />
+        <NumberFormat value={position.collateral?.toNumber() || 0} isPrice={true} />
       </div>
     ),
     [],
@@ -255,17 +263,26 @@ const PositionList = () => {
   }, [positions, isLoading, error, cellRenderers, tableHeaders.length]);
 
   return (
-    <div className="mt-6 rounded-md border border-gray-700">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {tableHeaders.map((header, index) => (
-              <TableHead key={index}>{header}</TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>{tableContent}</TableBody>
-      </Table>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="mt-2 text-2xl font-bold text-white">Positions ({positionCounts.total})</h2>
+          <p className="text-white/60 mt-1">Manage and monitor all positions in the system</p>
+        </div>
+      </div>
+
+      <div className="rounded-md border border-gray-700">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {tableHeaders.map((header, index) => (
+                <TableHead key={index}>{header}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>{tableContent}</TableBody>
+        </Table>
+      </div>
     </div>
   );
 };

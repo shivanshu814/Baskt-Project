@@ -68,6 +68,26 @@ const nextConfig = {
       },
     ];
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'assets.coingecko.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'dd.dexscreener.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'binance.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 's2.coinmarketcap.com',
+      },
+    ],
+  },
 };
 
 module.exports = nextConfig;

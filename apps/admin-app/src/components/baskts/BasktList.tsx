@@ -5,7 +5,7 @@ import { BasktListProps, BasktData } from '../../types/baskt';
 import { BasktRow } from './BasktRow';
 import { useBaskts } from '../../hooks/baskts/useBaskts';
 import { toast } from 'sonner';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 export function BasktList({ onActivate, activatingBasktId, onViewDetails }: BasktListProps) {
   const { basktList, isLoading, error } = useBaskts();
@@ -26,6 +26,13 @@ export function BasktList({ onActivate, activatingBasktId, onViewDetails }: Bask
     );
   });
 
+  // Calculate baskt counts
+  const basktCounts = useMemo(() => {
+    const total = validBaskts.length;
+    const active = validBaskts.filter((baskt: any) => baskt.isActive).length;
+    return { total, active };
+  }, [validBaskts]);
+
   if (error) {
     return (
       <div className="p-4 bg-red-500/10 border-b border-red-500/20">
@@ -35,46 +42,55 @@ export function BasktList({ onActivate, activatingBasktId, onViewDetails }: Bask
   }
 
   return (
-    <div className="rounded-md border border-white/10 mt-6">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Baskt Name</TableHead>
-            <TableHead>Baskt Address</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
-            <TableRow key="loading">
-              <TableCell colSpan={3} className="h-32 text-center">
-                <div className="flex flex-col items-center justify-center gap-2">
-                  <p className="text-white/60 text-sm">Loading baskts...</p>
-                </div>
-              </TableCell>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="mt-2 text-2xl font-bold text-white">Baskts ({basktCounts.total})</h2>
+          <p className="text-white/60 mt-1">Manage and monitor all baskts in the system</p>
+        </div>
+      </div>
+
+      <div className="rounded-md border border-white/10">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Baskt Name</TableHead>
+              <TableHead>Baskt Address</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ) : validBaskts.length > 0 ? (
-            validBaskts.map((baskt: any) => {
-              const key = baskt.basktId || `baskt-${Math.random()}`;
-              return (
-                <BasktRow
-                  key={key}
-                  baskt={baskt}
-                  onActivate={onActivate}
-                  isActivating={activatingBasktId === baskt.basktId}
-                  onViewDetails={onViewDetails}
-                />
-              );
-            })
-          ) : (
-            <TableRow key="empty">
-              <TableCell colSpan={3} className="text-center text-white/60">
-                No baskts found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow key="loading">
+                <TableCell colSpan={3} className="h-32 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <p className="text-white/60 text-sm">Loading baskts...</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : validBaskts.length > 0 ? (
+              validBaskts.map((baskt: any) => {
+                const key = baskt.basktId || `baskt-${Math.random()}`;
+                return (
+                  <BasktRow
+                    key={key}
+                    baskt={baskt}
+                    onActivate={onActivate}
+                    isActivating={activatingBasktId === baskt.basktId}
+                    onViewDetails={onViewDetails}
+                  />
+                );
+              })
+            ) : (
+              <TableRow key="empty">
+                <TableCell colSpan={3} className="text-center text-white/60">
+                  No baskts found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

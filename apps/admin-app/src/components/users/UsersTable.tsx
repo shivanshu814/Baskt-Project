@@ -6,9 +6,10 @@ import {
   TableHeader,
   TableRow,
   Loading,
-  ROLE_DISPLAY_MAP,
   PublicKeyText,
   Button,
+  NumberFormat,
+  useBasktClient,
 } from '@baskt/ui';
 import { Copy, SquareArrowOutUpRight, Coins, MoreVertical } from 'lucide-react';
 import {
@@ -18,8 +19,103 @@ import {
   DropdownMenuItem,
 } from '@baskt/ui';
 import { UsersTableProps } from '../../types/faucet';
+import { useState, useEffect } from 'react';
+import { PublicKey } from '@solana/web3.js';
+import { getAssociatedTokenAddress, getAccount } from '@solana/spl-token';
+import { trpc } from '../../utils/trpc';
+
+// USDC mint address
+const USDC_MINT = new PublicKey('3J5uJ5Pn8yrLwraQSmNMDYFAw59tf2mPTbMxBTtEFx3t');
 
 export function UsersTable({ roles, isLoading, onCopyAddress, onFaucet }: UsersTableProps) {
+  const { client } = useBasktClient();
+  const [balances, setBalances] = useState<Record<string, number>>({});
+  const [loadingBalances, setLoadingBalances] = useState(false);
+  const [userPositions, setUserPositions] = useState<Record<string, number>>({});
+  const [userBaskts, setUserBaskts] = useState<Record<string, number>>({});
+  const [loadingUserData, setLoadingUserData] = useState(false);
+
+  const { data: positionsData } = trpc.position.getPositions.useQuery(
+    {},
+    {
+      refetchInterval: 30 * 1000,
+    },
+  );
+
+  const { data: basktsData } = trpc.baskt.getAllBaskts.useQuery(undefined, {
+    refetchInterval: 30 * 1000,
+  });
+
+  useEffect(() => {
+    const processUserData = () => {
+      if (!positionsData?.success || !basktsData?.success) return;
+
+      const newUserPositions: Record<string, number> = {};
+      const newUserBaskts: Record<string, number> = {};
+
+      if (positionsData.data) {
+        positionsData.data.forEach((position: any) => {
+          if (position.owner && position.status === 'OPEN') {
+            const owner = position.owner.toLowerCase();
+            newUserPositions[owner] = (newUserPositions[owner] || 0) + 1;
+          }
+        });
+      }
+
+      if (basktsData.data) {
+        basktsData.data.forEach((baskt: any) => {
+          if (baskt?.creator) {
+            const creator = baskt.creator.toLowerCase();
+            newUserBaskts[creator] = (newUserBaskts[creator] || 0) + 1;
+          }
+        });
+      }
+
+      setUserPositions(newUserPositions);
+      setUserBaskts(newUserBaskts);
+    };
+
+    processUserData();
+  }, [positionsData, basktsData]);
+
+  useEffect(() => {
+    const fetchBalances = async () => {
+      if (roles.length === 0 || !client) return;
+
+      setLoadingBalances(true);
+      const newBalances: Record<string, number> = {};
+
+      try {
+        const connection = client.connection;
+
+        for (const user of roles) {
+          try {
+            const userPublicKey = new PublicKey(user.account);
+            const tokenAccount = await getAssociatedTokenAddress(USDC_MINT, userPublicKey);
+
+            try {
+              const accountInfo = await getAccount(connection, tokenAccount);
+              const balance = Number(accountInfo.amount) / Math.pow(10, 6);
+              newBalances[user.account] = balance;
+            } catch (error) {
+              newBalances[user.account] = 0;
+            }
+          } catch (error) {
+            console.error(`Error fetching balance for ${user.account}:`, error);
+            newBalances[user.account] = 0;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching balances:', error);
+      } finally {
+        setBalances(newBalances);
+        setLoadingBalances(false);
+      }
+    };
+
+    fetchBalances();
+  }, [roles, client]);
+
   return (
     <div className="rounded-md border border-white/10">
       <Table>
@@ -27,13 +123,16 @@ export function UsersTable({ roles, isLoading, onCopyAddress, onFaucet }: UsersT
           <TableRow>
             <TableHead>User Address</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>USDC Balance</TableHead>
+            <TableHead>Open Positions</TableHead>
+            <TableHead>Baskts Created</TableHead>
             <TableHead className="w-[200px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={3} className="h-32">
+              <TableCell colSpan={6} className="h-32">
                 <div className="flex items-center justify-center">
                   <Loading />
                 </div>
@@ -41,7 +140,7 @@ export function UsersTable({ roles, isLoading, onCopyAddress, onFaucet }: UsersT
             </TableRow>
           ) : roles.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={3} className="h-32">
+              <TableCell colSpan={6} className="h-32">
                 <div className="flex items-center justify-center text-white/60">No users found</div>
               </TableCell>
             </TableRow>
@@ -55,8 +154,22 @@ export function UsersTable({ roles, isLoading, onCopyAddress, onFaucet }: UsersT
                     </span>
                   </div>
                 </TableCell>
+                <TableCell>User</TableCell>
                 <TableCell>
-                  {ROLE_DISPLAY_MAP[role.role as keyof typeof ROLE_DISPLAY_MAP] || role.role}
+                  {loadingBalances ? (
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin mr-2"></div>
+                      <span className="text-white/60">Loading...</span>
+                    </div>
+                  ) : (
+                    <NumberFormat value={balances[role.account] * 1e6 || 0} isPrice={true} />
+                  )}
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{userPositions[role.account.toLowerCase()] || 0}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{userBaskts[role.account.toLowerCase()] || 0}</span>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 import { Role } from './roles';
+import { CombinedUser } from './users';
 
 export interface FaucetDialogProps {
   showModal: boolean;
@@ -21,7 +22,7 @@ export interface UsersManagementProps {
   setShowModal: (showModal: boolean) => void;
 }
 export interface UsersTableProps {
-  roles: Role[];
+  roles: CombinedUser[];
   isLoading: boolean;
   onCopyAddress: (address: string) => void;
   onFaucet: (userAddress: string) => void;
