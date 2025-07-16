@@ -250,4 +250,109 @@ export class FeeEventQuerier {
       };
     }
   }
+
+  /**
+   * Get all fee events
+   */
+  async getFeeEvents(limit: number = 100, offset: number = 0): Promise<QueryResult<any[]>> {
+    try {
+      const feeEvents = await FeeEventMetadataModel.find()
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .skip(offset)
+        .exec();
+      
+      return {
+        success: true,
+        data: feeEvents,
+      };
+    } catch (error) {
+      const querierError = handleQuerierError(error);
+      return {
+        success: false,
+        message: 'Failed to get fee events',
+        error: querierError.message,
+      };
+    }
+  }
+
+  /**
+   * Get aggregated fee statistics only
+   */
+  async getFeeEventStatsOnly(): Promise<QueryResult<any>> {
+    try {
+      const [totalEvents, aggregatedStats] = await Promise.all([
+        FeeEventMetadataModel.countDocuments(),
+        FeeEventMetadataModel.aggregate([
+          {
+            $group: {
+              _id: '$eventType',
+              count: { $sum: 1 },
+              totalFeesToTreasury: { $sum: { $toDouble: '$feeToTreasury' } },
+              totalFeesToBlp: { $sum: { $toDouble: '$feeToBlp' } },
+              totalFees: { $sum: { $toDouble: '$totalFee' } },
+              avgLiquidityAmount: { $avg: { $toDouble: '$liquidityAmount' } },
+            },
+          },
+        ]),
+      ]);
+      
+      const totalFees = aggregatedStats.reduce((sum, stat) => sum + stat.totalFees, 0);
+      const totalFeesToTreasury = aggregatedStats.reduce((sum, stat) => sum + stat.totalFeesToTreasury, 0);
+      const totalFeesToBlp = aggregatedStats.reduce((sum, stat) => sum + stat.totalFeesToBlp, 0);
+      
+      return {
+        success: true,
+        data: {
+          totalEvents,
+          totalFees,
+          totalFeesToTreasury,
+          totalFeesToBlp,
+          eventTypeBreakdown: aggregatedStats,
+        },
+      };
+    } catch (error) {
+      const querierError = handleQuerierError(error);
+      return {
+        success: false,
+        message: 'Failed to get fee event statistics',
+        error: querierError.message,
+      };
+    }
+  }
+
+  /**
+   * Get all fee event data (events + stats combined)
+   */
+  async getAllFeeEventData(limit: number = 100, offset: number = 0): Promise<QueryResult<any>> {
+    try {
+      const [eventsResult, statsResult] = await Promise.all([
+        this.getFeeEvents(limit, offset),
+        this.getFeeEventStatsOnly(),
+      ]);
+
+      if (!eventsResult.success) {
+        return eventsResult;
+      }
+
+      if (!statsResult.success) {
+        return statsResult;
+      }
+
+      return {
+        success: true,
+        data: {
+          events: eventsResult.data,
+          stats: statsResult.data,
+        },
+      };
+    } catch (error) {
+      const querierError = handleQuerierError(error);
+      return {
+        success: false,
+        message: 'Failed to get all fee event data',
+        error: querierError.message,
+      };
+    }
+  }
 } 
