@@ -1,3 +1,4 @@
+'use client';
 
 import { ConnectedSolanaWallet, usePrivy, useSolanaWallets } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
