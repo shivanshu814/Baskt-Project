@@ -49,7 +49,6 @@ export class AssetQuerier {
         };
       }
 
-
       // Combine data from all sources
       const combinedAssets = this.combineAssetData(
         assetConfigs,
@@ -87,7 +86,6 @@ export class AssetQuerier {
         this.getAssetFromOnchain(assetAddress),
         options.withLatestPrices ? this.getLatestPricesForAsset(assetAddress) : Promise.resolve([]),
       ]);
-
 
       if (!assetConfig || !onchainAsset) {
         return {
@@ -226,7 +224,8 @@ export class AssetQuerier {
   // MongoDB data fetching methods
   private async getAssetConfigsFromMongoDB(): Promise<any[]> {
     try {
-      return await AssetMetadataModel.find().sort({ createdAt: -1 });
+      const assets = await AssetMetadataModel.find({}).lean();
+      return assets;
     } catch (error) {
       throw createQuerierError(
         'Failed to fetch asset configs from MongoDB',
@@ -298,7 +297,7 @@ export class AssetQuerier {
     try {
       const prices = await AssetPrice.findAll({
         order: [['time', 'DESC']],
-        limit: 100, // Adjust based on your needs
+        limit: 100,
       });
 
       return prices.map((price: any) => ({
@@ -374,9 +373,8 @@ export class AssetQuerier {
         const matchingOnchainAsset = onchainAssets.find(
           (asset) => asset?.ticker?.toString() === assetConfig.ticker?.toString(),
         );
-        const matchingPrice = latestPrices.find(
-          (price) => price?.id === assetConfig._id?.toString(),
-        );
+
+        const matchingPrice = latestPrices.find((price) => price?.id === assetConfig.ticker);
 
         return this.combineSingleAssetData(
           assetConfig,
@@ -414,7 +412,7 @@ export class AssetQuerier {
       };
     }
 
-    const price = assetConfig.priceMetrics?.price || latestPrice?.price || 0;
+    const price = latestPrice?.price || assetConfig.priceMetrics?.price || 0;
     const change24h = assetConfig.priceMetrics?.change24h || 0;
 
     return {

@@ -10,6 +10,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { BalanceNotification } from './BalanceNotification';
+import { useUser } from '@baskt/ui';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -23,8 +24,9 @@ function AppContent({ children }: { children: React.ReactNode }) {
     clearAccess,
     initializeAccessState,
   } = useAccessCode();
-  const { user, authenticated } = usePrivy();
-  const { walletHasAccess } = useWalletAuthorization(user?.wallet?.address);
+  const {  authenticated } = usePrivy();
+  const { userAddress} = useUser();
+  const { walletHasAccess } = useWalletAuthorization(userAddress || undefined);
   const hasShownAutoLoginToast = useRef(false);
   const lastWalletAddress = useRef<string | null>(null);
 
@@ -43,8 +45,8 @@ function AppContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (authenticated && user?.wallet?.address) {
-      const currentWallet = user.wallet.address;
+    if (authenticated && userAddress) {
+      const currentWallet = userAddress;
 
       if (lastWalletAddress.current && lastWalletAddress.current !== currentWallet) {
         toast.error('Different wallet detected. Please enter access code again.');
@@ -66,7 +68,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
   }, [
     authenticated,
-    user?.wallet?.address,
+    userAddress,
     hasAccess,
     walletHasAccess,
     grantAccess,
@@ -74,7 +76,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
     initializeAccessState,
   ]);
 
-  if (hasAccess === null && authenticated && user?.wallet?.address) {
+  if (hasAccess === null && authenticated && userAddress) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">

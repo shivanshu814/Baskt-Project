@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ConnectedSolanaWallet, usePrivy, useSolanaWallets } from '@privy-io/react-auth';
 import { Connection } from '@solana/web3.js';
 import { PrivyClient } from './client';
+import { useUser } from '../hooks/useUser';
 
 // Context for the protocol client
 type ProtocolClientContextType = {
@@ -20,10 +21,9 @@ const ProtocolClientContext = createContext<ProtocolClientContextType>({
 
 // Provider component for the protocol client
 export function BasktClientProvider({ children }: { children: React.ReactNode }) {
-  const { user } = usePrivy();
-  const { wallets, ready } = useSolanaWallets();
 
-  const activeWallet = wallets[user?.wallet?.walletIndex || 0];
+  const {wallet: activeWallet} = useUser();
+
   const [client, setClient] = useState<any | null>(null); //eslint-disable-line
   const [connection, setConnection] = useState<Connection | null>(null);
 

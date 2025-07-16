@@ -224,7 +224,7 @@ export function useOpenPosition({ baskt, usdcSize, navPrice }: UseOpenPositionPr
   const getLiquidationPrice = (collateral: number, position: 'long' | 'short') => {
     return calculateLiquidationPrice({
       collateral,
-      price: baskt.price,
+      price: navPrice.toNumber(),
       leverage: 1, // Always 1x leverage
       position,
     });

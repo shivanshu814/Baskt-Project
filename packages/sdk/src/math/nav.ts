@@ -29,6 +29,10 @@ export function calculateNav(
     newNav = newNav.add(navChange.div(WEIGHT_PRECISION));
     return newNav.lte(new BN(0)) ? new BN(0) : newNav;
   } catch (error) {
+    console.error('❌ calculateNav - Error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return currentNav;
   }
 }

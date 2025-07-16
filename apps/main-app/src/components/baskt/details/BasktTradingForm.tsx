@@ -18,21 +18,21 @@ import { BN } from '@coral-xyz/anchor';
 export function BasktTradingForm({ baskt }: BasktTradingFormProps) {
   const [size, setSize] = useState<number>(0);
   const [sizeInput, setSizeInput] = useState<string>('');
+
+  const prevPriceRef = useRef<number | null>(null);
+  const [priceColor, setPriceColor] = useState('text-foreground');
+  const [currentPrice, setCurrentPrice] = useState<number>(new BN(baskt.price).toNumber());
+
   const { isLoading, openPosition, collateral, getLiquidationPrice, usdcBalance } = useOpenPosition(
     {
       baskt,
-      navPrice: new BN(baskt.price),
+      navPrice: new BN(currentPrice),
       usdcSize: size,
     },
   );
   const { client } = useBasktClient();
   const publicKey = client?.wallet?.address;
   const { account: userUSDCAccount } = useUSDCBalance(publicKey);
-
-  // Track previous price for color coding
-  const prevPriceRef = useRef<number | null>(null);
-  const [priceColor, setPriceColor] = useState('text-foreground');
-  const currentPrice = new BN(baskt.price).toNumber();
 
   useEffect(() => {
     if (prevPriceRef.current !== null) {
