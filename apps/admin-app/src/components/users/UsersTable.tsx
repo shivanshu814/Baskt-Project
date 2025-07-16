@@ -10,6 +10,7 @@ import {
   Button,
   NumberFormat,
   useBasktClient,
+  USDC_MINT,
 } from '@baskt/ui';
 import { Copy, SquareArrowOutUpRight, Coins, MoreVertical } from 'lucide-react';
 import {
@@ -24,8 +25,6 @@ import { PublicKey } from '@solana/web3.js';
 import { getAssociatedTokenAddress, getAccount } from '@solana/spl-token';
 import { trpc } from '../../utils/trpc';
 
-// USDC mint address
-const USDC_MINT = new PublicKey('3J5uJ5Pn8yrLwraQSmNMDYFAw59tf2mPTbMxBTtEFx3t');
 
 export function UsersTable({ roles, isLoading, onCopyAddress, onFaucet }: UsersTableProps) {
   const { client } = useBasktClient();
