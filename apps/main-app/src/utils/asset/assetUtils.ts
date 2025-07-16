@@ -5,8 +5,8 @@
  */
 export const generateAssetUrl = (asset: any): string | null => {
   // If coingeckoId is available, use CoinGecko
-  if (asset.coingeckoId) {
-    return `https://www.coingecko.com/en/coins/${asset.coingeckoId}`;
+  if (asset.config?.coingeckoId) {
+    return `https://www.coingecko.com/en/coins/${asset.config.coingeckoId}`;
   }
 
   // If priceConfig is available, use the provider configuration
