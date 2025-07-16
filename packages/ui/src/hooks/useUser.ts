@@ -13,7 +13,12 @@ export function useUser() {
       return
     }
 
-    const desiredWallet = wallets.find((wallet) => wallet.address === user?.wallet?.address); 
+    console.log("Linked Wallets", user?.wallet?.address);
+    console.log("Connected Wallets", wallets);
+
+    const desiredWallet = wallets[0]; 
+
+    console.log("Desired Wallet", desiredWallet);
   
     if(!desiredWallet) {
       logout();
@@ -21,7 +26,6 @@ export function useUser() {
     }
 
     setWallet(desiredWallet);
-    
   }, [wallets, authenticated, user]);
 
   return {

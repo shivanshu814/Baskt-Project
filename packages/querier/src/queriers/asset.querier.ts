@@ -48,6 +48,9 @@ export class AssetQuerier {
           message: 'No assets found',
         };
       }
+      console.log('assetConfigs', assetConfigs);
+      console.log('onchainAssets', onchainAssets);
+      console.log('latestPrices', latestPrices);
 
       // Combine data from all sources
       const combinedAssets = this.combineAssetData(
@@ -87,7 +90,8 @@ export class AssetQuerier {
         options.withLatestPrices ? this.getLatestPricesForAsset(assetAddress) : Promise.resolve([]),
       ]);
 
-      if (!assetConfig && !onchainAsset) {
+
+      if (!assetConfig || !onchainAsset) {
         return {
           success: false,
           message: 'Asset not found',
@@ -392,7 +396,7 @@ export class AssetQuerier {
     latestPrice: any,
     withConfig: boolean,
   ): CombinedAsset | undefined {
-    if (!assetConfig && !onchainAsset) {
+    if (!assetConfig || !onchainAsset) {
       return undefined;
     }
 

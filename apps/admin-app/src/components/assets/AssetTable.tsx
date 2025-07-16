@@ -37,6 +37,8 @@ export function AssetTable({ assets, isLoading, onViewPrices, onEdit, onDelete }
     );
   }
 
+  console.log('assets', assets);
+
   return (
     <>
       {assets.map((asset) => (
