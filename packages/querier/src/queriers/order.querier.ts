@@ -23,40 +23,17 @@ export class OrderQuerier {
    */
   async getOrders(options: OrderOptions = {}): Promise<QueryResult<CombinedOrder[]>> {
     try {
-      // Placeholder for onchain orders fetch
-      const onchainOrders = await this.basktClient.getAllOrders();
+      const [onchainOrders, orderMetadatas] = await Promise.all([
+        this.basktClient.getAllOrders(),
+        this.getFilteredOrderMetadata(options)
+      ]);
 
-      // Build MongoDB filter
-      const filter: any = {};
-      if (options.basktId) filter.basktId = options.basktId;
-      if (options.userId) filter.owner = { $regex: options.userId, $options: 'i' };
-      if (options.orderStatus) filter.orderStatus = options.orderStatus;
-      if (options.orderAction) filter.orderAction = options.orderAction;
-      if (options.orderPDA) filter.orderPDA = options.orderPDA;
-
-      const orderMetadatas = await OrderMetadataModel.find(filter);
-      // Combine onchain and metadata orders
-      const combinedOrders = onchainOrders.map((onchainOrder) => {
-        const meta = orderMetadatas.find(
-          (m: any) => m.orderPDA.toLowerCase() === onchainOrder.address.toString().toLowerCase(),
-        );
-        return this.convertOrder(onchainOrder, meta);
-      });
-
-      // Also include order metadata that don't have corresponding on-chain orders
-      const onchainOrderPDAs = onchainOrders.map((order) => order.address.toString().toLowerCase());
-      const metadataOnlyOrders = orderMetadatas
-        .filter((meta: any) => !onchainOrderPDAs.includes(meta.orderPDA.toLowerCase()))
-        .map((meta: any) => this.convertOrder(null, meta))
-        .filter((order: any) => order !== null);
-
-      const allOrders = [...combinedOrders, ...metadataOnlyOrders].filter((order): order is CombinedOrder => order !== null);
-      const result: QueryResult<CombinedOrder[]> = {
+      const combinedOrders = this.combineOrderData(onchainOrders, orderMetadatas);
+      
+      return {
         success: true,
-        data: allOrders,
+        data: combinedOrders,
       };
-
-      return result;
     } catch (error) {
       const querierError = handleQuerierError(error);
       return {
@@ -67,31 +44,99 @@ export class OrderQuerier {
     }
   }
 
-  private convertOrder(onchainOrder: any | null, orderMetadata: any): CombinedOrder | null {
-    if (!orderMetadata) return null;
+  /**
+   * Build MongoDB filter from options
+   */
+  private buildMongoFilter(options: OrderOptions): Record<string, any> {
+    const filter: Record<string, any> = {};
+    
+    if (options.basktId) filter.basktId = options.basktId;
+    if (options.userId) filter.owner = { $regex: options.userId, $options: 'i' };
+    if (options.orderStatus) filter.orderStatus = options.orderStatus;
+    if (options.orderAction) filter.orderAction = options.orderAction;
+    if (options.orderPDA) filter.orderPDA = options.orderPDA;
+    
+    return filter;
+  }
 
+  /**
+   * Get filtered order metadata from MongoDB
+   */
+  private async getFilteredOrderMetadata(options: OrderOptions): Promise<any[]> {
+    const filter = this.buildMongoFilter(options);
+    return await OrderMetadataModel.find(filter);
+  }
+
+  /**
+   * Combine onchain orders with metadata
+   */
+  private combineOrderData(onchainOrders: any[], orderMetadatas: any[]): CombinedOrder[] {
+    const onchainOrderPDAs = new Set(
+      onchainOrders.map(order => order.address.toString().toLowerCase())
+    );
+    
+    // Map onchain orders with their metadata
+    const onchainCombinedOrders = onchainOrders
+      .map(onchainOrder => {
+        const meta = orderMetadatas.find(
+          m => m.orderPDA.toLowerCase() === onchainOrder.address.toString().toLowerCase()
+        );
+        return this.convertOrder(onchainOrder, meta);
+      })
+      .filter((order): order is CombinedOrder => order !== null);
+
+    // Add metadata-only orders (orders that exist in DB but not on-chain)
+    const metadataOnlyOrders = orderMetadatas
+      .filter(meta => !onchainOrderPDAs.has(meta.orderPDA.toLowerCase()))
+      .map(meta => this.convertOrder(null, meta))
+      .filter((order): order is CombinedOrder => order !== null);
+
+    return [...onchainCombinedOrders, ...metadataOnlyOrders];
+  }
+
+  /**
+   * Convert order data to CombinedOrder format
+   */
+  private convertOrder(onchainOrder: any | null, orderMetadata: any): CombinedOrder | null {
+    if (!orderMetadata && !onchainOrder) return null;
+
+    // If only metadata exists (no onchain order)
     if (!onchainOrder) {
-      return {
-        orderId: orderMetadata.orderId,
-        orderPDA: orderMetadata.orderPDA,
-        basktId: orderMetadata.basktId,
-        owner: orderMetadata.owner,
-        status: orderMetadata.orderStatus,
-        action: orderMetadata.orderAction,
-        size: orderMetadata.size || '0',
-        collateral: orderMetadata.collateral || '0',
-        isLong: orderMetadata.isLong,
-        createOrder: orderMetadata.createOrder,
-        fullFillOrder: orderMetadata.fullFillOrder,
-        position: orderMetadata.position,
-        usdcSize: orderMetadata.usdcSize || '0',
-        orderType: orderMetadata.orderType,
-        limitPrice: orderMetadata.limitPrice || '0',
-        maxSlippage: orderMetadata.maxSlippage || '0',
-      } as CombinedOrder;
+      return this.createOrderFromMetadata(orderMetadata);
     }
 
-    const price = orderMetadata?.entryPrice ?? onchainOrder.limitPrice;
+    // If both exist, prioritize onchain data with metadata fallbacks
+    return this.createOrderFromBothSources(onchainOrder, orderMetadata);
+  }
+
+  /**
+   * Create order from metadata only
+   */
+  private createOrderFromMetadata(orderMetadata: any): CombinedOrder {
+    return {
+      orderId: orderMetadata.orderId,
+      orderPDA: orderMetadata.orderPDA,
+      basktId: orderMetadata.basktId,
+      owner: orderMetadata.owner,
+      status: orderMetadata.orderStatus,
+      action: orderMetadata.orderAction,
+      size: orderMetadata.size || '0',
+      collateral: orderMetadata.collateral || '0',
+      isLong: orderMetadata.isLong,
+      createOrder: orderMetadata.createOrder,
+      fullFillOrder: orderMetadata.fullFillOrder,
+      position: orderMetadata.position,
+      usdcSize: orderMetadata.usdcSize || '0',
+      orderType: orderMetadata.orderType,
+      limitPrice: orderMetadata.limitPrice || '0',
+      maxSlippage: orderMetadata.maxSlippage || '0',
+    } as CombinedOrder;
+  }
+
+  /**
+   * Create order from both onchain and metadata sources
+   */
+  private createOrderFromBothSources(onchainOrder: any, orderMetadata: any): CombinedOrder {
     return {
       orderId: onchainOrder.orderId?.toString(),
       orderPDA: onchainOrder.address?.toString(),
@@ -105,7 +150,7 @@ export class OrderQuerier {
       createOrder: orderMetadata?.createOrder,
       fullFillOrder: orderMetadata?.fullFillOrder,
       position: orderMetadata?.position,
-      usdcSize: '0', // Placeholder for USDC size calculation
+      usdcSize: orderMetadata?.usdcSize || '0',
       orderType: onchainOrder.orderType,
       limitPrice: onchainOrder.limitPrice?.toString(),
       maxSlippage: onchainOrder.maxSlippage?.toString(),

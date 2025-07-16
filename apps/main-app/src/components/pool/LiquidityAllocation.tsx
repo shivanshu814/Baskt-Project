@@ -6,8 +6,9 @@ import Image from 'next/image';
 import { trpc } from '../../utils/common/trpc';
 
 export const LiquidityAllocation = React.memo(
-  ({ tvl, blpPrice, totalSupply }: LiquidityAllocationProps) => {
-    const fees = 1_000;
+  ({ tvl, blpPrice, totalSupply, poolData }: LiquidityAllocationProps) => {
+    // Use real fees from pool data or default to 0
+    const fees = poolData?.totalFeesEarned ? parseFloat(poolData.totalFeesEarned) : 0;
 
     const actualTvl = (parseFloat(tvl.replace(/,/g, '')) / 1e6).toFixed(2);
     const actualTotalSupply = (parseFloat(totalSupply.replace(/,/g, '')) / 1e6).toFixed(2);
@@ -52,6 +53,12 @@ export const LiquidityAllocation = React.memo(
                 <tbody>
                   {oiData.data
                     .filter(asset => asset.longOpenInterest > 0 || asset.shortOpenInterest > 0)
+                    .sort((a, b) => {
+                      // Sort by net exposure (absolute value) in descending order
+                      const aNetExposure = Math.abs(a.longOpenInterest - a.shortOpenInterest);
+                      const bNetExposure = Math.abs(b.longOpenInterest - b.shortOpenInterest);
+                      return bNetExposure - aNetExposure;
+                    })
                     .map((asset) => {
                       const assetSymbol = asset.assetMetadata?.ticker || 'Unknown';
                       const assetImage = asset.assetMetadata?.logo || '/assets/unknown.png';

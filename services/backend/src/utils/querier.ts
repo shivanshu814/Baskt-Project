@@ -27,4 +27,4 @@ export const shutdownQuerier = async () => {
     console.error('Error during Backend Querier shutdown:', error);
     throw error;
   }
-}; 
+};

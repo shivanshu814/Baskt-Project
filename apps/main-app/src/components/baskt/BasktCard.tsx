@@ -144,12 +144,12 @@ export const BasktCard = React.memo(({ baskt, className }: BasktCardProps) => {
   const router = useRouter();
   const [open, setOpen] = useState<string | undefined>(undefined);
 
-  const { assetCount, assetImages, extraAssets, assetPrice, performanceData } = useMemo(() => {
+  const { assetCount, assetImages, extraAssets, basktPrice, performanceData } = useMemo(() => {
     const assets = baskt.assets || [];
     const assetCount = assets.length;
     const assetImages = assets.slice(0, ASSET_DISPLAY_LIMIT);
     const extraAssets = assetCount > ASSET_DISPLAY_LIMIT ? assetCount - ASSET_DISPLAY_LIMIT : 0;
-    const assetPrice = baskt.price || 0;
+    const basktPrice = baskt.price || 0;
 
     const performanceData = {
       day: baskt.performance?.day,
@@ -161,7 +161,7 @@ export const BasktCard = React.memo(({ baskt, className }: BasktCardProps) => {
       assetCount,
       assetImages,
       extraAssets,
-      assetPrice,
+      basktPrice,
       performanceData,
     };
   }, [baskt.assets, baskt.price, baskt.performance]);
@@ -331,7 +331,7 @@ export const BasktCard = React.memo(({ baskt, className }: BasktCardProps) => {
           <div className="flex items-right justify-end flex-1 mr-4">
             <div className="flex flex-col items-right">
               <span className="text-lg font-bold text-foreground whitespace-nowrap">
-                <NumberFormat value={assetPrice} isPrice={true} />
+                <NumberFormat value={basktPrice} isPrice={true} />
               </span>
               {performanceData.day !== undefined && (
                 <span

@@ -10,6 +10,29 @@ export interface PoolData {
   lastUpdateTimestamp: string;
   lpMint: string;
   tokenVault: string;
+  // New fee and APR fields
+  apr: string;
+  totalFeesEarned: string;
+  recentFeeData?: {
+    totalFees?: string;
+    totalFeesToBlp?: string;
+    eventCount: number;
+    timeWindowDays: number;
+  };
+  feeStats?: {
+    totalEvents: number;
+    totalFees: number;
+    totalFeesToTreasury: number;
+    totalFeesToBlp: number;
+    eventTypeBreakdown: Array<{
+      _id: string;
+      count: number;
+      totalFeesToTreasury: number;
+      totalFeesToBlp: number;
+      totalFees: number;
+      avgLiquidityAmount?: number;
+    }>;
+  };
 }
 
 export type PoolResponse =
@@ -25,6 +48,29 @@ export type PoolResponse =
         lpMint: string;
         tokenVault: string;
         bump: number;
+        // New fee and APR fields
+        apr: string;
+        totalFeesEarned: string;
+        recentFeeData?: {
+          totalFees?: string;
+          totalFeesToBlp?: string;
+          eventCount: number;
+          timeWindowDays: number;
+        };
+        feeStats?: {
+          totalEvents: number;
+          totalFees: number;
+          totalFeesToTreasury: number;
+          totalFeesToBlp: number;
+          eventTypeBreakdown: Array<{
+            _id: string;
+            count: number;
+            totalFeesToTreasury: number;
+            totalFeesToBlp: number;
+            totalFees: number;
+            avgLiquidityAmount?: number;
+          }>;
+        };
       };
     }
   | {
@@ -77,6 +123,7 @@ export interface LiquidityAllocationProps {
   tvl: string;
   blpPrice: string;
   totalSupply: string;
+  poolData: PoolData | null;
 }
 
 export interface PoolDepositProps {
