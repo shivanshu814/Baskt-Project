@@ -16,8 +16,7 @@ export const PoolInformation: React.FC<PoolInformationProps> = ({ poolData }) =>
     statsError,
     totalFeesFormatted,
     avgFeePerEvent,
-    liquidityAddedCount,
-    liquidityRemovedCount,
+    eventTypeBreakdown,
   } = useAllFeeEventData();
 
   return (
@@ -94,8 +93,7 @@ export const PoolInformation: React.FC<PoolInformationProps> = ({ poolData }) =>
         error={statsError}
         totalFeesFormatted={totalFeesFormatted}
         avgFeePerEvent={avgFeePerEvent}
-        liquidityAddedCount={liquidityAddedCount}
-        liquidityRemovedCount={liquidityRemovedCount}
+        eventTypeBreakdown={eventTypeBreakdown}
       />
 
       {/* Recent Fee Events */}

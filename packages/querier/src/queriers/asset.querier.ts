@@ -48,9 +48,7 @@ export class AssetQuerier {
           message: 'No assets found',
         };
       }
-      console.log('assetConfigs', assetConfigs);
-      console.log('onchainAssets', onchainAssets);
-      console.log('latestPrices', latestPrices);
+
 
       // Combine data from all sources
       const combinedAssets = this.combineAssetData(

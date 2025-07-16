@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@baskt/ui';
-import { PoolFeeStats } from '../../hooks/pool/usePoolFeeEvents';
-import { Loader2, TrendingUp, TrendingDown, DollarSign, Activity } from 'lucide-react';
+import { PoolFeeStats, EventTypeBreakdownItem } from '../../hooks/pool/usePoolFeeEvents';
+import { Loader2, DollarSign, Activity, TrendingUp, Hash, Target, X } from 'lucide-react';
 
 interface PoolFeeStatsProps {
   feeStats: PoolFeeStats | null;
@@ -9,9 +9,59 @@ interface PoolFeeStatsProps {
   error: string | null;
   totalFeesFormatted: string;
   avgFeePerEvent: string;
-  liquidityAddedCount: number;
-  liquidityRemovedCount: number;
+  eventTypeBreakdown: EventTypeBreakdownItem[];
 }
+
+const getEventIcon = (eventType: string) => {
+  switch (eventType) {
+    case 'POSITION_OPENED':
+      return <TrendingUp className="h-4 w-4 text-green-400" />;
+    case 'POSITION_CLOSED':
+      return <Target className="h-4 w-4 text-blue-400" />;
+    case 'POSITION_LIQUIDATED':
+      return <X className="h-4 w-4 text-red-400" />;
+    case 'LIQUIDITY_ADDED':
+      return <TrendingUp className="h-4 w-4 text-green-400" />;
+    case 'LIQUIDITY_REMOVED':
+      return <TrendingUp className="h-4 w-4 text-red-400 rotate-180" />;
+    default:
+      return <Hash className="h-4 w-4 text-white/60" />;
+  }
+};
+
+const getEventColor = (eventType: string) => {
+  switch (eventType) {
+    case 'POSITION_OPENED':
+      return 'text-green-400';
+    case 'POSITION_CLOSED':
+      return 'text-blue-400';
+    case 'POSITION_LIQUIDATED':
+      return 'text-red-400';
+    case 'LIQUIDITY_ADDED':
+      return 'text-green-400';
+    case 'LIQUIDITY_REMOVED':
+      return 'text-red-400';
+    default:
+      return 'text-white/60';
+  }
+};
+
+const getEventDescription = (eventType: string) => {
+  switch (eventType) {
+    case 'POSITION_OPENED':
+      return 'Fees from opening new positions';
+    case 'POSITION_CLOSED':
+      return 'Fees from closing existing positions';
+    case 'POSITION_LIQUIDATED':
+      return 'Fees from liquidated positions';
+    case 'LIQUIDITY_ADDED':
+      return 'Fees from adding liquidity to pool';
+    case 'LIQUIDITY_REMOVED':
+      return 'Fees from removing liquidity from pool';
+    default:
+      return 'Fees from this event type';
+  }
+};
 
 export const PoolFeeStatsComponent: React.FC<PoolFeeStatsProps> = ({
   feeStats,
@@ -19,8 +69,7 @@ export const PoolFeeStatsComponent: React.FC<PoolFeeStatsProps> = ({
   error,
   totalFeesFormatted,
   avgFeePerEvent,
-  liquidityAddedCount,
-  liquidityRemovedCount,
+  eventTypeBreakdown,
 }) => {
   if (isLoading) {
     return (
@@ -91,7 +140,7 @@ export const PoolFeeStatsComponent: React.FC<PoolFeeStatsProps> = ({
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-primary">
-                {((feeStats.totalFeesToTreasury / feeStats.totalFees) * 100).toFixed(1)}%
+                {feeStats.totalFees > 0 ? ((feeStats.totalFeesToTreasury / feeStats.totalFees) * 100).toFixed(1) : '0.0'}%
               </div>
               <div className="text-sm text-white/60">To Treasury</div>
             </div>
@@ -103,31 +152,66 @@ export const PoolFeeStatsComponent: React.FC<PoolFeeStatsProps> = ({
           <div>
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Activity className="h-4 w-4" />
-              Event Breakdown
+              Event Type Breakdown
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white/5 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="h-4 w-4 text-green-400" />
-                  <span className="text-white font-medium">Liquidity Added</span>
-                </div>
-                <div className="text-2xl font-bold text-green-400">{liquidityAddedCount}</div>
-                <div className="text-sm text-white/60">Events</div>
+            
+            {eventTypeBreakdown.length === 0 ? (
+              <div className="text-white/60 text-center py-8">
+                No event data available
               </div>
-              <div className="bg-white/5 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingDown className="h-4 w-4 text-red-400" />
-                  <span className="text-white font-medium">Liquidity Removed</span>
-                </div>
-                <div className="text-2xl font-bold text-red-400">{liquidityRemovedCount}</div>
-                <div className="text-sm text-white/60">Events</div>
+            ) : (
+              <div className="space-y-4">
+                {eventTypeBreakdown.map((item) => (
+                  <div key={item.eventType} className="bg-white/5 p-4 rounded-lg border border-white/10">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        {getEventIcon(item.eventType)}
+                        <div>
+                          <div className={`font-semibold text-lg ${getEventColor(item.eventType)}`}>
+                            {item.displayName}
+                          </div>
+                          <div className="text-xs text-white/60">
+                            {getEventDescription(item.eventType)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-primary">
+                          {item.formattedTotalFees} USDC
+                        </div>
+                        <div className="text-sm text-white/60">
+                          {item.percentageOfTotalFees.toFixed(1)}% of total
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-white">{item.count}</div>
+                        <div className="text-white/60">Events</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-semibold text-blue-400">
+                          {item.formattedTreasuryFees} USDC
+                        </div>
+                        <div className="text-white/60">Treasury Fees</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-semibold text-purple-400">
+                          {item.formattedBlpFees} USDC
+                        </div>
+                        <div className="text-white/60">BLP Fees</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Fee Distribution */}
           <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Fee Distribution</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Overall Fee Distribution</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-white/60">Treasury Fees</span>
@@ -145,7 +229,7 @@ export const PoolFeeStatsComponent: React.FC<PoolFeeStatsProps> = ({
                 <div 
                   className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
                   style={{ 
-                    width: `${(feeStats.totalFeesToTreasury / feeStats.totalFees) * 100}%` 
+                    width: `${feeStats.totalFees > 0 ? (feeStats.totalFeesToTreasury / feeStats.totalFees) * 100 : 0}%` 
                   }}
                 />
               </div>

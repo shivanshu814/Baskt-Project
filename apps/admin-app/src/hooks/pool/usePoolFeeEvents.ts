@@ -3,7 +3,7 @@ import { trpc } from '../../utils/trpc';
 
 export interface PoolFeeEvent {
   eventId: string;
-  eventType: 'LIQUIDITY_ADDED' | 'LIQUIDITY_REMOVED';
+  eventType: 'POSITION_OPENED' | 'POSITION_CLOSED' | 'POSITION_LIQUIDATED' | 'LIQUIDITY_ADDED' | 'LIQUIDITY_REMOVED';
   transactionSignature: string;
   timestamp: Date;
   owner: string;
@@ -31,6 +31,19 @@ export interface PoolFeeStats {
   }[];
 }
 
+export interface EventTypeBreakdownItem {
+  eventType: string;
+  count: number;
+  totalFees: number;
+  totalFeesToTreasury: number;
+  totalFeesToBlp: number;
+  formattedTotalFees: string;
+  formattedTreasuryFees: string;
+  formattedBlpFees: string;
+  percentageOfTotalFees: number;
+  displayName: string;
+}
+
 export interface UsePoolFeeEventsOptions {
   limit?: number;
   offset?: number;
@@ -56,9 +69,35 @@ export interface UsePoolFeeEventsReturn {
   // Formatted data for display
   totalFeesFormatted: string;
   avgFeePerEvent: string;
+  
+  // Event type breakdown
+  eventTypeBreakdown: EventTypeBreakdownItem[];
+  
+  // Deprecated - keeping for backward compatibility
   liquidityAddedCount: number;
   liquidityRemovedCount: number;
 }
+
+const formatEventTypeName = (eventType: string): string => {
+  switch (eventType) {
+    case 'POSITION_OPENED':
+      return 'Position Opened';
+    case 'POSITION_CLOSED':
+      return 'Position Closed';
+    case 'POSITION_LIQUIDATED':
+      return 'Position Liquidated';
+    case 'LIQUIDITY_ADDED':
+      return 'Liquidity Added';
+    case 'LIQUIDITY_REMOVED':
+      return 'Liquidity Removed';
+    default:
+      return eventType.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  }
+};
+
+const formatFeeAmount = (amount: number): string => {
+  return (amount / 1e6).toFixed(2);
+};
 
 export function usePoolFeeEvents(options: UsePoolFeeEventsOptions = {}): UsePoolFeeEventsReturn {
   const { limit = 100, offset = 0 } = options;
@@ -97,14 +136,33 @@ export function usePoolFeeEvents(options: UsePoolFeeEventsOptions = {}): UsePool
   // Computed values
   const totalFeesFormatted = useMemo(() => {
     if (!feeStats) return '0';
-    return (feeStats.totalFees / 1e6).toFixed(2); // Convert from raw to USDC
+    return formatFeeAmount(feeStats.totalFees);
   }, [feeStats]);
 
   const avgFeePerEvent = useMemo(() => {
     if (!feeStats || feeStats.totalEvents === 0) return '0';
-    return ((feeStats.totalFees / feeStats.totalEvents) / 1e6).toFixed(4);
+    return formatFeeAmount(feeStats.totalFees / feeStats.totalEvents);
   }, [feeStats]);
 
+  // Event type breakdown with formatted data
+  const eventTypeBreakdown = useMemo(() => {
+    if (!feeStats || !feeStats.eventTypeBreakdown) return [];
+    
+    return feeStats.eventTypeBreakdown.map(item => ({
+      eventType: item._id,
+      count: item.count,
+      totalFees: item.totalFees,
+      totalFeesToTreasury: item.totalFeesToTreasury,
+      totalFeesToBlp: item.totalFeesToBlp,
+      formattedTotalFees: formatFeeAmount(item.totalFees),
+      formattedTreasuryFees: formatFeeAmount(item.totalFeesToTreasury),
+      formattedBlpFees: formatFeeAmount(item.totalFeesToBlp),
+      percentageOfTotalFees: feeStats.totalFees > 0 ? (item.totalFees / feeStats.totalFees) * 100 : 0,
+      displayName: formatEventTypeName(item._id),
+    }));
+  }, [feeStats]);
+
+  // Backward compatibility
   const liquidityAddedCount = useMemo(() => {
     if (!feeStats) return 0;
     const addedEvents = feeStats.eventTypeBreakdown.find(e => e._id === 'LIQUIDITY_ADDED');
@@ -137,6 +195,11 @@ export function usePoolFeeEvents(options: UsePoolFeeEventsOptions = {}): UsePool
     // Formatted data for display
     totalFeesFormatted,
     avgFeePerEvent,
+    
+    // Event type breakdown
+    eventTypeBreakdown,
+    
+    // Deprecated - keeping for backward compatibility
     liquidityAddedCount,
     liquidityRemovedCount,
   };
@@ -173,14 +236,33 @@ export function useAllFeeEventData(options: UsePoolFeeEventsOptions = {}): UsePo
   // Computed values
   const totalFeesFormatted = useMemo(() => {
     if (!feeStats) return '0';
-    return (feeStats.totalFees / 1e6).toFixed(2);
+    return formatFeeAmount(feeStats.totalFees);
   }, [feeStats]);
 
   const avgFeePerEvent = useMemo(() => {
     if (!feeStats || feeStats.totalEvents === 0) return '0';
-    return ((feeStats.totalFees / feeStats.totalEvents) / 1e6).toFixed(4);
+    return formatFeeAmount(feeStats.totalFees / feeStats.totalEvents);
   }, [feeStats]);
 
+  // Event type breakdown with formatted data
+  const eventTypeBreakdown = useMemo(() => {
+    if (!feeStats || !feeStats.eventTypeBreakdown) return [];
+    
+    return feeStats.eventTypeBreakdown.map(item => ({
+      eventType: item._id,
+      count: item.count,
+      totalFees: item.totalFees,
+      totalFeesToTreasury: item.totalFeesToTreasury,
+      totalFeesToBlp: item.totalFeesToBlp,
+      formattedTotalFees: formatFeeAmount(item.totalFees),
+      formattedTreasuryFees: formatFeeAmount(item.totalFeesToTreasury),
+      formattedBlpFees: formatFeeAmount(item.totalFeesToBlp),
+      percentageOfTotalFees: feeStats.totalFees > 0 ? (item.totalFees / feeStats.totalFees) * 100 : 0,
+      displayName: formatEventTypeName(item._id),
+    }));
+  }, [feeStats]);
+
+  // Backward compatibility
   const liquidityAddedCount = useMemo(() => {
     if (!feeStats) return 0;
     const addedEvents = feeStats.eventTypeBreakdown.find(e => e._id === 'LIQUIDITY_ADDED');
@@ -213,6 +295,11 @@ export function useAllFeeEventData(options: UsePoolFeeEventsOptions = {}): UsePo
     // Formatted data for display
     totalFeesFormatted,
     avgFeePerEvent,
+    
+    // Event type breakdown
+    eventTypeBreakdown,
+    
+    // Deprecated - keeping for backward compatibility
     liquidityAddedCount,
     liquidityRemovedCount,
   };

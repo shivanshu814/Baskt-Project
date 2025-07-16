@@ -60,17 +60,29 @@ export const PoolFeeEventsComponent: React.FC<PoolFeeEventsProps> = ({
 
   const formatEventType = (eventType: string) => {
     switch (eventType) {
+      case 'POSITION_OPENED':
+        return 'Position Opened';
+      case 'POSITION_CLOSED':
+        return 'Position Closed';
+      case 'POSITION_LIQUIDATED':
+        return 'Position Liquidated';
       case 'LIQUIDITY_ADDED':
         return 'Liquidity Added';
       case 'LIQUIDITY_REMOVED':
         return 'Liquidity Removed';
       default:
-        return eventType;
+        return eventType.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
     }
   };
 
   const getEventIcon = (eventType: string) => {
     switch (eventType) {
+      case 'POSITION_OPENED':
+        return <TrendingUp className="h-4 w-4 text-green-400" />;
+      case 'POSITION_CLOSED':
+        return <TrendingDown className="h-4 w-4 text-blue-400" />;
+      case 'POSITION_LIQUIDATED':
+        return <TrendingDown className="h-4 w-4 text-red-400" />;
       case 'LIQUIDITY_ADDED':
         return <TrendingUp className="h-4 w-4 text-green-400" />;
       case 'LIQUIDITY_REMOVED':
@@ -82,6 +94,12 @@ export const PoolFeeEventsComponent: React.FC<PoolFeeEventsProps> = ({
 
   const getEventColor = (eventType: string) => {
     switch (eventType) {
+      case 'POSITION_OPENED':
+        return 'text-green-400';
+      case 'POSITION_CLOSED':
+        return 'text-blue-400';
+      case 'POSITION_LIQUIDATED':
+        return 'text-red-400';
       case 'LIQUIDITY_ADDED':
         return 'text-green-400';
       case 'LIQUIDITY_REMOVED':
