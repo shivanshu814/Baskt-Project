@@ -30,7 +30,6 @@ export class BasktQuerier {
    */
   async getAllBaskts(options: BasktQueryOptions = {}): Promise<QueryResult<CombinedBaskt[]>> {
     try {
-
       // Fetch data from multiple sources
       const [basktConfigs, onchainBaskts, allAssetsResult] = await Promise.all([
         this.getBasktConfigsFromMongoDB(),
@@ -55,7 +54,6 @@ export class BasktQuerier {
           }
         });
       }
-
 
       // Combine baskts with asset data
       const combinedBaskts = await Promise.all(
@@ -123,7 +121,7 @@ export class BasktQuerier {
         };
       }
 
-      // Create asset lookup map
+      // Create asset lookup map using asset.assetAddress as key
       const assetLookup = new Map<string, any>();
       if (allAssetsResult.success && allAssetsResult.data) {
         allAssetsResult.data.forEach((asset: any) => {
@@ -187,7 +185,7 @@ export class BasktQuerier {
         }),
       ]);
 
-      // Create asset lookup map
+      // Create asset lookup map using asset.assetAddress as key
       const assetLookup = new Map<string, any>();
       if (allAssetsResult.success && allAssetsResult.data) {
         allAssetsResult.data.forEach((asset: any) => {
@@ -238,11 +236,12 @@ export class BasktQuerier {
           message: 'Baskt not found',
         };
       }
+      const nav = basktResult.data.price;
 
       const result: QueryResult<BasktNAV> = {
         success: true,
         data: {
-          nav: basktResult.data.price,
+          nav: nav,
         },
       };
 
@@ -320,7 +319,7 @@ export class BasktQuerier {
     try {
       return this.basktClient.getBaskt(new PublicKey(basktId));
     } catch (error) {
-        throw createQuerierError('Failed to fetch baskt from onchain', 'ONCHAIN_ERROR', 500, error);
+      throw createQuerierError('Failed to fetch baskt from onchain', 'ONCHAIN_ERROR', 500, error);
     }
   }
 
@@ -345,7 +344,7 @@ export class BasktQuerier {
         const assetId = asset.assetId.toString();
         const fetchedAsset = assetLookup.get(assetId);
 
-        return {
+        const assetData = {
           ...(fetchedAsset || {}),
           weight: (asset.weight.toNumber() * 100) / 10_000,
           direction: asset.direction,
@@ -354,6 +353,7 @@ export class BasktQuerier {
           volume24h: 0,
           marketCap: 0,
         };
+        return assetData;
       }) || [];
 
     const basktId =
@@ -363,60 +363,33 @@ export class BasktQuerier {
     let price = new BN(0);
     try {
       if (assets.length > 0 && assets.every((asset: any) => asset && asset.price > 0)) {
-        const assetsWithPriceConfig = assets.filter((asset: any) => asset.config?.priceConfig);
+        const currentAssetConfigs = assets.map((asset: any) => ({
+          assetId: new PublicKey(asset.id),
+          weight: new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100),
+          direction: Boolean(asset.direction),
+          baselinePrice: new BN(asset.price),
+        }));
 
-        if (assetsWithPriceConfig.length === 0) {
-          throw new Error('No price config available');
-        }
+        const baselineAssetConfigs = assets.map((asset: any) => ({
+          assetId: new PublicKey(asset.id),
+          weight: new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100),
+          direction: Boolean(asset.direction),
+          baselinePrice: new BN(asset.baselinePrice),
+        }));
 
-        const basktAssets = assetsWithPriceConfig.map((asset: any) => {
-          const weightBN = new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100);
-          return {
-            assetId: asset.id,
-            weight: weightBN,
-            direction: asset.direction ? 1 : 0,
-            baselinePrice: new BN(asset.baselinePrice),
-            priceConfig: asset.config.priceConfig,
-          };
-        });
-
-        const { liveNav } = await calculateLiveNav(
-          basktAssets,
-          new BN(onchainBaskt?.account?.baselineNav || 0),
+        price = calculateNav(
+          baselineAssetConfigs,
+          currentAssetConfigs,
+          new BN(onchainBaskt?.account?.baselineNav || 1000000),
         );
-
-        price = liveNav;
       }
     } catch (error) {
-      console.log(error);
-      // Fallback to calculateNav if calculateLiveNav fails
-      const formattedAssets = assets.map(
-        (asset: any) =>
-          ({
-            assetId: new PublicKey(asset.id),
-            direction: asset.direction,
-            weight: new BN(asset.weight).mul(WEIGHT_PRECISION).divn(100),
-            baselinePrice: new BN(asset.baselinePrice),
-          } as OnchainAssetConfig),
-      );
-
-      try {
-        price = calculateNav(
-          onchainBaskt?.account?.currentAssetConfigs?.map((asset: any) => ({
-            ...asset,
-          })) || [],
-          formattedAssets,
-          new BN(onchainBaskt?.account?.baselineNav || 0),
-        );
-      } catch (fallbackError) {
-        console.error('Error calculating NAV:', fallbackError);
-        if (onchainBaskt?.oracle?.price) {
-          price = new BN(onchainBaskt.oracle.price);
-        } else if (onchainBaskt?.baselineNav) {
-          price = new BN(onchainBaskt.baselineNav);
-        } else {
-          price = new BN(0);
-        }
+      if (onchainBaskt?.oracle?.price) {
+        price = new BN(onchainBaskt.oracle.price);
+      } else if (onchainBaskt?.account?.baselineNav) {
+        price = new BN(onchainBaskt.account.baselineNav);
+      } else {
+        price = new BN(0);
       }
     }
 

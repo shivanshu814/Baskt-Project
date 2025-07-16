@@ -12,7 +12,7 @@ export const usePoolData = () => {
   const [poolData, setPoolData] = useState<PoolData | null>(null);
   const [liquidityPool, setLiquidityPool] = useState<PublicKey | null>(null);
 
-  const { data: poolDataResponse } = trpc.pool.getLiquidityPool.useQuery<PoolResponse>();
+  const { data: poolDataResponse } = trpc.pool.getLiquidityPool.useQuery();
   const { calculateFee, calculateExpectedOutput } = usePoolCalculations({ poolData });
 
   const fetchPoolData = useCallback(async () => {
@@ -29,16 +29,22 @@ export const usePoolData = () => {
   }, [client]);
 
   useEffect(() => {
-    if (poolDataResponse?.success) {
+    if (poolDataResponse?.success && 'data' in poolDataResponse) {
+      const data = poolDataResponse.data;
       setPoolData({
-        totalLiquidity: poolDataResponse.data.totalLiquidity,
-        totalShares: poolDataResponse.data.totalShares,
-        depositFeeBps: poolDataResponse.data.depositFeeBps,
-        withdrawalFeeBps: poolDataResponse.data.withdrawalFeeBps,
-        minDeposit: poolDataResponse.data.minDeposit,
-        lastUpdateTimestamp: new Date(poolDataResponse.data.lastUpdateTimestamp).toISOString(),
-        lpMint: poolDataResponse.data.lpMint,
-        tokenVault: poolDataResponse.data.tokenVault,
+        totalLiquidity: data.totalLiquidity,
+        totalShares: data.totalShares,
+        depositFeeBps: data.depositFeeBps,
+        withdrawalFeeBps: data.withdrawalFeeBps,
+        minDeposit: data.minDeposit,
+        lastUpdateTimestamp: new Date(data.lastUpdateTimestamp).toISOString(),
+        lpMint: data.lpMint,
+        tokenVault: data.tokenVault,
+        // Include new fee and APR fields
+        apr: data.apr || '0.00',
+        totalFeesEarned: data.totalFeesEarned || '0.00',
+        recentFeeData: data.recentFeeData,
+        feeStats: data.feeStats,
       });
     }
   }, [poolDataResponse]);

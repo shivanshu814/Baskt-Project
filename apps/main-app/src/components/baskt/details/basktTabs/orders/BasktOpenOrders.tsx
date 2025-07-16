@@ -57,7 +57,7 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
       );
 
       if (position) {
-        return position.size || position.usdcSize || order.usdcSize;
+        return position.size || position.usdcSize;
       }
     }
 
@@ -72,9 +72,9 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
           return position.usdcSize;
         } else if (position.size && position.entryPrice) {
           const calculatedUsdcSize = calculateUsdcSize(position.size, position.entryPrice);
-          return calculatedUsdcSize ? calculatedUsdcSize.toString() : order.usdcSize;
+          return calculatedUsdcSize ? calculatedUsdcSize.toString() : null;
         }
-        return position.size || order.usdcSize;
+        return position.size;
       }
     }
 
@@ -85,19 +85,35 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
       );
 
       if (position) {
-        return position.size || position.usdcSize || order.usdcSize;
+        return position.size || position.usdcSize;
       }
     }
 
-    if (order.usdcSize === '0' && positions.length > 0) {
-      // eslint-disable-next-line
-      const openPosition = positions.find((pos: any) => pos.status === 'OPEN');
-      if (openPosition) {
-        return openPosition.size || openPosition.usdcSize || order.usdcSize;
-      }
+    // Return null instead of using a fallback that gives incorrect data
+    return null;
+  };
+
+  // Helper function to get order timestamp
+  // eslint-disable-next-line
+  const getOrderTimestamp = (order: any) => {
+    // Try createOrder.ts first
+    if (order.createOrder?.ts) {
+      return order.createOrder.ts;
     }
 
-    return order.usdcSize;
+    // Try createdAt from metadata
+    if (order.createdAt) {
+      return order.createdAt;
+    }
+
+    // If we have an orderId, we can try to use current timestamp as a fallback
+    // This is not ideal but better than showing nothing
+    if (order.orderId) {
+      // Use orderId as the timestamp
+      return order.orderId;
+    }
+
+    return null;
   };
   
 
@@ -150,10 +166,11 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
                 // eslint-disable-next-line
                 orders.map((order: any) => {
                   const positionSize = getPositionSizeForOrder(order);
+                  const orderTimestamp = getOrderTimestamp(order);
                   return (
                     <TableRow key={order.orderId.toString()}>
                       <TableCell className="text-xs sm:text-sm whitespace-nowrap">
-                        {order.createOrder?.ts ? formatDateTime(order.createOrder.ts) : '-'}
+                        {orderTimestamp ? formatDateTime(orderTimestamp) : '-'}
                       </TableCell>
                       <TableCell className="font-medium text-xs sm:text-sm">
                         {order.orderType === OrderType.Market ? 'Market' : 'Limit'}

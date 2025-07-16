@@ -1,17 +1,13 @@
 import React from 'react';
 import { TradingViewChart } from './TradingViewChart';
 import { BasktChartProps } from '../../../../types/baskt';
-import { useBasktList } from '../../../../hooks/baskt/useBasktList';
 import { useBasktOI } from '../../../../hooks/baskt/details/useBasktOI';
 import { useBasktVolume } from '../../../../hooks/baskt/details/useBasktVolume';
 import { DesktopMetrics } from '../basktInfo/DesktopMetrics';
 import { MobileBasktHeader } from '../basktInfo/MobileBasktHeader';
 
 export const BasktChart = ({ baskt, chartPeriod, chartType }: BasktChartProps) => {
-  const { filteredBaskts } = useBasktList();
-
-  const currentBaskt =
-    filteredBaskts.find((b) => b.basktId?.toString() === baskt.basktId?.toString()) || baskt;
+  const currentBaskt = baskt;
   const { totalOpenInterest, isLoading: oiLoading } = useBasktOI(baskt.basktId?.toString());
   const { totalVolume, isLoading: volumeLoading } = useBasktVolume(baskt.basktId?.toString());
 

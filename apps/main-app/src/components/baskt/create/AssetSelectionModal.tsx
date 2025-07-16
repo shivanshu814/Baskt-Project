@@ -366,11 +366,11 @@ export function AssetSelectionModal({
                                 <NumberFormat value={asset.change24h} />%
                               </span>
                               <div className="text-sm font-semibold mt-1 text-foreground/90">
-                                $
-                                {(() => {
-                                  const price = asset.priceRaw / 1e6;
-                                  return price < 1 ? price.toFixed(6) : price.toFixed(3);
-                                })()}
+                                <NumberFormat
+                                  value={asset.priceRaw}
+                                  isPrice={true}
+                                  showCurrency={true}
+                                />
                               </div>
                             </div>
                           </div>

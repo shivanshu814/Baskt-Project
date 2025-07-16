@@ -3,10 +3,45 @@ import { querier } from '../../utils/querier';
 
 export const getLiquidityPool = publicProcedure.query(async () => {
   try {
-    const result = await querier.pool.getLiquidityPool();
-    return result;
+    console.log('Getting liquidity pool data');
+    
+    const poolResult = await querier.pool.getLiquidityPool();
+    
+    if (!poolResult.success || !poolResult.data) {
+      return {
+        success: false,
+        error: 'Failed to fetch liquidity pool data',
+      };
+    }
+    
+    const poolData = poolResult.data;
+    
+    // Get pool analytics (APR and fee data) from FeeEventQuerier
+    const analyticsResult = await querier.feeEvent.getPoolAnalytics(
+      parseFloat(poolData.totalLiquidity),
+      30 // 30 days window
+    );
+    
+    console.log('Pool analytics result:', analyticsResult);
+    
+    return {
+      success: true,
+      data: {
+        ...poolData,
+        // Add analytics data or default values
+        apr: (analyticsResult.success && analyticsResult.data) ? analyticsResult.data.apr : '0.00',
+        totalFeesEarned: (analyticsResult.success && analyticsResult.data) ? analyticsResult.data.totalFeesEarned : '0.00',
+        recentFeeData: (analyticsResult.success && analyticsResult.data) ? analyticsResult.data.recentFeeData : {
+          totalFees: '0.00',
+          totalFeesToBlp: '0.00',
+          eventCount: 0,
+          timeWindowDays: 30,
+        },
+        feeStats: (analyticsResult.success && analyticsResult.data) ? analyticsResult.data.feeStats : null,
+      },
+    };
   } catch (error) {
-    console.error('Error fetching liquidity pool:', error);
+    console.error('Error fetching liquidity pool with fee data:', error);
     return {
       success: false,
       error: 'Failed to fetch liquidity pool data',

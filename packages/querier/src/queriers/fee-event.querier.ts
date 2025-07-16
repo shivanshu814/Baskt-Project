@@ -18,6 +18,142 @@ export class FeeEventQuerier {
   }
 
   /**
+   * Calculate APR based on fee data and liquidity
+   */
+  private calculateAPR(totalFeesToBlp: number, totalLiquidity: number, timeWindowDays: number = 30): number {
+    if (totalLiquidity === 0) return 0;
+    
+    // Calculate daily fee rate
+    const dailyFeeRate = totalFeesToBlp / totalLiquidity / timeWindowDays;
+    
+    // Annualize the rate (365 days)
+    const annualizedRate = dailyFeeRate * 365;
+    
+    // Convert to percentage
+    return annualizedRate * 100;
+  }
+
+  /**
+   * Get fee data for a specific time window
+   */
+  async getFeeDataForTimeWindow(daysBack: number = 30): Promise<QueryResult<{
+    totalFees: number;
+    totalFeesToBlp: number;
+    eventCount: number;
+    timeWindowDays: number;
+  }>> {
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - daysBack);
+      
+      const feeEventResult = await this.getFeeEventsWithFilters({
+        startDate,
+        endDate,
+        limit: 10000, // Get all events in the time window
+        offset: 0,
+      });
+      
+      if (!feeEventResult.success) {
+        return {
+          success: true,
+          data: {
+            totalFees: 0,
+            totalFeesToBlp: 0,
+            eventCount: 0,
+            timeWindowDays: daysBack,
+          },
+        };
+      }
+      
+      const events = feeEventResult.data || [];
+      const totalFees = events.reduce((sum, event) => sum + (parseFloat(event.totalFee) || 0), 0);
+      const totalFeesToBlp = events.reduce((sum, event) => sum + (parseFloat(event.feeToBlp) || 0), 0);
+      
+      return {
+        success: true,
+        data: {
+          totalFees,
+          totalFeesToBlp,
+          eventCount: events.length,
+          timeWindowDays: daysBack,
+        },
+      };
+    } catch (error) {
+      const querierError = handleQuerierError(error);
+      return {
+        success: false,
+        message: 'Failed to get fee data for time window',
+        error: querierError.message,
+      };
+    }
+  }
+
+  /**
+   * Get pool analytics including APR and fee data
+   */
+  async getPoolAnalytics(totalLiquidity: number, timeWindowDays: number = 30): Promise<QueryResult<{
+    apr: string;
+    totalFeesEarned: string;
+    recentFeeData: {
+      totalFees: string;
+      totalFeesToBlp: string;
+      eventCount: number;
+      timeWindowDays: number;
+    };
+    feeStats: any;
+  }>> {
+    try {
+      const [feeStatsResult, recentFeeDataResult] = await Promise.all([
+        this.getFeeEventStatsOnly(),
+        this.getFeeDataForTimeWindow(timeWindowDays),
+      ]);
+      
+      // Convert totalLiquidity from raw format to USDC
+      const totalLiquidityUSDC = totalLiquidity / 1_000_000;
+      
+      // Calculate APR using recent fee data
+      const recentFeeData = (recentFeeDataResult.success && recentFeeDataResult.data) ? recentFeeDataResult.data : {
+        totalFees: 0,
+        totalFeesToBlp: 0,
+        eventCount: 0,
+        timeWindowDays,
+      };
+      
+      const apr = this.calculateAPR(
+        recentFeeData.totalFeesToBlp / 1_000_000, // Convert to USDC
+        totalLiquidityUSDC,
+        timeWindowDays
+      );
+      
+      // Get total fees earned (all time) - convert to USDC
+      const totalFeesEarned = feeStatsResult.success ? (feeStatsResult.data.totalFees / 1_000_000) : 0;
+      
+      return {
+        success: true,
+        data: {
+          apr: apr.toFixed(2),
+          totalFeesEarned: totalFeesEarned.toFixed(2),
+          recentFeeData: {
+            totalFees: (recentFeeData.totalFees / 1_000_000).toFixed(2),
+            totalFeesToBlp: (recentFeeData.totalFeesToBlp / 1_000_000).toFixed(2),
+            eventCount: recentFeeData.eventCount,
+            timeWindowDays: recentFeeData.timeWindowDays,
+          },
+          feeStats: feeStatsResult.success ? feeStatsResult.data : null,
+        },
+      };
+    } catch (error) {
+      const querierError = handleQuerierError(error);
+      return {
+        success: false,
+        message: 'Failed to get pool analytics',
+        error: querierError.message,
+      };
+    }
+  }
+
+  /**
    * Create a new fee event
    */
   async createFeeEvent(feeEventData: FeeEventData): Promise<QueryResult<any>> {
