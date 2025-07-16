@@ -99,6 +99,7 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
 
     return order.usdcSize;
   };
+  
 
   return (
     <Card className="rounded-none border-0 shadow-none">
