@@ -38,7 +38,8 @@ export default function PoolPage() {
       onSuccess: refreshAll,
     });
 
-  const randomAPY = '15.08%';
+  // Use real APR from pool data or default to 0.00%
+  const currentAPR = poolData?.apr ? `${poolData.apr}%` : '0.00%';
 
   // Calculate accurate TVL from pool data
   const tvl = poolData?.totalLiquidity ? parseFloat(poolData.totalLiquidity).toLocaleString() : '0';
@@ -57,13 +58,14 @@ export default function PoolPage() {
       <div className="w-full max-w-[85rem] mx-auto flex flex-col lg:flex-row gap-8 mb-8">
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center mb-4">
-            <PoolInfo apy={randomAPY} lastUpdated="5/29/2025" />
+            <PoolInfo apy={currentAPR} lastUpdated={new Date().toLocaleDateString()} />
           </div>
           <div className="mt-8">
             <LiquidityAllocation
               tvl={tvl}
               blpPrice={blpPrice}
               totalSupply={totalSupply}
+              poolData={poolData}
             />
           </div>
         </div>

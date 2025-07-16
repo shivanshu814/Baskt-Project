@@ -30,8 +30,11 @@ export function BasktClientProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     const initializeClient = async () => {
       if (!activeWallet) {
+        console.log("No active wallet found");
         return;
       }
+      console.log("Initializing client with wallet", activeWallet);
+
 
       try {
         // eslint-disable-next-line no-undef

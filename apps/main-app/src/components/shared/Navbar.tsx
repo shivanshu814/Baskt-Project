@@ -33,7 +33,7 @@ export function Navbar({ setSidebarOpen }: NavbarProps) {
   const { logout, authenticated, login } = usePrivy();
   const router = useRouter();
 
-  const { userAddress, isAuthenticated, wallet } = useUser();
+  const { userAddress } = useUser();
 
 
   const handleLogout = async () => {
