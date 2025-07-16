@@ -30,13 +30,12 @@ export class BasktQuerier {
    */
   async getAllBaskts(options: BasktQueryOptions = {}): Promise<QueryResult<CombinedBaskt[]>> {
     try {
-      const { withLatestPrices = false, withConfig = false } = options;
 
       // Fetch data from multiple sources
       const [basktConfigs, onchainBaskts, allAssetsResult] = await Promise.all([
         this.getBasktConfigsFromMongoDB(),
         this.getBasktsFromOnchain(),
-        this.assetQuerier.getAllAssets({ withLatestPrices, withConfig }),
+        this.assetQuerier.getAllAssets({ withLatestPrices: true, withConfig: true }),
       ]);
 
       if (!basktConfigs || basktConfigs.length === 0) {
@@ -79,7 +78,7 @@ export class BasktQuerier {
             basktMetadata,
             assetLookup,
             assetIds,
-            withConfig,
+            false,
           );
         }),
       );
@@ -112,8 +111,8 @@ export class BasktQuerier {
         this.getBasktConfigByIdFromMongoDB(basktId),
         this.getBasktFromOnchain(basktId),
         this.assetQuerier.getAllAssets({
-          withLatestPrices: options.withLatestPrices,
-          withConfig: options.withConfig,
+          withLatestPrices: true,
+          withConfig: true,
         }),
       ]);
 
@@ -144,7 +143,7 @@ export class BasktQuerier {
         basktMetadata,
         assetLookup,
         assetIds,
-        options.withConfig || false,
+        false,
       );
 
       const result: QueryResult<CombinedBaskt> = {
@@ -183,8 +182,8 @@ export class BasktQuerier {
       const [onchainBaskt, allAssetsResult] = await Promise.all([
         this.getBasktFromOnchain(basktMetadata.basktId),
         this.assetQuerier.getAllAssets({
-          withLatestPrices: options.withLatestPrices,
-          withConfig: options.withConfig,
+          withLatestPrices: true,
+          withConfig: true,
         }),
       ]);
 
@@ -208,7 +207,7 @@ export class BasktQuerier {
         basktMetadata,
         assetLookup,
         assetIds,
-        options.withConfig || false,
+        false,
       );
 
       const result: QueryResult<CombinedBaskt> = {
@@ -388,7 +387,6 @@ export class BasktQuerier {
 
         price = liveNav;
       }
-      console.log("No Data", assets.map((asset: any) => asset.price));
     } catch (error) {
       console.log(error);
       // Fallback to calculateNav if calculateLiveNav fails
