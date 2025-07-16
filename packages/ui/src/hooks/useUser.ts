@@ -1,40 +1,33 @@
 
-import { usePrivy, useSolanaWallets } from '@privy-io/react-auth';
+import { ConnectedSolanaWallet, usePrivy, useSolanaWallets } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
 
 
 export function useUser() {
-    const { logout, authenticated, user } = usePrivy();
+  const { logout, authenticated, user } = usePrivy();
   const { wallets } = useSolanaWallets();
-  const [userAddress, setUserAddress] = useState<string | null>(null);
-
-  console.log(wallets, userAddress, user?.wallet);
+  const [wallet, setWallet] = useState<ConnectedSolanaWallet | null>(null);
 
   useEffect(() => {
     if(!authenticated) {
       return
     }
 
-    if(authenticated && wallets.length === 0) {
+    const desiredWallet = wallets.find((wallet) => wallet.address === user?.wallet?.address); 
+  
+    if(!desiredWallet) {
       logout();
       return
     }
 
-    if(authenticated && user?.wallet?.address.toLowerCase() !== wallets[0].address.toLowerCase()) {
-      logout();
-      return
-    }
-
-    if(wallets.length > 0) {
-      setUserAddress(wallets[0].address);
-    } 
+    setWallet(desiredWallet);
     
-  }, [wallets, authenticated]);
+  }, [wallets, authenticated, user]);
 
   return {
-    userAddress,
+    wallet,
     isAuthenticated: authenticated,
-    wallet: wallets[0],
+    userAddress: wallet?.address,
   }
 
 }
