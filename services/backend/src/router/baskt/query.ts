@@ -54,7 +54,7 @@ const getTradingData = publicProcedure
   .input(
     z.object({
       basktId: z.string(),
-      period: z.enum(['1D', '1W', '1M', '1Y', 'All']).default('1W'),
+      period: z.enum(['1D', '1W', '1M', '1Y', 'All']).default('1M'),
     }),
   )
   .query(async ({ input }) => {
@@ -95,7 +95,27 @@ const getTradingData = publicProcedure
       new BN(1e6),
     );
 
-    const filteredData = priceHistory.daily
+    let dataToUse;
+    switch (period) {
+      case '1D':
+        dataToUse = priceHistory.daily.slice(-1); //last day only
+        break;
+      case '1W':
+        dataToUse = priceHistory.daily.slice(-7); // last 7 days
+        break;
+      case '1M':
+        dataToUse = priceHistory.daily.slice(-30); // last 30 days
+        break;
+      case '1Y':
+        dataToUse = priceHistory.daily; // all daily data for full year
+        break;
+      case 'All':
+      default:
+        dataToUse = priceHistory.daily; // all daily data
+        break;
+    }
+
+    const filteredData = dataToUse
       .filter((item) => {
         const timestamp = Math.floor(new Date(item.date).getTime() / 1000);
         return timestamp >= startTime;

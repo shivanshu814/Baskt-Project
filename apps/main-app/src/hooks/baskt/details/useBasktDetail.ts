@@ -8,7 +8,7 @@ export const useBasktDetail = (basktName: string) => {
   const [baskt, setBaskt] = useState<BasktInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [chartPeriod, setChartPeriod] = useState('1W');
+  const [chartPeriod, setChartPeriod] = useState('1M');
   const [chartType, setChartType] = useState<'line' | 'candle'>('line');
   const [retryCount, setRetryCount] = useState(0);
   const [isNewlyCreated, setIsNewlyCreated] = useState(false);

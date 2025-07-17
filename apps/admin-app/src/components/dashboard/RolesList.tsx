@@ -16,16 +16,17 @@ export function RolesManagement() {
   return (
     <div className="space-y-6">
       {isOwner && (
-        <div className="flex justify-end mt-[-3rem]">
+        <div className="flex justify-end mt-[-5rem] md:mt-[-3rem]">
           <Button
             onClick={openModal}
             style={{
-              marginTop: '-3.3rem',
+              marginTop: '-3rem',
               marginBottom: '3.3rem',
             }}
+            className="md:mt-[-3rem] md:mb-[3.3rem]"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Add New Role
+            <Plus className="mr-2 h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Add New Role</span>
           </Button>
         </div>
       )}

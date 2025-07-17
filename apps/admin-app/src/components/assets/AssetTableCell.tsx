@@ -24,7 +24,7 @@ export function AssetTableCell({ asset, id }: AssetTableCellProps) {
 
     case ASSET_TABLE_IDS.LISTING_TIME:
       return (
-        <TableCell>
+        <TableCell className="whitespace-nowrap">
           {new Date(asset.account.listingTime).toLocaleString('en-US', DATE_FORMAT_OPTIONS)}
         </TableCell>
       );
@@ -54,7 +54,7 @@ export function AssetTableCell({ asset, id }: AssetTableCellProps) {
 
     case ASSET_TABLE_IDS.LATEST_PRICE_TIME:
       return (
-        <TableCell>
+        <TableCell className="whitespace-nowrap">
           {asset.latestPrice?.time
             ? new Date(asset.latestPrice.time * 1000).toLocaleString('en-US', DATE_FORMAT_OPTIONS)
             : '---'}
