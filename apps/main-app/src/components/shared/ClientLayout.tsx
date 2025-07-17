@@ -17,15 +17,10 @@ interface ClientLayoutProps {
 }
 
 function AppContent({ children }: { children: React.ReactNode }) {
-  const hasAccess = true;
-  const {
-    // hasAccess,
-    grantAccess,
-    clearAccess,
-    initializeAccessState,
-  } = useAccessCode();
-  const {  authenticated } = usePrivy();
-  const { userAddress} = useUser();
+  // const hasAccess = true;
+  const { hasAccess, grantAccess, clearAccess, initializeAccessState } = useAccessCode();
+  const { authenticated } = usePrivy();
+  const { userAddress } = useUser();
   const { walletHasAccess } = useWalletAuthorization(userAddress || undefined);
   const hasShownAutoLoginToast = useRef(false);
   const lastWalletAddress = useRef<string | null>(null);

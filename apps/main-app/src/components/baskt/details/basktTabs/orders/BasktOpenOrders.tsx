@@ -75,6 +75,7 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
           return calculatedUsdcSize ? calculatedUsdcSize.toString() : null;
         }
         return position.size;
+        return position.size;
       }
     }
 
@@ -93,28 +94,22 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
     return null;
   };
 
-  // Helper function to get order timestamp
-  // eslint-disable-next-line
   const getOrderTimestamp = (order: any) => {
-    // Try createOrder.ts first
     if (order.createOrder?.ts) {
       return order.createOrder.ts;
     }
 
-    // Try createdAt from metadata
     if (order.createdAt) {
       return order.createdAt;
     }
 
-    // If we have an orderId, we can try to use current timestamp as a fallback
-    // This is not ideal but better than showing nothing
     if (order.orderId) {
-      // Use orderId as the timestamp
       return order.orderId;
     }
 
     return null;
   };
+  
 
   return (
     <Card className="rounded-none border-0 shadow-none">
