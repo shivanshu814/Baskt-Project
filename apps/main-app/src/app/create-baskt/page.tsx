@@ -143,7 +143,7 @@ const CreateBasktPage = () => {
               onAssetPositionChange={handleAssetPositionChange}
               onAssetWeightChange={handleAssetWeightChange}
             />
-            <div className="flex items-center justify-between pt-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-4 gap-3 sm:gap-0">
               <div className="flex items-center text-xs sm:text-sm font-normal gap-2">
                 <span className={cn(totalWeightage === 100 ? 'text-success' : 'text-warning')}>
                   Total: {totalWeightage}%

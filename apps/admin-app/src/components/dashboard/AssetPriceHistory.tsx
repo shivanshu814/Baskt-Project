@@ -129,8 +129,8 @@ const AssetPriceHistoryPage: React.FC<AssetPriceHistoryPageProps> = ({
             variant="outline"
             className="flex items-center gap-2 border border-white/10 bg-white/10 text-white hover:bg-white/20"
           >
-            <RefreshCw className={`h-4 w-4`} />
-            Refresh
+            <RefreshCw className="h-4 w-4" />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
         </div>
       </div>

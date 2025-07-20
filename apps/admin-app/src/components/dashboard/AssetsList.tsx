@@ -57,7 +57,9 @@ export function AdminAssetsList() {
       <TableHeader>
         <TableRow>
           {ASSET_TABLE_CONFIG.map((header) => (
-            <TableHead key={header.id}>{header.label}</TableHead>
+            <TableHead key={header.id} className="whitespace-nowrap">
+              {header.label}
+            </TableHead>
           ))}
         </TableRow>
       </TableHeader>

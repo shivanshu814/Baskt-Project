@@ -104,6 +104,17 @@ export interface TooltipData {
   show: boolean;
 }
 
+export interface TradingDataPoint {
+  time: number;
+  value: number;
+}
+
+export interface TradingDataResponse {
+  success: boolean;
+  data: TradingDataPoint[];
+  message?: string;
+}
+
 export interface BasktCardProps {
   baskt: BasktInfo;
   className?: string;
