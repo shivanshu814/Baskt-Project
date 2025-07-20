@@ -93,6 +93,7 @@ export const updateAssetPriceConfig = publicProcedure
         return { success: false, message: 'Asset not found' };
       }
 
+
       // Build update object
       const updateData: any = {};
       
@@ -109,7 +110,7 @@ export const updateAssetPriceConfig = publicProcedure
       }
       
       if (priceConfig) {
-        updateData.priceConfig = { ...asset.priceConfig };
+        updateData.priceConfig = { ...priceConfig };
         
         // Update provider fields if provided
         if (priceConfig.provider) {
