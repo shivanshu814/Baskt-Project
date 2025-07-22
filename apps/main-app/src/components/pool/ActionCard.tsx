@@ -81,7 +81,11 @@ export const ActionCard = React.memo(
                 {unit === 'BLP' ? (
                   Number(tokenBalance).toLocaleString(undefined, { maximumFractionDigits: 6 })
                 ) : (
-                  <NumberFormat value={Number(tokenBalance) * 1e6} isPrice={true} />
+                  <NumberFormat
+                    value={Number(tokenBalance) * 1e6}
+                    isPrice={true}
+                    showCurrency={true}
+                  />
                 )}
               </div>
             )}

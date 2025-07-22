@@ -18,7 +18,7 @@ const UsdcCollateralCard = ({
           <div className="flex flex-col items-start">
             <span className="text-xs text-muted-foreground mb-1">USDC Balance</span>
             <span className="text-2xl font-bold text-foreground">
-              <NumberFormat value={usdcBalance * 1e6} isPrice={true} />
+              <NumberFormat value={usdcBalance * 1e6} isPrice={true} showCurrency={true} />
             </span>
           </div>
         </div>
@@ -26,7 +26,7 @@ const UsdcCollateralCard = ({
           <div className="flex flex-col items-start">
             <span className="text-xs text-muted-foreground mb-1">Total Collateral</span>
             <span className="text-2xl font-bold text-foreground">
-              <NumberFormat value={totalCollateral} isPrice={true} />
+              <NumberFormat value={totalCollateral} isPrice={true} showCurrency={true} />
             </span>
           </div>
         </div>

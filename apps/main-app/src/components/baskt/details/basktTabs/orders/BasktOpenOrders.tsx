@@ -1,6 +1,5 @@
 import React from 'react';
 import { useOpenOrders } from '../../../../../hooks/baskt/trade/useOpenOrders';
-import { useOpenPositions } from '../../../../../hooks/baskt/trade/useOpenPositions';
 import {
   NumberFormat,
   useBasktClient,
@@ -14,7 +13,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  PRICE_PRECISION,
   Button,
   Tooltip,
   TooltipContent,
@@ -24,8 +22,6 @@ import {
 import { useUSDCBalance } from '../../../../../hooks/pool/useUSDCBalance';
 import { OrderType } from '@baskt/types';
 import { BN } from 'bn.js';
-import { toast } from 'sonner';
-import { parseSolanaError } from '../../../../../utils/common/error-handling';
 import { formatDateTime } from '../../../../../utils/common/date';
 import { InfoIcon } from 'lucide-react';
 
@@ -33,66 +29,8 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
   const { client } = useBasktClient();
   const userAddress = client?.wallet?.address?.toString();
   const { orders = [], cancelOrder } = useOpenOrders(basktId, userAddress);
-  const { positions = [] } = useOpenPositions(basktId, userAddress);
   const publicKey = client?.wallet?.address;
   const { account: userUSDCAccount } = useUSDCBalance(publicKey);
-
-  const calculateUsdcSize = (size: string, entryPrice: string) => {
-    try {
-      const sizeBN = new BN(size);
-      const priceBN = new BN(entryPrice);
-      return sizeBN.mul(priceBN).div(new BN(PRICE_PRECISION));
-    } catch (error) {
-      const parsedError = parseSolanaError(error);
-      toast.error(parsedError.message);
-      return null;
-    }
-  };
-  // eslint-disable-next-line
-  const getPositionSizeForOrder = (order: any) => {
-    if (order.status === 'FILLED' && order.action === 'OPEN' && order.position) {
-      const position = positions.find(
-        // eslint-disable-next-line
-        (pos: any) => pos.positionPDA === order.position && pos.status === 'OPEN',
-      );
-
-      if (position) {
-        return position.size || position.usdcSize;
-      }
-    }
-
-    if (order.targetPosition) {
-      const position = positions.find(
-        // eslint-disable-next-line
-        (pos: any) => pos.positionPDA === order.targetPosition && pos.status === 'OPEN',
-      );
-
-      if (position) {
-        if (position.usdcSize) {
-          return position.usdcSize;
-        } else if (position.size && position.entryPrice) {
-          const calculatedUsdcSize = calculateUsdcSize(position.size, position.entryPrice);
-          return calculatedUsdcSize ? calculatedUsdcSize.toString() : null;
-        }
-        return position.size;
-        return position.size;
-      }
-    }
-
-    if (order.orderPDA) {
-      const position = positions.find(
-        // eslint-disable-next-line
-        (pos: any) => pos.openOrder === order.orderPDA && pos.status === 'OPEN',
-      );
-
-      if (position) {
-        return position.size || position.usdcSize;
-      }
-    }
-
-    // Return null instead of using a fallback that gives incorrect data
-    return null;
-  };
 
   const getOrderTimestamp = (order: any) => {
     if (order.createOrder?.ts) {
@@ -109,7 +47,6 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
 
     return null;
   };
-  
 
   return (
     <Card className="rounded-none border-0 shadow-none">
@@ -159,7 +96,6 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
               ) : (
                 // eslint-disable-next-line
                 orders.map((order: any) => {
-                  const positionSize = getPositionSizeForOrder(order);
                   const orderTimestamp = getOrderTimestamp(order);
                   return (
                     <TableRow key={order.orderId.toString()}>
@@ -179,8 +115,10 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
                         </span>
                       </TableCell>
                       <TableCell className="text-xs sm:text-sm">
-                        {positionSize ? (
-                          <NumberFormat value={new BN(positionSize).toNumber() / 1e6} />
+                        {order.size && order.size !== '0' ? (
+                          <NumberFormat value={new BN(order.size).toNumber() / 1e6} />
+                        ) : order.usdcSize && order.usdcSize !== '0' ? (
+                          <NumberFormat value={new BN(order.usdcSize).toNumber() / 1e6} />
                         ) : (
                           '-'
                         )}
@@ -191,6 +129,7 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
                           <NumberFormat
                             value={new BN(order.limitPrice).toNumber()}
                             isPrice={true}
+                            showCurrency={true}
                           />
                         ) : (
                           '-'
@@ -201,6 +140,7 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
                           <NumberFormat
                             value={new BN(order.collateral).toNumber()}
                             isPrice={true}
+                            showCurrency={true}
                           />
                         ) : (
                           '-'

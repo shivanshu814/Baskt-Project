@@ -68,7 +68,7 @@ const MyBaskts = ({ myBaskts }: MyBasktsProps) => {
                   </span>
                 </div>
                 <div className="text-2xl font-bold mb-1">
-                  <NumberFormat value={baskt.price} isPrice />
+                  <NumberFormat value={baskt.price} isPrice={true} showCurrency={true} />
                 </div>
               </div>
             ))}

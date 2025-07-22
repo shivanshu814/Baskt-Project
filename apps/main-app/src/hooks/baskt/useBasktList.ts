@@ -9,7 +9,7 @@ import { useDebounce } from '@baskt/ui';
 
 export const useBasktList = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('popular');
+  const [sortBy, setSortBy] = useState<SortOption>('performance');
   const debouncedSearch = useDebounce(searchQuery, 300);
 
   const { data: basktsData, isLoading } = trpc.baskt.getAllBaskts.useQuery(undefined, {

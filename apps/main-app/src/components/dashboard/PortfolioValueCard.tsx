@@ -41,7 +41,11 @@ const PortfolioValueCard = ({ portfolioSummary }: { portfolioSummary: PortfolioS
         <div className="space-y-3">
           <div className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
             {isValueVisible ? (
-              <NumberFormat value={portfolioSummary.totalValue} isPrice={true} />
+              <NumberFormat
+                value={portfolioSummary.totalValue}
+                isPrice={true}
+                showCurrency={true}
+              />
             ) : (
               <span className="text-muted-foreground">*******</span>
             )}
@@ -59,7 +63,11 @@ const PortfolioValueCard = ({ portfolioSummary }: { portfolioSummary: PortfolioS
                 }`}
               >
                 {portfolioSummary.totalPnL >= 0 ? '+' : ''}
-                <NumberFormat value={portfolioSummary.totalPnL} isPrice={true} />
+                <NumberFormat
+                  value={portfolioSummary.totalPnL}
+                  isPrice={true}
+                  showCurrency={true}
+                />
               </span>
             </div>
             <span

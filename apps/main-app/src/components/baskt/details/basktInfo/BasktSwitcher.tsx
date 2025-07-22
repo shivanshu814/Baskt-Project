@@ -93,7 +93,7 @@ export const BasktSwitcher = ({ currentBaskt }: BasktSwitcherProps) => {
                   </div>
                   <div className="flex flex-col items-end">
                     <span className="text-sm font-medium">
-                      <NumberFormat value={baskt.price} isPrice={true} />
+                      <NumberFormat value={baskt.price} isPrice={true} showCurrency={true} />
                     </span>
                     <span
                       className={`text-xs ${

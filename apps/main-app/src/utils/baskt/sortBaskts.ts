@@ -11,7 +11,7 @@ export const sortBaskts = (baskts: BasktInfo[], sortBy: SortOption): BasktInfo[]
         (a, b) => (b.creationDate?.getTime() || 0) - (a.creationDate?.getTime() || 0),
       );
     case 'performance':
-      return sorted.sort((a, b) => (b.change24h || 0) - (a.change24h || 0));
+      return sorted.sort((a, b) => (b.performance?.day || 0) - (a.performance?.day || 0));
     default:
       return sorted;
   }

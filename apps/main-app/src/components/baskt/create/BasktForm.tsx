@@ -238,7 +238,7 @@ export const BasktForm = ({
                           </div>
                         </TableCell>
                         <TableCell className="text-xs sm:text-sm">
-                          <NumberFormat value={asset.price} isPrice={true} />
+                          <NumberFormat value={asset.price} isPrice={true} showCurrency={true} />
                         </TableCell>
                         <TableCell>
                           <Input

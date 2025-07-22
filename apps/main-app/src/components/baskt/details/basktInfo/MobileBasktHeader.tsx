@@ -38,7 +38,7 @@ export const MobileBasktHeader = ({
             {change ? <NumberFormat value={change} /> : '--'}%
           </span>
           <span className="font-semibold text-base text-white ml-2">
-            {price ? <NumberFormat value={price} isPrice={true} /> : '--'}
+            {price ? <NumberFormat value={price} isPrice={true} showCurrency={true} /> : '--'}
           </span>
           <button
             onClick={() => setOpen((v) => !v)}
@@ -53,7 +53,7 @@ export const MobileBasktHeader = ({
           <div className="flex justify-between text-xs">
             <span className="text-muted-foreground">Mark</span>
             <span className="font-semibold text-white">
-              {price ? <NumberFormat value={price} isPrice={true} /> : '--'}
+              {price ? <NumberFormat value={price} isPrice={true} showCurrency={true} /> : '--'}
             </span>
           </div>
           <div className="flex justify-between text-xs">
@@ -64,7 +64,7 @@ export const MobileBasktHeader = ({
               ) : totalOpenInterest === 0 ? (
                 '---'
               ) : (
-                <NumberFormat value={totalOpenInterest} isPrice={true} />
+                <NumberFormat value={totalOpenInterest} isPrice={true} showCurrency={true} />
               )}
             </span>
           </div>
@@ -76,7 +76,7 @@ export const MobileBasktHeader = ({
               ) : totalVolume === 0 ? (
                 '---'
               ) : (
-                <NumberFormat value={totalVolume} isPrice={true} />
+                <NumberFormat value={totalVolume} isPrice={true} showCurrency={true} />
               )}
             </span>
           </div>

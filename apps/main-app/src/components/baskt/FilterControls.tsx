@@ -23,7 +23,7 @@ export const FilterControls = memo(({ sortBy, setSortBy }: FilterControlsProps) 
               ? 'Most Popular'
               : option === 'newest'
               ? 'Newest'
-              : 'Best Performance'}
+              : '24h Performance'}
           </SelectItem>
         ))}
       </SelectContent>

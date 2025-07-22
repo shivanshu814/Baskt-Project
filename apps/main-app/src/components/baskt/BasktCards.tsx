@@ -16,16 +16,6 @@ import { useBasktOI } from '../../hooks/baskt/details/useBasktOI';
 
 const DEFAULT_SPARKLINE = Array(24).fill(0);
 
-const formatNumberWithAbbreviation = (value: number): string => {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  } else if (value >= 1000) {
-    return `${(value / 1000).toFixed(0)}k`;
-  } else {
-    return value.toFixed(3);
-  }
-};
-
 export const BasktCards = ({ baskt, className }: BasktCardProps) => {
   const router = useRouter();
   const { totalOpenInterest, isLoading: oiLoading } = useBasktOI(baskt.basktId.toString());
@@ -73,7 +63,7 @@ export const BasktCards = ({ baskt, className }: BasktCardProps) => {
 
       <CardContent className="space-y-3 sm:space-y-4 pt-0">
         <div className="text-xl sm:text-2xl font-bold">
-          <NumberFormat value={baskt.price} isPrice={true} />
+          <NumberFormat value={baskt.price} isPrice={true} showCurrency={true} />
         </div>
 
         <div className="h-12 sm:h-16 w-full">
@@ -107,15 +97,20 @@ export const BasktCards = ({ baskt, className }: BasktCardProps) => {
         <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm text-muted-foreground">
           <div>Assets: {baskt.totalAssets || 0}</div>
           <div className="text-right">
-            OI: {oiLoading ? '...' : formatNumberWithAbbreviation(totalOpenInterest / 1e6)}
+            OI:{' '}
+            {oiLoading ? (
+              '--'
+            ) : (
+              <NumberFormat value={totalOpenInterest} isPrice={true} showCurrency={true} />
+            )}
           </div>
         </div>
 
         {baskt.performance && (
           <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm text-muted-foreground">
-            <div>24h: {baskt.performance.day ? `+${baskt.performance.day}%` : '-'}</div>
+            <div>24h: {baskt.performance.day ? `+${baskt.performance.day.toFixed(2)}%` : '-'}</div>
             <div className="text-right">
-              7d: {baskt.performance.week ? `+${baskt.performance.week}%` : '-'}
+              7d: {baskt.performance.week ? `+${baskt.performance.week.toFixed(2)}%` : '-'}
             </div>
           </div>
         )}

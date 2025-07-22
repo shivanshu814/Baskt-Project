@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react';
-import { useBasktClient } from '@baskt/ui';
+import { useBasktClient, PRICE_PRECISION } from '@baskt/ui';
 import { trpc } from '../../utils/common/trpc';
 import { PositionStatus } from '@baskt/types';
 import BN from 'bn.js';
@@ -211,7 +211,22 @@ export const useDashboardData = () => {
       if (!basktTotals[pos.basktId]) {
         basktTotals[pos.basktId] = { name: basketName, value: 0, id: pos.basktId };
       }
-      basktTotals[pos.basktId].value += pos.usdcSize ? Number(pos.usdcSize) / 1e6 : 0;
+
+      // Calculate PNL for this position
+      const currentPrice = basket?.price || 0;
+      const positionSize = pos.usdcSize ? Number(pos.usdcSize) / PRICE_PRECISION : 0;
+      const entryPrice = pos.entryPrice ? Number(pos.entryPrice) / PRICE_PRECISION : 0;
+
+      let positionPnL = 0;
+      if (entryPrice > 0 && currentPrice > 0) {
+        positionPnL = pos.isLong
+          ? ((currentPrice - entryPrice) * positionSize) / entryPrice
+          : ((entryPrice - currentPrice) * positionSize) / entryPrice;
+      }
+
+      // Use PNL + collateral for distribution calculation
+      const collateral = pos.collateral ? Number(pos.collateral) / PRICE_PRECISION : 0;
+      basktTotals[pos.basktId].value += collateral + positionPnL;
     });
 
     const total = Object.values(basktTotals).reduce((sum, b) => sum + b.value, 0);
@@ -237,10 +252,23 @@ export const useDashboardData = () => {
       // eslint-disable-next-line
       const basket = baskets.find((b: any) => b.basktId === pos.basktId);
       const basketAssets = basket?.assets || [];
-      const positionSize = pos.usdcSize ? Number(pos.usdcSize) / 1e6 : 0;
+      const positionSize = pos.usdcSize ? Number(pos.usdcSize) / PRICE_PRECISION : 0;
+      const currentPrice = basket?.price || 0;
+      const entryPrice = pos.entryPrice ? Number(pos.entryPrice) / PRICE_PRECISION : 0;
+
+      // Calculate PNL for this position
+      let positionPnL = 0;
+      if (entryPrice > 0 && currentPrice > 0) {
+        positionPnL = pos.isLong
+          ? ((currentPrice - entryPrice) * positionSize) / entryPrice
+          : ((entryPrice - currentPrice) * positionSize) / entryPrice;
+      }
+
+      const collateral = pos.collateral ? Number(pos.collateral) / PRICE_PRECISION : 0;
+      const totalPositionValue = collateral + positionPnL;
 
       if (basketAssets.length > 0) {
-        const sizePerAsset = positionSize / basketAssets.length;
+        const valuePerAsset = totalPositionValue / basketAssets.length;
         // eslint-disable-next-line
         basketAssets.forEach((asset: any) => {
           const assetKey = asset.assetAddress || asset.ticker || asset.name;
@@ -254,7 +282,7 @@ export const useDashboardData = () => {
             };
             colorIdx++;
           }
-          assetTotals[assetKey].value += sizePerAsset;
+          assetTotals[assetKey].value += valuePerAsset;
         });
       }
     });
@@ -308,7 +336,7 @@ export const useDashboardData = () => {
         return {
           type: 'position' as const,
           action: pos.isLong ? 'Long Position Opened' : 'Short Position Opened',
-          amount: pos.usdcSize ? new BN(pos.usdcSize).toNumber() / 1e6 : 0,
+          amount: pos.usdcSize ? new BN(pos.usdcSize).toNumber() / PRICE_PRECISION : 0,
           timestamp: pos.timestampOpen || Date.now(),
           basktName,
           basktId: pos.basktId || '',
@@ -319,7 +347,7 @@ export const useDashboardData = () => {
       ...openOrders.map((order: any) => ({
         type: 'order' as const,
         action: order.orderType === 'MARKET' ? 'Market Order Placed' : 'Limit Order Placed',
-        amount: order.usdcSize ? new BN(order.usdcSize).toNumber() / 1e6 : 0,
+        amount: order.usdcSize ? new BN(order.usdcSize).toNumber() / PRICE_PRECISION : 0,
         timestamp: order.timestamp || Date.now(),
         basktName: 'Unknown',
         isPositive: true,
@@ -342,14 +370,14 @@ export const useDashboardData = () => {
         amount:
           item.type === 'position'
             ? item.size
-              ? parseFloat(item.size) / 1e6
+              ? parseFloat(item.size) / PRICE_PRECISION
               : 0
             : item.usdcSize
-            ? parseFloat(item.usdcSize) / 1e6
+            ? parseFloat(item.usdcSize) / PRICE_PRECISION
             : item.collateral
-            ? parseFloat(item.collateral) / 1e6
+            ? parseFloat(item.collateral) / PRICE_PRECISION
             : item.size
-            ? parseFloat(item.size) / 1e6
+            ? parseFloat(item.size) / PRICE_PRECISION
             : 0,
         timestamp: parseInt(item.timestamp) * 1000,
         basktName: item.basktName || 'Unknown',

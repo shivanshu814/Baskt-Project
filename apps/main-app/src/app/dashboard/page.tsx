@@ -27,7 +27,6 @@ export default function DashboardPage() {
   } = useDashboardData();
 
   const { triggerBalanceRefresh, isRefreshing } = useBalanceRefresh();
-
   const myBasktsData = (myBaskts || [])
     // eslint-disable-next-line
     .filter((b: any): b is NonNullable<typeof b> => b != null)
@@ -36,7 +35,7 @@ export default function DashboardPage() {
       basktId: b.basktId,
       name: b.name ?? '',
       price: b.price ?? 0,
-      change24h: b.change24h ?? 0,
+      change24h: b.performance?.daily ?? 0,
       aum: b.aum ?? 0,
     }));
 

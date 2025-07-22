@@ -2,6 +2,7 @@ import { BasktMetadataModel } from '../models/mongodb';
 import { createQuerierError, handleQuerierError } from '../utils/error-handling';
 import { QueryResult } from '../models/types';
 import { AssetQuerier } from './asset.querier';
+import { PriceQuerier } from './price.querier';
 import { BN } from 'bn.js';
 import { BaseClient, calculateNav, WEIGHT_PRECISION, calculateLiveNav } from '@baskt/sdk';
 import { OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
@@ -18,10 +19,12 @@ import { CombinedBaskt, CombinedBasktAsset, BasktNAV, BasktQueryOptions } from '
  */
 export class BasktQuerier {
   private assetQuerier: AssetQuerier;
+  private priceQuerier: PriceQuerier;
   private basktClient: BaseClient;
 
-  constructor(assetQuerier: AssetQuerier, basktClient: BaseClient) {
+  constructor(assetQuerier: AssetQuerier, priceQuerier: PriceQuerier, basktClient: BaseClient) {
     this.assetQuerier = assetQuerier;
+    this.priceQuerier = priceQuerier;
     this.basktClient = basktClient;
   }
 
@@ -256,6 +259,87 @@ export class BasktQuerier {
     }
   }
 
+  /**
+   * Calculate performance metrics from NAV history
+   */
+  private async calculatePerformanceMetrics(basktId: string): Promise<{
+    daily: number;
+    weekly: number;
+    monthly: number;
+    year: number;
+  }> {
+    try {
+      const navHistoryResult = await this.priceQuerier.getBasktNavHistory(basktId);
+
+      if (
+        !navHistoryResult.success ||
+        !navHistoryResult.data ||
+        navHistoryResult.data.length === 0
+      ) {
+        return {
+          daily: 0,
+          weekly: 0,
+          monthly: 0,
+          year: 0,
+        };
+      }
+
+      const navHistory = navHistoryResult.data
+        .filter((entry) => entry.price !== null && entry.time !== null)
+        .sort((a, b) => (b.time || 0) - (a.time || 0));
+
+      if (navHistory.length === 0) {
+        return {
+          daily: 0,
+          weekly: 0,
+          monthly: 0,
+          year: 0,
+        };
+      }
+
+      const currentPrice = navHistory[0].price || 0;
+      const now = Math.floor(Date.now() / 1000);
+
+      // Calculate time periods
+      const oneDayAgo = now - 24 * 60 * 60;
+      const oneWeekAgo = now - 7 * 24 * 60 * 60;
+      const oneMonthAgo = now - 30 * 24 * 60 * 60;
+      const oneYearAgo = now - 365 * 24 * 60 * 60;
+
+      // find prices at different time periods
+      const findPriceAtTime = (targetTime: number): number | null => {
+        const entry = navHistory.find((item) => (item.time || 0) <= targetTime);
+        return entry?.price || null;
+      };
+
+      const dayAgoPrice = findPriceAtTime(oneDayAgo);
+      const weekAgoPrice = findPriceAtTime(oneWeekAgo);
+      const monthAgoPrice = findPriceAtTime(oneMonthAgo);
+      const yearAgoPrice = findPriceAtTime(oneYearAgo);
+
+      // calculate percentage changes
+      const calculateChange = (oldPrice: number | null, newPrice: number): number => {
+        if (!oldPrice || oldPrice === 0) return 0;
+        return ((newPrice - oldPrice) / oldPrice) * 100;
+      };
+
+      return {
+        daily: dayAgoPrice ? calculateChange(dayAgoPrice, currentPrice) : 0,
+        weekly: weekAgoPrice ? calculateChange(weekAgoPrice, currentPrice) : 0,
+        monthly: monthAgoPrice ? calculateChange(monthAgoPrice, currentPrice) : 0,
+        year: yearAgoPrice ? calculateChange(yearAgoPrice, currentPrice) : 0,
+      };
+    } catch (error) {
+      console.error('Error calculating performance metrics:', error);
+      return {
+        daily: 0,
+        weekly: 0,
+        monthly: 0,
+        year: 0,
+      };
+    }
+  }
+
   // MongoDB data fetching methods
   private async getBasktConfigsFromMongoDB(): Promise<any[]> {
     try {
@@ -434,12 +518,7 @@ export class BasktQuerier {
       },
       creationDate: basktMetadata?.creationDate || new Date().toISOString(),
       priceHistory: { daily: [] }, // Placeholder
-      performance: {
-        daily: 2.5,
-        weekly: 5.2,
-        monthly: 12.8,
-        year: 45.6,
-      },
+      performance: await this.calculatePerformanceMetrics(basktId),
     };
   }
 }

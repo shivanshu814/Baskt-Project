@@ -108,7 +108,11 @@ export const BasktOrderHistory = ({ basktId }: { basktId?: string }) => {
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
                       {item.entryPrice ? (
-                        <NumberFormat value={parseFloat(item.entryPrice)} isPrice />
+                        <NumberFormat
+                          value={parseFloat(item.entryPrice)}
+                          isPrice={true}
+                          showCurrency={true}
+                        />
                       ) : (
                         '---'
                       )}
@@ -123,7 +127,11 @@ export const BasktOrderHistory = ({ basktId }: { basktId?: string }) => {
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
                       {item.exitPrice ? (
-                        <NumberFormat value={parseFloat(item.exitPrice)} isPrice />
+                        <NumberFormat
+                          value={parseFloat(item.exitPrice)}
+                          isPrice={true}
+                          showCurrency={true}
+                        />
                       ) : (
                         '---'
                       )}
@@ -133,7 +141,11 @@ export const BasktOrderHistory = ({ basktId }: { basktId?: string }) => {
                     >
                       {item.pnl ? (
                         <>
-                          <NumberFormat value={parseFloat(item.pnl)} isPrice />
+                          <NumberFormat
+                            value={parseFloat(item.pnl)}
+                            isPrice={true}
+                            showCurrency={true}
+                          />
                           {item.pnlPercentage && ` (${item.pnlPercentage}%)`}
                         </>
                       ) : (

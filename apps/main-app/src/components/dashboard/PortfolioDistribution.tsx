@@ -1,7 +1,7 @@
 import React from 'react';
 import { BarChart2, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@baskt/ui';
+import { Button, NumberFormat } from '@baskt/ui';
 
 interface PortfolioDistributionProps {
   basktData: { name: string; value: number; percent: number; id?: string }[];
@@ -78,7 +78,7 @@ export const PortfolioDistribution: React.FC<PortfolioDistributionProps> = ({ ba
               </span>
             </span>
             <span className="font-mono text-base font-bold text-white ml-4">
-              ${baskt.value.toLocaleString(undefined, { maximumFractionDigits: 2 })} (
+              <NumberFormat value={baskt.value} isPrice={true} showCurrency={true} /> (
               {baskt.percent.toFixed(2)}%)
             </span>
           </div>
