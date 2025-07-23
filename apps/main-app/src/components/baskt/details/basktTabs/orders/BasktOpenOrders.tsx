@@ -35,14 +35,14 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
   const getOrderTimestamp = (order: any) => {
     if (order.createOrder?.ts) {
       return order.createOrder.ts;
-    }
+    } 
 
     if (order.createdAt) {
       return order.createdAt;
     }
 
     if (order.orderId) {
-      return order.orderId;
+      return order.orderId / 1000;
     }
 
     return null;
@@ -95,7 +95,14 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
                 </TableRow>
               ) : (
                 // eslint-disable-next-line
-                orders.map((order: any) => {
+                orders
+                  .sort((a: any, b: any) => {
+                    const timestampA = getOrderTimestamp(a) || 0;
+                    const timestampB = getOrderTimestamp(b) || 0;
+                    return timestampB - timestampA; // Sort newest to oldest
+                  })
+                  .map((order: any) => {
+                  const positionSize = getPositionSizeForOrder(order);
                   const orderTimestamp = getOrderTimestamp(order);
                   return (
                     <TableRow key={order.orderId.toString()}>

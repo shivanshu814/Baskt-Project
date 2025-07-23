@@ -37,6 +37,7 @@ async function getCurrentNavForBaskt(basktId: PublicKey) {
 }
 
 async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder: OnchainOrder) {
+  console.log("Opening position for order", onchainOrder.address.toString());
   try {
     const positionId = basktClient.newIdForPosition();
     const price = await getCurrentNavForBaskt(onchainOrder.basktId);
@@ -56,8 +57,10 @@ async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder
       preInstructions: [await basktClient.updateOraclePriceWithItx(onchainOrder.basktId, price)],
     });
 
+    console.log('Position Opened', positionId.toString(), tx);
     const positionPDA = await basktClient.getPositionPDA(onchainOrder.owner, positionId);
 
+ 
     // update order status in db
     await querierClient.metadata.updateOrder(onchainOrder.address.toString(), {
       orderStatus: 'FILLED',
@@ -66,7 +69,7 @@ async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder
       position: positionPDA.toString(),
     });
 
-    console.log('Position Opened', positionId.toString(), tx);
+    console.log("Order updated", onchainOrder.address.toString());
   } catch (error) {
     console.error('Error in handleOpenOrder:', error);
     throw error;
@@ -96,14 +99,15 @@ async function handleCloseOrder(orderCreatedData: OrderCreatedEvent, onchainOrde
       orderOwner: onchainOrder.owner,
     });
 
+    console.log("Position closed", positionAccount.positionPDA.toString(), tx);
+
     // update order status in db
     await querierClient.metadata.updateOrder(onchainOrder.address.toString(), {
       orderStatus: 'FILLED',
       orderFullFillTx: tx,
       orderFullfillTs: onchainOrder.timestamp.toString(),
     });
-
-    console.log('Position closed successfully:', tx);
+    console.log("Order updated", onchainOrder.address.toString());
   } catch (error) {
     console.error('Error in handleCloseOrder:', error);
     throw error;
