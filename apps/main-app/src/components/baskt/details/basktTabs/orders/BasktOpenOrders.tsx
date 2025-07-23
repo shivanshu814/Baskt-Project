@@ -35,7 +35,7 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
   const getOrderTimestamp = (order: any) => {
     if (order.createOrder?.ts) {
       return order.createOrder.ts;
-    } 
+    }
 
     if (order.createdAt) {
       return order.createdAt;
@@ -102,74 +102,73 @@ export const BasktOpenOrders = ({ basktId }: { basktId: string }) => {
                     return timestampB - timestampA; // Sort newest to oldest
                   })
                   .map((order: any) => {
-                  const positionSize = getPositionSizeForOrder(order);
-                  const orderTimestamp = getOrderTimestamp(order);
-                  return (
-                    <TableRow key={order.orderId.toString()}>
-                      <TableCell className="text-xs sm:text-sm whitespace-nowrap">
-                        {orderTimestamp ? formatDateTime(orderTimestamp) : '-'}
-                      </TableCell>
-                      <TableCell className="font-medium text-xs sm:text-sm">
-                        {order.orderType === OrderType.Market ? 'Market' : 'Limit'}
-                      </TableCell>
-                      <TableCell className="text-xs sm:text-sm">
-                        <span
-                          className={`font-medium ${
-                            order.isLong ? 'text-green-600' : 'text-red-600'
-                          }`}
-                        >
-                          {order.isLong ? 'Long' : 'Short'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-xs sm:text-sm">
-                        {order.size && order.size !== '0' ? (
-                          <NumberFormat value={new BN(order.size).toNumber() / 1e6} />
-                        ) : order.usdcSize && order.usdcSize !== '0' ? (
-                          <NumberFormat value={new BN(order.usdcSize).toNumber() / 1e6} />
-                        ) : (
-                          '-'
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs sm:text-sm">Market</TableCell>
-                      <TableCell className="text-xs sm:text-sm">
-                        {order.limitPrice ? (
-                          <NumberFormat
-                            value={new BN(order.limitPrice).toNumber()}
-                            isPrice={true}
-                            showCurrency={true}
-                          />
-                        ) : (
-                          '-'
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs sm:text-sm">
-                        {order.collateral ? (
-                          <NumberFormat
-                            value={new BN(order.collateral).toNumber()}
-                            isPrice={true}
-                            showCurrency={true}
-                          />
-                        ) : (
-                          '-'
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="px-3 py-1.5 h-auto text-xs border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors"
-                          disabled={!userUSDCAccount?.address}
-                          onClick={() => {
-                            if (!userUSDCAccount?.address) return;
-                            cancelOrder(order);
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                    const orderTimestamp = getOrderTimestamp(order);
+                    return (
+                      <TableRow key={order.orderId.toString()}>
+                        <TableCell className="text-xs sm:text-sm whitespace-nowrap">
+                          {orderTimestamp ? formatDateTime(orderTimestamp) : '-'}
+                        </TableCell>
+                        <TableCell className="font-medium text-xs sm:text-sm">
+                          {order.orderType === OrderType.Market ? 'Market' : 'Limit'}
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          <span
+                            className={`font-medium ${
+                              order.isLong ? 'text-green-600' : 'text-red-600'
+                            }`}
+                          >
+                            {order.isLong ? 'Long' : 'Short'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          {order.size && order.size !== '0' ? (
+                            <NumberFormat value={new BN(order.size).toNumber() / 1e6} />
+                          ) : order.usdcSize && order.usdcSize !== '0' ? (
+                            <NumberFormat value={new BN(order.usdcSize).toNumber() / 1e6} />
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm">Market</TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          {order.limitPrice ? (
+                            <NumberFormat
+                              value={new BN(order.limitPrice).toNumber()}
+                              isPrice={true}
+                              showCurrency={true}
+                            />
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          {order.collateral ? (
+                            <NumberFormat
+                              value={new BN(order.collateral).toNumber()}
+                              isPrice={true}
+                              showCurrency={true}
+                            />
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="px-3 py-1.5 h-auto text-xs border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 transition-colors"
+                            disabled={!userUSDCAccount?.address}
+                            onClick={() => {
+                              if (!userUSDCAccount?.address) return;
+                              cancelOrder(order);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
               )}
             </TableBody>
           </Table>
