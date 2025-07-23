@@ -204,8 +204,8 @@ export class PriceQuerier {
 
         return {
           assetId,
-          latestPrice: (priceResult.success && priceResult.data) ? priceResult.data : null,
-          priceRange: (rangeResult.success && rangeResult.data) ? rangeResult.data : null,
+          latestPrice: priceResult.success && priceResult.data ? priceResult.data : null,
+          priceRange: rangeResult.success && rangeResult.data ? rangeResult.data : null,
         };
       });
 
@@ -222,6 +222,39 @@ export class PriceQuerier {
       return {
         success: false,
         message: 'Failed to fetch price stats',
+        error: querierError.message,
+      };
+    }
+  }
+
+  /**
+   * Get all NAV data for a specific baskt
+   */
+  async getBasktNavHistory(basktId: string): Promise<QueryResult<FormattedAssetPrice[]>> {
+    try {
+      const assetPriceRows = await AssetPrice.findAll({
+        where: {
+          asset_id: basktId,
+        },
+        order: [['time', 'DESC']],
+      });
+
+      const formattedPrices = assetPriceRows.map((row: any) => {
+        const plain = row.toJSON();
+        return this.formatAssetPrice(plain);
+      });
+
+      const result: QueryResult<FormattedAssetPrice[]> = {
+        success: true,
+        data: formattedPrices,
+      };
+
+      return result;
+    } catch (error) {
+      const querierError = handleQuerierError(error);
+      return {
+        success: false,
+        message: 'Failed to fetch baskt NAV history',
         error: querierError.message,
       };
     }

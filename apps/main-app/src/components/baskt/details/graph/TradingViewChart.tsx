@@ -117,50 +117,30 @@ export function TradingViewChart({
     error,
   } = trpc.baskt.getTradingData.useQuery(
     {
-      period: responsivePeriod as ChartPeriod,
       basktId,
     },
     {
       refetchOnMount: true,
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
-      enabled: Boolean(responsivePeriod && basktId),
+      enabled: Boolean(basktId),
       staleTime: 5 * 60 * 1000,
       cacheTime: 10 * 60 * 1000,
       keepPreviousData: true,
     },
   ) as { data: TradingDataResponse | undefined; isLoading: boolean; error: any };
 
-  const formatDate = useCallback((time: Time, period: ChartPeriod) => {
+  const formatDate = useCallback((time: Time) => {
     const date = new Date(Number(time) * 1000);
-
-    if (period === '1Y') {
-      if (date.getDate() === 1) {
-        return date.toLocaleDateString([], { month: 'short', year: '2-digit' });
-      }
-      if (date.getDate() % 7 === 0) {
-        return date.toLocaleDateString([], { day: '2-digit', month: 'short' });
-      }
-      return '';
-    }
-
-    if (period === '1M') {
-      return date.toLocaleDateString([], { day: '2-digit', month: 'short' });
-    }
-
-    if (period === '1W' || period === '1D') {
-      return date.toLocaleDateString([], { day: '2-digit', month: 'short' });
-    }
-
-    return date.toLocaleDateString();
+    return date.toLocaleDateString([], { day: '2-digit', month: 'short' });
   }, []);
 
   const timeScaleOptions = useMemo(
     () => ({
       borderColor: '#334155',
-      tickMarkFormatter: (time: Time) => formatDate(time, responsivePeriod as ChartPeriod),
+      tickMarkFormatter: (time: Time) => formatDate(time),
       timeVisible: true,
-      secondsVisible: responsivePeriod === '1D',
+      secondsVisible: false,
       rightOffset: 8,
       barSpacing: 3,
       minBarSpacing: 2,
@@ -168,7 +148,7 @@ export function TradingViewChart({
       fixRightEdge: true,
       lockVisibleTimeRangeOnResize: true,
     }),
-    [responsivePeriod, formatDate],
+    [formatDate],
   );
 
   const handleCrosshairMove = useCallback(

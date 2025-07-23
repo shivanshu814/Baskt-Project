@@ -79,7 +79,7 @@ export function useOpenPositions(basktId?: string, userAddress?: string, navPric
 
       const tx = await client.createOrderTx(
         new BN(Date.now()),
-        new BN(0),
+        new BN(position.size || '0'),
         new BN(position.usdcSize || '0'),
         position.isLong,
         { close: {} },
@@ -264,7 +264,7 @@ export function useOpenPosition({ baskt, usdcSize, navPrice }: UseOpenPositionPr
 
       const tx = await client.createOrderTx(
         orderId,
-        new BN(0),
+        new BN(userInputSize).mul(new BN(PRICE_PRECISION)),
         new BN(userInputSize).mul(new BN(PRICE_PRECISION)),
         position === 'long',
         { open: {} },

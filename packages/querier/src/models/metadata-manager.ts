@@ -181,9 +181,9 @@ export class MetadataManager {
   }
 
   // update order
-  async updateOrder(orderId: string, updateData: any): Promise<any> {
+  async updateOrder(orderPDA: string, updateData: any): Promise<any> {
     try {
-      return await OrderMetadataModel.findOneAndUpdate({ orderId }, updateData, { new: true });
+      return await OrderMetadataModel.findOneAndUpdate({ orderPDA: orderPDA }, updateData, { new: true });
     } catch (error) {
       throw new Error(`Failed to update order: ${error}`);
     }

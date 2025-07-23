@@ -54,7 +54,11 @@ const RecentActivity = ({ recentActivity }: RecentActivityProps) => {
                 <div className="flex items-center gap-2">
                   <div className="text-sm font-medium text-foreground">
                     {activity.amount > 0 ? '+' : ''}
-                    <NumberFormat value={activity.amount * 1e6} isPrice={true} />
+                    <NumberFormat
+                      value={activity.amount * 1e6}
+                      isPrice={true}
+                      showCurrency={true}
+                    />
                   </div>
                   {activity.type === 'position' && activity.basktName && (
                     <Link href={`/baskts/${encodeURIComponent(activity.basktName)}`}>

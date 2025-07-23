@@ -59,8 +59,8 @@ export class Querier {
   private constructor(basktClient: BaseClient) {
     this.basktClient = basktClient;
     this.asset = new AssetQuerier(basktClient);
-    this.baskt = new BasktQuerier(this.asset, basktClient);
     this.price = new PriceQuerier(basktClient);
+    this.baskt = new BasktQuerier(this.asset, this.price, basktClient);
     this.order = new OrderQuerier(basktClient);
     this.position = new PositionQuerier(basktClient);
     this.history = new HistoryQuerier();

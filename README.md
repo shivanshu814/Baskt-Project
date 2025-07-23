@@ -1,5 +1,3 @@
-
-
 # Baskt Program Deployment Guide
 
 ## Step 1: Initial Setup

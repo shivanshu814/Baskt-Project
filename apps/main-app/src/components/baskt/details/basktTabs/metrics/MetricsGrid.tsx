@@ -5,15 +5,17 @@ export function MetricsGrid({ baskt }: { baskt: any }) {
   const metrics = [
     {
       label: '30D Change',
-      value: baskt?.performance?.month !== undefined ? `+${baskt.performance.month}%` : '-',
+      value:
+        baskt?.performance?.month !== undefined ? `+${baskt.performance.month.toFixed(2)}%` : '-',
     },
     {
       label: '24h Change',
-      value: baskt?.performance?.day !== undefined ? `+${baskt.performance.day}%` : '-',
+      value: baskt?.performance?.day !== undefined ? `+${baskt.performance.day.toFixed(2)}%` : '-',
     },
     {
       label: '7D Change',
-      value: baskt?.performance?.week !== undefined ? `+${baskt.performance.week}%` : '-',
+      value:
+        baskt?.performance?.week !== undefined ? `+${baskt.performance.week.toFixed(2)}%` : '-',
     },
     {
       label: 'Total Assets',

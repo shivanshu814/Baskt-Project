@@ -179,14 +179,18 @@ export function IndexComposition({ assets }: IndexCompositionProps) {
                   </TableCell>
                   <TableCell className="text-xs sm:text-sm">
                     {asset.baselinePrice !== undefined ? (
-                      <NumberFormat value={asset.baselinePrice} isPrice={true} />
+                      <NumberFormat
+                        value={asset.baselinePrice}
+                        isPrice={true}
+                        showCurrency={true}
+                      />
                     ) : (
                       'Price Unavailable'
                     )}
                   </TableCell>
                   <TableCell className="text-xs sm:text-sm">
                     {asset.price !== undefined ? (
-                      <NumberFormat value={asset.price} isPrice={true} />
+                      <NumberFormat value={asset.price} isPrice={true} showCurrency={true} />
                     ) : (
                       'Price Unavailable'
                     )}

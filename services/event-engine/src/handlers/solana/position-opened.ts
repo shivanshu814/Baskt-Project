@@ -88,7 +88,7 @@ async function positionOpenedHandler(event: ObserverEvent) {
       },
     };
 
-    await querierClient.metadata.createPosition(positionData);
+    await querierClient.metadata.createPosition(positionData); 
 
     // Create fee event record
     await createPositionOpenedFeeEvent(positionOpenedData, tx, isLong);

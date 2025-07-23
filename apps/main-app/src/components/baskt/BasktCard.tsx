@@ -108,7 +108,11 @@ const AssetRow = React.memo(
           </button>
         </span>
         <span className="flex-1 text-center">
-          {asset.price !== undefined ? <NumberFormat value={asset.price} isPrice={true} /> : '-'}
+          {asset.price !== undefined ? (
+            <NumberFormat value={asset.price} isPrice={true} showCurrency={true} />
+          ) : (
+            '-'
+          )}
         </span>
         <span className="flex-1 text-center">
           <span className={asset.direction ? 'text-green-600' : 'text-red-600'}>
@@ -200,7 +204,7 @@ export const BasktCard = React.memo(({ baskt, className }: BasktCardProps) => {
         label: 'OI',
         value:
           totalOpenInterest !== undefined ? (
-            <NumberFormat value={totalOpenInterest} isPrice={true} />
+            <NumberFormat value={totalOpenInterest} isPrice={true} showCurrency={true} />
           ) : (
             '--'
           ),
@@ -209,7 +213,7 @@ export const BasktCard = React.memo(({ baskt, className }: BasktCardProps) => {
         label: '24h',
         value:
           performanceData.day !== undefined
-            ? `${performanceData.day >= 0 ? '+' : ''}${performanceData.day}%`
+            ? `${performanceData.day >= 0 ? '+' : ''}${performanceData.day.toFixed(2)}%`
             : '--',
         color:
           performanceData.day !== undefined && performanceData.day >= 0
@@ -220,7 +224,7 @@ export const BasktCard = React.memo(({ baskt, className }: BasktCardProps) => {
         label: '7d',
         value:
           performanceData.week !== undefined
-            ? `${performanceData.week >= 0 ? '+' : ''}${performanceData.week}%`
+            ? `${performanceData.week >= 0 ? '+' : ''}${performanceData.week.toFixed(2)}%`
             : '--',
         color:
           performanceData.week !== undefined && performanceData.week >= 0
@@ -231,7 +235,7 @@ export const BasktCard = React.memo(({ baskt, className }: BasktCardProps) => {
         label: '30d',
         value:
           performanceData.month !== undefined
-            ? `${performanceData.month >= 0 ? '+' : ''}${performanceData.month}%`
+            ? `${performanceData.month >= 0 ? '+' : ''}${performanceData.month.toFixed(2)}%`
             : '--',
         color:
           performanceData.month !== undefined && performanceData.month >= 0
@@ -331,16 +335,16 @@ export const BasktCard = React.memo(({ baskt, className }: BasktCardProps) => {
           <div className="flex items-right justify-end flex-1 mr-4">
             <div className="flex flex-col items-right">
               <span className="text-lg font-bold text-foreground whitespace-nowrap">
-                <NumberFormat value={basktPrice} isPrice={true} />
+                <NumberFormat value={basktPrice} isPrice={true} showCurrency={true} />
               </span>
               {performanceData.day !== undefined && (
                 <span
                   className={`text-xs font-medium ${
                     performanceData.day >= 0 ? 'text-green-500' : 'text-red-500'
-                  }`}
+                  } text-right block`}
                 >
                   {performanceData.day >= 0 ? '+' : ''}
-                  <NumberFormat value={performanceData.day} />%
+                  {performanceData.day.toFixed(2)}%
                 </span>
               )}
             </div>

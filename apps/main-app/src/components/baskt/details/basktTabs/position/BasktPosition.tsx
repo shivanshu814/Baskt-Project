@@ -147,6 +147,7 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
                           <NumberFormat
                             value={new BN(position.usdcSize).toNumber()}
                             isPrice={true}
+                            showCurrency={true}
                           />
                         ) : (
                           '---'
@@ -157,6 +158,7 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
                           <NumberFormat
                             value={new BN(position.entryPrice).toNumber()}
                             isPrice={true}
+                            showCurrency={true}
                           />
                         ) : (
                           '---'
@@ -167,6 +169,7 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
                           <NumberFormat
                             value={new BN(navPrice.toNumber()).toNumber()}
                             isPrice={true}
+                            showCurrency={true}
                           />
                         ) : (
                           '---'
@@ -210,6 +213,7 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
                             <NumberFormat
                               value={new BN(position.collateral).toNumber()}
                               isPrice={true}
+                              showCurrency={true}
                             />
                           ) : (
                             '---'
@@ -224,7 +228,7 @@ export const BasktPosition = ({ basktId, navPrice }: { basktId: string; navPrice
                       </TableCell>
                       <TableCell className="text-xs sm:text-sm">
                         {position.fees && position.fees > 0 ? (
-                          <NumberFormat value={position.fees} isPrice={true} />
+                          <NumberFormat value={position.fees} isPrice={true} showCurrency={true} />
                         ) : (
                           <span className="text-text">{'---'}</span>
                         )}

@@ -40,7 +40,7 @@ export const DesktopMetrics = ({
         <div className="flex flex-col items-start">
           <span className="text-muted-foreground underline decoration-dashed">Mark</span>
           <span className="font-semibold text-white">
-            <NumberFormat value={currentBaskt?.price} isPrice={true} />
+            <NumberFormat value={currentBaskt?.price} isPrice={true} showCurrency={true} />
           </span>
         </div>
         <div className="flex flex-col items-start">
@@ -51,7 +51,7 @@ export const DesktopMetrics = ({
             ) : totalOpenInterest === 0 ? (
               '---'
             ) : (
-              <NumberFormat value={totalOpenInterest} isPrice={true} />
+              <NumberFormat value={totalOpenInterest} isPrice={true} showCurrency={true} />
             )}
           </span>
         </div>
@@ -63,7 +63,7 @@ export const DesktopMetrics = ({
             ) : totalVolume === 0 ? (
               '---'
             ) : (
-              <NumberFormat value={totalVolume} isPrice={true} />
+              <NumberFormat value={totalVolume} isPrice={true} showCurrency={true} />
             )}
           </span>
         </div>

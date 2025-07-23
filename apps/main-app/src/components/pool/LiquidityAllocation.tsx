@@ -12,7 +12,7 @@ export const LiquidityAllocation = React.memo(
 
     const actualTvl = (parseFloat(tvl.replace(/,/g, '')) / 1e6).toFixed(2);
     const actualTotalSupply = (parseFloat(totalSupply.replace(/,/g, '')) / 1e6).toFixed(2);
-    
+
     // Fetch OI data for all assets using trpc
     const { data: oiData, isLoading } = trpc.metrics.getOpenInterestForAllAssets.useQuery();
 
@@ -21,7 +21,7 @@ export const LiquidityAllocation = React.memo(
         <div>
           <div className="text-sm font-semibold text-foreground mb-1">Total Value Locked</div>
           <div className="text-3xl font-semibold text-primary mb-1">
-            <NumberFormat value={Number(actualTvl) * 1e6} isPrice={true} />
+            <NumberFormat value={Number(actualTvl) * 1e6} isPrice={true} showCurrency={true} />
           </div>
         </div>
 
@@ -39,7 +39,9 @@ export const LiquidityAllocation = React.memo(
                 <Skeleton className="h-12 w-full" />
               </div>
             ) : !oiData?.success || !oiData?.data || oiData.data.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground">No exposure data available</div>
+              <div className="py-8 text-center text-muted-foreground">
+                No exposure data available
+              </div>
             ) : (
               <table className="min-w-full text-foreground/90 text-sm rounded-xl overflow-hidden">
                 <thead>
@@ -52,7 +54,7 @@ export const LiquidityAllocation = React.memo(
                 </thead>
                 <tbody>
                   {oiData.data
-                    .filter(asset => asset.longOpenInterest > 0 || asset.shortOpenInterest > 0)
+                    .filter((asset) => asset.longOpenInterest > 0 || asset.shortOpenInterest > 0)
                     .sort((a, b) => {
                       // Sort by net exposure (absolute value) in descending order
                       const aNetExposure = Math.abs(a.longOpenInterest - a.shortOpenInterest);
@@ -66,11 +68,15 @@ export const LiquidityAllocation = React.memo(
                       const shortExposure = asset.shortOpenInterest;
                       const netExposure = longExposure - shortExposure;
                       const totalExposure = longExposure + shortExposure;
-                      
+
                       // Calculate percentages
-                      const longPercentage = totalExposure > 0 ? ((longExposure / totalExposure) * 100).toFixed(2) : '0';
-                      const shortPercentage = totalExposure > 0 ? ((shortExposure / totalExposure) * 100).toFixed(2) : '0';
-                      
+                      const longPercentage =
+                        totalExposure > 0 ? ((longExposure / totalExposure) * 100).toFixed(2) : '0';
+                      const shortPercentage =
+                        totalExposure > 0
+                          ? ((shortExposure / totalExposure) * 100).toFixed(2)
+                          : '0';
+
                       return (
                         <tr key={assetSymbol}>
                           <td className="px-4 py-3 flex items-center gap-3">
@@ -87,23 +93,31 @@ export const LiquidityAllocation = React.memo(
                           </td>
                           <td className="px-4 py-3">
                             <div className="font-semibold text-foreground">
-                              <NumberFormat value={longExposure} isPrice={true} />
+                              <NumberFormat
+                                value={longExposure}
+                                isPrice={true}
+                                showCurrency={true}
+                              />
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {longPercentage}%
-                            </div>
+                            <div className="text-xs text-muted-foreground">{longPercentage}%</div>
                           </td>
                           <td className="px-4 py-3">
                             <div className="font-semibold text-foreground">
-                              <NumberFormat value={shortExposure} isPrice={true} />
+                              <NumberFormat
+                                value={shortExposure}
+                                isPrice={true}
+                                showCurrency={true}
+                              />
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {shortPercentage}%
-                            </div>
+                            <div className="text-xs text-muted-foreground">{shortPercentage}%</div>
                           </td>
                           <td className="px-4 py-3">
                             <div className="font-semibold text-foreground">
-                              <NumberFormat value={Math.abs(netExposure)} isPrice={true} />
+                              <NumberFormat
+                                value={Math.abs(netExposure)}
+                                isPrice={true}
+                                showCurrency={true}
+                              />
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {netExposure >= 0 ? 'Long' : 'Short'}
@@ -132,7 +146,11 @@ export const LiquidityAllocation = React.memo(
           <div className="bg-foreground/10 rounded-xl p-4">
             <div className="text-sm text-muted-foreground mb-1">Total Supply</div>
             <div className="text-xl font-bold text-foreground">
-              <NumberFormat value={Number(actualTotalSupply) * 1e6} isPrice={true} />
+              <NumberFormat
+                value={Number(actualTotalSupply) * 1e6}
+                isPrice={true}
+                showCurrency={true}
+              />
             </div>
           </div>
         </div>

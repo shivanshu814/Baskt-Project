@@ -92,7 +92,12 @@ export default function PoolPage() {
                           }
                           return (
                             <>
-                              ~ <NumberFormat value={value * 1e6} isPrice={true} />
+                              ~{' '}
+                              <NumberFormat
+                                value={value * 1e6}
+                                isPrice={true}
+                                showCurrency={true}
+                              />
                             </>
                           );
                         })()}

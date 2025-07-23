@@ -1,8 +1,6 @@
 import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
 import { querier } from '../../utils/querier';
-import { generateNavHistory } from '../../fakers/price';
-import { BN } from 'bn.js';
 
 // get baskt metadata by id
 const getBasktMetadataById = publicProcedure
@@ -49,86 +47,76 @@ const getBasktNAV = publicProcedure
     }
   });
 
-// get trading data
+// get trading data using real nav-tracker data
 const getTradingData = publicProcedure
   .input(
     z.object({
       basktId: z.string(),
-      period: z.enum(['1D', '1W', '1M', '1Y', 'All']).default('1M'),
     }),
   )
   .query(async ({ input }) => {
-    const { basktId, period } = input;
+    const { basktId } = input;
 
-    const basktInfo = await querier.baskt.getBasktById(basktId);
-    if (!basktInfo || !basktInfo.success || !basktInfo.data) {
+    try {
+      const result = await querier.price.getBasktNavHistory(basktId);
+
+      if (!result.success || !result.data) {
+        return {
+          success: false,
+          data: [],
+          message: result.message || 'Failed to fetch baskt NAV history',
+        };
+      }
+
+      const dailyData = result.data
+        .filter((item) => item.time && item.price)
+        .reduce((acc, item) => {
+          const dayTimestamp = Math.floor((item.time || 0) / (24 * 60 * 60)) * (24 * 60 * 60);
+          const price = item.price || 0;
+
+          if (!acc[dayTimestamp]) {
+            acc[dayTimestamp] = {
+              time: dayTimestamp,
+              values: [],
+              count: 0,
+              min: price,
+              max: price,
+            };
+          }
+
+          acc[dayTimestamp].values.push(price);
+          acc[dayTimestamp].count++;
+          acc[dayTimestamp].min = Math.min(acc[dayTimestamp].min, price);
+          acc[dayTimestamp].max = Math.max(acc[dayTimestamp].max, price);
+
+          return acc;
+        }, {} as Record<number, { time: number; values: number[]; count: number; min: number; max: number }>);
+
+      const allData = Object.values(dailyData)
+        .map((day) => ({
+          time: day.time,
+          value: day.values.reduce((sum, val) => sum + val, 0) / day.count,
+          min: day.min,
+          max: day.max,
+          count: day.count,
+        }))
+        .sort((a, b) => a.time - b.time);
+
+      return {
+        success: true,
+        data: allData,
+        dataSource: 'nav-tracker',
+        message: 'All NAV data from nav-tracker service',
+      };
+    } catch (error) {
+      console.error('Error fetching baskt NAV history:', error);
       return {
         success: false,
         data: [],
-        message: 'Baskt metadata not found',
+        message: 'Failed to fetch baskt NAV history',
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
-
-    const now = Math.floor(Date.now() / 1000);
-
-    let startTime: number;
-    switch (period) {
-      case '1D':
-        startTime = now - 24 * 60 * 60;
-        break;
-      case '1W':
-        startTime = now - 7 * 24 * 60 * 60;
-        break;
-      case '1M':
-        startTime = now - 30 * 24 * 60 * 60;
-        break;
-      case '1Y':
-        startTime = now - 365 * 24 * 60 * 60;
-        break;
-      case 'All':
-      default:
-        startTime = 0;
-    }
-
-    const priceHistory = generateNavHistory(
-      (basktInfo.data.account as any)?.currentAssetConfigs || [],
-      new BN(1e6),
-    );
-
-    let dataToUse;
-    switch (period) {
-      case '1D':
-        dataToUse = priceHistory.daily.slice(-1); //last day only
-        break;
-      case '1W':
-        dataToUse = priceHistory.daily.slice(-7); // last 7 days
-        break;
-      case '1M':
-        dataToUse = priceHistory.daily.slice(-30); // last 30 days
-        break;
-      case '1Y':
-        dataToUse = priceHistory.daily; // all daily data for full year
-        break;
-      case 'All':
-      default:
-        dataToUse = priceHistory.daily; // all daily data
-        break;
-    }
-
-    const filteredData = dataToUse
-      .filter((item) => {
-        const timestamp = Math.floor(new Date(item.date).getTime() / 1000);
-        return timestamp >= startTime;
-      })
-      .map((item) => ({
-        time: Math.floor(new Date(item.date).getTime() / 1000),
-        value: item.price.toNumber() / 1e6,
-      }));
-
-    return {
-      success: true,
-      data: filteredData,
-    };
   });
 
 // get baskt metadata by name
