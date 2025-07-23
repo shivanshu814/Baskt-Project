@@ -1,7 +1,7 @@
 import { Worker } from 'bullmq';
 import { rebalanceQueue, connection } from '../config/queue';
 import { BasktMetadataSchema, BasktMetadataModel } from '@baskt/types';
-import { connectMongoDB } from '../config/mongo';
+import { connectMongoDB, disconnectMongoDB } from '../config/mongo';
 import { PublicKey } from '@solana/web3.js';
 import { basktClient, querierClient } from '../config/client';
 import mongoose from 'mongoose';
@@ -28,19 +28,6 @@ import { AssetMetadataSchema as AssetMetadataSchemaType } from '@baskt/types';
 
 const BasktMetadataModel = mongoose.model<BasktMetadataModel>('BasktMetadata', BasktMetadataSchema);
 const AssetMetadataModel = mongoose.model('AssetMetadata', AssetMetadataSchemaType);
-
-function periodToMs(period: { value: number; unit: 'day' | 'hour' | 'minute' }) {
-  switch (period.unit) {
-    case 'day':
-      return period.value * 24 * 60 * 60 * 1000;
-    case 'hour':
-      return period.value * 60 * 60 * 1000;
-    case 'minute':
-      return period.value * 60 * 1000;
-    default:
-      return period.value * 24 * 60 * 60 * 1000;
-  }
-}
 
 /**
  * Calculate the total deviation from baseline prices for all assets in a baskt
@@ -85,7 +72,10 @@ async function calculateTotalDeviation(
     });
 
     // Fetch current prices
-    const currentPrices = await fetchAssetPrices(priceConfigs, basktAssets.map((asset) => asset.assetId.toString()));
+    const currentPrices = await fetchAssetPrices(
+      priceConfigs,
+      basktAssets.map((asset) => asset.assetId.toString()),
+    );
 
     // Calculate weighted deviation for each asset
     let totalWeightedDeviation = 0;
@@ -256,6 +246,9 @@ const rebalanceWorker = new Worker(
       } catch (err) {
         console.log(`Could not update basket metadata for ${basktConfig.basktId}`);
       }
+
+      await disconnectMongoDB();
+      await querierClient.shutdown();
 
       console.log(
         `✅ SUCCESSFULLY REBALANCED: ${

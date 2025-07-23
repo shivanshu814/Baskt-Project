@@ -1,6 +1,6 @@
 import { Queue, Worker } from 'bullmq';
 import { managerQueue, connection, rebalanceQueue } from '../config/queue';
-import { connectMongoDB } from '../config/mongo';
+import { connectMongoDB, disconnectMongoDB } from '../config/mongo';
 import mongoose from 'mongoose';
 import { BasktMetadataSchema, BasktMetadataModel } from '@baskt/types';
 import { basktClient } from '../config/client';
@@ -136,6 +136,5 @@ async function resetJobs(queue: Queue) {
       repeat: { every: 60 * 60 * 1000 }, // 1 hour
     },
   );
-
   console.log('Rebalance manager started, checking every 1 hour.');
 })();
