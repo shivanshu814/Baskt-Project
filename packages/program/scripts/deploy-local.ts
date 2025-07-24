@@ -14,7 +14,6 @@ import { AssetPrice } from '../../../services/oracle/src/config/sequelize';
 
 import assetConfig from './assets.json';
 import { getMint, getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';
-import { connectMongoDB } from '../../../services/backend/src/config/mongo';
 
 const shouldCreateFakePrices = process.argv.includes('--create-fake-prices');
 
@@ -118,7 +117,9 @@ async function createFakePrices(assetConfig: any[]) {
 async function main() {
   // Delete the entire DB
 
-  const usdcMint = new PublicKey(process.env.NEXT_PUBLIC_USDC_MINT || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+  const usdcMint = new PublicKey(
+    process.env.NEXT_PUBLIC_USDC_MINT || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+  );
 
   const { program, wallet, provider } = getProvider();
 

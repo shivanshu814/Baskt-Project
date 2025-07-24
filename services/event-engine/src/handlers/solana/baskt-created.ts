@@ -69,7 +69,7 @@ export default {
       return;
     }
 
-    const assets = assetsResult.data;0
+    const assets = assetsResult.data;
     const activeAssets = assets.filter(
       (asset: any) =>
         asset.price > 0 &&

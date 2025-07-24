@@ -7,17 +7,6 @@ import { homedir } from 'os';
 import { Baskt } from '../target/types/baskt';
 import { TestClient } from '../tests/utils/test-client';
 import BasktIdl from '../target/idl/baskt.json';
-import { AccessControlRole } from '@baskt/types';
-import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
-import type { AppRouter } from '../../../services/backend/src/router';
-import { AssetPrice } from '../../../services/oracle/src/config/sequelize';
-
-import assetConfig from './assets.json';
-import { getMint, getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';
-import { connectMongoDB } from '../../../services/backend/src/config/mongo';
-
-
-
 
 // Configure the provider.connection to devnet
 export const getProvider = () => {
@@ -54,11 +43,12 @@ export const getProvider = () => {
   };
 };
 
-
 async function main() {
   // Delete the entire DB
 
-  const usdcMint = new PublicKey(process.env.NEXT_PUBLIC_USDC_MINT || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+  const usdcMint = new PublicKey(
+    process.env.NEXT_PUBLIC_USDC_MINT || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+  );
 
   const { program, wallet, provider } = getProvider();
 
@@ -66,7 +56,6 @@ async function main() {
   client.setPublicKey(wallet.publicKey);
 
   await client.initializeProtocol(wallet.publicKey);
-
 
   const lpMintKeypair = Keypair.generate();
   console.log('LP Mint:', lpMintKeypair.publicKey.toString());
@@ -80,9 +69,6 @@ async function main() {
     usdcMint,
     lpMintKeypair,
   );
-
-
-
 
   // 1. Derive PDAs
   const protocolPDA = await client.protocolPDA;

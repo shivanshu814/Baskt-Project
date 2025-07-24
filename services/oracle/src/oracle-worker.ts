@@ -12,20 +12,23 @@ import mongoose from 'mongoose';
 
 const AssetMetadataModel = mongoose.model('AssetMetadata', AssetMetadataSchema);
 
+connectMongoDB();
+
 // Worker instance with concurrency control
 const pricingWorker = new Worker(
   pricingQueue.name,
   async (job) => {
     console.log(`Processing job: ${job.name} ${job.data._id}`);
 
-    await connectMongoDB();
-
     const oracleConfig = job.data as AssetMetadataModelType;
 
     const priceDBID = oracleConfig.ticker;
 
     try {
-      const prices = await fetchAssetPrices([oracleConfig.priceConfig], [oracleConfig.assetAddress]);
+      const prices = await fetchAssetPrices(
+        [oracleConfig.priceConfig],
+        [oracleConfig.assetAddress],
+      );
       const currentPrice = Number(prices[0].priceUSD);
 
       await AssetPrice.create({
