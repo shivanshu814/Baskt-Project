@@ -167,7 +167,6 @@ export function usePool({
         await client.initializeLiquidityPool(
           depositFeeBps,
           withdrawalFeeBps,
-          minDeposit,
           lpMint,
           USDC_MINT,
           lpMintKeypair,

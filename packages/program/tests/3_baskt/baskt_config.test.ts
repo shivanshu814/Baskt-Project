@@ -23,14 +23,14 @@ describe('baskt config setters', () => {
   let nonAuthorizedClient: TestClient;
 
   // Constants for testing (from constants.rs)
-  const MAX_FEE_BPS = 500; // 5% maximum fee
+  const MAX_FEE_BPS = 1000; // 50% maximum fee
   const BPS_DIVISOR = 10000; // 100% in basis points
 
   // Test baskts
   let publicBasktPDA: PublicKey;
   let privateBasktPDA: PublicKey;
-  let publicBasktName = 'test-public-baskt';
-  let privateBasktName = 'test-private-baskt';
+  let publicBasktUid: number;
+  let privateBasktUid: number;
 
   before(async () => {
     // Initialize protocol and roles
@@ -43,9 +43,7 @@ describe('baskt config setters', () => {
     await client.connection.requestAirdrop(configManager.publicKey, 2e9);
     await client.connection.requestAirdrop(basktCreator.publicKey, 2e9);
     await client.connection.requestAirdrop(nonAuthorizedAccount.publicKey, 2e9);
-    await client.waitForBlocks(2);
-
-    // Create assets for baskts
+      // Create assets for baskts
     const btcAsset = await client.addAsset('BTC', { allowLongs: true, allowShorts: true });
     const ethAsset = await client.addAsset('ETH', { allowLongs: true, allowShorts: true });
 
@@ -87,16 +85,14 @@ describe('baskt config setters', () => {
     nonAuthorizedClient = await TestClient.forUser(nonAuthorizedAccount);
 
     // Create public baskt using baskt creator client
-    const { basktId: publicBasktId } = await basktCreatorClient.createBaskt(
-      publicBasktName,
+    const { basktId: publicBasktId, uid: publicBasktUid } = await basktCreatorClient.createBaskt(
       publicBasktAssets,
       true, // is_public
     );
     publicBasktPDA = publicBasktId;
 
     // Create private baskt using baskt creator client
-    const { basktId: privateBasktId } = await basktCreatorClient.createBaskt(
-      privateBasktName,
+    const { basktId: privateBasktId, uid: privateBasktUid } = await basktCreatorClient.createBaskt(
       privateBasktAssets,
       false, // is_public
     );
@@ -126,8 +122,9 @@ describe('baskt config setters', () => {
       await configManagerClient.setBasktOpeningFeeBps(publicBasktPDA, newFeeBps);
 
       // Verify the change
-      const baskt = await client.getBaskt(publicBasktName);
-      expect(baskt.config.openingFeeBps?.toNumber()).to.equal(newFeeBps);
+      const baskt = await client.getBasktRaw(publicBasktPDA);
+      expect(baskt.config.openingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.openingFeeBps ?? 0).toNumber()).to.equal(newFeeBps);
     });
 
     it('Successfully sets opening fee by baskt creator for private baskt', async () => {
@@ -137,8 +134,9 @@ describe('baskt config setters', () => {
       await basktCreatorClient.setBasktOpeningFeeBps(privateBasktPDA, newFeeBps);
 
       // Verify the change
-      const baskt = await client.getBaskt(privateBasktName);
-      expect(baskt.config.openingFeeBps?.toNumber()).to.equal(newFeeBps);
+      const baskt = await client.getBasktRaw(privateBasktPDA);
+      expect(baskt.config.openingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.openingFeeBps ?? 0).toNumber()).to.equal(newFeeBps);
     });
 
     it('Successfully clears opening fee with null value', async () => {
@@ -146,7 +144,7 @@ describe('baskt config setters', () => {
       await configManagerClient.setBasktOpeningFeeBps(publicBasktPDA, null);
 
       // Verify the change
-      const baskt = await client.getBaskt(publicBasktName);
+      const baskt = await client.getBaskt(publicBasktPDA);
       expect(baskt.config.openingFeeBps).to.be.null;
     });
 
@@ -156,7 +154,7 @@ describe('baskt config setters', () => {
       try {
         await configManagerClient.setBasktOpeningFeeBps(publicBasktPDA, invalidFeeBps);
         expect.fail('Should have thrown error');
-      } catch (error) {
+      } catch (error: any) {
         expect(error.toString()).to.include('InvalidFeeBps');
       }
     });
@@ -167,7 +165,7 @@ describe('baskt config setters', () => {
       try {
         await nonAuthorizedClient.setBasktOpeningFeeBps(publicBasktPDA, newFeeBps);
         expect.fail('Should have thrown error');
-      } catch (error) {
+      } catch (error: any) {
         expect(error.toString()).to.include('Unauthorized');
       }
     });
@@ -178,7 +176,7 @@ describe('baskt config setters', () => {
       try {
         await basktCreatorClient.setBasktOpeningFeeBps(publicBasktPDA, newFeeBps);
         expect.fail('Should have thrown error');
-      } catch (error) {
+      } catch (error: any) {
         expect(error.toString()).to.include('Unauthorized');
       }
     });
@@ -190,8 +188,9 @@ describe('baskt config setters', () => {
 
       await configManagerClient.setBasktClosingFeeBps(publicBasktPDA, newFeeBps);
 
-      const baskt = await client.getBaskt(publicBasktName);
-      expect(baskt.config.closingFeeBps?.toNumber()).to.equal(newFeeBps);
+      const baskt = await client.getBasktRaw(publicBasktPDA);
+      expect(baskt.config.closingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.closingFeeBps ??   0).toNumber()).to.equal(newFeeBps);
     });
 
     it('Fails with fee above maximum', async () => {
@@ -200,7 +199,7 @@ describe('baskt config setters', () => {
       try {
         await configManagerClient.setBasktClosingFeeBps(publicBasktPDA, invalidFeeBps);
         expect.fail('Should have thrown error');
-      } catch (error) {
+      } catch (error: any) {
         expect(error.toString()).to.include('InvalidFeeBps');
       }
     });
@@ -212,8 +211,9 @@ describe('baskt config setters', () => {
 
       await configManagerClient.setBasktLiquidationFeeBps(publicBasktPDA, newFeeBps);
 
-      const baskt = await client.getBaskt(publicBasktName);
-      expect(baskt.config.liquidationFeeBps?.toNumber()).to.equal(newFeeBps);
+      const baskt = await client.getBasktRaw(publicBasktPDA);
+      expect(baskt.config.liquidationFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.liquidationFeeBps ?? 0).toNumber()).to.equal(newFeeBps);
     });
 
     it('Fails with fee above maximum', async () => {
@@ -222,7 +222,7 @@ describe('baskt config setters', () => {
       try {
         await configManagerClient.setBasktLiquidationFeeBps(publicBasktPDA, invalidFeeBps);
         expect.fail('Should have thrown error');
-      } catch (error) {
+      } catch (error: any) {
         expect(error.toString()).to.include('InvalidFeeBps');
       }
     });
@@ -234,8 +234,9 @@ describe('baskt config setters', () => {
 
       await configManagerClient.setBasktMinCollateralRatioBps(publicBasktPDA, newRatioBps);
 
-      const baskt = await client.getBaskt(publicBasktName);
-      expect(baskt.config.minCollateralRatioBps?.toNumber()).to.equal(newRatioBps);
+      const baskt = await client.getBasktRaw(publicBasktPDA);
+      expect(baskt.config.minCollateralRatioBps).to.not.be.null;
+      expect(new BN(baskt.config.minCollateralRatioBps ?? 0).toNumber()).to.equal(newRatioBps);
     });
 
     it('Fails with ratio below minimum', async () => {
@@ -244,7 +245,7 @@ describe('baskt config setters', () => {
       try {
         await configManagerClient.setBasktMinCollateralRatioBps(publicBasktPDA, invalidRatioBps);
         expect.fail('Should have thrown error');
-      } catch (error) {
+      } catch (error: any) {
         expect(error.toString()).to.include('InvalidCollateralRatio');
       }
     });
@@ -256,15 +257,16 @@ describe('baskt config setters', () => {
 
       await configManagerClient.setBasktLiquidationThresholdBps(publicBasktPDA, newThresholdBps);
 
-      const baskt = await client.getBaskt(publicBasktName);
-      expect(baskt.config.liquidationThresholdBps?.toNumber()).to.equal(newThresholdBps);
+      const baskt = await client.getBasktRaw(publicBasktPDA);
+      expect(baskt.config.liquidationThresholdBps).to.not.be.null;
+      expect(new BN(baskt.config.liquidationThresholdBps ?? 0).toNumber()).to.equal(newThresholdBps);
     });
 
     it('Fails with zero threshold', async () => {
       try {
         await configManagerClient.setBasktLiquidationThresholdBps(publicBasktPDA, 0);
         expect.fail('Should have thrown error');
-      } catch (error) {
+      } catch (error: any) {
         console.log('Actual error:', error.toString());
         expect(error.toString()).to.include('InvalidCollateralRatio');
       }
@@ -276,7 +278,7 @@ describe('baskt config setters', () => {
       try {
         await configManagerClient.setBasktLiquidationThresholdBps(publicBasktPDA, invalidThresholdBps);
         expect.fail('Should have thrown error');
-      } catch (error) {
+      } catch (error: any) {
         expect(error.toString()).to.include('InvalidCollateralRatio');
       }
     });
@@ -294,12 +296,17 @@ describe('baskt config setters', () => {
 
       await configManagerClient.updateBasktConfig(publicBasktPDA, newConfig);
 
-      const baskt = await client.getBaskt(publicBasktName);
-      expect(baskt.config.openingFeeBps?.toNumber()).to.equal(newConfig.openingFeeBps);
-      expect(baskt.config.closingFeeBps?.toNumber()).to.equal(newConfig.closingFeeBps);
-      expect(baskt.config.liquidationFeeBps?.toNumber()).to.equal(newConfig.liquidationFeeBps);
-      expect(baskt.config.minCollateralRatioBps?.toNumber()).to.equal(newConfig.minCollateralRatioBps);
-      expect(baskt.config.liquidationThresholdBps?.toNumber()).to.equal(newConfig.liquidationThresholdBps);
+      const baskt = await client.getBasktRaw(publicBasktPDA);
+      expect(baskt.config.openingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.openingFeeBps ?? 0).toNumber()).to.equal(newConfig.openingFeeBps);
+      expect(baskt.config.closingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.closingFeeBps ?? 0).toNumber()).to.equal(newConfig.closingFeeBps);
+      expect(baskt.config.liquidationFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.liquidationFeeBps ?? 0).toNumber()).to.equal(newConfig.liquidationFeeBps);
+      expect(baskt.config.minCollateralRatioBps).to.not.be.null;
+      expect(new BN(baskt.config.minCollateralRatioBps ?? 0).toNumber()).to.equal(newConfig.minCollateralRatioBps);
+      expect(baskt.config.liquidationThresholdBps).to.not.be.null;
+      expect(new BN(baskt.config.liquidationThresholdBps ?? 0).toNumber()).to.equal(newConfig.liquidationThresholdBps);
     });
 
     it('Successfully updates partial config values', async () => {
@@ -317,11 +324,14 @@ describe('baskt config setters', () => {
 
       await configManagerClient.updateBasktConfig(publicBasktPDA, partialConfig);
 
-      const baskt = await client.getBaskt(publicBasktName);
-      expect(baskt.config.openingFeeBps?.toNumber()).to.equal(partialConfig.openingFeeBps);
-      expect(baskt.config.liquidationFeeBps?.toNumber()).to.equal(partialConfig.liquidationFeeBps);
+      const baskt = await client.getBasktRaw(publicBasktPDA);
+      expect(baskt.config.openingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.openingFeeBps ?? 0).toNumber()).to.equal(partialConfig.openingFeeBps);
+      expect(baskt.config.liquidationFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.liquidationFeeBps ?? 0).toNumber()).to.equal(partialConfig.liquidationFeeBps);
       // Other values should remain unchanged from initial setup
-      expect(baskt.config.closingFeeBps?.toNumber()).to.equal(90);
+      expect(baskt.config.closingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.closingFeeBps ?? 0).toNumber()).to.equal(90);
     });
 
     it('Fails with invalid config combination', async () => {
@@ -333,7 +343,7 @@ describe('baskt config setters', () => {
       try {
         await configManagerClient.updateBasktConfig(publicBasktPDA, invalidConfig);
         expect.fail('Should have thrown error');
-      } catch (error) {
+      } catch (error: any) {
         expect(error.toString()).to.include('InvalidCollateralRatio');
       }
     });
@@ -343,26 +353,29 @@ describe('baskt config setters', () => {
     it('ConfigManager can modify any baskt config', async () => {
       // Test on public baskt
       await configManagerClient.setBasktOpeningFeeBps(publicBasktPDA, 110);
-      let baskt = await client.getBaskt(publicBasktName);
-      expect(baskt.config.openingFeeBps?.toNumber()).to.equal(110);
+      let baskt = await client.getBasktRaw(publicBasktPDA);
+      expect(baskt.config.openingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.openingFeeBps ?? 0).toNumber()).to.equal(110);
 
       // Test on private baskt
       await configManagerClient.setBasktOpeningFeeBps(privateBasktPDA, 130);
-      baskt = await client.getBaskt(privateBasktName);
-      expect(baskt.config.openingFeeBps?.toNumber()).to.equal(130);
+        baskt = await client.getBasktRaw(privateBasktPDA);
+      expect(baskt.config.openingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.openingFeeBps ?? 0).toNumber()).to.equal(130);
     });
 
     it('Baskt creator can only modify their own private baskt', async () => {
       // Should succeed on own private baskt
       await basktCreatorClient.setBasktClosingFeeBps(privateBasktPDA, 95);
-      let baskt = await client.getBaskt(privateBasktName);
-      expect(baskt.config.closingFeeBps?.toNumber()).to.equal(95);
+      let baskt = await client.getBasktRaw(privateBasktPDA);    
+      expect(baskt.config.closingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.closingFeeBps ?? 0).toNumber()).to.equal(95);
 
       // Should fail on public baskt (even if created by them)
       try {
         await basktCreatorClient.setBasktClosingFeeBps(publicBasktPDA, 95);
         expect.fail('Should have thrown error');
-      } catch (error) {
+      } catch (error: any) {
         expect(error.toString()).to.include('Unauthorized');
       }
     });
@@ -372,7 +385,7 @@ describe('baskt config setters', () => {
       try {
         await nonAuthorizedClient.setBasktOpeningFeeBps(publicBasktPDA, 100);
         expect.fail('Should have thrown error');
-      } catch (error) {
+      } catch (error: any ) {
         expect(error.toString()).to.include('Unauthorized');
       }
 
@@ -380,7 +393,7 @@ describe('baskt config setters', () => {
       try {
         await nonAuthorizedClient.setBasktOpeningFeeBps(privateBasktPDA, 100);
         expect.fail('Should have thrown error');
-      } catch (error) {
+      } catch (error: any   ) {
         expect(error.toString()).to.include('Unauthorized');
       }
     });
@@ -394,27 +407,31 @@ describe('baskt config setters', () => {
         liquidationFeeBps: MAX_FEE_BPS,
       });
 
-      const baskt = await client.getBaskt(publicBasktName);
-      expect(baskt.config.openingFeeBps?.toNumber()).to.equal(MAX_FEE_BPS);
-      expect(baskt.config.closingFeeBps?.toNumber()).to.equal(MAX_FEE_BPS);
-      expect(baskt.config.liquidationFeeBps?.toNumber()).to.equal(MAX_FEE_BPS);
+      const baskt = await client.getBasktRaw(publicBasktPDA);
+      expect(baskt.config.openingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.openingFeeBps ?? 0).toNumber()).to.equal(MAX_FEE_BPS);
+      expect(baskt.config.closingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.closingFeeBps ?? 0).toNumber()).to.equal(MAX_FEE_BPS);
+      expect(baskt.config.liquidationFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.liquidationFeeBps ?? 0).toNumber()).to.equal(MAX_FEE_BPS);
     });
 
     it('Accepts minimum valid collateral ratio', async () => {
       await configManagerClient.setBasktMinCollateralRatioBps(publicBasktPDA, MIN_COLLATERAL_RATIO_BPS);
 
-      const baskt = await client.getBaskt(publicBasktName);
-      expect(baskt.config.minCollateralRatioBps?.toNumber()).to.equal(MIN_COLLATERAL_RATIO_BPS);
+      const baskt = await client.getBasktRaw(publicBasktPDA);
+      expect(baskt.config.minCollateralRatioBps).to.not.be.null;
+      expect(new BN(baskt.config.minCollateralRatioBps ?? 0).toNumber()).to.equal(MIN_COLLATERAL_RATIO_BPS);
     });
 
     it('Accepts zero fee values (clears override)', async () => {
       await configManagerClient.updateBasktConfig(publicBasktPDA, {
-        openingFeeBps: null,
+        openingFeeBps: null,  
         closingFeeBps: null,
         liquidationFeeBps: null,
       });
 
-      const baskt = await client.getBaskt(publicBasktName);
+      const baskt = await client.getBaskt(publicBasktPDA);
       expect(baskt.config.openingFeeBps).to.be.null;
       expect(baskt.config.closingFeeBps).to.be.null;
       expect(baskt.config.liquidationFeeBps).to.be.null;
@@ -425,14 +442,15 @@ describe('baskt config setters', () => {
     it('No-op when setting same value', async () => {
       // Set a value first
       await configManagerClient.setBasktOpeningFeeBps(publicBasktPDA, 160);
-      const basktBefore = await client.getBaskt(publicBasktName);
+      const basktBefore = await client.getBasktRaw(publicBasktPDA);
 
       // Set the same value again
       await configManagerClient.setBasktOpeningFeeBps(publicBasktPDA, 160);
-      const basktAfter = await client.getBaskt(publicBasktName);
+      const basktAfter = await client.getBasktRaw(publicBasktPDA);
 
       // Should be exactly the same
-      expect(basktAfter.config.openingFeeBps?.toNumber()).to.equal(basktBefore.config.openingFeeBps?.toNumber());
+      expect(basktAfter.config.openingFeeBps).to.not.be.null;
+      expect(new BN(basktAfter.config.openingFeeBps ?? 0).toNumber()).to.equal(new BN(basktBefore.config.openingFeeBps ?? 0).toNumber());
     });
 
     it('Config updates preserve other config values', async () => {
@@ -447,11 +465,15 @@ describe('baskt config setters', () => {
       await configManagerClient.setBasktMinCollateralRatioBps(publicBasktPDA, 12000);
 
       // Verify others are preserved
-      const baskt = await client.getBaskt(publicBasktName);
-      expect(baskt.config.openingFeeBps?.toNumber()).to.equal(100);
-      expect(baskt.config.closingFeeBps?.toNumber()).to.equal(80);
-      expect(baskt.config.liquidationFeeBps?.toNumber()).to.equal(200);
-      expect(baskt.config.minCollateralRatioBps?.toNumber()).to.equal(12000);
+      const baskt = await client.getBasktRaw(publicBasktPDA);
+      expect(baskt.config.openingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.openingFeeBps ?? 0).toNumber()).to.equal(100);
+      expect(baskt.config.closingFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.closingFeeBps ?? 0).toNumber()).to.equal(80);
+      expect(baskt.config.liquidationFeeBps).to.not.be.null;
+      expect(new BN(baskt.config.liquidationFeeBps ?? 0).toNumber()).to.equal(200);
+      expect(baskt.config.minCollateralRatioBps).to.not.be.null;
+      expect(new BN(baskt.config.minCollateralRatioBps ?? 0).toNumber()).to.equal(12000);
     });
   });
 });

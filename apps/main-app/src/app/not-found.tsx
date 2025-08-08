@@ -1,17 +1,17 @@
 'use client';
 
 import { Button } from '@baskt/ui';
+import { AlertTriangle, Home, MoveLeft } from 'lucide-react';
 import Link from 'next/link';
-import { Home, AlertTriangle, MoveLeft } from 'lucide-react';
 
 export default function NotFound() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20">
       <div className="text-center max-w-lg mx-auto p-8">
         <div className="relative mb-8">
-          <div className="text-9xl font-black text-primary/20 animate-pulse">404</div>
+          <div className="text-9xl font-black text-primary/20">404</div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <AlertTriangle className="h-24 w-24 text-primary animate-bounce" />
+            <AlertTriangle className="h-24 w-24 text-primary animate-pulse" />
           </div>
         </div>
 
@@ -34,7 +34,7 @@ export default function NotFound() {
             <Button asChild variant="default" size="lg" className="group">
               <Link href="/" className="flex items-center gap-2">
                 <Home className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                Return to Dashboard
+                Return to Home
               </Link>
             </Button>
 
@@ -44,16 +44,14 @@ export default function NotFound() {
               onClick={() => window.history.back()}
               className="group"
             >
-              <Link href="/" className="flex items-center gap-2">
-                <MoveLeft className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                <span className="flex items-center gap-2">Go Back</span>
-              </Link>
+              <MoveLeft className="h-4 w-4 group-hover:scale-110 transition-transform" />
+              <span className="flex items-center gap-2">Go Back</span>
             </Button>
           </div>
         </div>
 
-        <div className="absolute top-10 left-10 w-20 h-20 bg-primary/10 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-10 right-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl animate-pulse delay-1000"></div>
+        <div className="absolute top-10 left-10 w-20 h-20 bg-primary/10 rounded-full blur-xl"></div>
+        <div className="absolute bottom-10 right-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl"></div>
       </div>
     </div>
   );

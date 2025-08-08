@@ -1,11 +1,11 @@
-import { createQuerier } from '@baskt/querier';
+import { createQuerier, Querier } from '@baskt/querier';
 import { SDKClient } from './index';
 
 // Create a single SDK client instance
 const sdkClient = new SDKClient();
 
 // Create a single Querier instance with the SDK client
-export const querier = createQuerier(sdkClient);
+export const querier = Querier.getInstance(sdkClient);
 
 // Initialize the querier (this should be called once on app startup)
 export const initializeQuerier = async () => {

@@ -61,7 +61,7 @@ async function positionLiquidatedHandler(event: ObserverEvent) {
     );
 
     // Update position status to LIQUIDATED
-    await querierClient.metadata.updatePosition(positionPDA.toString(), {
+    await querierClient.metadata.updatePositionByPDA(positionPDA.toString(), {
       status: 'LIQUIDATED',
       exitPrice: positionLiquidatedData.exitPrice.toString(),
       closePosition: {

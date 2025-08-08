@@ -16,11 +16,14 @@ no-idl = []
 no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 test = []
+anchor-debug = []
+serde = []
+custom-heap = []
+custom-panic = []
 
 [dependencies]
 anchor-lang = {version = "0.31.0", features = ["init-if-needed"]}
 anchor-spl = "0.31.0"
-ahash = "0.8.3"
 pyth-solana-receiver-sdk = "0.6.0"
 num-traits = "0.2.15"
 bytemuck = { version = "1.14.0", features = ["derive"] }

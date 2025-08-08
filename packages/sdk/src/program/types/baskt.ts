@@ -28,12 +28,31 @@ export type Baskt = {
       "accounts": [
         {
           "name": "baskt",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt.uid",
+                "account": "baskt"
+              }
+            ]
+          }
         },
         {
           "name": "protocol",
           "docs": [
-            "@dev Requires either baskt creator or OracleManager role to activate baskts"
+            "@dev Requires BasktManager role to activate baskts"
           ],
           "pda": {
             "seeds": [
@@ -85,9 +104,6 @@ export type Baskt = {
       "accounts": [
         {
           "name": "admin",
-          "docs": [
-            "@dev Requires AssetManager role to add new assets"
-          ],
           "writable": true,
           "signer": true
         },
@@ -115,9 +131,6 @@ export type Baskt = {
         },
         {
           "name": "protocol",
-          "docs": [
-            "Protocol account for access control check"
-          ],
           "pda": {
             "seeds": [
               {
@@ -201,11 +214,11 @@ export type Baskt = {
           }
         },
         {
-          "name": "ownerToken",
+          "name": "ownerCollateralAccount",
           "writable": true
         },
         {
-          "name": "escrowToken",
+          "name": "ownerCollateralEscrowAccount",
           "writable": true,
           "pda": {
             "seeds": [
@@ -365,14 +378,14 @@ export type Baskt = {
           }
         },
         {
-          "name": "providerTokenAccount",
+          "name": "providerUsdcAccount",
           "docs": [
             "The provider's token account to withdraw funds from"
           ],
           "writable": true
         },
         {
-          "name": "tokenVault",
+          "name": "usdcVault",
           "docs": [
             "The vault that holds the pool's assets"
           ],
@@ -417,7 +430,7 @@ export type Baskt = {
           "writable": true
         },
         {
-          "name": "treasuryTokenAccount",
+          "name": "treasuryUsdcAccount",
           "docs": [
             "The treasury token account to receive fees"
           ],
@@ -578,11 +591,11 @@ export type Baskt = {
           }
         },
         {
-          "name": "ownerToken",
+          "name": "ownerCollateralAccount",
           "writable": true
         },
         {
-          "name": "escrowToken",
+          "name": "ownerCollateralEscrowAccount",
           "writable": true,
           "pda": {
             "seeds": [
@@ -675,12 +688,38 @@ export type Baskt = {
       "accounts": [
         {
           "name": "baskt",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt.uid",
+                "account": "baskt"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator",
+          "docs": [
+            "Creator of the baskt - receives rent when closed"
+          ],
           "writable": true
         },
         {
           "name": "authority",
           "docs": [
-            "Authority that can close baskt (OracleManager)"
+            "Authority that can close baskt (BasktManager)"
           ],
           "signer": true
         },
@@ -754,6 +793,10 @@ export type Baskt = {
           }
         },
         {
+          "name": "orderOwner",
+          "writable": true
+        },
+        {
           "name": "position",
           "writable": true,
           "pda": {
@@ -779,37 +822,6 @@ export type Baskt = {
               {
                 "kind": "account",
                 "path": "position.position_id",
-                "account": "position"
-              }
-            ]
-          }
-        },
-        {
-          "name": "fundingIndex",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  102,
-                  117,
-                  110,
-                  100,
-                  105,
-                  110,
-                  103,
-                  95,
-                  105,
-                  110,
-                  100,
-                  101,
-                  120
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "position.baskt_id",
                 "account": "position"
               }
             ]
@@ -873,7 +885,7 @@ export type Baskt = {
           "name": "treasury"
         },
         {
-          "name": "escrowToken",
+          "name": "ownerCollateralEscrowAccount",
           "docs": [
             "Position escrow token account"
           ],
@@ -897,6 +909,27 @@ export type Baskt = {
               }
             ]
           }
+        },
+        {
+          "name": "ownerCollateralAccount",
+          "docs": [
+            "User's collateral token account to receive settlement"
+          ],
+          "writable": true
+        },
+        {
+          "name": "treasuryToken",
+          "docs": [
+            "Protocol treasury token account for fee collection"
+          ],
+          "writable": true
+        },
+        {
+          "name": "usdcVault",
+          "docs": [
+            "BLP token vault for liquidity pool fees"
+          ],
+          "writable": true
         },
         {
           "name": "programAuthority",
@@ -987,7 +1020,25 @@ export type Baskt = {
       "accounts": [
         {
           "name": "baskt",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.uid"
+              }
+            ]
+          }
         },
         {
           "name": "creator",
@@ -1015,7 +1066,17 @@ export type Baskt = {
           }
         },
         {
+          "name": "treasury",
+          "docs": [
+            "Treasury account to receive the fee"
+          ],
+          "writable": true
+        },
+        {
           "name": "systemProgram",
+          "docs": [
+            "System program for SOL transfers"
+          ],
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -1069,7 +1130,7 @@ export type Baskt = {
               },
               {
                 "kind": "arg",
-                "path": "orderId"
+                "path": "params.order_id"
               }
             ]
           }
@@ -1081,14 +1142,14 @@ export type Baskt = {
           ]
         },
         {
-          "name": "ownerToken",
+          "name": "ownerCollateralAccount",
           "writable": true
         },
         {
-          "name": "escrowMint"
+          "name": "collateralMint"
         },
         {
-          "name": "escrowToken",
+          "name": "ownerCollateralEscrowAccount",
           "writable": true,
           "pda": {
             "seeds": [
@@ -1174,52 +1235,10 @@ export type Baskt = {
       ],
       "args": [
         {
-          "name": "orderId",
-          "type": "u64"
-        },
-        {
-          "name": "size",
-          "type": "u64"
-        },
-        {
-          "name": "collateral",
-          "type": "u64"
-        },
-        {
-          "name": "isLong",
-          "type": "bool"
-        },
-        {
-          "name": "action",
+          "name": "params",
           "type": {
             "defined": {
-              "name": "orderAction"
-            }
-          }
-        },
-        {
-          "name": "targetPosition",
-          "type": {
-            "option": "pubkey"
-          }
-        },
-        {
-          "name": "limitPrice",
-          "type": "u64"
-        },
-        {
-          "name": "maxSlippageBps",
-          "type": "u64"
-        },
-        {
-          "name": "leverageBps",
-          "type": "u64"
-        },
-        {
-          "name": "orderType",
-          "type": {
-            "defined": {
-              "name": "orderType"
+              "name": "createOrderParams"
             }
           }
         }
@@ -1240,12 +1259,31 @@ export type Baskt = {
       "accounts": [
         {
           "name": "baskt",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt.uid",
+                "account": "baskt"
+              }
+            ]
+          }
         },
         {
           "name": "authority",
           "docs": [
-            "Authority that can decommission (OracleManager or Owner for emergency)"
+            "Authority that can decommission (BasktManager or Owner for emergency)"
           ],
           "signer": true
         },
@@ -1287,9 +1325,6 @@ export type Baskt = {
       "accounts": [
         {
           "name": "authority",
-          "docs": [
-            "OracleManager who can force close positions"
-          ],
           "signer": true
         },
         {
@@ -1325,7 +1360,26 @@ export type Baskt = {
         },
         {
           "name": "baskt",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt.uid",
+                "account": "baskt"
+              }
+            ]
+          }
         },
         {
           "name": "protocol",
@@ -1378,7 +1432,7 @@ export type Baskt = {
           }
         },
         {
-          "name": "escrowToken",
+          "name": "ownerCollateralEscrowAccount",
           "docs": [
             "Position escrow token account"
           ],
@@ -1402,6 +1456,27 @@ export type Baskt = {
               }
             ]
           }
+        },
+        {
+          "name": "ownerCollateralAccount",
+          "docs": [
+            "User's collateral token account to receive settlement"
+          ],
+          "writable": true
+        },
+        {
+          "name": "usdcVault",
+          "docs": [
+            "BLP token vault for liquidity pool"
+          ],
+          "writable": true
+        },
+        {
+          "name": "treasuryToken",
+          "docs": [
+            "Protocol treasury token account for fee collection"
+          ],
+          "writable": true
         },
         {
           "name": "programAuthority",
@@ -1476,90 +1551,6 @@ export type Baskt = {
           }
         }
       ]
-    },
-    {
-      "name": "initializeFundingIndex",
-      "discriminator": [
-        150,
-        223,
-        168,
-        231,
-        205,
-        101,
-        166,
-        21
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "docs": [
-            "@dev Requires Owner role to initialize funding indices"
-          ],
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "fundingIndex",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  102,
-                  117,
-                  110,
-                  100,
-                  105,
-                  110,
-                  103,
-                  95,
-                  105,
-                  110,
-                  100,
-                  101,
-                  120
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "baskt"
-              }
-            ]
-          }
-        },
-        {
-          "name": "baskt",
-          "docs": [
-            "Baskt account to initialize funding index for."
-          ]
-        },
-        {
-          "name": "protocol",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
     },
     {
       "name": "initializeLiquidityPool",
@@ -1645,7 +1636,7 @@ export type Baskt = {
           "signer": true
         },
         {
-          "name": "tokenVault",
+          "name": "usdcVault",
           "docs": [
             "The token account that will hold the pool's assets"
           ],
@@ -1676,7 +1667,36 @@ export type Baskt = {
           }
         },
         {
-          "name": "tokenMint",
+          "name": "lpTokenEscrow",
+          "docs": [
+            "The token account that will hold LP tokens during withdrawal queue processing"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcMint",
           "docs": [
             "The mint of the token used for collateral"
           ]
@@ -1736,10 +1756,6 @@ export type Baskt = {
         {
           "name": "withdrawalFeeBps",
           "type": "u16"
-        },
-        {
-          "name": "minDeposit",
-          "type": "u64"
         }
       ]
     },
@@ -1783,7 +1799,7 @@ export type Baskt = {
           }
         },
         {
-          "name": "escrowMint",
+          "name": "collateralMint",
           "docs": [
             "Escrow mint (USDC)"
           ]
@@ -1875,40 +1891,6 @@ export type Baskt = {
           }
         },
         {
-          "name": "positionOwner"
-        },
-        {
-          "name": "fundingIndex",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  102,
-                  117,
-                  110,
-                  100,
-                  105,
-                  110,
-                  103,
-                  95,
-                  105,
-                  110,
-                  100,
-                  101,
-                  120
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "position.baskt_id",
-                "account": "position"
-              }
-            ]
-          }
-        },
-        {
           "name": "baskt",
           "writable": true
         },
@@ -1972,7 +1954,7 @@ export type Baskt = {
           ]
         },
         {
-          "name": "escrowToken",
+          "name": "ownerCollateralEscrowAccount",
           "docs": [
             "Position escrow token account"
           ],
@@ -1996,6 +1978,27 @@ export type Baskt = {
               }
             ]
           }
+        },
+        {
+          "name": "ownerCollateralAccount",
+          "docs": [
+            "User's collateral token account to receive settlement"
+          ],
+          "writable": true
+        },
+        {
+          "name": "treasuryToken",
+          "docs": [
+            "Protocol treasury token account for fee collection"
+          ],
+          "writable": true
+        },
+        {
+          "name": "usdcVault",
+          "docs": [
+            "BLP token vault for liquidity pool fees"
+          ],
+          "writable": true
         },
         {
           "name": "programAuthority",
@@ -2118,6 +2121,10 @@ export type Baskt = {
           }
         },
         {
+          "name": "orderOwner",
+          "writable": true
+        },
+        {
           "name": "position",
           "writable": true,
           "pda": {
@@ -2143,37 +2150,6 @@ export type Baskt = {
               {
                 "kind": "arg",
                 "path": "params.position_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "fundingIndex",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  102,
-                  117,
-                  110,
-                  100,
-                  105,
-                  110,
-                  103,
-                  95,
-                  105,
-                  110,
-                  100,
-                  101,
-                  120
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "order.baskt_id",
-                "account": "order"
               }
             ]
           }
@@ -2269,7 +2245,7 @@ export type Baskt = {
           }
         },
         {
-          "name": "escrowToken",
+          "name": "ownerCollateralEscrowAccount",
           "writable": true,
           "pda": {
             "seeds": [
@@ -2316,10 +2292,24 @@ export type Baskt = {
           }
         },
         {
-          "name": "escrowMint",
+          "name": "collateralMint",
           "docs": [
             "Escrow mint (USDC) - validated via protocol"
           ]
+        },
+        {
+          "name": "treasuryToken",
+          "docs": [
+            "Protocol treasury token account for fee collection"
+          ],
+          "writable": true
+        },
+        {
+          "name": "usdcVault",
+          "docs": [
+            "BLP token vault for liquidity pool fees"
+          ],
+          "writable": true
         },
         {
           "name": "systemProgram",
@@ -2346,6 +2336,379 @@ export type Baskt = {
       ]
     },
     {
+      "name": "processWithdrawQueue",
+      "discriminator": [
+        23,
+        100,
+        61,
+        241,
+        134,
+        190,
+        48,
+        53
+      ],
+      "accounts": [
+        {
+          "name": "keeper",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "liquidityPool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "poolAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasuryUsdcAccount",
+          "writable": true
+        },
+        {
+          "name": "lpTokenEscrow",
+          "docs": [
+            "LP token escrow account where LP tokens are held during withdrawal queue processing"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "providerUsdcAccount",
+          "docs": [
+            "USDC account"
+          ],
+          "writable": true
+        },
+        {
+          "name": "withdrawRequest",
+          "writable": true
+        },
+        {
+          "name": "provider",
+          "writable": true
+        },
+        {
+          "name": "lpMint",
+          "docs": [
+            "LP token mint for burning"
+          ],
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "queueWithdrawLiquidity",
+      "discriminator": [
+        180,
+        225,
+        125,
+        70,
+        9,
+        230,
+        128,
+        117
+      ],
+      "accounts": [
+        {
+          "name": "provider",
+          "docs": [
+            "The liquidity provider requesting withdrawal"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "liquidityPool",
+          "docs": [
+            "Liquidity pool state account"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  105,
+                  113,
+                  117,
+                  105,
+                  100,
+                  105,
+                  116,
+                  121,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol state for feature flags validation"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "providerLpAccount",
+          "docs": [
+            "Provider's LP token account (source for burn)"
+          ],
+          "writable": true
+        },
+        {
+          "name": "providerUsdcAccount",
+          "docs": [
+            "USDC account"
+          ]
+        },
+        {
+          "name": "lpTokenEscrow",
+          "docs": [
+            "LP token escrow account where LP tokens are held during withdrawal queue processing"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "withdrawRequest",
+          "docs": [
+            "Withdrawal request PDA"
+          ],
+          "writable": true
+        },
+        {
+          "name": "lpMint",
+          "docs": [
+            "LP token mint for burning"
+          ],
+          "writable": true
+        },
+        {
+          "name": "poolAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "liquidityPool"
+              },
+              {
+                "kind": "account",
+                "path": "protocol"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "requestWithdrawParams"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "rebalance",
       "discriminator": [
         108,
@@ -2363,49 +2726,9 @@ export type Baskt = {
           "writable": true
         },
         {
-          "name": "rebalanceHistory",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  98,
-                  97,
-                  108,
-                  97,
-                  110,
-                  99,
-                  101,
-                  95,
-                  104,
-                  105,
-                  115,
-                  116,
-                  111,
-                  114,
-                  121
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "baskt.baskt_id",
-                "account": "baskt"
-              },
-              {
-                "kind": "account",
-                "path": "baskt.last_rebalance_index",
-                "account": "baskt"
-              }
-            ]
-          }
-        },
-        {
           "name": "payer",
           "docs": [
-            "@dev Requires either baskt creator or Rebalancer role to rebalance"
+            "@dev Requires Rebalancer role to rebalance"
           ],
           "writable": true,
           "signer": true
@@ -2445,64 +2768,47 @@ export type Baskt = {
               }
             }
           }
+        },
+        {
+          "name": "newNav",
+          "type": "u64"
+        },
+        {
+          "name": "rebalanceFeePerUnit",
+          "type": {
+            "option": "u64"
+          }
         }
       ]
     },
     {
-      "name": "removeLiquidity",
+      "name": "rebalanceRequest",
       "discriminator": [
-        80,
-        85,
-        209,
-        72,
-        24,
-        206,
-        177,
-        108
+        114,
+        49,
+        98,
+        158,
+        41,
+        46,
+        138,
+        201
       ],
       "accounts": [
         {
-          "name": "provider",
+          "name": "baskt"
+        },
+        {
+          "name": "creator",
           "docs": [
-            "The liquidity provider"
+            "@dev Only the baskt creator can request a rebalance"
           ],
           "writable": true,
           "signer": true
         },
         {
-          "name": "liquidityPool",
-          "docs": [
-            "The liquidity pool account"
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  105,
-                  113,
-                  117,
-                  105,
-                  100,
-                  105,
-                  116,
-                  121,
-                  95,
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        },
-        {
           "name": "protocol",
           "docs": [
-            "Protocol account to verify feature flags"
+            "Protocol account to get fee configuration"
           ],
           "pda": {
             "seeds": [
@@ -2523,113 +2829,21 @@ export type Baskt = {
           }
         },
         {
-          "name": "providerTokenAccount",
+          "name": "treasury",
           "docs": [
-            "The provider's token account to receive funds"
+            "Treasury account to receive the fee"
           ],
           "writable": true
         },
         {
-          "name": "tokenVault",
+          "name": "systemProgram",
           "docs": [
-            "The vault that holds the pool's assets"
+            "System program for SOL transfers"
           ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "liquidityPool"
-              }
-            ]
-          }
-        },
-        {
-          "name": "providerLpAccount",
-          "docs": [
-            "The provider's LP token account to burn LP tokens from"
-          ],
-          "writable": true
-        },
-        {
-          "name": "lpMint",
-          "docs": [
-            "The LP token mint"
-          ],
-          "writable": true
-        },
-        {
-          "name": "treasuryTokenAccount",
-          "writable": true
-        },
-        {
-          "name": "treasury"
-        },
-        {
-          "name": "poolAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "liquidityPool"
-              },
-              {
-                "kind": "account",
-                "path": "protocol"
-              }
-            ]
-          }
-        },
-        {
-          "name": "tokenProgram",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "address": "11111111111111111111111111111111"
         }
       ],
-      "args": [
-        {
-          "name": "lpAmount",
-          "type": "u64"
-        },
-        {
-          "name": "minTokensOut",
-          "type": "u64"
-        }
-      ]
+      "args": []
     },
     {
       "name": "removeRole",
@@ -2713,7 +2927,26 @@ export type Baskt = {
           "docs": [
             "Baskt account to update"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt.uid",
+                "account": "baskt"
+              }
+            ]
+          }
         },
         {
           "name": "protocol",
@@ -2749,6 +2982,59 @@ export type Baskt = {
       ]
     },
     {
+      "name": "setBasktCreationFee",
+      "discriminator": [
+        174,
+        195,
+        87,
+        31,
+        78,
+        125,
+        189,
+        6
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "Signer that must have the ConfigManager or Owner role"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol account containing configuration"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "newFeeLamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "setBasktLiquidationFeeBps",
       "discriminator": [
         135,
@@ -2774,7 +3060,26 @@ export type Baskt = {
           "docs": [
             "Baskt account to update"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt.uid",
+                "account": "baskt"
+              }
+            ]
+          }
         },
         {
           "name": "protocol",
@@ -2835,7 +3140,26 @@ export type Baskt = {
           "docs": [
             "Baskt account to update"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt.uid",
+                "account": "baskt"
+              }
+            ]
+          }
         },
         {
           "name": "protocol",
@@ -2896,7 +3220,26 @@ export type Baskt = {
           "docs": [
             "Baskt account to update"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt.uid",
+                "account": "baskt"
+              }
+            ]
+          }
         },
         {
           "name": "protocol",
@@ -2957,7 +3300,26 @@ export type Baskt = {
           "docs": [
             "Baskt account to update"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt.uid",
+                "account": "baskt"
+              }
+            ]
+          }
         },
         {
           "name": "protocol",
@@ -3036,59 +3398,6 @@ export type Baskt = {
         {
           "name": "newClosingFeeBps",
           "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "setDecommissionGracePeriod",
-      "discriminator": [
-        16,
-        167,
-        202,
-        231,
-        140,
-        192,
-        215,
-        110
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "docs": [
-            "Signer that must have the ConfigManager or Owner role"
-          ],
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "protocol",
-          "docs": [
-            "Protocol account containing configuration"
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "newGracePeriod",
-          "type": "i64"
         }
       ]
     },
@@ -3193,56 +3502,6 @@ export type Baskt = {
       ]
     },
     {
-      "name": "setLiquidationPriceDeviationBps",
-      "discriminator": [
-        184,
-        175,
-        8,
-        148,
-        26,
-        157,
-        41,
-        201
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "protocol",
-          "docs": [
-            "Protocol account"
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "newLiquidationPriceDeviationBps",
-          "type": "u64"
-        }
-      ]
-    },
-    {
       "name": "setLiquidationThresholdBps",
       "discriminator": [
         240,
@@ -3291,106 +3550,6 @@ export type Baskt = {
       "args": [
         {
           "name": "newLiquidationThresholdBps",
-          "type": "u64"
-        }
-      ]
-    },
-    {
-      "name": "setMaxPriceAgeSec",
-      "discriminator": [
-        151,
-        79,
-        152,
-        153,
-        44,
-        126,
-        222,
-        41
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "protocol",
-          "docs": [
-            "Protocol account"
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "newMaxPriceAgeSec",
-          "type": "u32"
-        }
-      ]
-    },
-    {
-      "name": "setMaxPriceDeviationBps",
-      "discriminator": [
-        13,
-        166,
-        196,
-        104,
-        129,
-        190,
-        209,
-        150
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "protocol",
-          "docs": [
-            "Protocol account"
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "newMaxPriceDeviationBps",
           "type": "u64"
         }
       ]
@@ -3462,15 +3621,12 @@ export type Baskt = {
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "admin",
           "writable": true,
           "signer": true
         },
         {
           "name": "protocol",
-          "docs": [
-            "Protocol account"
-          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -3546,6 +3702,59 @@ export type Baskt = {
       ]
     },
     {
+      "name": "setRebalanceRequestFee",
+      "discriminator": [
+        243,
+        54,
+        146,
+        34,
+        66,
+        87,
+        28,
+        118
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "Signer that must have the ConfigManager role"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "Protocol account containing configuration"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "newFeeLamports",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "setTreasuryCutBps",
       "discriminator": [
         127,
@@ -3599,85 +3808,6 @@ export type Baskt = {
       ]
     },
     {
-      "name": "settleBaskt",
-      "discriminator": [
-        45,
-        247,
-        64,
-        159,
-        193,
-        173,
-        34,
-        192
-      ],
-      "accounts": [
-        {
-          "name": "baskt",
-          "writable": true
-        },
-        {
-          "name": "authority",
-          "docs": [
-            "Authority that can settle (OracleManager)"
-          ],
-          "signer": true
-        },
-        {
-          "name": "fundingIndex",
-          "docs": [
-            "Funding index account for this baskt"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  102,
-                  117,
-                  110,
-                  100,
-                  105,
-                  110,
-                  103,
-                  95,
-                  105,
-                  110,
-                  100,
-                  101,
-                  120
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "baskt"
-              }
-            ]
-          }
-        },
-        {
-          "name": "protocol",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "updateBasktConfig",
       "discriminator": [
         231,
@@ -3703,7 +3833,26 @@ export type Baskt = {
           "docs": [
             "Baskt account to update"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "baskt.uid",
+                "account": "baskt"
+              }
+            ]
+          }
         },
         {
           "name": "protocol",
@@ -3737,60 +3886,6 @@ export type Baskt = {
               "name": "updateBasktConfigParams"
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "updateCustomOracle",
-      "discriminator": [
-        92,
-        133,
-        3,
-        62,
-        0,
-        27,
-        254,
-        99
-      ],
-      "accounts": [
-        {
-          "name": "baskt",
-          "writable": true
-        },
-        {
-          "name": "authority",
-          "docs": [
-            "@dev Requires OracleManager role to update oracle prices"
-          ],
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "protocol",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "price",
-          "type": "u64"
         }
       ]
     },
@@ -3870,40 +3965,30 @@ export type Baskt = {
           "signer": true
         },
         {
-          "name": "fundingIndex",
+          "name": "baskt",
+          "docs": [
+            "Baskt account associated with the funding index. Used only for seed verification."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  102,
-                  117,
-                  110,
-                  100,
-                  105,
-                  110,
-                  103,
-                  95,
-                  105,
-                  110,
-                  100,
-                  101,
-                  120
+                  98,
+                  97,
+                  115,
+                  107,
+                  116
                 ]
               },
               {
                 "kind": "account",
-                "path": "baskt"
+                "path": "baskt.uid",
+                "account": "baskt"
               }
             ]
           }
-        },
-        {
-          "name": "baskt",
-          "docs": [
-            "Baskt account associated with the funding index. Used only for seed verification."
-          ]
         },
         {
           "name": "protocol",
@@ -4002,19 +4087,6 @@ export type Baskt = {
       ]
     },
     {
-      "name": "fundingIndex",
-      "discriminator": [
-        205,
-        206,
-        185,
-        89,
-        105,
-        187,
-        167,
-        31
-      ]
-    },
-    {
       "name": "liquidityPool",
       "discriminator": [
         66,
@@ -4080,19 +4152,6 @@ export type Baskt = {
       ]
     },
     {
-      "name": "rebalanceHistory",
-      "discriminator": [
-        99,
-        118,
-        90,
-        210,
-        209,
-        145,
-        80,
-        204
-      ]
-    },
-    {
       "name": "syntheticAsset",
       "discriminator": [
         106,
@@ -4103,6 +4162,19 @@ export type Baskt = {
         40,
         189,
         218
+      ]
+    },
+    {
+      "name": "withdrawRequest",
+      "discriminator": [
+        186,
+        239,
+        174,
+        191,
+        189,
+        13,
+        47,
+        196
       ]
     }
   ],
@@ -4170,6 +4242,19 @@ export type Baskt = {
         178,
         209,
         132
+      ]
+    },
+    {
+      "name": "basktCreationFeeUpdatedEvent",
+      "discriminator": [
+        72,
+        196,
+        77,
+        166,
+        236,
+        109,
+        148,
+        195
       ]
     },
     {
@@ -4248,19 +4333,6 @@ export type Baskt = {
         198,
         74,
         170
-      ]
-    },
-    {
-      "name": "basktSettled",
-      "discriminator": [
-        210,
-        185,
-        247,
-        116,
-        70,
-        213,
-        64,
-        247
       ]
     },
     {
@@ -4355,19 +4427,6 @@ export type Baskt = {
       ]
     },
     {
-      "name": "liquidationPriceDeviationUpdatedEvent",
-      "discriminator": [
-        113,
-        19,
-        26,
-        65,
-        61,
-        200,
-        184,
-        101
-      ]
-    },
-    {
       "name": "liquidationThresholdUpdatedEvent",
       "discriminator": [
         122,
@@ -4417,32 +4476,6 @@ export type Baskt = {
         1,
         106,
         215
-      ]
-    },
-    {
-      "name": "maxPriceAgeUpdatedEvent",
-      "discriminator": [
-        214,
-        87,
-        62,
-        199,
-        1,
-        35,
-        196,
-        139
-      ]
-    },
-    {
-      "name": "maxPriceDeviationUpdatedEvent",
-      "discriminator": [
-        216,
-        0,
-        125,
-        41,
-        186,
-        138,
-        52,
-        27
       ]
     },
     {
@@ -4511,19 +4544,6 @@ export type Baskt = {
       ]
     },
     {
-      "name": "orderFilledEvent",
-      "discriminator": [
-        218,
-        97,
-        153,
-        209,
-        56,
-        56,
-        251,
-        133
-      ]
-    },
-    {
       "name": "positionClosedEvent",
       "discriminator": [
         76,
@@ -4576,16 +4596,29 @@ export type Baskt = {
       ]
     },
     {
-      "name": "registryInitializedEvent",
+      "name": "rebalanceRequestEvent",
       "discriminator": [
-        25,
-        72,
-        229,
-        103,
-        34,
-        177,
-        247,
-        255
+        14,
+        9,
+        248,
+        15,
+        162,
+        243,
+        186,
+        161
+      ]
+    },
+    {
+      "name": "rebalanceRequestFeeUpdatedEvent",
+      "discriminator": [
+        70,
+        58,
+        235,
+        207,
+        171,
+        32,
+        54,
+        107
       ]
     },
     {
@@ -4613,6 +4646,32 @@ export type Baskt = {
         211,
         33
       ]
+    },
+    {
+      "name": "withdrawQueueProcessedEvent",
+      "discriminator": [
+        167,
+        34,
+        124,
+        242,
+        149,
+        97,
+        242,
+        17
+      ]
+    },
+    {
+      "name": "withdrawalQueuedEvent",
+      "discriminator": [
+        189,
+        125,
+        98,
+        229,
+        140,
+        253,
+        16,
+        86
+      ]
     }
   ],
   "errors": [
@@ -4623,388 +4682,293 @@ export type Baskt = {
     },
     {
       "code": 6001,
-      "name": "invalidOracleAccount",
-      "msg": "Invalid oracle account"
-    },
-    {
-      "code": 6002,
-      "name": "oraclePriceTooOld",
-      "msg": "Oracle price is too old"
-    },
-    {
-      "code": 6003,
-      "name": "oraclePriceTooUncertain",
-      "msg": "Oracle price has too much uncertainty"
-    },
-    {
-      "code": 6004,
       "name": "insufficientCollateral",
       "msg": "Insufficient collateral for position"
     },
     {
-      "code": 6005,
+      "code": 6002,
       "name": "positionNotLiquidatable",
       "msg": "Position is not liquidatable"
     },
     {
-      "code": 6006,
+      "code": 6003,
       "name": "positionAlreadyClosed",
       "msg": "Position is already closed"
     },
     {
-      "code": 6007,
+      "code": 6004,
       "name": "insufficientLiquidity",
       "msg": "Insufficient liquidity in pool"
     },
     {
-      "code": 6008,
+      "code": 6005,
       "name": "invalidBasktConfig",
       "msg": "Invalid baskt configuration"
     },
     {
-      "code": 6009,
+      "code": 6006,
       "name": "invalidPositionSize",
       "msg": "Invalid position size"
     },
     {
-      "code": 6010,
+      "code": 6007,
       "name": "unauthorized",
       "msg": "Unauthorized access"
     },
     {
-      "code": 6011,
+      "code": 6008,
       "name": "unauthorizedRole",
       "msg": "Unauthorized: Missing required role for this operation"
     },
     {
-      "code": 6012,
+      "code": 6009,
       "name": "unauthorizedTokenOwner",
       "msg": "Unauthorized: Token account owner mismatch"
     },
     {
-      "code": 6013,
+      "code": 6010,
       "name": "invalidLpTokenAmount",
       "msg": "Invalid LP token amount"
     },
     {
-      "code": 6014,
-      "name": "unsupportedOracle",
-      "msg": "Unsupported oracle type"
-    },
-    {
-      "code": 6015,
-      "name": "staleOraclePrice",
-      "msg": "Stale oracle price"
-    },
-    {
-      "code": 6016,
+      "code": 6011,
       "name": "invalidOraclePrice",
       "msg": "Invalid oracle price"
     },
     {
-      "code": 6017,
+      "code": 6012,
       "name": "priceOutOfBounds",
       "msg": "Submitted price is outside acceptable deviation bounds from oracle price"
     },
     {
-      "code": 6018,
+      "code": 6013,
       "name": "insufficientFunds",
       "msg": "Insufficient funds for operation"
     },
     {
-      "code": 6019,
-      "name": "invalidBasktName",
-      "msg": "Invalid baskt name"
-    },
-    {
-      "code": 6020,
-      "name": "basktInactive",
-      "msg": "Baskt is inactive"
-    },
-    {
-      "code": 6021,
-      "name": "roleNotFound",
-      "msg": "Role not found for the account"
-    },
-    {
-      "code": 6022,
-      "name": "missingRequiredRole",
-      "msg": "Missing required role for this operation"
-    },
-    {
-      "code": 6023,
-      "name": "unauthorizedSigner",
-      "msg": "Unauthorized signer for this operation"
-    },
-    {
-      "code": 6024,
-      "name": "invalidRoleType",
-      "msg": "Invalid role type"
-    },
-    {
-      "code": 6025,
-      "name": "invalidRemainingAccounts",
-      "msg": "Invalid remaining accounts"
-    },
-    {
-      "code": 6026,
-      "name": "invalidAssetAccount",
-      "msg": "Invalid asset account"
-    },
-    {
-      "code": 6027,
-      "name": "longPositionsDisabled",
-      "msg": "Long positions are disabled for this asset"
-    },
-    {
-      "code": 6028,
-      "name": "shortPositionsDisabled",
-      "msg": "Short positions are disabled for this asset"
-    },
-    {
-      "code": 6029,
-      "name": "invalidOrStaleOraclePrice",
-      "msg": "Invalid or stale oracle price"
-    },
-    {
-      "code": 6030,
-      "name": "assetNotInBaskt",
-      "msg": "Asset not in baskt"
-    },
-    {
-      "code": 6031,
-      "name": "invalidAssetConfig",
-      "msg": "Invalid asset config"
-    },
-    {
-      "code": 6032,
-      "name": "featureDisabled",
-      "msg": "Feature is currently disabled"
-    },
-    {
-      "code": 6033,
-      "name": "tradingDisabled",
-      "msg": "Trading operations are currently disabled"
-    },
-    {
-      "code": 6034,
-      "name": "liquidityOperationsDisabled",
-      "msg": "Liquidity pool operations are currently disabled"
-    },
-    {
-      "code": 6035,
-      "name": "positionOperationsDisabled",
-      "msg": "Position operations are currently disabled"
-    },
-    {
-      "code": 6036,
-      "name": "basktOperationsDisabled",
-      "msg": "Baskt management operations are currently disabled"
-    },
-    {
-      "code": 6037,
-      "name": "inactiveAsset",
-      "msg": "Asset Not Active"
-    },
-    {
-      "code": 6038,
-      "name": "basktAlreadyActive",
-      "msg": "Baskt Already Active"
-    },
-    {
-      "code": 6039,
-      "name": "invalidAssetWeights",
-      "msg": "Invalid asset weights"
-    },
-    {
-      "code": 6040,
-      "name": "invalidOracleParameter",
-      "msg": "Invalid oracle parameter"
-    },
-    {
-      "code": 6041,
-      "name": "orderAlreadyProcessed",
-      "msg": "Order already processed"
-    },
-    {
-      "code": 6042,
-      "name": "invalidEscrowAccount",
-      "msg": "Invalid escrow account"
-    },
-    {
-      "code": 6043,
-      "name": "invalidProgramAuthority",
-      "msg": "Invalid program authority"
-    },
-    {
-      "code": 6044,
-      "name": "tokenHasDelegate",
-      "msg": "Token has delegate"
-    },
-    {
-      "code": 6045,
-      "name": "tokenHasCloseAuthority",
-      "msg": "Token has close authority"
-    },
-    {
-      "code": 6046,
-      "name": "invalidMint",
-      "msg": "Invalid mint"
-    },
-    {
-      "code": 6047,
-      "name": "zeroSizedPosition",
-      "msg": "Zero sized position"
-    },
-    {
-      "code": 6048,
-      "name": "invalidTargetPosition",
-      "msg": "Invalid target position"
-    },
-    {
-      "code": 6049,
-      "name": "invalidBaskt",
-      "msg": "Invalid baskt"
-    },
-    {
-      "code": 6050,
-      "name": "invalidOrderAction",
-      "msg": "Invalid order action"
-    },
-    {
-      "code": 6051,
-      "name": "fundingNotUpToDate",
-      "msg": "Funding not up to date"
-    },
-    {
-      "code": 6052,
-      "name": "positionStillOpen",
-      "msg": "Position still open"
-    },
-    {
-      "code": 6053,
-      "name": "invalidTreasuryAccount",
-      "msg": "Invalid treasury account"
-    },
-    {
-      "code": 6054,
-      "name": "collateralOverflow",
-      "msg": "Collateral amount would overflow maximum value"
-    },
-    {
-      "code": 6055,
-      "name": "depositsDisabled",
-      "msg": "Liquidity pool deposits are currently disabled"
-    },
-    {
-      "code": 6056,
-      "name": "withdrawalsDisabled",
-      "msg": "Liquidity pool withdrawals are currently disabled"
-    },
-    {
-      "code": 6057,
-      "name": "belowMinimumDeposit",
-      "msg": "Deposit amount is below the minimum"
-    },
-    {
-      "code": 6058,
-      "name": "divisionByZero",
-      "msg": "Division by zero"
-    },
-    {
-      "code": 6059,
-      "name": "invalidLiquidityPool",
-      "msg": "Invalid liquidity pool account"
-    },
-    {
-      "code": 6060,
-      "name": "invalidTokenVault",
-      "msg": "Invalid token vault account"
-    },
-    {
-      "code": 6061,
-      "name": "slippageExceeded",
-      "msg": "Slippage tolerance exceeded"
-    },
-    {
-      "code": 6062,
-      "name": "invalidFeeBps",
-      "msg": "Invalid fee basis points"
-    },
-    {
-      "code": 6063,
-      "name": "invalidCollateralRatio",
-      "msg": "Invalid collateral ratio"
-    },
-    {
-      "code": 6064,
-      "name": "fundingRateExceedsMaximum",
-      "msg": "Funding rate exceeds maximum allowed"
-    },
-    {
-      "code": 6065,
-      "name": "invalidPoolAuthority",
-      "msg": "Invalid pool authority account"
-    },
-    {
-      "code": 6066,
-      "name": "invalidAccountInput",
-      "msg": "Invalid account input"
-    },
-    {
-      "code": 6067,
-      "name": "invalidOwner",
-      "msg": "Invalid owner"
-    },
-    {
-      "code": 6068,
-      "name": "invalidFundingIndex",
-      "msg": "Invalid funding index account"
-    },
-    {
-      "code": 6069,
-      "name": "invalidOracle",
-      "msg": "Invalid oracle account"
-    },
-    {
-      "code": 6070,
-      "name": "invalidBasktState",
-      "msg": "Invalid baskt state for this operation"
-    },
-    {
-      "code": 6071,
+      "code": 6014,
       "name": "basktNotActive",
       "msg": "Baskt is not active for trading"
     },
     {
-      "code": 6072,
-      "name": "basktNotSettled",
-      "msg": "Baskt is not settled"
+      "code": 6015,
+      "name": "roleNotFound",
+      "msg": "Role not found for the account"
     },
     {
-      "code": 6073,
+      "code": 6016,
+      "name": "invalidRoleType",
+      "msg": "Invalid role type"
+    },
+    {
+      "code": 6017,
+      "name": "invalidAssetAccount",
+      "msg": "Invalid asset account"
+    },
+    {
+      "code": 6018,
+      "name": "longPositionsDisabled",
+      "msg": "Long positions are disabled for this asset"
+    },
+    {
+      "code": 6019,
+      "name": "shortPositionsDisabled",
+      "msg": "Short positions are disabled for this asset"
+    },
+    {
+      "code": 6020,
+      "name": "assetNotInBaskt",
+      "msg": "Asset not in baskt"
+    },
+    {
+      "code": 6021,
+      "name": "invalidAssetConfig",
+      "msg": "Invalid asset config"
+    },
+    {
+      "code": 6022,
+      "name": "tradingDisabled",
+      "msg": "Trading operations are currently disabled"
+    },
+    {
+      "code": 6023,
+      "name": "liquidityOperationsDisabled",
+      "msg": "Liquidity operations are currently disabled"
+    },
+    {
+      "code": 6024,
+      "name": "positionOperationsDisabled",
+      "msg": "Position operations are currently disabled"
+    },
+    {
+      "code": 6025,
+      "name": "basktOperationsDisabled",
+      "msg": "Baskt management operations are currently disabled"
+    },
+    {
+      "code": 6026,
+      "name": "inactiveAsset",
+      "msg": "Asset Not Active"
+    },
+    {
+      "code": 6027,
+      "name": "basktAlreadyActive",
+      "msg": "Baskt Already Active"
+    },
+    {
+      "code": 6028,
+      "name": "invalidAssetWeights",
+      "msg": "Invalid asset weights"
+    },
+    {
+      "code": 6029,
+      "name": "orderAlreadyProcessed",
+      "msg": "Order already processed"
+    },
+    {
+      "code": 6030,
+      "name": "invalidEscrowAccount",
+      "msg": "Invalid escrow account"
+    },
+    {
+      "code": 6031,
+      "name": "invalidProgramAuthority",
+      "msg": "Invalid program authority"
+    },
+    {
+      "code": 6032,
+      "name": "tokenHasDelegate",
+      "msg": "Token has delegate"
+    },
+    {
+      "code": 6033,
+      "name": "tokenHasCloseAuthority",
+      "msg": "Token has close authority"
+    },
+    {
+      "code": 6034,
+      "name": "invalidMint",
+      "msg": "Invalid mint"
+    },
+    {
+      "code": 6035,
+      "name": "zeroSizedPosition",
+      "msg": "Zero sized position"
+    },
+    {
+      "code": 6036,
+      "name": "invalidTargetPosition",
+      "msg": "Invalid target position"
+    },
+    {
+      "code": 6037,
+      "name": "invalidBaskt",
+      "msg": "Invalid baskt"
+    },
+    {
+      "code": 6038,
+      "name": "invalidOrderAction",
+      "msg": "Invalid order action"
+    },
+    {
+      "code": 6039,
+      "name": "fundingNotUpToDate",
+      "msg": "Funding not up to date"
+    },
+    {
+      "code": 6040,
+      "name": "positionStillOpen",
+      "msg": "Position still open"
+    },
+    {
+      "code": 6041,
+      "name": "invalidTreasuryAccount",
+      "msg": "Invalid treasury account"
+    },
+    {
+      "code": 6042,
+      "name": "collateralOverflow",
+      "msg": "Collateral amount would overflow maximum value"
+    },
+    {
+      "code": 6043,
+      "name": "invalidDepositAmount",
+      "msg": "Invalid deposit amount"
+    },
+    {
+      "code": 6044,
+      "name": "invalidUsdcVault",
+      "msg": "Invalid usdc vault account"
+    },
+    {
+      "code": 6045,
+      "name": "invalidFeeBps",
+      "msg": "Invalid fee basis points"
+    },
+    {
+      "code": 6046,
+      "name": "invalidCollateralRatio",
+      "msg": "Invalid collateral ratio"
+    },
+    {
+      "code": 6047,
+      "name": "fundingRateExceedsMaximum",
+      "msg": "Funding rate exceeds maximum allowed"
+    },
+    {
+      "code": 6048,
+      "name": "invalidOwner",
+      "msg": "Invalid owner"
+    },
+    {
+      "code": 6049,
+      "name": "invalidFundingIndex",
+      "msg": "Invalid funding index account"
+    },
+    {
+      "code": 6050,
+      "name": "invalidBasktState",
+      "msg": "Invalid baskt state for this operation"
+    },
+    {
+      "code": 6051,
       "name": "gracePeriodNotOver",
       "msg": "Grace period has not ended"
     },
     {
-      "code": 6074,
+      "code": 6052,
       "name": "positionsStillOpen",
       "msg": "Positions are still open"
     },
     {
-      "code": 6075,
+      "code": 6053,
       "name": "invalidGracePeriod",
       "msg": "Invalid grace period - must be between 1 hour and 7 days"
     },
     {
-      "code": 6076,
+      "code": 6054,
       "name": "priceDeviationTooHigh",
       "msg": "Price deviation too high"
     },
     {
-      "code": 6077,
+      "code": 6055,
       "name": "leverageExceeded",
       "msg": "Realised leverage exceeds declared leverage amount"
+    },
+    {
+      "code": 6056,
+      "name": "invalidInput",
+      "msg": "Invalid input provided"
+    },
+    {
+      "code": 6057,
+      "name": "transferFailed",
+      "msg": "SOL transfer failed"
+    },
+    {
+      "code": 6058,
+      "name": "invalidLpTokenEscrow",
+      "msg": "Invalid LP token escrow"
     }
   ],
   "types": [
@@ -5062,6 +5026,34 @@ export type Baskt = {
       }
     },
     {
+      "name": "actionParams",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "open",
+            "fields": [
+              {
+                "defined": {
+                  "name": "openOrderParams"
+                }
+              }
+            ]
+          },
+          {
+            "name": "close",
+            "fields": [
+              {
+                "defined": {
+                  "name": "closeOrderParams"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "name": "activateBasktParams",
       "type": {
         "kind": "struct",
@@ -5071,10 +5063,6 @@ export type Baskt = {
             "type": {
               "vec": "u64"
             }
-          },
-          {
-            "name": "maxPriceAgeSec",
-            "type": "u32"
           }
         ]
       }
@@ -5141,18 +5129,14 @@ export type Baskt = {
     {
       "name": "assetPermissions",
       "docs": [
-        "Permissions for the asset"
+        "Permissions for the asset - optimized to use bitfield"
       ],
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "allowLongs",
-            "type": "bool"
-          },
-          {
-            "name": "allowShorts",
-            "type": "bool"
+            "name": "flags",
+            "type": "u8"
           }
         ]
       }
@@ -5163,12 +5147,8 @@ export type Baskt = {
         "kind": "struct",
         "fields": [
           {
-            "name": "basktId",
-            "type": "pubkey"
-          },
-          {
-            "name": "basktName",
-            "type": "string"
+            "name": "uid",
+            "type": "u32"
           },
           {
             "name": "currentAssetConfigs",
@@ -5189,14 +5169,6 @@ export type Baskt = {
             "type": "pubkey"
           },
           {
-            "name": "creationTime",
-            "type": "i64"
-          },
-          {
-            "name": "lastRebalanceIndex",
-            "type": "u64"
-          },
-          {
             "name": "status",
             "type": {
               "defined": {
@@ -5206,19 +5178,11 @@ export type Baskt = {
           },
           {
             "name": "openPositions",
-            "type": "u64"
+            "type": "u32"
           },
           {
             "name": "lastRebalanceTime",
-            "type": "i64"
-          },
-          {
-            "name": "oracle",
-            "type": {
-              "defined": {
-                "name": "oracleParams"
-              }
-            }
+            "type": "u32"
           },
           {
             "name": "baselineNav",
@@ -5229,6 +5193,10 @@ export type Baskt = {
             "type": "u8"
           },
           {
+            "name": "rebalancePeriod",
+            "type": "u32"
+          },
+          {
             "name": "config",
             "type": {
               "defined": {
@@ -5237,11 +5205,27 @@ export type Baskt = {
             }
           },
           {
+            "name": "fundingIndex",
+            "type": {
+              "defined": {
+                "name": "fundingIndex"
+              }
+            }
+          },
+          {
+            "name": "rebalanceFeeIndex",
+            "type": {
+              "defined": {
+                "name": "rebalanceFeeIndex"
+              }
+            }
+          },
+          {
             "name": "extraSpace",
             "type": {
               "array": [
                 "u8",
-                128
+                120
               ]
             }
           }
@@ -5276,10 +5260,6 @@ export type Baskt = {
           {
             "name": "baskt",
             "type": "pubkey"
-          },
-          {
-            "name": "finalNav",
-            "type": "u64"
           },
           {
             "name": "closedAt",
@@ -5326,34 +5306,28 @@ export type Baskt = {
         "kind": "struct",
         "fields": [
           {
+            "name": "flags",
+            "type": "u8"
+          },
+          {
             "name": "openingFeeBps",
-            "type": {
-              "option": "u64"
-            }
+            "type": "u64"
           },
           {
             "name": "closingFeeBps",
-            "type": {
-              "option": "u64"
-            }
+            "type": "u64"
           },
           {
             "name": "liquidationFeeBps",
-            "type": {
-              "option": "u64"
-            }
+            "type": "u64"
           },
           {
             "name": "minCollateralRatioBps",
-            "type": {
-              "option": "u64"
-            }
+            "type": "u64"
           },
           {
             "name": "liquidationThresholdBps",
-            "type": {
-              "option": "u64"
-            }
+            "type": "u64"
           }
         ]
       }
@@ -5400,12 +5374,12 @@ export type Baskt = {
         "kind": "struct",
         "fields": [
           {
-            "name": "basktId",
-            "type": "pubkey"
+            "name": "uid",
+            "type": "u32"
           },
           {
-            "name": "basktName",
-            "type": "string"
+            "name": "basktId",
+            "type": "pubkey"
           },
           {
             "name": "creator",
@@ -5418,6 +5392,38 @@ export type Baskt = {
           {
             "name": "assetCount",
             "type": "u8"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "basktRebalancePeriod",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "basktCreationFeeUpdatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "protocol",
+            "type": "pubkey"
+          },
+          {
+            "name": "oldFeeLamports",
+            "type": "u64"
+          },
+          {
+            "name": "newFeeLamports",
+            "type": "u64"
+          },
+          {
+            "name": "updatedBy",
+            "type": "pubkey"
           },
           {
             "name": "timestamp",
@@ -5438,14 +5444,6 @@ export type Baskt = {
           {
             "name": "initiatedAt",
             "type": "i64"
-          },
-          {
-            "name": "gracePeriodEnd",
-            "type": "i64"
-          },
-          {
-            "name": "openPositions",
-            "type": "u64"
           }
         ]
       }
@@ -5603,35 +5601,10 @@ export type Baskt = {
       }
     },
     {
-      "name": "basktSettled",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "baskt",
-            "type": "pubkey"
-          },
-          {
-            "name": "settlementPrice",
-            "type": "u64"
-          },
-          {
-            "name": "settlementFundingIndex",
-            "type": "i128"
-          },
-          {
-            "name": "settledAt",
-            "type": "i64"
-          },
-          {
-            "name": "remainingPositions",
-            "type": "u64"
-          }
-        ]
-      }
-    },
-    {
       "name": "basktStatus",
+      "repr": {
+        "kind": "rust"
+      },
       "type": {
         "kind": "enum",
         "variants": [
@@ -5642,47 +5615,23 @@ export type Baskt = {
             "name": "active"
           },
           {
-            "name": "decommissioning",
-            "fields": [
-              {
-                "name": "initiatedAt",
-                "type": "i64"
-              },
-              {
-                "name": "gracePeriodEnd",
-                "type": "i64"
-              }
-            ]
+            "name": "decommissioning"
+          }
+        ]
+      }
+    },
+    {
+      "name": "closeOrderParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sizeAsContracts",
+            "type": "u64"
           },
           {
-            "name": "settled",
-            "fields": [
-              {
-                "name": "settlementPrice",
-                "type": "u64"
-              },
-              {
-                "name": "settlementFundingIndex",
-                "type": "i128"
-              },
-              {
-                "name": "settledAt",
-                "type": "i64"
-              }
-            ]
-          },
-          {
-            "name": "closed",
-            "fields": [
-              {
-                "name": "finalNav",
-                "type": "u64"
-              },
-              {
-                "name": "closedAt",
-                "type": "i64"
-              }
-            ]
+            "name": "targetPosition",
+            "type": "pubkey"
           }
         ]
       }
@@ -5698,6 +5647,12 @@ export type Baskt = {
           {
             "name": "exitPrice",
             "type": "u64"
+          },
+          {
+            "name": "sizeToClose",
+            "type": {
+              "option": "u64"
+            }
           }
         ]
       }
@@ -5784,8 +5739,8 @@ export type Baskt = {
         "kind": "struct",
         "fields": [
           {
-            "name": "basktName",
-            "type": "string"
+            "name": "uid",
+            "type": "u32"
           },
           {
             "name": "assetParams",
@@ -5800,6 +5755,74 @@ export type Baskt = {
           {
             "name": "isPublic",
             "type": "bool"
+          },
+          {
+            "name": "basktRebalancePeriod",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "createOrderParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "orderId",
+            "type": "u32"
+          },
+          {
+            "name": "notionalValue",
+            "type": "u64"
+          },
+          {
+            "name": "collateral",
+            "type": "u64"
+          },
+          {
+            "name": "isLong",
+            "type": "bool"
+          },
+          {
+            "name": "action",
+            "type": {
+              "defined": {
+                "name": "orderAction"
+              }
+            }
+          },
+          {
+            "name": "targetPosition",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "sizeAsContracts",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "limitPrice",
+            "type": "u64"
+          },
+          {
+            "name": "maxSlippageBps",
+            "type": "u64"
+          },
+          {
+            "name": "leverageBps",
+            "type": "u64"
+          },
+          {
+            "name": "orderType",
+            "type": {
+              "defined": {
+                "name": "orderType"
+              }
+            }
           }
         ]
       }
@@ -5828,6 +5851,56 @@ export type Baskt = {
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "exitInfo",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "none"
+          },
+          {
+            "name": "closed",
+            "fields": [
+              {
+                "name": "price",
+                "type": "u64"
+              },
+              {
+                "name": "timestamp",
+                "type": "u32"
+              }
+            ]
+          },
+          {
+            "name": "liquidated",
+            "fields": [
+              {
+                "name": "price",
+                "type": "u64"
+              },
+              {
+                "name": "timestamp",
+                "type": "u32"
+              }
+            ]
+          },
+          {
+            "name": "forceClosed",
+            "fields": [
+              {
+                "name": "price",
+                "type": "u64"
+              },
+              {
+                "name": "timestamp",
+                "type": "u32"
+              }
+            ]
           }
         ]
       }
@@ -5934,6 +6007,12 @@ export type Baskt = {
               "Price to use for closing the position"
             ],
             "type": "u64"
+          },
+          {
+            "name": "sizeToClose",
+            "type": {
+              "option": "u64"
+            }
           }
         ]
       }
@@ -5972,10 +6051,6 @@ export type Baskt = {
         "kind": "struct",
         "fields": [
           {
-            "name": "basktId",
-            "type": "pubkey"
-          },
-          {
             "name": "cumulativeIndex",
             "type": "i128"
           },
@@ -5986,19 +6061,6 @@ export type Baskt = {
           {
             "name": "currentRate",
             "type": "i64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "extraSpace",
-            "type": {
-              "array": [
-                "u8",
-                128
-              ]
-            }
           }
         ]
       }
@@ -6048,6 +6110,22 @@ export type Baskt = {
       }
     },
     {
+      "name": "limitOrderParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "limitPrice",
+            "type": "u64"
+          },
+          {
+            "name": "maxSlippageBps",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "liquidatePositionParams",
       "docs": [
         "Parameters for liquidating a position"
@@ -6058,6 +6136,12 @@ export type Baskt = {
           {
             "name": "exitPrice",
             "type": "u64"
+          },
+          {
+            "name": "sizeToClose",
+            "type": {
+              "option": "u64"
+            }
           }
         ]
       }
@@ -6077,34 +6161,6 @@ export type Baskt = {
           },
           {
             "name": "newLiquidationFeeBps",
-            "type": "u64"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "liquidationPriceDeviationUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldLiquidationPriceDeviationBps",
-            "type": "u64"
-          },
-          {
-            "name": "newLiquidationPriceDeviationBps",
             "type": "u64"
           },
           {
@@ -6202,9 +6258,16 @@ export type Baskt = {
             "type": "pubkey"
           },
           {
-            "name": "tokenVault",
+            "name": "usdcVault",
             "docs": [
-              "The token account where collateral is stored"
+              "The token account where USDC is stored"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "lpTokenEscrow",
+            "docs": [
+              "The token account where LP tokens are held during withdrawal queue processing"
             ],
             "type": "pubkey"
           },
@@ -6237,13 +6300,6 @@ export type Baskt = {
             "type": "u16"
           },
           {
-            "name": "minDeposit",
-            "docs": [
-              "Minimum deposit amount allowed"
-            ],
-            "type": "u64"
-          },
-          {
             "name": "bump",
             "docs": [
               "Bump for this PDA"
@@ -6256,6 +6312,27 @@ export type Baskt = {
               "Bump for pool authority PDA"
             ],
             "type": "u8"
+          },
+          {
+            "name": "pendingLpTokens",
+            "docs": [
+              "Sum of LP tokens in the withdrawal queue but not yet burned"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "withdrawQueueHead",
+            "docs": [
+              "Monotonically increasing identifier for the next withdrawal request to append"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "withdrawQueueTail",
+            "docs": [
+              "Identifier of the next withdrawal request expected to be processed"
+            ],
+            "type": "u64"
           }
         ]
       }
@@ -6274,7 +6351,7 @@ export type Baskt = {
             "type": "pubkey"
           },
           {
-            "name": "tokenVault",
+            "name": "usdcVault",
             "type": "pubkey"
           },
           {
@@ -6284,10 +6361,6 @@ export type Baskt = {
           {
             "name": "withdrawalFeeBps",
             "type": "u16"
-          },
-          {
-            "name": "minDeposit",
-            "type": "u64"
           },
           {
             "name": "initializer",
@@ -6337,59 +6410,10 @@ export type Baskt = {
       }
     },
     {
-      "name": "maxPriceAgeUpdatedEvent",
+      "name": "marketOrderParams",
       "type": {
         "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldMaxPriceAgeSec",
-            "type": "u32"
-          },
-          {
-            "name": "newMaxPriceAgeSec",
-            "type": "u32"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "maxPriceDeviationUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldMaxPriceDeviationBps",
-            "type": "u64"
-          },
-          {
-            "name": "newMaxPriceDeviationBps",
-            "type": "u64"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
+        "fields": []
       }
     },
     {
@@ -6449,6 +6473,30 @@ export type Baskt = {
       }
     },
     {
+      "name": "openOrderParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "notionalValue",
+            "type": "u64"
+          },
+          {
+            "name": "leverageBps",
+            "type": "u64"
+          },
+          {
+            "name": "collateral",
+            "type": "u64"
+          },
+          {
+            "name": "isLong",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
       "name": "openPositionParams",
       "docs": [
         "Parameters for opening a position"
@@ -6458,7 +6506,7 @@ export type Baskt = {
         "fields": [
           {
             "name": "positionId",
-            "type": "u64"
+            "type": "u32"
           },
           {
             "name": "entryPrice",
@@ -6496,26 +6544,6 @@ export type Baskt = {
       }
     },
     {
-      "name": "oracleParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "price",
-            "type": "u64"
-          },
-          {
-            "name": "maxPriceAgeSec",
-            "type": "u32"
-          },
-          {
-            "name": "publishTime",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "order",
       "type": {
         "kind": "struct",
@@ -6526,29 +6554,41 @@ export type Baskt = {
           },
           {
             "name": "orderId",
-            "type": "u64"
+            "type": "u32"
           },
           {
             "name": "basktId",
             "type": "pubkey"
           },
           {
-            "name": "size",
-            "type": "u64"
-          },
-          {
-            "name": "collateral",
-            "type": "u64"
-          },
-          {
-            "name": "isLong",
-            "type": "bool"
-          },
-          {
             "name": "action",
             "type": {
               "defined": {
                 "name": "orderAction"
+              }
+            }
+          },
+          {
+            "name": "orderType",
+            "type": {
+              "defined": {
+                "name": "orderType"
+              }
+            }
+          },
+          {
+            "name": "actionParams",
+            "type": {
+              "defined": {
+                "name": "actionParams"
+              }
+            }
+          },
+          {
+            "name": "orderTypeParams",
+            "type": {
+              "defined": {
+                "name": "orderTypeParams"
               }
             }
           },
@@ -6562,44 +6602,18 @@ export type Baskt = {
           },
           {
             "name": "timestamp",
-            "type": "i64"
-          },
-          {
-            "name": "targetPosition",
-            "type": {
-              "option": "pubkey"
-            }
+            "type": "u32"
           },
           {
             "name": "bump",
             "type": "u8"
           },
           {
-            "name": "limitPrice",
-            "type": "u64"
-          },
-          {
-            "name": "maxSlippageBps",
-            "type": "u64"
-          },
-          {
-            "name": "orderType",
-            "type": {
-              "defined": {
-                "name": "orderType"
-              }
-            }
-          },
-          {
-            "name": "leverageBps",
-            "type": "u64"
-          },
-          {
             "name": "extraSpace",
             "type": {
               "array": [
                 "u8",
-                88
+                150
               ]
             }
           }
@@ -6608,6 +6622,9 @@ export type Baskt = {
     },
     {
       "name": "orderAction",
+      "repr": {
+        "kind": "rust"
+      },
       "type": {
         "kind": "enum",
         "variants": [
@@ -6662,7 +6679,7 @@ export type Baskt = {
             "type": "pubkey"
           },
           {
-            "name": "size",
+            "name": "notionalValue",
             "type": "u64"
           },
           {
@@ -6715,59 +6732,10 @@ export type Baskt = {
       }
     },
     {
-      "name": "orderFilledEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "orderId",
-            "type": "u64"
-          },
-          {
-            "name": "basktId",
-            "type": "pubkey"
-          },
-          {
-            "name": "action",
-            "type": {
-              "defined": {
-                "name": "orderAction"
-              }
-            }
-          },
-          {
-            "name": "size",
-            "type": "u64"
-          },
-          {
-            "name": "fillPrice",
-            "type": "u64"
-          },
-          {
-            "name": "positionId",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "targetPosition",
-            "type": {
-              "option": "pubkey"
-            }
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "orderStatus",
+      "repr": {
+        "kind": "rust"
+      },
       "type": {
         "kind": "enum",
         "variants": [
@@ -6785,6 +6753,9 @@ export type Baskt = {
     },
     {
       "name": "orderType",
+      "repr": {
+        "kind": "rust"
+      },
       "type": {
         "kind": "enum",
         "variants": [
@@ -6793,6 +6764,34 @@ export type Baskt = {
           },
           {
             "name": "limit"
+          }
+        ]
+      }
+    },
+    {
+      "name": "orderTypeParams",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "market",
+            "fields": [
+              {
+                "defined": {
+                  "name": "marketOrderParams"
+                }
+              }
+            ]
+          },
+          {
+            "name": "limit",
+            "fields": [
+              {
+                "defined": {
+                  "name": "limitOrderParams"
+                }
+              }
+            ]
           }
         ]
       }
@@ -6808,7 +6807,7 @@ export type Baskt = {
           },
           {
             "name": "positionId",
-            "type": "u64"
+            "type": "u32"
           },
           {
             "name": "basktId",
@@ -6831,9 +6830,11 @@ export type Baskt = {
             "type": "u64"
           },
           {
-            "name": "exitPrice",
+            "name": "exitInfo",
             "type": {
-              "option": "u64"
+              "defined": {
+                "name": "exitInfo"
+              }
             }
           },
           {
@@ -6849,6 +6850,10 @@ export type Baskt = {
             "type": "i128"
           },
           {
+            "name": "lastRebalanceFeeIndex",
+            "type": "u64"
+          },
+          {
             "name": "status",
             "type": {
               "defined": {
@@ -6858,13 +6863,7 @@ export type Baskt = {
           },
           {
             "name": "timestampOpen",
-            "type": "i64"
-          },
-          {
-            "name": "timestampClose",
-            "type": {
-              "option": "i64"
-            }
+            "type": "u32"
           },
           {
             "name": "bump",
@@ -6875,7 +6874,7 @@ export type Baskt = {
             "type": {
               "array": [
                 "u8",
-                128
+                120
               ]
             }
           }
@@ -6904,7 +6903,11 @@ export type Baskt = {
             "type": "pubkey"
           },
           {
-            "name": "size",
+            "name": "sizeClosed",
+            "type": "u64"
+          },
+          {
+            "name": "sizeRemaining",
             "type": "u64"
           },
           {
@@ -6933,6 +6936,10 @@ export type Baskt = {
           },
           {
             "name": "poolPayout",
+            "type": "u64"
+          },
+          {
+            "name": "collateralRemaining",
             "type": "u64"
           },
           {
@@ -6972,7 +6979,11 @@ export type Baskt = {
             "type": "u64"
           },
           {
-            "name": "size",
+            "name": "sizeClosed",
+            "type": "u64"
+          },
+          {
+            "name": "sizeRemaining",
             "type": "u64"
           },
           {
@@ -7012,12 +7023,8 @@ export type Baskt = {
             "type": "u64"
           },
           {
-            "name": "basktSettlementTimestamp",
-            "type": "i64"
-          },
-          {
-            "name": "positionDurationSeconds",
-            "type": "i64"
+            "name": "collateralRemaining",
+            "type": "u64"
           }
         ]
       }
@@ -7040,7 +7047,11 @@ export type Baskt = {
             "type": "pubkey"
           },
           {
-            "name": "size",
+            "name": "sizeLiquidated",
+            "type": "u64"
+          },
+          {
+            "name": "sizeRemaining",
             "type": "u64"
           },
           {
@@ -7069,6 +7080,10 @@ export type Baskt = {
           },
           {
             "name": "poolPayout",
+            "type": "u64"
+          },
+          {
+            "name": "collateralRemaining",
             "type": "u64"
           },
           {
@@ -7136,6 +7151,9 @@ export type Baskt = {
     },
     {
       "name": "positionStatus",
+      "repr": {
+        "kind": "rust"
+      },
       "type": {
         "kind": "enum",
         "variants": [
@@ -7198,9 +7216,9 @@ export type Baskt = {
             "type": "pubkey"
           },
           {
-            "name": "escrowMint",
+            "name": "collateralMint",
             "docs": [
-              "Escrow mint (USDC)"
+              "Collateral mint (USDC)"
             ],
             "type": "pubkey"
           },
@@ -7272,33 +7290,25 @@ export type Baskt = {
             "type": "u64"
           },
           {
-            "name": "maxPriceAgeSec",
-            "docs": [
-              "Oracle parameters"
-            ],
-            "type": "u32"
-          },
-          {
-            "name": "maxPriceDeviationBps",
-            "type": "u64"
-          },
-          {
-            "name": "liquidationPriceDeviationBps",
-            "type": "u64"
-          },
-          {
             "name": "minLiquidity",
             "docs": [
-              "Pool parameters"
+              "Liquidity parameters"
             ],
             "type": "u64"
           },
           {
-            "name": "decommissionGracePeriod",
+            "name": "rebalanceRequestFeeLamports",
             "docs": [
-              "Baskt decommissioning parameters"
+              "Rebalance request fee in lamports (SOL)"
             ],
-            "type": "i64"
+            "type": "u64"
+          },
+          {
+            "name": "basktCreationFeeLamports",
+            "docs": [
+              "Baskt creation fee in lamports (SOL)"
+            ],
+            "type": "u64"
           },
           {
             "name": "lastUpdated",
@@ -7315,7 +7325,39 @@ export type Baskt = {
       }
     },
     {
-      "name": "rebalanceHistory",
+      "name": "rebalanceFeeIndex",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cumulativeIndex",
+            "docs": [
+              "Cumulative rebalance fee index (monotonically increasing)",
+              "Represents the total cumulative rebalance fee amount per unit position size",
+              "Scaled by PRICE_PRECISION for precision"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "lastUpdateTimestamp",
+            "docs": [
+              "Timestamp of the last rebalance that updated this index"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "currentFeePerUnit",
+            "docs": [
+              "Current rebalance fee amount per unit position size (scaled by PRICE_PRECISION)",
+              "This is the fee that will be applied in the next rebalance"
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rebalanceRequestEvent",
       "type": {
         "kind": "struct",
         "fields": [
@@ -7324,22 +7366,8 @@ export type Baskt = {
             "type": "pubkey"
           },
           {
-            "name": "rebalanceIndex",
-            "type": "u64"
-          },
-          {
-            "name": "assetConfigs",
-            "type": {
-              "vec": {
-                "defined": {
-                  "name": "assetConfig"
-                }
-              }
-            }
-          },
-          {
-            "name": "baselineNav",
-            "type": "u64"
+            "name": "creator",
+            "type": "pubkey"
           },
           {
             "name": "timestamp",
@@ -7349,53 +7377,44 @@ export type Baskt = {
       }
     },
     {
-      "name": "registryInitializedEvent",
+      "name": "rebalanceRequestFeeUpdatedEvent",
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "registry",
-            "type": "pubkey"
-          },
           {
             "name": "protocol",
             "type": "pubkey"
           },
           {
-            "name": "treasury",
-            "type": "pubkey"
+            "name": "oldFeeLamports",
+            "type": "u64"
           },
           {
-            "name": "treasuryToken",
-            "type": "pubkey"
+            "name": "newFeeLamports",
+            "type": "u64"
           },
           {
-            "name": "liquidityPool",
-            "type": "pubkey"
-          },
-          {
-            "name": "tokenVault",
-            "type": "pubkey"
-          },
-          {
-            "name": "poolAuthority",
-            "type": "pubkey"
-          },
-          {
-            "name": "programAuthority",
-            "type": "pubkey"
-          },
-          {
-            "name": "escrowMint",
-            "type": "pubkey"
-          },
-          {
-            "name": "initializer",
+            "name": "updatedBy",
             "type": "pubkey"
           },
           {
             "name": "timestamp",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "requestWithdrawParams",
+      "docs": [
+        "Parameters for withdrawal request creation"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lpAmount",
+            "type": "u64"
           }
         ]
       }
@@ -7415,7 +7434,7 @@ export type Baskt = {
             "name": "assetManager"
           },
           {
-            "name": "oracleManager"
+            "name": "basktManager"
           },
           {
             "name": "rebalancer"
@@ -7431,6 +7450,9 @@ export type Baskt = {
           },
           {
             "name": "configManager"
+          },
+          {
+            "name": "keeper"
           }
         ]
       }
@@ -7440,10 +7462,6 @@ export type Baskt = {
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "assetId",
-            "type": "pubkey"
-          },
           {
             "name": "ticker",
             "type": "string"
@@ -7462,7 +7480,7 @@ export type Baskt = {
           },
           {
             "name": "listingTime",
-            "type": "i64"
+            "type": "u32"
           }
         ]
       }
@@ -7609,6 +7627,127 @@ export type Baskt = {
           {
             "name": "allowLiquidations",
             "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "withdrawQueueProcessedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "liquidityPool",
+            "type": "pubkey"
+          },
+          {
+            "name": "keeper",
+            "type": "pubkey"
+          },
+          {
+            "name": "requestsProcessed",
+            "type": "u8"
+          },
+          {
+            "name": "totalAmountProcessed",
+            "type": "u64"
+          },
+          {
+            "name": "feesCollected",
+            "type": "u64"
+          },
+          {
+            "name": "queueTailUpdated",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "withdrawRequest",
+      "docs": [
+        "Per-user withdrawal request queued when liquidity utilisation is high."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "id",
+            "docs": [
+              "Sequential queue ID (monotonically increasing per pool)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "provider",
+            "docs": [
+              "Requester (LP owner)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "remainingLp",
+            "docs": [
+              "LP tokens locked in the request (may be partially fulfilled)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "providerUsdcAccount",
+            "docs": [
+              "Destination token account for payouts"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "requestedTs",
+            "docs": [
+              "Timestamp when the request was created"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "withdrawalQueuedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "provider",
+            "type": "pubkey"
+          },
+          {
+            "name": "requestId",
+            "type": "u64"
+          },
+          {
+            "name": "lpTokensBurned",
+            "type": "u64"
+          },
+          {
+            "name": "withdrawalAmount",
+            "type": "u64"
+          },
+          {
+            "name": "queuePosition",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }

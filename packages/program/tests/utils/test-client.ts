@@ -1,28 +1,32 @@
+import { BaseClient, USDC_MINT } from '@baskt/sdk';
+import { AccessControlRole, OnchainAssetPermissions, OnchainBasktAccount, OnchainPosition } from '@baskt/types';
 import * as anchor from '@coral-xyz/anchor';
 import { Program } from '@coral-xyz/anchor';
-import { Keypair, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { BaseClient, USDC_MINT } from '@baskt/sdk';
-import { Baskt } from '../../target/types/baskt';
-import { AccessControlRole, OnchainAssetPermissions } from '@baskt/types';
-import { waitForTx, waitForNextSlot } from './chain-helpers';
-import { calculateNAVWithPrecision } from './test-constants';
 import {
-  createAccount,
   createAssociatedTokenAccount,
-  getAssociatedTokenAddress,
-  mintTo,
   getAccount,
+  getAssociatedTokenAddress,
   getMint,
+  getOrCreateAssociatedTokenAccount,
+  mintTo,
 } from '@solana/spl-token';
+import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
+import { Baskt } from '../../target/types/baskt';
+import { waitForNextSlot, waitForTx } from './chain-helpers';
+import { calculateNAVWithPrecision } from './test-constants';
+import { expect } from 'chai';
+import { calculateSettlementDetails } from './fee-utils';
+import { set } from 'mongoose';
+import { expectAccountNotFound } from './expects';
 
 /**
  * Helper function to request an airdrop for a given address
  * @param myAddress The address to fund
  * @param connection The connection to use
  */
-export async function requestAirdrop(myAddress: PublicKey, connection: anchor.web3.Connection) {
-  const signature = await connection.requestAirdrop(myAddress, LAMPORTS_PER_SOL * 10);
+export async function requestAirdrop(myAddress: PublicKey, connection: anchor.web3.Connection, amount: number = 10) {
+  const signature = await connection.requestAirdrop(myAddress, LAMPORTS_PER_SOL * amount);
   await connection.confirmTransaction(signature, 'confirmed');
 }
 
@@ -64,40 +68,32 @@ try {
 
 export class TestClient extends BaseClient {
   private static instance: TestClient;
-  
+
   // Global test accounts that persist across test files
   private static globalTestAccounts: {
-    matcher?: Keypair;
-    liquidator?: Keypair;
-    fundingManager?: Keypair;
-    initialized: boolean;
+    matcher: Keypair;
+    liquidator: Keypair;
+    fundingManager: Keypair;
+    treasury: Keypair;
   } = {
-    initialized: false,
+    matcher: Keypair.generate(),
+    liquidator: Keypair.generate(),
+    fundingManager: Keypair.generate(),
+    treasury: Keypair.generate(),
   };
-  
+
   /**
    * Get or create global test accounts
    * This ensures we use the same accounts across all tests to avoid exceeding role limits
    * Note: Treasury is not included here as we use the client's treasury
    */
   public static async getGlobalTestAccounts() {
-    if (!TestClient.globalTestAccounts.initialized) {
-      TestClient.globalTestAccounts.matcher = Keypair.generate();
-      TestClient.globalTestAccounts.liquidator = Keypair.generate();
-      TestClient.globalTestAccounts.fundingManager = Keypair.generate();
-      TestClient.globalTestAccounts.initialized = true;
-    }
-
-    return {
-      matcher: TestClient.globalTestAccounts.matcher!,
-      liquidator: TestClient.globalTestAccounts.liquidator!,
-      fundingManager: TestClient.globalTestAccounts.fundingManager!,
-    };
+    return TestClient.globalTestAccounts;
   }
 
   // Set up test accounts
   public assetManager: Keypair;
-  public oracleManager: Keypair;
+  public basktManager: Keypair;
   public treasury: Keypair;
 
   public publicKey: PublicKey;
@@ -145,7 +141,7 @@ export class TestClient extends BaseClient {
         sendAndConfirmV0: (tx) => provider.sendAndConfirm(tx),
       },
       provider.publicKey, // Pass the public key to avoid circular dependency
-      provider // Pass the anchor provider
+      provider, // Pass the anchor provider
     );
 
     // Override the inherited program to use the provided program instance with its correct provider
@@ -154,8 +150,8 @@ export class TestClient extends BaseClient {
     this.publicKey = provider.publicKey;
 
     this.assetManager = Keypair.generate();
-    this.oracleManager = Keypair.generate();
-    this.treasury = Keypair.generate();
+    this.basktManager = Keypair.generate();
+    this.treasury = TestClient.globalTestAccounts.treasury;
   }
 
   public getPublicKey(): PublicKey {
@@ -166,7 +162,7 @@ export class TestClient extends BaseClient {
     // WARNING: Changing the public key after construction can cause signature mismatches
     // Only use this method if you understand the implications
     this.publicKey = publicKey;
-    this.oracleHelper.publicKey = publicKey;
+    // this.oracleHelper.publicKey = publicKey; // TODO: Fix oracleHelper property
   }
 
   /**
@@ -189,17 +185,22 @@ export class TestClient extends BaseClient {
     await requestAirdrop(userKeypair.publicKey, anchor.AnchorProvider.env().connection);
 
     // Create a new program instance for the user
-    const userProgram = await programForUser(
-      userKeypair,
-      anchor.workspace.baskt as Program<Baskt>,
-    );
+    const userProgram = await programForUser(userKeypair, anchor.workspace.baskt as Program<Baskt>);
+
+    await requestAirdrop(userKeypair.publicKey, userProgram.provider.connection);
 
     // Create a new client with the user's program
     // Don't call setPublicKey - the constructor already sets it correctly from the provider
     const client = new TestClient(userProgram);
     return client;
   }
-  
+
+  public static async forUserNoAirdrop(userKeypair: Keypair): Promise<TestClient> {
+    // Create a new program instance for the user
+    const userProgram = await programForUser(userKeypair, anchor.workspace.baskt as Program<Baskt>);
+    return new TestClient(userProgram);
+  }
+
   /**
    * Initialize protocol and roles if not already done
    * This prevents duplicate role assignments
@@ -216,7 +217,7 @@ export class TestClient extends BaseClient {
       await client.initializeProtocol(client.treasury.publicKey);
     }
 
-    // Initialize TestClient roles (AssetManager, OracleManager)
+    // Initialize TestClient roles (AssetManager, BasktManager)
     await client.initializeRoles();
 
     // Get global test accounts
@@ -244,17 +245,15 @@ export class TestClient extends BaseClient {
     ];
 
     // Ensure the treasury has an associated USDC token account for fee transfers
-    await client.getOrCreateUSDCAccount(client.treasury.publicKey);
+    await client.getOrCreateUSDCAccountKey(client.treasury.publicKey);
 
     // Get current protocol state to check entry count
     let protocolAccount;
     try {
       protocolAccount = await client.getProtocolAccount();
       const entryCount = protocolAccount.accessControl.entries.length;
-      // Removed console.log to avoid lint warnings
 
       if (entryCount >= 18) {
-        // Removed console.warn to avoid lint warnings
       }
     } catch (error) {
       // Keeping error logging for critical errors
@@ -278,7 +277,7 @@ export class TestClient extends BaseClient {
         if (
           error instanceof Error &&
           (error.toString().includes('AccountDidNotSerialize') ||
-          error.toString().includes('0xbbc'))
+            error.toString().includes('0xbbc'))
         ) {
           throw new Error(
             `Protocol account is full (20 entry limit reached). Please restart the test validator.`,
@@ -295,7 +294,7 @@ export class TestClient extends BaseClient {
           if (
             addError instanceof Error &&
             (addError.toString().includes('AccountDidNotSerialize') ||
-            addError.toString().includes('0xbbc'))
+              addError.toString().includes('0xbbc'))
           ) {
             throw new Error(
               `Protocol account is full (20 entry limit reached). Please restart the test validator.`,
@@ -308,7 +307,7 @@ export class TestClient extends BaseClient {
 
     return { matcher, liquidator, fundingManager };
   }
-  
+
   /**
    * Standard test setup for liquidity pool tests
    */
@@ -336,8 +335,8 @@ export class TestClient extends BaseClient {
     const providerClient = await TestClient.forUser(provider);
 
     // Create token accounts
-    const providerTokenAccount = await client.getOrCreateUSDCAccount(provider.publicKey);
-    const treasuryTokenAccount = await client.getOrCreateUSDCAccount(client.treasury.publicKey);
+    const providerTokenAccount = await client.getOrCreateUSDCAccountKey(provider.publicKey);
+    const treasuryTokenAccount = await client.getOrCreateUSDCAccountKey(client.treasury.publicKey);
 
     // Mint USDC to provider
     await client.mintUSDC(providerTokenAccount, initialLiquidity.muln(2));
@@ -346,7 +345,6 @@ export class TestClient extends BaseClient {
     const poolSetup = await client.setupLiquidityPool({
       depositFeeBps,
       withdrawalFeeBps,
-      minDeposit,
       collateralMint: USDC_MINT,
     });
 
@@ -360,7 +358,7 @@ export class TestClient extends BaseClient {
       collateralMint: USDC_MINT,
     };
   }
-  
+
   /**
    * Set up a test environment for position-related tests
    * This centralizes common setup logic for position tests
@@ -369,11 +367,7 @@ export class TestClient extends BaseClient {
    */
   public static async setupPositionTest(params: {
     client: TestClient;
-    orderSize?: BN;
-    collateralAmount?: BN;
-    entryPrice?: BN;
     ticker?: string;
-    isLong?: boolean;
   }): Promise<{
     user: Keypair;
     matcher: Keypair;
@@ -381,23 +375,19 @@ export class TestClient extends BaseClient {
     userClient: TestClient;
     matcherClient: TestClient;
     nonMatcherClient: TestClient;
+    liquidator: Keypair;
+    liquidatorClient: TestClient;
     basktId: PublicKey;
     collateralMint: PublicKey;
     userTokenAccount: PublicKey;
     assetId: PublicKey;
-    fundingIndexPDA: PublicKey;
-    orderId: BN;
-    orderPDA: PublicKey;
-    positionId: BN;
-    positionPDA: PublicKey;
+    lpMint: PublicKey;
+    liquidityPool: PublicKey;
+    usdcVault: PublicKey;
   }> {
     const {
       client,
-      orderSize = new BN(10_000_000), // 10 units
-      collateralAmount = new BN(1_200_000_000), // 1200 USDC
-      entryPrice = calculateNAVWithPrecision(100), // NAV starts at 100 with proper precision
       ticker = 'BTC',
-      isLong = true,
     } = params;
 
     // Initialize protocol and roles
@@ -439,9 +429,6 @@ export class TestClient extends BaseClient {
     });
     const assetId = assetResult.assetAddress;
 
-    // Create a baskt with the asset - use a unique name with timestamp
-    const basktName = `TestBaskt_Position_${Date.now()}`;
-
     // Format asset config correctly
     const formattedAssetConfig = {
       weight: new BN(10000), // 100% weight (10000 bps)
@@ -451,40 +438,24 @@ export class TestClient extends BaseClient {
     };
 
     const { basktId: createdBasktId } = await client.createBaskt(
-      basktName,
-      [formattedAssetConfig],
+      [formattedAssetConfig], 
       true, // isPublic
     );
     const basktId = createdBasktId;
+
 
     // Activate the baskt with initial prices
     // Since weight is 100% (10000 bps), the asset price should equal the target NAV
     await client.activateBaskt(
       basktId,
       [calculateNAVWithPrecision(100)], // NAV = 100 with proper precision
-      60, // maxPriceAgeSec
     );
-
-    // Find the funding index PDA for the baskt
-    const [fundingIndexPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('funding_index'), basktId.toBuffer()],
-      client.program.programId,
-    );
-
-    // Initialize the funding index
-    await client.program.methods
-      .initializeFundingIndex()
-      .accounts({
-        authority: client.getPublicKey(),
-        baskt: basktId,
-      })
-      .rpc();
 
     // Use the USDC mock token for collateral
     const collateralMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
     // Create token accounts for the test
-    const userTokenAccount = await client.getOrCreateUSDCAccount(user.publicKey);
+    const userTokenAccount = await client.getOrCreateUSDCAccountKey(user.publicKey);
 
     // Mint USDC tokens to user (enough for all tests including high price scenarios)
     await client.mintUSDC(
@@ -493,60 +464,32 @@ export class TestClient extends BaseClient {
     );
 
     // Set up a minimal liquidity pool (required for registry initialization)
-    await client.setupLiquidityPool({
+    const { lpMint, liquidityPool, usdcVault } = await client.setupLiquidityPool({
       depositFeeBps: 0,
       withdrawalFeeBps: 0,
-      minDeposit: new BN(0),
       collateralMint,
     });
 
-    // Generate unique IDs for order and position
-    const orderId = new BN(Date.now());
-    const positionId = new BN(Date.now() + 1);
+    // Get global test accounts
 
-    // Find the order and position PDAs
-    const [orderPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('order'), user.publicKey.toBuffer(), orderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId,
-    );
 
-    const [positionPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('position'), user.publicKey.toBuffer(), positionId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId,
-    );
-
-    // Create an open order for testing
-    await userClient.createOrder({
-      orderId,
-      size: orderSize,
-      collateral: collateralAmount,
-      isLong,
-      action: { open: {} },
-      targetPosition: null,
-      basktId: basktId,
-      ownerTokenAccount: userTokenAccount,
-      collateralMint: collateralMint,
-      limitPrice: entryPrice, // Set limit price to match expected execution price
-      maxSlippageBps: new BN(500), // 5% slippage tolerance
-      leverageBps: new BN(10000), // 1x leverage
-    });
 
     return {
       user,
       matcher,
       nonMatcher,
       userClient,
+      liquidator: globalAccounts.liquidator,
+      liquidatorClient: await TestClient.forUser(globalAccounts.liquidator),
       matcherClient,
       nonMatcherClient,
       basktId,
       collateralMint,
       userTokenAccount,
       assetId,
-      fundingIndexPDA,
-      orderId,
-      orderPDA,
-      positionId,
-      positionPDA,
+      lpMint,
+      liquidityPool,
+      usdcVault,
     };
   }
 
@@ -611,11 +554,11 @@ export class TestClient extends BaseClient {
         allowTrading: true,
         allowLiquidations: true,
       });
-      
+
       // Wait for transaction confirmation
       await waitForTx(client.connection, resetSig);
       await waitForNextSlot(client.connection);
-      
+
       return resetSig;
     } catch (error) {
       // Log error but don't throw to avoid masking test failures
@@ -631,7 +574,7 @@ export class TestClient extends BaseClient {
   public async initializeRoles(): Promise<void> {
     // Add roles to test accounts
     await this.addRole(this.assetManager.publicKey, AccessControlRole.AssetManager);
-    await this.addRole(this.oracleManager.publicKey, AccessControlRole.OracleManager);
+    await this.addRole(this.basktManager.publicKey, AccessControlRole.BasktManager);
   }
 
   public async addAsset(
@@ -667,46 +610,7 @@ export class TestClient extends BaseClient {
    * @param maxRetries Maximum number of retries
    * @param retryDelay Delay between retries in milliseconds
    */
-  public async executeWithRetry<T>(
-    txFunction: () => Promise<T>,
-    maxRetries: number = 5, // Increased default retries for full test suite
-    retryDelay: number = 3000 // Increased default delay for full test suite
-  ): Promise<T> {
-    // let lastError: Error;
-
-    // for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    //   try {
-    //     // Add a small delay before each attempt to reduce contention
-    //     if (attempt > 1) {
-    //       await new Promise(resolve => setTimeout(resolve, 1000));
-    //     }
-
-    //     return await txFunction();
-    //   } catch (error: any) {
-    //     lastError = error;
-
-    //     // Check if it's a timeout error that we should retry
-    //     if (error.message?.includes('Transaction was not confirmed') ||
-    //         error.message?.includes('timeout') ||
-    //         error.message?.includes('expired') ||
-    //         error.message?.includes('blockhash not found')) {
-
-    //       console.warn(`Transaction attempt ${attempt} failed with timeout, retrying in ${retryDelay}ms...`);
-
-    //       if (attempt < maxRetries) {
-    //         // Exponential backoff for full test suite environment
-    //         const backoffDelay = retryDelay * Math.pow(1.5, attempt - 1);
-    //         await new Promise(resolve => setTimeout(resolve, backoffDelay));
-    //         continue;
-    //       }
-    //     }
-
-    //     // For non-timeout errors or final attempt, throw immediately
-    //     throw error;
-    //   }
-    // }
-
-    // throw lastError!;
+  public async executeWithRetry<T>(txFunction: () => Promise<T>): Promise<T> {
     return await txFunction();
   }
 
@@ -717,18 +621,13 @@ export class TestClient extends BaseClient {
    * @returns The token account public key
    */
   public async createTokenAccount(mint: PublicKey, owner: PublicKey): Promise<PublicKey> {
-    const provider = this.program.provider as anchor.AnchorProvider;
-    const payer = provider.wallet.payer as Keypair;
-
-    // Special handling for USDC mint
-    if (mint.toString() === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v') {
-      return this.getOrCreateUSDCAccount(owner);
-    }
-
-    // Create the token account
-    const tokenAccount = await createAccount(provider.connection, payer, mint, owner);
-
-    return tokenAccount;
+    const tokenAccount = await getOrCreateAssociatedTokenAccount(
+      this.program.provider?.connection,
+      this.program.provider?.wallet?.payer as Keypair,
+      mint,
+      owner,
+    );
+    return tokenAccount.address;
   }
 
   /**
@@ -736,12 +635,9 @@ export class TestClient extends BaseClient {
    * @param owner Owner of the token account
    * @returns Public key of the token account
    */
-  public async getOrCreateUSDCAccount(owner: PublicKey): Promise<PublicKey> {
-    // USDC mint address from constants
-    const usdcMint = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
-
+  public async getOrCreateUSDCAccountKey(owner: PublicKey): Promise<PublicKey> {
     // Find the associated token address
-    const tokenAccount = await getAssociatedTokenAddress(usdcMint, owner);
+    const tokenAccount = await getAssociatedTokenAddress(USDC_MINT, owner);
 
     try {
       // Check if account exists
@@ -754,8 +650,28 @@ export class TestClient extends BaseClient {
         throw new Error('Provider is undefined');
       }
       const payer = provider.wallet.payer as Keypair;
-      await createAssociatedTokenAccount(provider.connection, payer, usdcMint, owner);
+      await createAssociatedTokenAccount(provider.connection, payer, USDC_MINT, owner);
       return tokenAccount;
+    }
+  }
+  public async getOrCreateUSDCAccount(owner: PublicKey, ownerOffCurve: boolean = false){
+    // USDC mint address from constants
+
+    // Find the associated token address
+    const tokenAccount = await getAssociatedTokenAddress(USDC_MINT, owner, ownerOffCurve);
+
+    try {
+      // Check if account exists
+      return await getAccount(this.program.provider.connection, tokenAccount);
+    } catch (error) {
+      // If account doesn't exist, create it
+      const provider = this.program.provider as anchor.AnchorProvider | undefined;
+      if (!provider) {
+        throw new Error('Provider is undefined');
+      }
+      const payer = provider.wallet.payer as Keypair;
+      await createAssociatedTokenAccount(provider.connection, payer, USDC_MINT, owner, undefined, undefined, undefined, ownerOffCurve);
+      return await getAccount(this.program.provider.connection, tokenAccount);
     }
   }
 
@@ -799,30 +715,29 @@ export class TestClient extends BaseClient {
   public async setupLiquidityPool(params: {
     depositFeeBps: number;
     withdrawalFeeBps: number;
-    minDeposit: BN;
     collateralMint: PublicKey;
   }): Promise<{
     liquidityPool: PublicKey;
     lpMint: PublicKey;
-    tokenVault: PublicKey;
+    usdcVault: PublicKey;
     poolAuthority: PublicKey;
     txSignature: string;
   }> {
     // Find the liquidity pool PDA
-    const liquidityPool = await this.findLiquidityPoolPDA();
+    const liquidityPool = this.liquidityPoolPDA;
 
     // Find the pool authority PDA
-    const poolAuthority = await this.findPoolAuthorityPDA();
+    const poolAuthority = this.poolAuthorityPDA;
 
     let lpMint: PublicKey;
-    let [tokenVault]: [PublicKey, number] = await super.getTokenVaultPda();
+    let [usdcVault]: [PublicKey, number] = await super.getUsdcVaultPda();
     let txSignature: string;
     try {
       // Check if liquidity pool already exists
       const poolAccount = await this.program.account.liquidityPool.fetch(liquidityPool);
       // Pool already exists, reuse existing accounts
       lpMint = poolAccount.lpMint;
-      tokenVault = poolAccount.tokenVault;
+      usdcVault = poolAccount.usdcVault;
       txSignature = '';
     } catch (error: any) {
       // Pool doesn't exist, initialize it
@@ -833,7 +748,6 @@ export class TestClient extends BaseClient {
       txSignature = await super.initializeLiquidityPool(
         params.depositFeeBps,
         params.withdrawalFeeBps,
-        params.minDeposit,
         lpMint,
         params.collateralMint,
         lpMintKeypair,
@@ -843,7 +757,7 @@ export class TestClient extends BaseClient {
     return {
       liquidityPool,
       lpMint,
-      tokenVault,
+      usdcVault,
       poolAuthority,
       txSignature,
     };
@@ -859,7 +773,7 @@ export class TestClient extends BaseClient {
     amount: BN;
     minSharesOut: BN;
     providerTokenAccount: PublicKey;
-    tokenVault: PublicKey;
+    usdcVault: PublicKey;
     providerLpAccount: PublicKey;
     lpMint: PublicKey;
     treasuryTokenAccount: PublicKey;
@@ -871,7 +785,7 @@ export class TestClient extends BaseClient {
       params.amount,
       params.minSharesOut,
       params.providerTokenAccount,
-      params.tokenVault,
+      params.usdcVault,
       params.providerLpAccount,
       params.lpMint,
       params.treasuryTokenAccount,
@@ -889,25 +803,70 @@ export class TestClient extends BaseClient {
     lpAmount: BN;
     minTokensOut: BN;
     providerTokenAccount: PublicKey;
-    tokenVault: PublicKey;
+    usdcVault: PublicKey;
     providerLpAccount: PublicKey;
     lpMint: PublicKey;
     treasuryTokenAccount: PublicKey;
     treasury: PublicKey;
   }): Promise<string> {
     // Remove liquidity
-    return await super.removeLiquidity(
-      params.liquidityPool,
-      params.lpAmount,
-      params.minTokensOut,
-      params.providerTokenAccount,
-      params.tokenVault,
-      params.providerLpAccount,
-      params.lpMint,
-      params.treasuryTokenAccount,
-      params.treasury,
+    // return await super.removeLiquidity(
+    //   params.liquidityPool,
+    //   params.lpAmount,
+    //   params.minTokensOut,
+    //   params.providerTokenAccount,
+    //   params.usdcVault,
+    //   params.providerLpAccount,
+    //   params.lpMint,
+    //   params.treasuryTokenAccount,
+    //   params.treasury,
+    // );
+    return '';
+  }
+
+  /**
+   * Queue a withdrawal request
+   * @param lpAmount Amount of LP tokens to queue for withdrawal
+   * @param providerTokenAccount Provider's token account for receiving funds
+   * @param providerLpAccount Provider's LP token account
+   * @param lpMint LP token mint
+   * @returns Transaction signature
+   */
+  public async queueWithdrawLiquidityFromPool(
+    lpAmount: BN,
+    providerTokenAccount: PublicKey,
+    providerLpAccount: PublicKey,
+    lpMint: PublicKey,
+  ): Promise<string> {
+    return await super.queueWithdrawLiquidity(
+      lpAmount,
+      providerTokenAccount,
+      providerLpAccount,
+      lpMint,
     );
   }
+
+  /**
+   * Process withdrawal queue from pool
+   * @param withdrawRequest Withdraw request account address
+   * @param providerTokenAccount Provider token account address
+   * @returns Transaction signature
+   */
+  public async processWithdrawQueueFromPool(
+    provider: PublicKey,
+    withdrawRequest: PublicKey,
+    providerTokenAccount: PublicKey,
+  ): Promise<string> {
+    // Get the provider from the withdraw request account
+    
+    return await super.processWithdrawQueue(
+      provider,
+      withdrawRequest,
+      providerTokenAccount,
+    );
+  }
+
+ 
 
   /**
    * Setup a complete liquidity pool with initial liquidity
@@ -923,7 +882,7 @@ export class TestClient extends BaseClient {
   }): Promise<{
     liquidityPool: PublicKey;
     lpMint: PublicKey;
-    tokenVault: PublicKey;
+    usdcVault: PublicKey;
     poolAuthority: PublicKey;
     collateralMint: PublicKey;
     providerTokenAccount: PublicKey;
@@ -936,8 +895,8 @@ export class TestClient extends BaseClient {
     const collateralMint = USDC_MINT;
 
     // Create or fetch USDC token accounts for provider and treasury
-    const providerTokenAccount = await this.getOrCreateUSDCAccount(params.provider.publicKey);
-    const treasuryTokenAccount = await this.getOrCreateUSDCAccount(this.treasury.publicKey);
+    const providerTokenAccount = await this.getOrCreateUSDCAccountKey(params.provider.publicKey);
+    const treasuryTokenAccount = await this.getOrCreateUSDCAccountKey(this.treasury.publicKey);
 
     // Mint USDC tokens to provider (10x for multiple tests)
     await this.mintUSDC(providerTokenAccount, params.initialDeposit.muln(10));
@@ -946,13 +905,12 @@ export class TestClient extends BaseClient {
     const {
       liquidityPool,
       lpMint,
-      tokenVault,
+      usdcVault,
       poolAuthority,
       txSignature: initTxSignature,
     } = await this.setupLiquidityPool({
       depositFeeBps: params.depositFeeBps,
       withdrawalFeeBps: params.withdrawalFeeBps,
-      minDeposit: params.minDeposit,
       collateralMint,
     });
 
@@ -980,7 +938,7 @@ export class TestClient extends BaseClient {
       amount: params.initialDeposit,
       minSharesOut: expectedNetDeposit, // For first deposit, LP tokens = net deposit
       providerTokenAccount,
-      tokenVault,
+      usdcVault,
       providerLpAccount,
       lpMint,
       treasuryTokenAccount,
@@ -990,7 +948,7 @@ export class TestClient extends BaseClient {
     return {
       liquidityPool,
       lpMint,
-      tokenVault,
+      usdcVault,
       poolAuthority,
       collateralMint,
       providerTokenAccount,
@@ -1001,40 +959,127 @@ export class TestClient extends BaseClient {
     };
   }
 
-  public async createOrder(params: {
-    orderId: BN;
-    size: BN;
+  public async createAndOpenMarketPosition(params: {
+    userClient: TestClient;
+    orderId: number;
+    positionId: number;
+    basktId: PublicKey;
+    notionalValue: BN;
     collateral: BN;
     isLong: boolean;
-    action: any; // e.g., { open: {} } or { close: {} }
-    targetPosition: PublicKey | null;
-    basktId: PublicKey;
+    entryPrice: BN;
     ownerTokenAccount: PublicKey;
-    collateralMint: PublicKey; // Used as escrowMint in the program
-    limitPrice?: BN; // Optional price with 6 decimals
-    maxSlippageBps?: BN; // Optional slippage in BPS
-    orderType?: any; // Optional order type, e.g., { market: {} } or { limit: {} }
-    leverageBps?: BN; // Optional leverage in basis points (10000 = 1x leverage)
-  }): Promise<string> {
-    // If caller hasn't provided a limit price or slippage, fall back to safe defaults
-    const limitPrice = params.limitPrice ?? new BN(50_000); // 0.05 USDC
-    const maxSlippageBps = params.maxSlippageBps ?? new BN(100); // 1%
+    leverageBps: BN;
+  }): Promise<{
+    orderTx: string;
+    openPositionTx: string;
+  }> { 
 
-    return await super.createOrderTx(
-      params.orderId,
-      params.size,
-      params.collateral,
-      params.isLong,
-      params.action,
-      params.targetPosition,
-      limitPrice,
-      maxSlippageBps,
-      params.basktId,
-      params.ownerTokenAccount,
-      params.collateralMint,
-      params.leverageBps ?? new BN(10000), // Default to 1x leverage if not provided
-      params.orderType ?? { market: {} }, // Default to market order if not provided
-    );
+    const orderPDA = await params.userClient.getOrderPDA(params.orderId, params.userClient.publicKey);
+    const orderTx = await params.userClient.createMarketOpenOrder({
+      orderId: params.orderId,
+      basktId: params.basktId,
+      notionalValue: params.notionalValue,
+      collateral: params.collateral,
+      isLong: params.isLong,
+      leverageBps: params.leverageBps,
+      ownerTokenAccount: params.ownerTokenAccount,
+    });
+
+    const openPositionTx = await this.openPosition({
+      positionId: params.positionId,
+      entryPrice: params.entryPrice,
+      order: orderPDA,
+      baskt: params.basktId,
+      orderOwner: params.userClient.publicKey,
+    });
+
+    return {
+      orderTx,
+      openPositionTx,
+    };
+  }
+
+  public async createAndOpenLimitPosition(params: {
+    userClient: TestClient;
+    orderId: number;
+    positionId: number;
+    basktId: PublicKey;
+    notionalValue: BN;
+    collateral: BN;
+    isLong: boolean;
+    entryPrice: BN;
+    limitPrice: BN;
+    maxSlippageBps: BN;
+    ownerTokenAccount: PublicKey;
+    leverageBps: BN;
+  }): Promise<{
+    orderTx: string;
+    openPositionTx: string;
+  }> { 
+
+    const orderPDA = await params.userClient.getOrderPDA(params.orderId, params.userClient.publicKey);
+    const orderTx = await params.userClient.createLimitOpenOrder({
+      orderId: params.orderId,
+      basktId: params.basktId,
+      notionalValue: params.notionalValue,
+      collateral: params.collateral,
+      isLong: params.isLong,
+      leverageBps: params.leverageBps,
+      limitPrice: params.limitPrice,
+      maxSlippageBps: params.maxSlippageBps,
+      ownerTokenAccount: params.ownerTokenAccount,
+    });
+
+    const openPositionTx = await this.openPosition({
+      positionId: params.positionId,
+      entryPrice: params.entryPrice,
+      order: orderPDA,
+      baskt: params.basktId,
+      orderOwner: params.userClient.publicKey,
+    });
+
+    return {
+      orderTx,
+      openPositionTx,
+    };
+  }
+
+  public async createAndCloseMarketPosition(params: {
+    position: PublicKey;
+    userClient: TestClient;
+    orderId: number;
+    positionId: number;
+    basktId: PublicKey;
+    exitPrice: BN;
+    sizeAsContracts: BN;
+    ownerTokenAccount: PublicKey;
+  }): Promise<string> {
+
+    const treasury = (await this.getProtocolAccount()).treasury;
+    const treasuryTokenAccount = await this.getOrCreateUSDCAccountKey(treasury);
+
+    await params.userClient.createMarketCloseOrder({
+      orderId: params.orderId,
+      basktId: params.basktId,
+      sizeAsContracts: params.sizeAsContracts,
+      targetPosition: params.position,
+      ownerTokenAccount: params.ownerTokenAccount,
+    });
+
+    const closePositionTx = await this.closePosition({
+      position: params.position,
+      exitPrice: params.exitPrice,
+      baskt: params.basktId,
+      ownerTokenAccount: params.ownerTokenAccount,
+      treasury: treasury,
+      treasuryTokenAccount: treasuryTokenAccount,
+      orderOwner: params.userClient.publicKey,
+      sizeToClose: params.sizeAsContracts,
+      orderPDA: await params.userClient.getOrderPDA(params.orderId, params.userClient.publicKey),
+    });
+
+    return closePositionTx;
   }
 
   public async cancelOrder(params: {
@@ -1044,8 +1089,275 @@ export class TestClient extends BaseClient {
     // Fetch the order account to get its data, especially order_id if needed by BaseClient.cancelOrder
     // The TestClient itself might be instantiated for a specific user (owner of the order)
     const orderAccount = await this.program.account.order.fetch(params.orderPDA);
-    const orderIdNum = orderAccount.orderId as BN; // Assuming orderId is stored as BN or compatible
+    const orderId = new BN(orderAccount.orderId);
 
-    return await super.cancelOrderTx(params.orderPDA, orderIdNum, params.ownerTokenAccount);
+    return await super.cancelOrderTx(params.orderPDA, orderId, params.ownerTokenAccount);
   }
+
+  /**
+   * Force close a position after baskt settlement (BasktManager only)
+   * @param params Parameters for force closing a position
+   * @returns Transaction signature
+   */
+  public async forceClosePosition(params: {
+    position: PublicKey;
+    closePrice: BN;
+    baskt: PublicKey;
+    ownerTokenAccount: PublicKey;
+    sizeToClose?: BN; // Optional parameter for partial force close
+  }): Promise<string> {
+    // Use treasury accounts from the test client
+    const treasury = (await this.getProtocolAccount()).treasury;
+    const treasuryTokenAccount = await this.getOrCreateUSDCAccountKey(treasury);
+
+    return await super.forceClosePosition({
+      position: params.position,
+      closePrice: params.closePrice,
+      baskt: params.baskt,
+      ownerTokenAccount: params.ownerTokenAccount,
+      treasury: treasury,
+      treasuryTokenAccount: treasuryTokenAccount,
+      sizeToClose: params.sizeToClose,
+    });
+  }
+
+  public async initializeProtocol(treasury: PublicKey) {
+    await requestAirdrop(this.publicKey, this.connection);
+    return await super.initializeProtocol(treasury);
+  }
+
+  public async openAndClosePosition(params: {
+    userClient: TestClient;
+    basktId: PublicKey;
+    notionalValue: BN;
+    collateral: BN;
+    isLong: boolean;
+    entryPrice: BN;
+    exitPrice: BN;
+    leverageBps: BN;
+    sizePercentageToClose: BN;
+  }): Promise<{
+    snapshotBefore: PositionSnapshot;
+    snapshotAfter: PositionSnapshot;
+    sizeClosed: BN;
+    positionId: number;
+  }> {
+
+    const ownerTokenAccount = await params.userClient.getOrCreateUSDCAccountKey(params.userClient.publicKey);
+
+    const positionId = this.newUID();
+    const positionPDA = await this.getPositionPDA(params.userClient.publicKey, positionId);
+
+    const orderId = this.newUID();
+
+    await this.createAndOpenMarketPosition({
+      userClient: params.userClient,
+      orderId: orderId,
+      positionId: positionId,
+      basktId: params.basktId,
+      notionalValue: params.notionalValue,
+      collateral: params.collateral,  
+      isLong: params.isLong,
+      entryPrice: params.entryPrice,
+      ownerTokenAccount: ownerTokenAccount,
+      leverageBps: params.leverageBps,
+    });
+
+    await expectAccountNotFound(this.connection, await this.getOrderPDA(orderId, params.userClient.publicKey));
+
+    const snapshotBefore = await this.snapshotPositionBalances(positionPDA, params.userClient.publicKey);
+
+    const sizeToClose = snapshotBefore.positionAccount!.size.mul(params.sizePercentageToClose).div(new BN(10000));
+
+    const closeOrderId = this.newUID();
+
+    await this.createAndCloseMarketPosition({
+      position: positionPDA,
+      userClient: params.userClient,
+      orderId: closeOrderId,
+      positionId: positionId,
+      basktId: params.basktId,
+      exitPrice: params.exitPrice,
+      sizeAsContracts: sizeToClose,
+      ownerTokenAccount: ownerTokenAccount,
+    });
+
+    await expectAccountNotFound(this.connection, await this.getOrderPDA(closeOrderId, params.userClient.publicKey));
+
+    const snapshotAfter = await this.snapshotPositionBalances(positionPDA, params.userClient.publicKey);
+
+    return {
+      snapshotBefore,
+      snapshotAfter,
+      sizeClosed: sizeToClose,
+      positionId: positionId,
+    }
+  }
+
+    
+
+
+  public async snapshotPositionBalances(position: PublicKey, positionOwner: PublicKey, basktId?: PublicKey): Promise<PositionSnapshot> {
+    const globalAccounts = await TestClient.getGlobalTestAccounts();
+    const treasuryBalance = await this.getUSDCAccount(globalAccounts.treasury.publicKey);
+    const userUSDCBalance = await this.getUSDCAccount(positionOwner);
+    
+    const liquidityPool = await this.getLiquidityPool();
+    const poolUSDCBalance = await getAccount(this.connection, liquidityPool.usdcVault);
+
+    const escrowAccount = await this.getPositionEscrow(position);
+    let escrowBalance = new BN(0);
+    try {
+      escrowBalance = new BN((await getAccount(this.connection, escrowAccount)).amount);
+    } catch (error) {
+      escrowBalance = new BN(0);
+    }
+
+    let positionAccount 
+    try {
+      positionAccount = await this.getPosition(position);
+    } catch (error) {
+      positionAccount = undefined;
+    }
+
+    let basktState;
+    if (basktId) {
+      try {
+        basktState = await this.getBasktRaw(basktId);
+      } catch (error) {
+        basktState = undefined;
+      }
+    } else if (positionAccount) {
+      try {
+        basktState = await this.getBasktRaw(positionAccount.basktId);
+      } catch (error) {
+        basktState = undefined;
+      }
+    }
+
+    return {
+      positionAccount,
+      trasuryBalance: new BN(treasuryBalance.amount), 
+      poolUSDCBalance: new BN(poolUSDCBalance.amount),
+      userUSDCBalance: new BN(userUSDCBalance.amount), 
+      escrowBalance: escrowBalance, 
+      poolState: liquidityPool,
+      basktState,
+    }
+  }
+
+  public async verifyClose({
+    collateralRatioBps,
+    entryPrice,
+    exitPrice,
+    sizeClosed,    
+    snapshotBefore,
+    snapshotAfter,
+    basktId,
+    isBadDebt = false,
+    feeBps = new BN(0),
+  }: {
+    collateralRatioBps: BN;
+    entryPrice: BN;
+    exitPrice: BN;
+    sizeClosed: BN;
+    snapshotBefore: PositionSnapshot;
+    snapshotAfter: PositionSnapshot;
+    basktId?: PublicKey;
+    isBadDebt?: boolean;
+    feeBps?: BN;
+  }) {
+
+   const fundingAccumulated = snapshotBefore.positionAccount?.fundingAccumulated || new BN(0);
+   const closeFee = feeBps.gt(new BN(0)) ? feeBps : (await this.getProtocolAccount()).config.closingFeeBps;
+
+   const sizePercentageClosed = sizeClosed.mul(new BN(10000)).div(snapshotBefore.positionAccount?.size || new BN(1));
+
+   const settlementDetails = calculateSettlementDetails(
+    snapshotBefore.escrowBalance.mul(sizePercentageClosed).div(new BN(10000)), // Escrow balance is the total collateral, so we need to multiply by the size percentage closed
+    sizeClosed,
+    closeFee,
+    fundingAccumulated,
+    entryPrice,
+    exitPrice,
+    snapshotBefore.positionAccount?.isLong || false,
+    new BN(1000), // 10%
+   )
+
+   expect(settlementDetails.isBadDebt).to.be.equal(isBadDebt);
+
+   const isFullClose = snapshotBefore.positionAccount?.size.eq(sizeClosed);
+   const isPartialClose = !isFullClose;
+
+   // 1. Position size verification
+   expect(snapshotBefore.positionAccount!.size.sub(sizeClosed).eq(snapshotAfter.positionAccount?.size || new BN(0))).to.be.true;
+
+   // 2. Position collateral verification (proportional reduction)
+  const expectedRemainingCollateral = snapshotBefore.positionAccount?.collateral.sub(
+       snapshotBefore.positionAccount.collateral.mul(sizePercentageClosed).div(new BN(10000))
+    );
+  expect(new BN(snapshotAfter.positionAccount?.collateral.toString() || '0').eq(expectedRemainingCollateral || new BN(0))).to.be.true;
+
+   // 3. Position status verification
+   if (isPartialClose && snapshotAfter.positionAccount) {
+     expect(snapshotAfter.positionAccount.status).to.equal('OPEN');
+   }
+
+   // 4. Treasury fee collection
+   expect(settlementDetails.feeToTreasury.eq(snapshotAfter.trasuryBalance.sub(snapshotBefore.trasuryBalance))).to.be.true;
+  
+   // 5. Pool balance changes
+   const poolGain = settlementDetails.escrowToBLP;
+   const netPoolDelta = poolGain.sub(settlementDetails.poolToUser);
+   expect(netPoolDelta.eq(snapshotAfter.poolUSDCBalance.sub(snapshotBefore.poolUSDCBalance))).to.be.true;
+  
+   // 6. Pool state consistency
+   const poolState = await this.getLiquidityPool();
+   expect(poolState.totalLiquidity.eq(snapshotAfter.poolUSDCBalance)).to.be.true;
+
+   // 7. User payout verification
+   const userDelta = settlementDetails.expectedUserPayout;
+   expect(userDelta.eq(snapshotAfter.userUSDCBalance.sub(snapshotBefore.userUSDCBalance))).to.be.true;
+
+   // 8. Baskt open position count (for full closes)
+   if (isFullClose && basktId) {
+     const basktBefore = snapshotBefore.basktState;
+     const basktAfter = await this.getBasktRaw(basktId);
+     expect(new BN(basktAfter.openPositions).eq(new BN(basktBefore?.openPositions || 0).sub(new BN(1)))).to.be.true;
+   }
+
+   // 9. Account closures (for full closes)
+   if (isFullClose) {
+    await expectAccountNotFound(this.connection, snapshotBefore.positionAccount?.positionPDA || new PublicKey(0));
+    await expectAccountNotFound(this.connection, await this.getPositionEscrow(snapshotBefore.positionAccount?.positionPDA || new PublicKey(0)));  
+   }
+
+   // 10. Funding accumulated verification (proportional reduction for partial closes)
+   if (isPartialClose && snapshotAfter.positionAccount && snapshotBefore.positionAccount) {
+     const expectedRemainingFunding = snapshotBefore.positionAccount.fundingAccumulated.sub(
+       fundingAccumulated.mul(sizePercentageClosed).div(new BN(10000))
+     );
+     expect(snapshotAfter.positionAccount.fundingAccumulated.eq(expectedRemainingFunding)).to.be.true;
+   }
+
+  }
+
+}
+
+
+export interface PositionSnapshot {
+  positionAccount?: OnchainPosition;
+  trasuryBalance: BN;
+  poolUSDCBalance: BN;
+  userUSDCBalance: BN;
+  escrowBalance: BN;
+  poolState: any;
+  basktState?: any;
+}
+
+export function toObjectString(object: any) {
+  const keys = Object.keys(object);
+  const values = keys.map(key => object[key]);
+  const string = keys.map((key, index) => `${key}: ${values[index] ? values[index].toString() : 'undefined'}`).join(',\n  ');
+  return `{\n  ${string}\n}`;
 }

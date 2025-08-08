@@ -1,0 +1,59 @@
+name: High Frequency Trading Simulation
+description: Generates rapid order flow with mixed accepts/rejects using fixture generators
+
+events:
+  # Initial price updates for multiple assets
+  - stream: price.update
+    generator: true
+    repeat: 3
+    interval: 100
+    
+  # Rapid order requests using generators
+  - stream: order.request
+    generator: true
+    repeat: 10
+    interval: 500
+    delay: 1000
+    
+  # Mix of accepted orders (70% acceptance rate simulation)
+  - stream: order.accepted
+    generator: true
+    repeat: 7
+    interval: 600
+    delay: 1500
+    
+  # Some rejected orders
+  - stream: order.rejected
+    generator: true
+    repeat: 3
+    interval: 600
+    delay: 1500
+    
+  # Open positions for accepted orders
+  - stream: position.opened
+    generator: true
+    repeat: 7
+    interval: 700
+    delay: 2000
+    
+  # Continuous price updates during trading
+  - stream: price.update
+    generator: true
+    repeat: 20
+    interval: 250
+    delay: 3000
+    
+  # Some positions closing with profit/loss
+  - stream: position.closed
+    generator: true
+    repeat: 4
+    interval: 1000
+    delay: 5000
+    
+  # Service heartbeats
+  - stream: service.heartbeat
+    generator: true
+    repeat: 5
+    interval: 2000
+    variables:
+      service: execution-engine

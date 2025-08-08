@@ -1,12 +1,14 @@
 use {
     crate::constants::{
-        BPS_DIVISOR, LIQUIDATION_PRICE_DEVIATION_BPS, MAX_FEE_BPS, MAX_GRACE_PERIOD,
-        MAX_PRICE_DEVIATION_BPS, MAX_TREASURY_CUT_BPS, MIN_COLLATERAL_RATIO_BPS, MIN_GRACE_PERIOD,
+        BPS_DIVISOR, MAX_FEE_BPS, MAX_GRACE_PERIOD,
+        MAX_TREASURY_CUT_BPS, MIN_COLLATERAL_RATIO_BPS, MIN_GRACE_PERIOD,
         PROTOCOL_SEED,
+        LIQUIDITY_POOL_SEED,
     },
     crate::error::PerpetualsError,
     crate::events::*,
     crate::state::protocol::{Protocol, Role},
+    crate::state::liquidity::LiquidityPool,
     anchor_lang::prelude::*,
 };
 
@@ -215,7 +217,7 @@ pub struct UpdateTreasury<'info> {
     /// Signer must be Owner or ConfigManager
     #[account(
         mut,
-        constraint = protocol.has_permission(authority.key(), Role::ConfigManager) || protocol.has_permission(authority.key(), Role::Owner) @ PerpetualsError::UnauthorizedRole,
+        constraint = protocol.has_permission(authority.key(), Role::ConfigManager) @ PerpetualsError::UnauthorizedRole
     )]
     pub authority: Signer<'info>,
 
@@ -247,72 +249,46 @@ pub fn update_treasury(ctx: Context<UpdateTreasury>, new_treasury: Pubkey) -> Re
     Ok(())
 }
 
-// ----------------------------------------------------------------------------
-// Set Max Price Age Sec Instruction
-// ----------------------------------------------------------------------------
 
-#[derive(Accounts)]
-pub struct SetMaxPriceAgeSec<'info> {
-    #[account(
-        mut,
-        constraint = protocol.has_permission(authority.key(), Role::ConfigManager) @ PerpetualsError::UnauthorizedRole,
-    )]
-    pub authority: Signer<'info>,
-
-    /// Protocol account
-    #[account(mut, seeds = [PROTOCOL_SEED], bump)]
-    pub protocol: Account<'info, Protocol>,
-}
-
-// ----------------------------------------------------------------------------
-// Set Max Price Deviation Bps Instruction
-// ----------------------------------------------------------------------------
-
-#[derive(Accounts)]
-pub struct SetMaxPriceDeviationBps<'info> {
-    #[account(
-        mut,
-        constraint = protocol.has_permission(authority.key(), Role::ConfigManager) @ PerpetualsError::UnauthorizedRole,
-    )]
-    pub authority: Signer<'info>,
-
-    /// Protocol account
-    #[account(mut, seeds = [PROTOCOL_SEED], bump)]
-    pub protocol: Account<'info, Protocol>,
-}
-
-// ----------------------------------------------------------------------------
-// Set Liquidation Price Deviation Bps Instruction
-// ----------------------------------------------------------------------------
-
-#[derive(Accounts)]
-pub struct SetLiquidationPriceDeviationBps<'info> {
-    #[account(
-        mut,
-        constraint = protocol.has_permission(authority.key(), Role::ConfigManager) @ PerpetualsError::UnauthorizedRole,
-    )]
-    pub authority: Signer<'info>,
-
-    /// Protocol account
-    #[account(mut, seeds = [PROTOCOL_SEED], bump)]
-    pub protocol: Account<'info, Protocol>,
-}
 
 // ----------------------------------------------------------------------------
 // Set Min Liquidity Instruction
 // ----------------------------------------------------------------------------
 
+/// Sets the minimum liquidity amount that must remain in the pool
 #[derive(Accounts)]
 pub struct SetMinLiquidity<'info> {
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
     #[account(
         mut,
-        constraint = protocol.has_permission(authority.key(), Role::ConfigManager) @ PerpetualsError::UnauthorizedRole,
+        seeds = [PROTOCOL_SEED],
+        bump,
+        constraint = protocol.has_permission(admin.key(), Role::ConfigManager) @ PerpetualsError::UnauthorizedRole
     )]
-    pub authority: Signer<'info>,
-
-    /// Protocol account
-    #[account(mut, seeds = [PROTOCOL_SEED], bump)]
     pub protocol: Account<'info, Protocol>,
+}
+
+pub fn set_min_liquidity(ctx: Context<SetMinLiquidity>, new_min_liquidity: u64) -> Result<()> {
+
+    require!(new_min_liquidity > 0, PerpetualsError::InvalidInput);
+
+    let protocol = &mut ctx.accounts.protocol;
+    
+    let old_min_liquidity = protocol.config.min_liquidity;
+    protocol.config.min_liquidity = new_min_liquidity;
+
+    protocol.config.last_updated = Clock::get()?.unix_timestamp;
+    protocol.config.last_updated_by = ctx.accounts.admin.key();
+
+    msg!(
+        "Min liquidity updated from {} to {}",
+        old_min_liquidity,
+        new_min_liquidity
+    );
+
+    Ok(())
 }
 
 // ----------------------------------------------------------------------------
@@ -351,17 +327,56 @@ pub struct SetFundingCutBps<'info> {
     pub protocol: Account<'info, Protocol>,
 }
 
+
+
 // ----------------------------------------------------------------------------
-// Set Decommission Grace Period Instruction
+// Set Rebalance Request Fee Instruction
 // ----------------------------------------------------------------------------
 
 #[derive(Accounts)]
-pub struct SetDecommissionGracePeriod<'info> {
+pub struct SetRebalanceRequestFee<'info> {
+    /// Signer that must have the ConfigManager role
+    #[account(
+        mut,
+        constraint = protocol.has_permission(authority.key(), Role::ConfigManager) @ PerpetualsError::UnauthorizedRole,
+    )]
+    pub authority: Signer<'info>,
+
+    /// Protocol account containing configuration
+    #[account(mut, seeds = [PROTOCOL_SEED], bump)]
+    pub protocol: Account<'info, Protocol>,
+}
+
+pub fn set_rebalance_request_fee(
+    ctx: Context<SetRebalanceRequestFee>,
+    new_fee_lamports: u64,
+) -> Result<()> {
+    let protocol = &mut ctx.accounts.protocol;
+    let authority = &ctx.accounts.authority;
+    let clock = Clock::get()?;
+
+    let old_fee_lamports = protocol.config.rebalance_request_fee_lamports;
+    protocol.config.rebalance_request_fee_lamports = new_fee_lamports;
+    protocol.config.last_updated = clock.unix_timestamp;
+    protocol.config.last_updated_by = authority.key();
+
+    emit!(RebalanceRequestFeeUpdatedEvent {
+        protocol: protocol.key(),
+        old_fee_lamports,
+        new_fee_lamports,
+        updated_by: authority.key(),
+        timestamp: clock.unix_timestamp,
+    });
+
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct SetBasktCreationFee<'info> {
     /// Signer that must have the ConfigManager or Owner role
     #[account(
         mut,
         constraint = protocol.has_permission(authority.key(), Role::ConfigManager)
-            || protocol.has_permission(authority.key(), Role::Owner)
             @ PerpetualsError::UnauthorizedRole,
     )]
     pub authority: Signer<'info>,
@@ -371,32 +386,24 @@ pub struct SetDecommissionGracePeriod<'info> {
     pub protocol: Account<'info, Protocol>,
 }
 
-pub fn set_decommission_grace_period(
-    ctx: Context<SetDecommissionGracePeriod>,
-    new_grace_period: i64,
+pub fn set_baskt_creation_fee(
+    ctx: Context<SetBasktCreationFee>,
+    new_fee_lamports: u64,
 ) -> Result<()> {
-    require!(
-        new_grace_period >= MIN_GRACE_PERIOD && new_grace_period <= MAX_GRACE_PERIOD,
-        PerpetualsError::InvalidGracePeriod
-    );
-
     let protocol = &mut ctx.accounts.protocol;
-    let old_grace_period = protocol.config.decommission_grace_period;
-
-    if old_grace_period == new_grace_period {
-        return Ok(());
-    }
-
-    protocol.config.decommission_grace_period = new_grace_period;
+    let authority = &ctx.accounts.authority;
     let clock = Clock::get()?;
-    protocol.config.last_updated = clock.unix_timestamp;
-    protocol.config.last_updated_by = ctx.accounts.authority.key();
 
-    emit!(DecommissionGracePeriodUpdatedEvent {
+    let old_fee_lamports = protocol.config.baskt_creation_fee_lamports;
+    protocol.config.baskt_creation_fee_lamports = new_fee_lamports;
+    protocol.config.last_updated = clock.unix_timestamp;
+    protocol.config.last_updated_by = authority.key();
+
+    emit!(BasktCreationFeeUpdatedEvent {
         protocol: protocol.key(),
-        old_grace_period,
-        new_grace_period,
-        updated_by: ctx.accounts.authority.key(),
+        old_fee_lamports,
+        new_fee_lamports,
+        updated_by: authority.key(),
         timestamp: clock.unix_timestamp,
     });
 
@@ -423,44 +430,4 @@ crate::impl_bps_setter!(
     new_funding_cut_bps
 );
 
-crate::impl_bps_setter!(
-    set_max_price_deviation_bps,
-    SetMaxPriceDeviationBps<'info>,
-    max_price_deviation_bps,
-    MAX_PRICE_DEVIATION_BPS,
-    MaxPriceDeviationUpdatedEvent,
-    old_max_price_deviation_bps,
-    new_max_price_deviation_bps
-);
 
-crate::impl_bps_setter!(
-    set_liquidation_price_deviation_bps,
-    SetLiquidationPriceDeviationBps<'info>,
-    liquidation_price_deviation_bps,
-    LIQUIDATION_PRICE_DEVIATION_BPS,
-    LiquidationPriceDeviationUpdatedEvent,
-    old_liquidation_price_deviation_bps,
-    new_liquidation_price_deviation_bps
-);
-
-crate::impl_positive_setter!(
-    set_max_price_age_sec,
-    SetMaxPriceAgeSec<'info>,
-    u32,
-    max_price_age_sec,
-    MaxPriceAgeUpdatedEvent,
-    old_max_price_age_sec,
-    new_max_price_age_sec,
-    PerpetualsError::InvalidOracleParameter
-);
-
-crate::impl_positive_setter!(
-    set_min_liquidity,
-    SetMinLiquidity<'info>,
-    u64,
-    min_liquidity,
-    MinLiquidityUpdatedEvent,
-    old_min_liquidity,
-    new_min_liquidity,
-    PerpetualsError::InvalidOracleParameter
-);

@@ -5,15 +5,10 @@ dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/baskt';
 
-// Connection options for MongoDB
-const mongooseOptions = {
-  maxIdleTimeMS: 2 * 60 * 60 * 1000, // Close connections after 60 minutes of inactivity
-};
-
 export const connectMongoDB = async () => {
   try {
     if (mongoose.connection.readyState !== 1) {
-      await mongoose.connect(MONGODB_URI, mongooseOptions);
+      await mongoose.connect(MONGODB_URI);
       console.log('MongoDB connected successfully');
     } else {
       console.log('MongoDB already connected');

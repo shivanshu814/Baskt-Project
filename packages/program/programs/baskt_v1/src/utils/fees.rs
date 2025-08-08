@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::constants::{BPS_DIVISOR, LIQUIDATION_PRICE_DEVIATION_BPS};
+use crate::constants::BPS_DIVISOR;
 use crate::error::PerpetualsError;
 use crate::math::{checked_percentage, checked_sub, mul_div_u64};
 
@@ -42,30 +42,6 @@ pub fn split_fee(amount: u64, treasury_cut_bps: u64) -> Result<(u64, u64)> {
 pub fn validate_bps(value: u64, max: u64) -> Result<()> {
     require!(value <= max, PerpetualsError::InvalidFeeBps);
     Ok(())
-}
-
-/// Validates that `spot` price is within `max_dev_bps` of `reference` price.
-pub fn validate_price_deviation(price_a: u64, price_b: u64, max_dev_bps: u64) -> Result<()> {
-    let compute_dev =
-        |diff: u64, reference: u64| -> Result<u64> { mul_div_u64(diff, BPS_DIVISOR, reference) };
-    let deviation_bps = if price_a > price_b {
-        compute_dev(price_a - price_b, price_b)?
-    } else {
-        compute_dev(price_b - price_a, price_b)?
-    };
-
-    require!(
-        deviation_bps <= max_dev_bps,
-        PerpetualsError::PriceOutOfBounds
-    );
-
-    Ok(())
-}
-
-/// Convenience wrapper for liquidation deviation checks using the protocol-wide
-/// `LIQUIDATION_PRICE_DEVIATION_BPS` constant.
-pub fn assert_liquidation_deviation(price: u64, reference: u64) -> Result<()> {
-    validate_price_deviation(price, reference, LIQUIDATION_PRICE_DEVIATION_BPS)
 }
 
 /// Calculate opening fee with effective fee rate resolution

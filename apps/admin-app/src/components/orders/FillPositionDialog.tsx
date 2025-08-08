@@ -22,9 +22,9 @@ import { FillPositionDialogProps } from '../../types/orders';
 const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, onClose }) => {
   const [entryPrice, setEntryPrice] = useState('');
   const [oraclePrice, setOraclePrice] = useState('');
-  const positionId = new BN(Date.now());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { client } = useBasktClient();
+  const positionId = client?.newUID();
 
   useEffect(() => {
     if (isOpen && order) {
@@ -68,10 +68,9 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
       const entryPriceBN = new BN(entryPriceNum * PRICE_PRECISION);
       const oraclePriceBN = new BN(oraclePriceNum * PRICE_PRECISION);
 
-      await client.updateOraclePrice(basktId, oraclePriceBN);
 
       await client.openPosition({
-        order: await client.getOrderPDA(new BN(order.orderId), new PublicKey(order.owner)),
+        order: await client.getOrderPDA(order.orderId, new PublicKey(order.owner)),
         positionId: positionId,
         entryPrice: entryPriceBN,
         baskt: basktId,
@@ -124,7 +123,7 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
             </Label>
             <Input
               id="directionDisplay"
-              value={order.isLong ? 'Long' : 'Short'}
+              value={order.openParams?.isLong ? 'Long' : 'Short'}
               readOnly
               className="col-span-3 bg-muted"
             />
@@ -135,7 +134,7 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
             </Label>
             <Input
               id="sizeDisplay"
-              value={order.size.toString()}
+              value={order.openParams?.notionalValue?.toString() || order.closeParams?.sizeAsContracts?.toString() || '0'}
               readOnly
               className="col-span-3 bg-muted"
             />
@@ -146,7 +145,7 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
             </Label>
             <Input
               id="collateralDisplay"
-              value={order.collateral.toString()}
+              value={order.openParams?.collateral?.toString() || '0'}
               readOnly
               className="col-span-3 bg-muted"
             />

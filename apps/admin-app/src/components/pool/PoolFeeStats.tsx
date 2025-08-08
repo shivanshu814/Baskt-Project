@@ -91,9 +91,7 @@ export const PoolFeeStatsComponent: React.FC<PoolFeeStatsProps> = ({
           <CardTitle className="text-xl font-bold text-white">Fee Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-red-400 text-center py-8">
-            Error loading fee statistics: {error}
-          </div>
+          <div className="text-red-400 text-center py-8">Error loading fee statistics: {error}</div>
         </CardContent>
       </Card>
     );
@@ -106,9 +104,7 @@ export const PoolFeeStatsComponent: React.FC<PoolFeeStatsProps> = ({
           <CardTitle className="text-xl font-bold text-white">Fee Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-white/60 text-center py-8">
-            No fee data available
-          </div>
+          <div className="text-white/60 text-center py-8">No fee data available</div>
         </CardContent>
       </Card>
     );
@@ -140,7 +136,10 @@ export const PoolFeeStatsComponent: React.FC<PoolFeeStatsProps> = ({
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-primary">
-                {feeStats.totalFees > 0 ? ((feeStats.totalFeesToTreasury / feeStats.totalFees) * 100).toFixed(1) : '0.0'}%
+                {feeStats.totalFees > 0
+                  ? ((feeStats.totalFeesToTreasury / feeStats.totalFees) * 100).toFixed(1)
+                  : '0.0'}
+                %
               </div>
               <div className="text-sm text-white/60">To Treasury</div>
             </div>
@@ -154,15 +153,16 @@ export const PoolFeeStatsComponent: React.FC<PoolFeeStatsProps> = ({
               <Activity className="h-4 w-4" />
               Event Type Breakdown
             </h3>
-            
+
             {eventTypeBreakdown.length === 0 ? (
-              <div className="text-white/60 text-center py-8">
-                No event data available
-              </div>
+              <div className="text-white/60 text-center py-8">No event data available</div>
             ) : (
               <div className="space-y-4">
                 {eventTypeBreakdown.map((item) => (
-                  <div key={item.eventType} className="bg-white/5 p-4 rounded-lg border border-white/10">
+                  <div
+                    key={item.eventType}
+                    className="bg-white/5 p-4 rounded-lg border border-white/10"
+                  >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         {getEventIcon(item.eventType)}
@@ -184,20 +184,20 @@ export const PoolFeeStatsComponent: React.FC<PoolFeeStatsProps> = ({
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-white">{item.count}</div>
                         <div className="text-white/60">Events</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-semibold text-blue-400">
+                        <div className="text-lg font-semibold text-primary">
                           {item.formattedTreasuryFees} USDC
                         </div>
                         <div className="text-white/60">Treasury Fees</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-semibold text-purple-400">
+                        <div className="text-lg font-semibold text-primary">
                           {item.formattedBlpFees} USDC
                         </div>
                         <div className="text-white/60">BLP Fees</div>
@@ -226,10 +226,14 @@ export const PoolFeeStatsComponent: React.FC<PoolFeeStatsProps> = ({
                 </span>
               </div>
               <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
-                  style={{ 
-                    width: `${feeStats.totalFees > 0 ? (feeStats.totalFeesToTreasury / feeStats.totalFees) * 100 : 0}%` 
+                  style={{
+                    width: `${
+                      feeStats.totalFees > 0
+                        ? (feeStats.totalFeesToTreasury / feeStats.totalFees) * 100
+                        : 0
+                    }%`,
                   }}
                 />
               </div>
@@ -243,4 +247,4 @@ export const PoolFeeStatsComponent: React.FC<PoolFeeStatsProps> = ({
       </CardContent>
     </Card>
   );
-}; 
+};

@@ -142,10 +142,16 @@ export class OrderQuerier {
    * Create order from metadata only
    */
   private createOrderFromMetadata(orderMetadata: any): CombinedOrder {
-    const usdcSize = this.calculateUsdcSize(
-      orderMetadata.size || '0',
-      orderMetadata.limitPrice || '0',
-    );
+    // Extract values from new modular structure or fall back to old flat structure
+    const limitPrice = orderMetadata.limitParams?.limitPrice || orderMetadata.limitPrice || '0';
+    const maxSlippage = orderMetadata.limitParams?.maxSlippageBps || orderMetadata.maxSlippage || '0';
+    const collateral = orderMetadata.openParams?.collateral || orderMetadata.collateral || '0';
+    const isLong = orderMetadata.openParams?.isLong ?? orderMetadata.isLong ?? false;
+    const size = orderMetadata.closeParams?.sizeAsContracts || 
+                 orderMetadata.openParams?.notionalValue || 
+                 orderMetadata.size || '0';
+
+    const usdcSize = this.calculateUsdcSize(size, limitPrice);
 
     return {
       orderId: orderMetadata.orderId,
@@ -154,16 +160,25 @@ export class OrderQuerier {
       owner: orderMetadata.owner,
       status: orderMetadata.orderStatus,
       action: orderMetadata.orderAction,
-      size: orderMetadata.size || '0',
-      collateral: orderMetadata.collateral || '0',
-      isLong: orderMetadata.isLong,
+      orderType: orderMetadata.orderType,
+      timestamp: orderMetadata.timestamp,
       createOrder: orderMetadata.createOrder,
       fullFillOrder: orderMetadata.fullFillOrder,
       position: orderMetadata.position,
       usdcSize: orderMetadata.usdcSize || usdcSize,
-      orderType: orderMetadata.orderType,
-      limitPrice: orderMetadata.limitPrice || '0',
-      maxSlippage: orderMetadata.maxSlippage || '0',
+      
+      // New modular parameters
+      openParams: orderMetadata.openParams,
+      closeParams: orderMetadata.closeParams,
+      marketParams: orderMetadata.marketParams,
+      limitParams: orderMetadata.limitParams,
+      
+      // Backward compatibility fields
+      size: size,
+      collateral: collateral,
+      isLong: isLong,
+      limitPrice: limitPrice,
+      maxSlippage: maxSlippage,
     } as CombinedOrder;
   }
 
@@ -171,15 +186,25 @@ export class OrderQuerier {
    * Create order from both onchain and metadata sources
    */
   private createOrderFromBothSources(onchainOrder: any, orderMetadata: any): CombinedOrder {
-    let size = onchainOrder.size?.toString() || '0';
-    if (size === '0' && onchainOrder.collateral && onchainOrder.limitPrice) {
-      size = this.calculateSizeFromCollateral(
-        onchainOrder.collateral.toString(),
-        onchainOrder.limitPrice.toString(),
-      );
+    // Extract data from onchain order's modular structure
+    const onchainLimitPrice = onchainOrder.limitParams?.limitPrice?.toString() || 
+                              onchainOrder.limitPrice?.toString() || '0';
+    const onchainMaxSlippage = onchainOrder.limitParams?.maxSlippageBps?.toString() || 
+                               onchainOrder.maxSlippage?.toString() || '0';
+    const onchainCollateral = onchainOrder.openParams?.collateral?.toString() || 
+                              onchainOrder.collateral?.toString() || '0';
+    const onchainIsLong = onchainOrder.openParams?.isLong ?? onchainOrder.isLong ?? false;
+    
+    let size = onchainOrder.closeParams?.sizeAsContracts?.toString() || 
+               onchainOrder.openParams?.notionalValue?.toString() || 
+               onchainOrder.size?.toString() || '0';
+
+    // Fallback: calculate size from collateral if size is 0
+    if (size === '0' && onchainCollateral !== '0' && onchainLimitPrice !== '0') {
+      size = this.calculateSizeFromCollateral(onchainCollateral, onchainLimitPrice);
     }
 
-    const usdcSize = this.calculateUsdcSize(size, onchainOrder.limitPrice?.toString() || '0');
+    const usdcSize = this.calculateUsdcSize(size, onchainLimitPrice);
 
     return {
       orderId: onchainOrder.orderId?.toString(),
@@ -188,16 +213,25 @@ export class OrderQuerier {
       owner: onchainOrder.owner?.toString(),
       status: onchainOrder.status,
       action: onchainOrder.action,
-      size: size,
-      collateral: onchainOrder.collateral?.toString(),
-      isLong: onchainOrder.isLong,
+      orderType: onchainOrder.orderType,
+      timestamp: onchainOrder.timestamp?.toString() || orderMetadata?.timestamp,
       createOrder: orderMetadata?.createOrder,
       fullFillOrder: orderMetadata?.fullFillOrder,
       position: orderMetadata?.position,
       usdcSize: orderMetadata?.usdcSize || usdcSize,
-      orderType: onchainOrder.orderType,
-      limitPrice: onchainOrder.limitPrice?.toString(),
-      maxSlippage: onchainOrder.maxSlippage?.toString(),
+      
+      // New modular parameters (prioritize onchain data, fallback to metadata)
+      openParams: onchainOrder.openParams || orderMetadata?.openParams,
+      closeParams: onchainOrder.closeParams || orderMetadata?.closeParams,
+      marketParams: onchainOrder.marketParams || orderMetadata?.marketParams,
+      limitParams: onchainOrder.limitParams || orderMetadata?.limitParams,
+      
+      // Backward compatibility fields
+      size: size,
+      collateral: onchainCollateral,
+      isLong: onchainIsLong,
+      limitPrice: onchainLimitPrice,
+      maxSlippage: onchainMaxSlippage,
     } as CombinedOrder;
   }
 }

@@ -14,8 +14,11 @@ pub struct LiquidityPool {
     /// The token mint for the LP tokens
     pub lp_mint: Pubkey,
 
-    /// The token account where collateral is stored
-    pub token_vault: Pubkey,
+    /// The token account where USDC is stored
+    pub usdc_vault: Pubkey,
+
+    /// The token account where LP tokens are held during withdrawal queue processing
+    pub lp_token_escrow: Pubkey,
 
     /// Total supply of LP tokens
     pub total_shares: u64,
@@ -29,14 +32,24 @@ pub struct LiquidityPool {
     /// Fee percentage charged on withdrawals in basis points (e.g. 30 = 0.3%)
     pub withdrawal_fee_bps: u16,
 
-    /// Minimum deposit amount allowed
-    pub min_deposit: u64,
-
     /// Bump for this PDA
     pub bump: u8,
 
     /// Bump for pool authority PDA
     pub pool_authority_bump: u8,
+
+    // ------------------------------------------------------------------
+    // Withdrawal-queue & utilisation tracking
+    // ------------------------------------------------------------------
+    /// Sum of LP tokens in the withdrawal queue but not yet burned
+    pub pending_lp_tokens: u64,
+ 
+    /// Monotonically increasing identifier for the next withdrawal request to append
+    pub withdraw_queue_head: u64,
+
+    /// Identifier of the next withdrawal request expected to be processed
+    pub withdraw_queue_tail: u64,
+
 }
 
 impl LiquidityPool {
@@ -45,16 +58,12 @@ impl LiquidityPool {
         &self,
         gross_deposit_amount: u64,
         fee_amount: u64,
+        min_liquidity: u64,
     ) -> Result<u64> {
-        msg!("gross_deposit_amount: {}", gross_deposit_amount);
-        msg!("fee_amount: {}", fee_amount);
-        msg!("min_deposit: {}", self.min_deposit);
-        msg!("total_liquidity: {}", self.total_liquidity);
-        msg!("total_shares: {}", self.total_shares);
         // Ensure the deposit meets the minimum requirement
         require!(
-            gross_deposit_amount >= self.min_deposit,
-            PerpetualsError::BelowMinimumDeposit
+            gross_deposit_amount >= min_liquidity,
+            PerpetualsError::InvalidDepositAmount
         );
 
         // Calculate net deposit (after fee)
@@ -83,7 +92,6 @@ impl LiquidityPool {
             self.total_shares > 0,
             PerpetualsError::InsufficientLiquidity
         );
-
         // Formula: (lp_tokens_to_burn * total_liquidity) / total_shares
         let withdrawal_amount =
             mul_div_u64(lp_tokens_to_burn, self.total_liquidity, self.total_shares)?;
@@ -103,52 +111,13 @@ impl LiquidityPool {
         Ok(fee)
     }
 
-    /// Update pool state after adding liquidity
-    pub fn process_deposit(&mut self, deposit_amount: u64, shares_to_mint: u64) -> Result<()> {
-        // Update pool state
-        self.total_liquidity = self
-            .total_liquidity
-            .checked_add(deposit_amount)
-            .ok_or(PerpetualsError::MathOverflow)?;
-
-        self.total_shares = self
-            .total_shares
-            .checked_add(shares_to_mint)
-            .ok_or(PerpetualsError::MathOverflow)?;
-
-        self.last_update_timestamp = Clock::get()?.unix_timestamp;
-
-        Ok(())
-    }
-
-    /// Update pool state after removing liquidity
-    pub fn process_withdrawal(
-        &mut self,
-        lp_tokens_to_burn: u64,
-        withdrawal_amount: u64,
-    ) -> Result<()> {
-        // Update pool state
-        self.total_liquidity = self
-            .total_liquidity
-            .checked_sub(withdrawal_amount)
-            .ok_or(PerpetualsError::MathOverflow)?;
-
-        self.total_shares = self
-            .total_shares
-            .checked_sub(lp_tokens_to_burn)
-            .ok_or(PerpetualsError::MathOverflow)?;
-
-        self.last_update_timestamp = Clock::get()?.unix_timestamp;
-
-        Ok(())
-    }
 
     /// Decrease liquidity from the pool when paying out positions
     /// This is used by position settlement handlers when the escrow doesn't have enough funds
     pub fn decrease_liquidity(&mut self, amount: u64) -> Result<()> {
-        // Ensure we have sufficient liquidity
+        // Ensure we have sufficient *effective* liquidity (excludes queued withdrawals)
         require!(
-            self.total_liquidity >= amount,
+            self.effective_liquidity() >= amount,
             PerpetualsError::InsufficientLiquidity
         );
 
@@ -175,4 +144,26 @@ impl LiquidityPool {
         self.last_update_timestamp = Clock::get()?.unix_timestamp;
         Ok(())
     }
+
+    //-------------------------------------------------------------------
+    // Helper getters / setters
+    //-------------------------------------------------------------------
+    /// Calculate pending token amount from pending LP tokens
+    fn pending_tokens(&self) -> Result<u64> {
+        if self.total_shares == 0 {
+            return Ok(0);
+        }
+        mul_div_u64(
+            self.pending_lp_tokens,
+            self.total_liquidity,
+            self.total_shares,
+        )
+    }
+
+    /// Returns liquidity available for new positions after accounting for queued withdrawals.
+    pub fn effective_liquidity(&self) -> u64 {
+        let pending_tokens = self.pending_tokens().unwrap_or(0);
+        self.total_liquidity.saturating_sub(pending_tokens)
+    }
+   
 }

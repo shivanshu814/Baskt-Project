@@ -8,9 +8,8 @@ import {
 } from '@solana/spl-token';
 import { QueryResult } from '../models/types';
 import { FaucetResult, AutoFaucetResult, FaucetStatus, FaucetSendParams, AutoFaucetParams } from '../types/faucet';
-// import { USDC_MINT } from '@baskt/sdk';
+import { USDC_MINT } from '@baskt/sdk';
 // USDC mint address
-const USDC_MINT = new PublicKey('3J5uJ5Pn8yrLwraQSmNMDYFAw59tf2mPTbMxBTtEFx3t');
 const USDC_DECIMALS = 6;
 
 // Mint authority keypair (this should be moved to environment variables)

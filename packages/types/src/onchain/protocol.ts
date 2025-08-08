@@ -47,20 +47,18 @@ export interface OnchainProtocolConfig {
   minCollateralRatioBps: BN;
   /** Liquidation threshold in basis points */
   liquidationThresholdBps: BN;
-  /** Maximum oracle price age in seconds */
-  maxPriceAgeSec: number;
-  /** Maximum price deviation in basis points */
-  maxPriceDeviationBps: BN;
-  /** Liquidation price deviation in basis points */
-  liquidationPriceDeviationBps: BN;
-  /** Minimum liquidity */
+  /** Minimum liquidity required */
   minLiquidity: BN;
-  /** Decommission grace period in seconds */
-  decommissionGracePeriod: BN;
   /** Last updated timestamp */
   lastUpdated: BN;
   /** Last updated by */
   lastUpdatedBy: string;
+  /** Rebalance request fee in lamports */
+  rebalanceRequestFeeLamports: BN;
+  /** Baskt creation fee in lamports */
+  basktCreationFeeLamports: BN;
+  /** Treasury cut in basis points */
+  treasuryCutBps: BN;
 }
 
 /**
@@ -98,7 +96,7 @@ export interface OnchainProtocolInterface {
   /** Protocol treasury */
   treasury: PublicKey;
   /** Escrow mint */
-  escrowMint: PublicKey;
+  collateralMint: PublicKey;
 }
 
 /**

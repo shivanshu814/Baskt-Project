@@ -2,9 +2,10 @@ import { Queue, Worker } from 'bullmq';
 import { managerQueue, connection, rebalanceQueue } from '../config/queue';
 import { connectMongoDB, disconnectMongoDB } from '../config/mongo';
 import mongoose from 'mongoose';
-import { BasktMetadataSchema, BasktMetadataModel } from '@baskt/types';
+import { BasktMetadataModel } from '@baskt/types';
 import { basktClient } from '../config/client';
 import { PublicKey } from '@solana/web3.js';
+import { BasktMetadataSchema } from '@baskt/querier';
 
 async function getRebalanceConfigs() {
   const BasktMetadataModel = mongoose.model<BasktMetadataModel>(
@@ -36,27 +37,32 @@ async function scheduleRebalanceConfigs() {
   console.log('─'.repeat(50));
 
   const jobPromises = rebalanceConfigs.map(async (config) => {
-    if (!config.rebalancePeriod) {
-      console.log(`❌ ${config.basktId} - No rebalance period configured`);
-      return;
-    }
-
     try {
-      const baskt = await basktClient.getBaskt(new PublicKey(config.basktId), 'confirmed');
+      const baskt = await basktClient.getBasktRaw(new PublicKey(config.basktId), 'confirmed');
       if (!baskt) {
         console.log(`❌ ${config.basktId} - Not found on blockchain`);
         return;
       }
 
+      // Read rebalance period from on-chain data
+      const rebalancePeriodSeconds = baskt.basktRebalancePeriod.toNumber();
+      if (rebalancePeriodSeconds === 0) {
+        console.log(`⏭️ ${config.basktId} - No rebalance period configured (0 seconds)`);
+        return;
+      }
+
       const lastRebalanceTime = baskt.lastRebalanceTime.toNumber() * 1000;
-      const rebalancePeriodMs = periodToMs(config.rebalancePeriod);
+      const rebalancePeriodMs = rebalancePeriodSeconds * 1000; // Convert seconds to milliseconds
       const nextRebalanceTime = lastRebalanceTime + rebalancePeriodMs;
       const now = Date.now();
 
       if (now >= nextRebalanceTime) {
         const jobData = {
           basktId: config.basktId,
-          rebalancePeriod: config.rebalancePeriod,
+          rebalancePeriod: {
+            value: rebalancePeriodSeconds,
+            unit: 'second' as const,
+          },
           lastRebalanceTime: lastRebalanceTime,
         };
 
@@ -66,10 +72,10 @@ async function scheduleRebalanceConfigs() {
           removeOnFail: true,
         });
 
-        console.log(`✅ ${config.basktId} - Scheduled for rebalance`);
+        console.log(`✅ ${config.basktId} - Scheduled for rebalance (period: ${rebalancePeriodSeconds}s)`);
       } else {
         const timeUntilNext = Math.round((nextRebalanceTime - now) / 1000 / 60);
-        console.log(`⏳ ${config.basktId} - Next rebalance in ${timeUntilNext} minutes`);
+        console.log(`⏳ ${config.basktId} - Next rebalance in ${timeUntilNext} minutes (period: ${rebalancePeriodSeconds}s)`);
       }
     } catch (error) {
       console.log(
@@ -82,18 +88,7 @@ async function scheduleRebalanceConfigs() {
   console.log('─'.repeat(50));
 }
 
-function periodToMs(period: { value: number; unit: 'day' | 'hour' | 'minute' }) {
-  switch (period.unit) {
-    case 'day':
-      return period.value * 24 * 60 * 60 * 1000;
-    case 'hour':
-      return period.value * 60 * 60 * 1000;
-    case 'minute':
-      return period.value * 60 * 1000;
-    default:
-      return period.value * 24 * 60 * 60 * 1000;
-  }
-}
+
 
 async function resetJobs(queue: Queue) {
   const existingJobs = await queue.getRepeatableJobs();

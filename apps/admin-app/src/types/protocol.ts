@@ -24,5 +24,5 @@ export interface ProtocolHookResult {
 export interface ProtocolGeneralInfoProps {
   owner: string;
   treasury: string;
-  escrowMint: string;
+  collateralMint: string;
 }

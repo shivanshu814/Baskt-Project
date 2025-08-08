@@ -16,9 +16,7 @@ describe('protocol config setters', () => {
   const nonAuthorizedAccount = Keypair.generate();
 
   // Constants for testing (from constants.rs)
-  const MAX_FEE_BPS = 500; // 5% maximum fee
-  const MAX_PRICE_DEVIATION_BPS = 2500; // 25% max price deviation
-  const LIQUIDATION_PRICE_DEVIATION_BPS = 2000; // 20% max liquidation price deviation
+  const MAX_FEE_BPS = 1000; // 50% maximum fee
   const MIN_GRACE_PERIOD = 1; // 1 hour
   const MAX_GRACE_PERIOD = 604800; // 7 days
   const BPS_DIVISOR = 10000; // 100% in basis points
@@ -55,11 +53,7 @@ describe('protocol config setters', () => {
     await client.setLiquidationFeeBps(initialConfig.liquidationFeeBps.toNumber());
     await client.setMinCollateralRatioBps(initialConfig.minCollateralRatioBps.toNumber());
     await client.setLiquidationThresholdBps(initialConfig.liquidationThresholdBps.toNumber());
-    await client.setMaxPriceAgeSec(initialConfig.maxPriceAgeSec);
-    await client.setMaxPriceDeviationBps(initialConfig.maxPriceDeviationBps.toNumber());
-    await client.setLiquidationPriceDeviationBps(initialConfig.liquidationPriceDeviationBps.toNumber());
     await client.setMinLiquidity(initialConfig.minLiquidity.toNumber());
-    await client.setDecommissionGracePeriod(initialConfig.decommissionGracePeriod.toNumber());
   });
 
   describe('set_opening_fee_bps', () => {
@@ -86,7 +80,7 @@ describe('protocol config setters', () => {
       try {
         await client.setOpeningFeeBps(invalidFeeBps);
         expect.fail('Should have failed with fee above maximum');
-      } catch (error) {
+      } catch (error: any) {
         expect(error).to.exist;
         expect(error.toString()).to.include('InvalidFeeBps');
       }
@@ -98,7 +92,7 @@ describe('protocol config setters', () => {
       try {
         await nonAuthorizedClient.setOpeningFeeBps(50);
         expect.fail('Should have failed with unauthorized access');
-      } catch (error) {
+      } catch (error: any) {
         expect(error).to.exist;
         expect(error.toString()).to.include('UnauthorizedRole');
       }
@@ -136,7 +130,7 @@ describe('protocol config setters', () => {
       try {
         await client.setClosingFeeBps(invalidFeeBps);
         expect.fail('Should have failed with fee above maximum');
-      } catch (error) {
+      } catch (error: any) {
         expect(error).to.exist;
         expect(error.toString()).to.include('InvalidFeeBps');
       }
@@ -160,7 +154,7 @@ describe('protocol config setters', () => {
       try {
         await client.setLiquidationFeeBps(invalidFeeBps);
         expect.fail('Should have failed with fee above maximum');
-      } catch (error) {
+      } catch (error: any) {
         expect(error).to.exist;
         expect(error.toString()).to.include('InvalidFeeBps');
       }
@@ -184,7 +178,7 @@ describe('protocol config setters', () => {
       try {
         await client.setMinCollateralRatioBps(invalidRatioBps);
         expect.fail('Should have failed with ratio below minimum');
-      } catch (error) {
+      } catch (error: any) {
         expect(error).to.exist;
         expect(error.toString()).to.include('InvalidCollateralRatio');
       }
@@ -206,7 +200,7 @@ describe('protocol config setters', () => {
       try {
         await client.setLiquidationThresholdBps(0);
         expect.fail('Should have failed with zero threshold');
-      } catch (error) {
+      } catch (error: any) {
         expect(error).to.exist;
         expect(error.toString()).to.include('InvalidCollateralRatio');
       }
@@ -218,7 +212,7 @@ describe('protocol config setters', () => {
       try {
         await client.setLiquidationThresholdBps(invalidThresholdBps);
         expect.fail('Should have failed with threshold above 100%');
-      } catch (error) {
+      } catch (error: any) {
         expect(error).to.exist;
         expect(error.toString()).to.include('InvalidCollateralRatio');
       }
@@ -232,75 +226,8 @@ describe('protocol config setters', () => {
     });
   });
 
-  describe('set_max_price_age_sec', () => {
-    it('Successfully sets max price age with valid value', async () => {
-      const newMaxAgeSec = 120; // 2 minutes
 
-      await client.setMaxPriceAgeSec(newMaxAgeSec);
 
-      const protocol = await client.getProtocolAccount();
-      expect(protocol.config.maxPriceAgeSec).to.equal(newMaxAgeSec);
-      expect(protocol.config.lastUpdatedBy).to.equal(client.getPublicKey().toString());
-    });
-
-    it('Fails with zero value', async () => {
-      try {
-        await client.setMaxPriceAgeSec(0);
-        expect.fail('Should have failed with zero value');
-      } catch (error) {
-        expect(error).to.exist;
-        expect(error.toString()).to.include('InvalidOracleParameter');
-      }
-    });
-  });
-
-  describe('set_max_price_deviation_bps', () => {
-    it('Successfully sets max price deviation with valid value', async () => {
-      const newDeviationBps = 1000; // 10%
-
-      await client.setMaxPriceDeviationBps(newDeviationBps);
-
-      const protocol = await client.getProtocolAccount();
-      expect(protocol.config.maxPriceDeviationBps.toNumber()).to.equal(newDeviationBps);
-      expect(protocol.config.lastUpdatedBy).to.equal(client.getPublicKey().toString());
-    });
-
-    it('Fails with deviation above maximum', async () => {
-      const invalidDeviationBps = MAX_PRICE_DEVIATION_BPS + 1;
-
-      try {
-        await client.setMaxPriceDeviationBps(invalidDeviationBps);
-        expect.fail('Should have failed with deviation above maximum');
-      } catch (error) {
-        expect(error).to.exist;
-        expect(error.toString()).to.include('InvalidFeeBps');
-      }
-    });
-  });
-
-  describe('set_liquidation_price_deviation_bps', () => {
-    it('Successfully sets liquidation price deviation with valid value', async () => {
-      const newDeviationBps = 1500; // 15%
-
-      await client.setLiquidationPriceDeviationBps(newDeviationBps);
-
-      const protocol = await client.getProtocolAccount();
-      expect(protocol.config.liquidationPriceDeviationBps.toNumber()).to.equal(newDeviationBps);
-      expect(protocol.config.lastUpdatedBy).to.equal(client.getPublicKey().toString());
-    });
-
-    it('Fails with deviation above maximum', async () => {
-      const invalidDeviationBps = LIQUIDATION_PRICE_DEVIATION_BPS + 1;
-
-      try {
-        await client.setLiquidationPriceDeviationBps(invalidDeviationBps);
-        expect.fail('Should have failed with deviation above maximum');
-      } catch (error) {
-        expect(error).to.exist;
-        expect(error.toString()).to.include('InvalidFeeBps');
-      }
-    });
-  });
 
   describe('set_min_liquidity', () => {
     it('Successfully sets minimum liquidity with valid value', async () => {
@@ -317,46 +244,112 @@ describe('protocol config setters', () => {
       try {
         await client.setMinLiquidity(0);
         expect.fail('Should have failed with zero value');
-      } catch (error) {
+      } catch (error: any) {
         expect(error).to.exist;
-        expect(error.toString()).to.include('InvalidOracleParameter');
+        expect(error.toString()).to.include('InvalidInput');
       }
     });
   });
 
-  describe('set_decommission_grace_period', () => {
-    it('Successfully sets grace period with valid value', async () => {
-      const newGracePeriod = 86400; // 24 hours
-
-      await client.setDecommissionGracePeriod(newGracePeriod);
+  describe('set_baskt_creation_fee', () => {
+    it('Successfully sets baskt creation fee with valid values and handles edge cases', async () => {
+      // Test valid fee setting
+      const newFeeLamports = 2000000; // 0.002 SOL
+      await client.setBasktCreationFee(newFeeLamports);
 
       const protocol = await client.getProtocolAccount();
-      expect(protocol.config.decommissionGracePeriod.toNumber()).to.equal(newGracePeriod);
+      expect((protocol.config as any).basktCreationFeeLamports.toNumber()).to.equal(newFeeLamports);
       expect(protocol.config.lastUpdatedBy).to.equal(client.getPublicKey().toString());
+
+      // Test zero fee value
+      await client.setBasktCreationFee(0);
+      const protocolAfterZero = await client.getProtocolAccount();
+      expect((protocolAfterZero.config as any).basktCreationFeeLamports.toNumber()).to.equal(0);
+
+      // Test large fee values
+      const largeFeeLamports = 2000000000; // 2 SOL
+      await client.setBasktCreationFee(largeFeeLamports);
+      const protocolAfterLarge = await client.getProtocolAccount();
+      expect((protocolAfterLarge.config as any).basktCreationFeeLamports.toNumber()).to.equal(largeFeeLamports);
+
+      // Test no-op when setting same value
+      const currentFeeLamports = (protocolAfterLarge.config as any).basktCreationFeeLamports.toNumber();
+      await client.setBasktCreationFee(currentFeeLamports);
+      const protocolAfterNoOp = await client.getProtocolAccount();
+      expect((protocolAfterNoOp.config as any).basktCreationFeeLamports.toNumber()).to.equal(currentFeeLamports);
     });
 
-    it('Fails with grace period below minimum', async () => {
-      const invalidGracePeriod = MIN_GRACE_PERIOD - 1;
-
+    it('Fails when called by non-authorized account and ConfigManager can update', async () => {
+      // Test unauthorized access
+      const nonAuthorizedClient = await TestClient.forUser(nonAuthorizedAccount);
+      
       try {
-        await client.setDecommissionGracePeriod(invalidGracePeriod);
-        expect.fail('Should have failed with grace period below minimum');
-      } catch (error) {
-        expect(error).to.exist;
-        expect(error.toString()).to.include('InvalidGracePeriod');
+        await nonAuthorizedClient.setBasktCreationFee(1000000);
+        expect.fail('Should have failed with unauthorized access');
+      } catch (error: any) {
+        expect((error as Error).toString()).to.include('UnauthorizedRole');
       }
+
+      // Test ConfigManager can update
+      const configManagerClient = await TestClient.forUser(configManager);
+      const newFeeLamports = 500000; // 0.0005 SOL
+
+      await configManagerClient.setBasktCreationFee(newFeeLamports);
+
+      const protocol = await client.getProtocolAccount();
+      expect((protocol.config as any).basktCreationFeeLamports.toNumber()).to.equal(newFeeLamports);
+      expect(protocol.config.lastUpdatedBy).to.equal(configManager.publicKey.toString());
+    });
+  });
+
+  describe('set_rebalance_request_fee', () => {
+    it('Successfully sets rebalance request fee with valid values and handles edge cases', async () => {
+      // Test valid fee setting
+      const newFeeLamports = 1000000; // 0.001 SOL
+      await client.setRebalanceRequestFee(newFeeLamports);
+
+      const protocol = await client.getProtocolAccount();
+      expect(protocol.config.rebalanceRequestFeeLamports.toNumber()).to.equal(newFeeLamports);
+      expect(protocol.config.lastUpdatedBy).to.equal(client.getPublicKey().toString());
+
+      // Test zero fee value
+      await client.setRebalanceRequestFee(0);
+      const protocolAfterZero = await client.getProtocolAccount();
+      expect(protocolAfterZero.config.rebalanceRequestFeeLamports.toNumber()).to.equal(0);
+
+      // Test large fee values
+      const largeFeeLamports = 1000000000; // 1 SOL
+      await client.setRebalanceRequestFee(largeFeeLamports);
+      const protocolAfterLarge = await client.getProtocolAccount();
+      expect(protocolAfterLarge.config.rebalanceRequestFeeLamports.toNumber()).to.equal(largeFeeLamports);
+
+      // Test no-op when setting same value
+      const currentFeeLamports = protocolAfterLarge.config.rebalanceRequestFeeLamports.toNumber();
+      await client.setRebalanceRequestFee(currentFeeLamports);
+      const protocolAfterNoOp = await client.getProtocolAccount();
+      expect(protocolAfterNoOp.config.rebalanceRequestFeeLamports.toNumber()).to.equal(currentFeeLamports);
     });
 
-    it('Fails with grace period above maximum', async () => {
-      const invalidGracePeriod = MAX_GRACE_PERIOD + 1;
-
+    it('Fails when called by non-authorized account and ConfigManager can update', async () => {
+      // Test unauthorized access
+      const nonAuthorizedClient = await TestClient.forUser(nonAuthorizedAccount);
+      
       try {
-        await client.setDecommissionGracePeriod(invalidGracePeriod);
-        expect.fail('Should have failed with grace period above maximum');
-      } catch (error) {
-        expect(error).to.exist;
-        expect(error.toString()).to.include('InvalidGracePeriod');
+        await nonAuthorizedClient.setRebalanceRequestFee(1000000);
+        expect.fail('Should have failed with unauthorized access');
+      } catch (error: any) {
+        expect((error as Error).toString()).to.include('UnauthorizedRole');
       }
+
+      // Test ConfigManager can update
+      const configManagerClient = await TestClient.forUser(configManager);
+      const newFeeLamports = 500000; // 0.0005 SOL
+
+      await configManagerClient.setRebalanceRequestFee(newFeeLamports);
+
+      const protocol = await client.getProtocolAccount();
+      expect(protocol.config.rebalanceRequestFeeLamports.toNumber()).to.equal(newFeeLamports);
+      expect(protocol.config.lastUpdatedBy).to.equal(configManager.publicKey.toString());
     });
   });
 
@@ -392,24 +385,17 @@ describe('protocol config setters', () => {
       await configManagerClient.setLiquidationFeeBps(95);
       await configManagerClient.setMinCollateralRatioBps(11500);
       await configManagerClient.setLiquidationThresholdBps(600);
-      await configManagerClient.setMaxPriceAgeSec(90);
-      await configManagerClient.setMaxPriceDeviationBps(1200);
-      await configManagerClient.setLiquidationPriceDeviationBps(1800);
       await configManagerClient.setMinLiquidity(1500000000);
-      await configManagerClient.setDecommissionGracePeriod(172800); // 48 hours
 
       // Verify all changes were applied
       const protocol = await client.getProtocolAccount();
+      const liquidityPool = await client.getLiquidityPool();
       expect(protocol.config.openingFeeBps.toNumber()).to.equal(75);
       expect(protocol.config.closingFeeBps.toNumber()).to.equal(85);
       expect(protocol.config.liquidationFeeBps.toNumber()).to.equal(95);
       expect(protocol.config.minCollateralRatioBps.toNumber()).to.equal(11500);
       expect(protocol.config.liquidationThresholdBps.toNumber()).to.equal(600);
-      expect(protocol.config.maxPriceAgeSec).to.equal(90);
-      expect(protocol.config.maxPriceDeviationBps.toNumber()).to.equal(1200);
-      expect(protocol.config.liquidationPriceDeviationBps.toNumber()).to.equal(1800);
       expect(protocol.config.minLiquidity.toNumber()).to.equal(1500000000);
-      expect(protocol.config.decommissionGracePeriod.toNumber()).to.equal(172800);
     });
 
     it('Non-authorized accounts cannot update any config values', async () => {
@@ -422,11 +408,7 @@ describe('protocol config setters', () => {
         () => unauthorizedClient.setLiquidationFeeBps(50),
         () => unauthorizedClient.setMinCollateralRatioBps(11500),
         () => unauthorizedClient.setLiquidationThresholdBps(500),
-        () => unauthorizedClient.setMaxPriceAgeSec(120),
-        () => unauthorizedClient.setMaxPriceDeviationBps(1000),
-        () => unauthorizedClient.setLiquidationPriceDeviationBps(1500),
         () => unauthorizedClient.setMinLiquidity(2000000000),
-        () => unauthorizedClient.setDecommissionGracePeriod(86400),
         () => unauthorizedClient.updateTreasury(Keypair.generate().publicKey),
       ];
 
@@ -434,7 +416,7 @@ describe('protocol config setters', () => {
         try {
           await testCase();
           expect.fail('Should have failed with unauthorized access');
-        } catch (error) {
+        } catch (error: any ) {
           expect(error).to.exist;
           expect(error.toString()).to.include('UnauthorizedRole');
         }
@@ -462,26 +444,8 @@ describe('protocol config setters', () => {
       expect(protocol.config.minCollateralRatioBps.toNumber()).to.equal(MIN_COLLATERAL_RATIO_BPS);
     });
 
-    it('Accepts maximum valid price deviations', async () => {
-      await client.setMaxPriceDeviationBps(MAX_PRICE_DEVIATION_BPS);
-      await client.setLiquidationPriceDeviationBps(LIQUIDATION_PRICE_DEVIATION_BPS);
 
-      const protocol = await client.getProtocolAccount();
-      expect(protocol.config.maxPriceDeviationBps.toNumber()).to.equal(MAX_PRICE_DEVIATION_BPS);
-      expect(protocol.config.liquidationPriceDeviationBps.toNumber()).to.equal(LIQUIDATION_PRICE_DEVIATION_BPS);
-    });
-
-    it('Accepts boundary grace period values', async () => {
-      // Test minimum grace period
-      await client.setDecommissionGracePeriod(MIN_GRACE_PERIOD);
-      let protocol = await client.getProtocolAccount();
-      expect(protocol.config.decommissionGracePeriod.toNumber()).to.equal(MIN_GRACE_PERIOD);
-
-      // Test maximum grace period
-      await client.setDecommissionGracePeriod(MAX_GRACE_PERIOD);
-      protocol = await client.getProtocolAccount();
-      expect(protocol.config.decommissionGracePeriod.toNumber()).to.equal(MAX_GRACE_PERIOD);
-    });
+ 
 
     it('Accepts zero fee values', async () => {
       // Test zero fee values (should be valid)

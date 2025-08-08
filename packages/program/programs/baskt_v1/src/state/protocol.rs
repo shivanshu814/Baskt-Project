@@ -10,7 +10,7 @@ pub enum Role {
     /// Asset manager role with permission to add and manage assets
     AssetManager,
     /// Oracle manager role with permission to update oracle data
-    OracleManager,
+    BasktManager,
     /// Rebalancer role with permission to rebalance baskts
     Rebalancer,
     /// Matcher role with permission to match orders and open/close positions
@@ -21,6 +21,8 @@ pub enum Role {
     FundingManager,
     /// ConfigManager role with permission to update protocol configuration
     ConfigManager,
+    /// Keeper role with permission to process the withdrawal queue
+    Keeper,
 }
 
 /// Access control entry for a specific account
@@ -126,16 +128,14 @@ pub struct ProtocolConfig {
     pub min_collateral_ratio_bps: u64,
     pub liquidation_threshold_bps: u64,
 
-    /// Oracle parameters
-    pub max_price_age_sec: u32,
-    pub max_price_deviation_bps: u64,
-    pub liquidation_price_deviation_bps: u64,
-
-    /// Pool parameters
+    /// Liquidity parameters
     pub min_liquidity: u64,
 
-    /// Baskt decommissioning parameters
-    pub decommission_grace_period: i64, // Grace period in seconds
+    /// Rebalance request fee in lamports (SOL)
+    pub rebalance_request_fee_lamports: u64,
+
+    /// Baskt creation fee in lamports (SOL)
+    pub baskt_creation_fee_lamports: u64,
 
     /// Metadata
     pub last_updated: i64,
@@ -154,11 +154,9 @@ impl ProtocolConfig {
             funding_interval_seconds: FUNDING_INTERVAL_SECONDS,
             min_collateral_ratio_bps: MIN_COLLATERAL_RATIO_BPS,
             liquidation_threshold_bps: LIQUIDATION_THRESHOLD_BPS,
-            max_price_age_sec: MAX_PRICE_AGE_SEC,
-            max_price_deviation_bps: MAX_PRICE_DEVIATION_BPS,
-            liquidation_price_deviation_bps: LIQUIDATION_PRICE_DEVIATION_BPS,
             min_liquidity: MIN_LIQUIDITY,
-            decommission_grace_period: 86400, // Default to 24 hours (86400 seconds)
+            rebalance_request_fee_lamports: 0, // Default to 0
+            baskt_creation_fee_lamports: 0, // Default to 0
             last_updated: 0,
             last_updated_by: owner,
         }
@@ -183,8 +181,8 @@ pub struct Protocol {
     pub feature_flags: FeatureFlags,
 
     pub treasury: Pubkey,
-    /// Escrow mint (USDC)
-    pub escrow_mint: Pubkey,
+    /// Collateral mint (USDC)
+    pub collateral_mint: Pubkey,
 
     /// Protocol configuration parameters
     pub config: ProtocolConfig,
@@ -196,7 +194,7 @@ impl Protocol {
         &mut self,
         owner: Pubkey,
         treasury: Pubkey,
-        escrow_mint: Pubkey,
+        collateral_mint: Pubkey,
     ) -> Result<()> {
         self.is_initialized = true;
         self.owner = owner;
@@ -220,7 +218,7 @@ impl Protocol {
         };
 
         self.treasury = treasury;
-        self.escrow_mint = escrow_mint;
+        self.collateral_mint = collateral_mint;
 
         // Initialize default protocol configuration
         self.config = ProtocolConfig::new(owner);
@@ -287,14 +285,14 @@ mod tests {
             access_control: AccessControl::default(),
             feature_flags: FeatureFlags::default(),
             treasury: Pubkey::default(),
-            escrow_mint: Pubkey::default(),
+            collateral_mint: Pubkey::default(),
             config: ProtocolConfig::new(Pubkey::default()),
         };
         let owner = Pubkey::new_unique();
         let treasury = Pubkey::new_unique();
-        let escrow_mint = Pubkey::new_unique();
+        let collateral_mint = Pubkey::new_unique();
 
-        state.initialize(owner, treasury, escrow_mint).unwrap();
+        state.initialize(owner, treasury, collateral_mint).unwrap();
 
         assert!(state.is_initialized());
         assert_eq!(state.get_owner(), owner);
@@ -308,18 +306,18 @@ mod tests {
             access_control: AccessControl::default(),
             feature_flags: FeatureFlags::default(),
             treasury: Pubkey::default(),
-            escrow_mint: Pubkey::default(),
+            collateral_mint: Pubkey::default(),
             config: ProtocolConfig::new(Pubkey::default()),
         };
         let owner = Pubkey::new_unique();
         let treasury = Pubkey::new_unique();
-        let escrow_mint = Pubkey::new_unique();
+        let collateral_mint = Pubkey::new_unique();
         let asset_manager = Pubkey::new_unique();
         let liquidator = Pubkey::new_unique();
         let random_user = Pubkey::new_unique();
 
         // Initialize protocol with owner
-        state.initialize(owner, treasury, escrow_mint).unwrap();
+        state.initialize(owner, treasury, collateral_mint).unwrap();
 
         // Add roles to accounts
         state.add_role(asset_manager, Role::AssetManager).unwrap();
@@ -354,14 +352,14 @@ mod tests {
             access_control: AccessControl::default(),
             feature_flags: FeatureFlags::default(),
             treasury: Pubkey::default(),
-            escrow_mint: Pubkey::default(),
+            collateral_mint: Pubkey::default(),
             config: ProtocolConfig::new(Pubkey::default()),
         };
         let user = Pubkey::new_unique();
         let treasury = Pubkey::new_unique();
-        let escrow_mint = Pubkey::new_unique();
+        let collateral_mint = Pubkey::new_unique();
 
-        state.initialize(user, treasury, escrow_mint).unwrap();
+        state.initialize(user, treasury, collateral_mint).unwrap();
 
         // Try to remove a role that doesn't exist
         let random_user = Pubkey::new_unique();

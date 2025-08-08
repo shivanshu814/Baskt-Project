@@ -1,18 +1,14 @@
 import { AssetMetadataModel } from '../models/mongodb';
-import { AssetPrice } from '../config/timescale';
-import { getOnchainConfig } from '../config/onchain';
 import { createQuerierError, handleQuerierError } from '../utils/error-handling';
-import { AssetOptions, QueryResult } from '../models/types';
+import { QueryResult } from '../models/types';
 import { PublicKey } from '@solana/web3.js';
-import { BaseClient } from '@baskt/sdk';
+import { BaseClient, fetchAssetPrices } from '@baskt/sdk';
 import {
   CombinedAsset,
   AssetCacheStats,
   AssetQueryOptions,
-  AssetPriceData,
-  AssetConfig,
 } from '../types/asset';
-import { OnchainAsset } from '@baskt/types';
+import {   AssetPrice, AssetPriceProviderConfig, OnchainAsset } from '@baskt/types';
 
 /**
  * Asset Querier
@@ -31,15 +27,17 @@ export class AssetQuerier {
    * Get all assets with optional price and config data
    */
   async getAllAssets(options: AssetQueryOptions = {}): Promise<QueryResult<CombinedAsset[]>> {
+    console.time('getAllAssets');
     try {
-      const { withLatestPrices = false, withConfig = false } = options;
+      const { withConfig = false} = options;
 
       // Fetch data from multiple sources
-      const [assetConfigs, onchainAssets, latestPrices] = await Promise.all([
+      const [assetConfigs, onchainAssets] = await Promise.all([
         this.getAssetConfigsFromMongoDB(),
         this.getAssetsFromOnchain(),
-        withLatestPrices ? this.getLatestPricesFromTimescaleDB() : Promise.resolve([]),
       ]);
+
+      const livePrices = await this.getLivePricesForAssets(assetConfigs);
 
       if (!assetConfigs || assetConfigs.length === 0) {
         return {
@@ -53,7 +51,7 @@ export class AssetQuerier {
       const combinedAssets = this.combineAssetData(
         assetConfigs,
         onchainAssets,
-        latestPrices,
+        livePrices,
         withConfig,
       );
 
@@ -61,6 +59,8 @@ export class AssetQuerier {
         success: true,
         data: combinedAssets,
       };
+
+      console.timeEnd('getAllAssets');
 
       return result;
     } catch (error) {
@@ -81,11 +81,12 @@ export class AssetQuerier {
     options: AssetQueryOptions = {},
   ): Promise<QueryResult<CombinedAsset>> {
     try {
-      const [assetConfig, onchainAsset, latestPrices] = await Promise.all([
+      const [assetConfig, onchainAsset] = await Promise.all([
         this.getAssetConfigFromMongoDB(assetAddress),
         this.getAssetFromOnchain(assetAddress),
-        options.withLatestPrices ? this.getLatestPricesForAsset(assetAddress) : Promise.resolve([]),
       ]);
+
+      const livePrice = await this.getLivePricesForAssets([assetConfig]);
 
       if (!assetConfig || !onchainAsset) {
         return {
@@ -97,7 +98,7 @@ export class AssetQuerier {
       const combinedAsset = this.combineSingleAssetData(
         assetConfig,
         onchainAsset,
-        latestPrices[0] || null,
+        livePrice[0],
         options.withConfig || false,
       );
 
@@ -125,14 +126,16 @@ export class AssetQuerier {
     options: AssetQueryOptions = {},
   ): Promise<QueryResult<CombinedAsset[]>> {
     try {
-      const { withLatestPrices = false, withConfig = false } = options;
+      const { withConfig = false } = options;
 
       // Fetch data from multiple sources
-      const [assetConfigs, onchainAssets, latestPrices] = await Promise.all([
+      const [assetConfigs, onchainAssets] = await Promise.all([
         this.getAssetConfigsByAddressFromMongoDB(assetAddresses),
         Promise.all(assetAddresses.map((addr) => this.getAssetFromOnchain(addr).catch(() => null))),
-        withLatestPrices ? this.getLatestPricesForAssets(assetAddresses) : Promise.resolve([]),
       ]);
+
+      const livePrices = await this.getLivePricesForAssets(assetConfigs);
+
 
       if (!assetConfigs || assetConfigs.length === 0) {
         return {
@@ -146,14 +149,12 @@ export class AssetQuerier {
       const combinedAssets = assetConfigs
         .map((assetConfig: any, index: number) => {
           const matchingOnchainAsset = onchainAssets[index];
-          const matchingPrice = latestPrices.find(
-            (price: any) => price?.id === assetConfig._id?.toString(),
-          );
+          const livePrice = livePrices[index];
 
           return this.combineSingleAssetData(
             assetConfig,
             matchingOnchainAsset,
-            matchingPrice,
+            livePrice,
             withConfig,
           );
         })
@@ -191,17 +192,15 @@ export class AssetQuerier {
         };
       }
 
-      const [onchainAsset, latestPrices] = await Promise.all([
+      const [onchainAsset, livePrices] = await Promise.all([
         this.getAssetFromOnchain(assetConfig.assetAddress),
-        options.withLatestPrices
-          ? this.getLatestPricesForAsset(assetConfig.assetAddress)
-          : Promise.resolve([]),
+        this.getLivePricesForAssets([assetConfig]),
       ]);
 
       const combinedAsset = this.combineSingleAssetData(
         assetConfig,
         onchainAsset,
-        latestPrices[0] || null,
+        livePrices[0],
         options.withConfig || false,
       );
 
@@ -218,6 +217,15 @@ export class AssetQuerier {
         message: 'Failed to fetch asset',
         error: querierError.message,
       };
+    }
+  }
+
+
+  private async getLivePricesForAssets(assetConfigs: any[]): Promise<(AssetPrice | null)[]> {
+    try {
+      return fetchAssetPrices(assetConfigs.map((asset) => asset.priceConfig as AssetPriceProviderConfig), assetConfigs.map((asset) => asset.assetAddress));
+    } catch (error) {
+      throw createQuerierError('Failed to fetch live prices for asset', 'TIMESCALE_ERROR', 500, error);
     }
   }
 
@@ -292,80 +300,11 @@ export class AssetQuerier {
     }
   }
 
-  // TimescaleDB data fetching methods
-  private async getLatestPricesFromTimescaleDB(): Promise<any[]> {
-    try {
-      const prices = await AssetPrice.findAll({
-        order: [['time', 'DESC']],
-        limit: 100,
-      });
-
-      return prices.map((price: any) => ({
-        id: price.asset_id,
-        price: price.price,
-        time: price.time,
-      }));
-    } catch (error) {
-      throw createQuerierError(
-        'Failed to fetch latest prices from TimescaleDB',
-        'TIMESCALE_ERROR',
-        500,
-        error,
-      );
-    }
-  }
-
-  private async getLatestPricesForAsset(assetAddress: string): Promise<any[]> {
-    try {
-      const prices = await AssetPrice.findAll({
-        where: { asset_id: assetAddress },
-        order: [['time', 'DESC']],
-        limit: 1,
-      });
-
-      return prices.map((price: any) => ({
-        id: price.asset_id,
-        price: price.price,
-        time: price.time,
-      }));
-    } catch (error) {
-      throw createQuerierError(
-        'Failed to fetch latest prices for asset from TimescaleDB',
-        'TIMESCALE_ERROR',
-        500,
-        error,
-      );
-    }
-  }
-
-  private async getLatestPricesForAssets(assetAddresses: string[]): Promise<any[]> {
-    try {
-      const prices = await AssetPrice.findAll({
-        where: { asset_id: assetAddresses },
-        order: [['time', 'DESC']],
-        limit: assetAddresses.length,
-      });
-
-      return prices.map((price: any) => ({
-        id: price.asset_id,
-        price: price.price,
-        time: price.time,
-      }));
-    } catch (error) {
-      throw createQuerierError(
-        'Failed to fetch latest prices for assets from TimescaleDB',
-        'TIMESCALE_ERROR',
-        500,
-        error,
-      );
-    }
-  }
-
   // Data combination methods
   private combineAssetData(
     assetConfigs: any[],
-    onchainAssets: any[],
-    latestPrices: any[],
+    onchainAssets: OnchainAsset[],
+    latestPrices: (AssetPrice | null)[],
     withConfig: boolean,
   ): CombinedAsset[] {
     return assetConfigs
@@ -373,13 +312,17 @@ export class AssetQuerier {
         const matchingOnchainAsset = onchainAssets.find(
           (asset) => asset?.ticker?.toString() === assetConfig.ticker?.toString(),
         );
+        const livePrice = latestPrices.find((price: AssetPrice | null) => price?.assetAddress.toString()  === matchingOnchainAsset?.address.toString());
 
-        const matchingPrice = latestPrices.find((price) => price?.id === assetConfig.ticker);
+        if (!livePrice) {
+          console.log('livePrice not found for asset', assetConfig.ticker);
+          return undefined;
+        }
 
         return this.combineSingleAssetData(
           assetConfig,
           matchingOnchainAsset,
-          matchingPrice,
+          livePrice,
           withConfig,
         );
       })
@@ -389,7 +332,7 @@ export class AssetQuerier {
   private combineSingleAssetData(
     assetConfig: any,
     onchainAsset: any,
-    latestPrice: any,
+    livePrice: AssetPrice | null,
     withConfig: boolean,
   ): CombinedAsset | undefined {
     if (!assetConfig || !onchainAsset) {
@@ -412,7 +355,7 @@ export class AssetQuerier {
       };
     }
 
-    const price = latestPrice?.price || assetConfig.priceMetrics?.price || 0;
+    const price = Number(livePrice?.priceUSD);
     const change24h = assetConfig.priceMetrics?.change24h || 0;
 
     return {
@@ -432,79 +375,8 @@ export class AssetQuerier {
             coingeckoId: assetConfig.coingeckoId,
           }
         : undefined,
-      latestPrice,
       basktIds: assetConfig.basktIds || [],
     };
   }
 
-  /**
-   * Get asset performance statistics and cache stats
-   */
-  async getCacheStats(): Promise<QueryResult<AssetCacheStats>> {
-    try {
-      // Get basic asset counts
-      const [assetConfigs, onchainAssets, latestPrices] = await Promise.all([
-        this.getAssetConfigsFromMongoDB(),
-        this.getAssetsFromOnchain(),
-        this.getLatestPricesFromTimescaleDB(),
-      ]);
-
-      // Calculate performance metrics
-      const totalAssets = assetConfigs.length;
-      const totalOnchainAssets = onchainAssets.length;
-      const totalPrices = latestPrices.length;
-
-      // Get unique asset addresses
-      const uniqueAssetAddresses = new Set([
-        ...assetConfigs.map((asset: any) => asset.assetAddress).filter(Boolean),
-        ...onchainAssets.map((asset: any) => asset?.address?.toString()).filter(Boolean),
-      ]);
-
-      // Calculate price coverage
-      const assetsWithPrices = latestPrices.filter((price: any) =>
-        assetConfigs.some((asset: any) => asset.assetAddress === price.id),
-      ).length;
-
-      const priceCoveragePercentage = totalAssets > 0 ? (assetsWithPrices / totalAssets) * 100 : 0;
-
-      // Get recent activity (last 24 hours)
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const recentAssets = assetConfigs.filter(
-        (asset: any) => asset.updatedAt && new Date(asset.updatedAt) > oneDayAgo,
-      ).length;
-
-      const stats = {
-        totalAssets,
-        totalOnchainAssets,
-        totalPrices,
-        uniqueAssetAddresses: uniqueAssetAddresses.size,
-        assetsWithPrices,
-        priceCoveragePercentage: Math.round(priceCoveragePercentage * 100) / 100,
-        recentActivity24h: recentAssets,
-        dataSources: {
-          mongodb: totalAssets,
-          onchain: totalOnchainAssets,
-          timescale: totalPrices,
-        },
-        cacheStatus: {
-          mongodb: 'active',
-          onchain: 'active',
-          timescale: 'active',
-        },
-        lastUpdated: new Date().toISOString(),
-      };
-
-      return {
-        success: true,
-        data: stats,
-      };
-    } catch (error) {
-      const querierError = handleQuerierError(error);
-      return {
-        success: false,
-        message: 'Failed to fetch cache stats',
-        error: querierError.message,
-      };
-    }
-  }
 }

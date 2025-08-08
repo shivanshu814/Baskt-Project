@@ -32,11 +32,6 @@ export interface Asset {
     };
     isActive: boolean;
   };
-  latestPrice: {
-    time: number;
-    price: number;
-    rawPrice: number;
-  };
 }
 
 export interface AssetTableProps {

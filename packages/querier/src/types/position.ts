@@ -1,6 +1,21 @@
 import { QueryResult } from '../models/types';
 
 /**
+ * Partial close history entry
+ */
+export interface PartialCloseHistory {
+  id: string;
+  closeAmount: string;
+  closePrice: string;
+  pnl: string;
+  feeCollected: string;
+  closePosition: {
+    tx: string;
+    ts: string;
+  };
+}
+
+/**
  * Position data structure combining onchain and metadata
  */
 export interface CombinedPosition {
@@ -9,18 +24,28 @@ export interface CombinedPosition {
   basktId: string;
   openOrder?: string;
   closeOrder?: string;
-  openPosition?: string;
-  closePosition?: string;
+  openPosition?: {
+    tx: string;
+    ts: string;
+  };
+  closePosition?: {
+    tx: string;
+    ts: string;
+  };
   positionStatus: string;
   entryPrice: string;
-  exitPrice: string;
+  exitPrice?: string;
   owner: string;
   status: string;
   size: string;
+  remainingSize?: string;
   collateral: string;
   isLong: boolean;
   usdcSize: string;
   fees: number;
+  partialCloseHistory?: PartialCloseHistory[];
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 /**

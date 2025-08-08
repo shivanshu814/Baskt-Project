@@ -1,10 +1,10 @@
 import { PublicKey } from '@solana/web3.js';
 import { basktClient, querierClient } from '../../utils/config';
 import { OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
-import { MAX_ASSET_PRICE_AGE_MS } from '@baskt/sdk';
 import { BN } from 'bn.js';
 import { ObserverEvent } from '../../types';
 import { EventSource } from '../../types';
+import { CombinedAsset } from '@baskt/querier';
 
 export interface BasktCreatedEvent {
   basktId: string;
@@ -23,16 +23,11 @@ async function createBasktMutation(
   try {
     const result = await querierClient.metadata.createBaskt({
       basktId: basktId,
-      name: basktCreatedData.basktName,
+      name: basktCreatedData.uid.toString(),
       creator: basktCreatedData.creator,
       assets: onchainBaskt.currentAssetConfigs.map((config: OnchainAssetConfig) =>
         config.assetId.toString(),
       ),
-      //TODO user submitted value. Eventually a config will be added to the event
-      rebalancePeriod: {
-        value: 24,
-        unit: 'hour',
-      },
       txSignature: 'pending',
     });
 
@@ -52,7 +47,7 @@ export default {
     const basktId = basktEventCreatedData.basktId;
 
     const onchainBaskt = (await basktClient.readWithRetry(
-      async () => await basktClient.getBaskt(new PublicKey(basktId), 'confirmed'),
+      async () => await basktClient.getBasktRaw(new PublicKey(basktId), 'confirmed'),
       2,
       100,
     )) as OnchainBasktAccount;
@@ -60,9 +55,8 @@ export default {
     const onchainAssetList = onchainBaskt.currentAssetConfigs;
     const assetsResult = await querierClient.asset.getAssetsByAddress(
       onchainAssetList.map((assetConfig: OnchainAssetConfig) => assetConfig.assetId.toString()),
-      { withLatestPrices: true },
+      {},
     );
-    const currentTime = Math.floor(Date.now());
 
     if (!assetsResult.success || !assetsResult.data || assetsResult.data.length === 0) {
       console.log('No assets found');
@@ -71,9 +65,8 @@ export default {
 
     const assets = assetsResult.data;
     const activeAssets = assets.filter(
-      (asset: any) =>
-        asset.price > 0 &&
-        Math.abs(currentTime - (asset.latestPrice?.time || 0)) < MAX_ASSET_PRICE_AGE_MS,
+      (asset: CombinedAsset) =>
+        asset.price > 0 && asset.account?.isActive,
     );
 
     if (activeAssets.length !== onchainAssetList.length) {
@@ -87,21 +80,16 @@ export default {
 
     //Sort the active assets according to the asset config
     const baselinePrices = onchainAssetList.map((asset: OnchainAssetConfig) => {
-      const assetMetrics: any = activeAssets.find(
+      const mappedAsset: any = activeAssets.find(
         (a: any) => a.assetAddress.toLowerCase() === asset.assetId.toString().toLowerCase(),
       );
-      return new BN(Math.floor(assetMetrics.latestPrice.price));
+      return new BN(Math.floor(mappedAsset.price));
     });
 
     try {
-      let tx = await basktClient.activateBasktAndInitializeFundingIndex(
-        new PublicKey(basktId),
-        baselinePrices,
-      );
-      console.log('Baskt activated and funding index initialized successfully with tx:', tx);
-
+      let tx = await basktClient.activateBaskt(new PublicKey(basktId), baselinePrices);
+      console.log('Baskt activated successfully with tx:', tx);
       await createBasktMutation(basktId, onchainBaskt, basktEventCreatedData);
-
       return tx;
     } catch (error) {
       console.error('Error in baskt activation process:', error);

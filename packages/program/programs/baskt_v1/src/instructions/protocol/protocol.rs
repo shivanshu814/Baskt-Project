@@ -22,9 +22,9 @@ pub struct InitializeProtocol<'info> {
 
     /// Escrow mint (USDC)
     #[account(
-        constraint = escrow_mint.decimals == 6 @ PerpetualsError::InvalidMint,
+        constraint = collateral_mint.decimals == 6 @ PerpetualsError::InvalidMint,
     )]
-    pub escrow_mint: Account<'info, Mint>,
+    pub collateral_mint: Account<'info, Mint>,
 
     /// Program authority PDA - created during protocol initialization
     #[account(
@@ -43,7 +43,7 @@ pub fn initialize_protocol(ctx: Context<InitializeProtocol>, treasury: Pubkey) -
     let protocol = &mut ctx.accounts.protocol;
     let authority = ctx.accounts.authority.key();
 
-    protocol.initialize(authority, treasury, ctx.accounts.escrow_mint.key())?;
+    protocol.initialize(authority, treasury, ctx.accounts.collateral_mint.key())?;
 
     Ok(())
 }
@@ -70,12 +70,13 @@ pub fn add_role(ctx: Context<AddRole>, role_type: u8) -> Result<()> {
     let role = match role_type {
         0 => Role::Owner,
         1 => Role::AssetManager,
-        2 => Role::OracleManager,
+        2 => Role::BasktManager,
         3 => Role::Rebalancer,
         4 => Role::Matcher,
         5 => Role::Liquidator,
         6 => Role::FundingManager,
         7 => Role::ConfigManager,
+        8 => Role::Keeper,
         _ => return Err(PerpetualsError::InvalidRoleType.into()),
     };
     // Add the role to the account
@@ -106,7 +107,7 @@ pub fn remove_role(ctx: Context<RemoveRole>, role_type: u8) -> Result<()> {
     let role = match role_type {
         0 => Role::Owner,
         1 => Role::AssetManager,
-        2 => Role::OracleManager,
+        2 => Role::BasktManager,
         3 => Role::Rebalancer,
         4 => Role::Matcher,
         5 => Role::Liquidator,

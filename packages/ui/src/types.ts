@@ -1,8 +1,16 @@
 export const CATEGORIES = ['all', 'defi', 'metaverse', 'ai', 'gaming', 'layer1'] as const;
-export const SORT_OPTIONS = ['popular', 'newest', 'performance'] as const;
+export const SORT_OPTIONS = [
+  'popular',
+  'newest',
+  'performance',
+  'no_filter',
+  'highest_24h_profit',
+  'lowest_24h_profit',
+  'highest_volume',
+] as const;
 export const ROLE_DISPLAY_MAP = {
   AssetManager: 'Asset Manager',
-  OracleManager: 'Oracle Manager',
+  BasktManager: 'Oracle Manager',
   Rebalancer: 'Rebalancer',
   Owner: 'Owner',
 } as const;

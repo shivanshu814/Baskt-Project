@@ -1,17 +1,19 @@
 'use client';
 
-import { Footer } from '../components/shared/Footer';
-import { Hero } from '../components/home/Hero';
-import { Features } from '../components/home/Features';
-import { FeaturedBaskts } from '../components/home/FeaturedBaskts';
 import { CallToAction } from '../components/home/CallToAction';
+import { Features } from '../components/home/Features';
+import { Hero } from '../components/home/Hero';
+import { HowItWorks } from '../components/home/HowItWorks';
+import { Stats } from '../components/home/Stats';
+import { Footer } from '../components/shared/Footer';
 
 export default function Homepage() {
   return (
-    <div>
+    <div className="mt-16">
       <Hero />
+      <Stats />
       <Features />
-      <FeaturedBaskts />
+      <HowItWorks />
       <CallToAction />
       <Footer />
     </div>

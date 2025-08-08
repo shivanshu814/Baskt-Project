@@ -139,7 +139,7 @@ const rebalanceWorker = new Worker(
       let baskt;
       try {
         baskt = await basktClient.readWithRetry(
-          async () => await basktClient.getBaskt(new PublicKey(basktConfig.basktId), 'confirmed'),
+          async () => await basktClient.getBasktRaw(new PublicKey(basktConfig.basktId), 'confirmed'),
           2,
           100,
         );
@@ -201,31 +201,30 @@ const rebalanceWorker = new Worker(
       };
       const price = await getCurrentNavForBaskt(new PublicKey(basktConfig.basktId));
 
-      await basktClient.updateOraclePrice(new PublicKey(basktConfig.basktId), price);
-
       const txSignature = await basktClient.rebalanceBaskt(
         new PublicKey(basktConfig.basktId),
         currentConfigs,
+        price,
       );
 
-      const updatedBaskt = await basktClient.getBaskt(
+      const updatedBaskt = await basktClient.getBasktRaw(
         new PublicKey(basktConfig.basktId),
         'confirmed',
       );
 
-      let rebalanceHistory = null;
-      try {
-        const rebalanceIndex = baskt.lastRebalanceIndex.toNumber();
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+      // let rebalanceHistory = null;
+      // try {
+      //   const rebalanceIndex = baskt.lastRebalanceIndex.toNumber();
+      //   await new Promise((resolve) => setTimeout(resolve, 3000));
 
-        rebalanceHistory = await basktClient.getRebalanceHistory(
-          new PublicKey(basktConfig.basktId),
-          rebalanceIndex,
-          'confirmed',
-        );
-      } catch (err) {
-        console.log(`Could not fetch rebalance history for ${basktConfig.basktId}`);
-      }
+      //   rebalanceHistory = await basktClient.getRebalanceHistory(
+      //     new PublicKey(basktConfig.basktId),
+      //     rebalanceIndex,
+      //     'confirmed',
+      //   );
+      // } catch (err) {
+      //   console.log(`Could not fetch rebalance history for ${basktConfig.basktId}`);
+      // }
 
       const now = Date.now();
       try {
@@ -236,9 +235,9 @@ const rebalanceWorker = new Worker(
               lastRebalanceTime: now,
               rebalanceHistory: {
                 txSignature,
-                rebalanceIndex: updatedBaskt.lastRebalanceIndex.toNumber(),
+//                rebalanceIndex: updatedBaskt.lastRebalanceIndex.toNumber(),
                 timestamp: now,
-                history: rebalanceHistory,
+                // history: rebalanceHistory,
               },
             },
           },
@@ -253,7 +252,7 @@ const rebalanceWorker = new Worker(
       console.log(
         `✅ SUCCESSFULLY REBALANCED: ${
           basktConfig.basktId
-        } (Index: ${baskt.lastRebalanceIndex.toNumber()} → ${updatedBaskt.lastRebalanceIndex.toNumber()})`,
+        } `,
       );
       console.log(`✅ Transaction: ${txSignature}`);
       console.log(`✅ Rebalance completed at: ${new Date().toLocaleTimeString()}`);

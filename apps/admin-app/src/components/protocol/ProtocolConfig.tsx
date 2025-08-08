@@ -83,24 +83,14 @@ export function ProtocolConfig({ config }: ProtocolConfigProps) {
           <div className="text-muted-foreground">Liquidation Threshold:</div>
           <div className="font-medium">{formatBps(config.liquidationThresholdBps)}</div>
 
-          <div className="text-foreground font-medium col-span-2 mt-2">Oracle Parameters:</div>
-          <div className="text-muted-foreground">Max Price Age:</div>
-          <div className="font-medium">{formatNumber(config.maxPriceAgeSec)} seconds</div>
 
-          <div className="text-muted-foreground">Max Price Deviation:</div>
-          <div className="font-medium">{formatBps(config.maxPriceDeviationBps)}</div>
-
-          <div className="text-muted-foreground">Liquidation Price Deviation:</div>
-          <div className="font-medium">{formatBps(config.liquidationPriceDeviationBps)}</div>
-
-          <div className="text-foreground font-medium col-span-2 mt-2">Pool Parameters:</div>
+          {/* TODO: nshmadhani Read this param from the pool */}
+          {/* <div className="text-foreground font-medium col-span-2 mt-2">Pool Parameters:</div>
           <div className="text-muted-foreground">Min Liquidity:</div>
-          <div className="font-medium">{formatNumber(config.minLiquidity)}</div>
+          <div className="font-medium">{formatNumber(config.minLiquidity)}</div> */}
 
           <div className="text-foreground font-medium col-span-2 mt-2">Baskt Parameters:</div>
-          <div className="text-muted-foreground">Decommission Grace Period:</div>
-          <div className="font-medium">{formatNumber(config.decommissionGracePeriod)} seconds</div>
-
+ 
           <div className="text-foreground font-medium col-span-2 mt-2">Metadata:</div>
           <div className="text-muted-foreground">Last Updated:</div>
           <div className="font-medium">{formatTimestamp(config.lastUpdated)}</div>

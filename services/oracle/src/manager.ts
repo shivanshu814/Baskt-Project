@@ -1,8 +1,8 @@
-import mongoose from 'mongoose';
-import { AssetMetadataSchema } from '@baskt/types';
+import { AssetMetadataSchema } from '@baskt/querier';
 import { Queue, Worker } from 'bullmq';
-import { pricingQueue, managerQueue, connection } from './config/queue';
+import mongoose from 'mongoose';
 import { connectMongoDB } from './config/mongo';
+import { connection, managerQueue, pricingQueue } from './config/queue';
 
 async function getOracleConfigs() {
   const AssetMetadataModel = mongoose.model('AssetMetadata', AssetMetadataSchema);

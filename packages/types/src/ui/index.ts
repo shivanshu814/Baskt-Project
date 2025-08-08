@@ -1,4 +1,4 @@
-import { BasktMetadataModel } from '../models';
+
 import { OnchainBasktAccount } from '../onchain/baskt';
 
 export interface AssetInfo {
@@ -60,7 +60,18 @@ interface PriceHistory {
   yearly: PriceHistoryEntry[];
 }
 
-export interface BasktInfo extends Omit<BasktMetadataModel, 'assets'> {
+export interface BasktMetadataModel {
+
+}
+
+export interface BasktInfo  {
+  basktId: string;
+  name: string;
+  creator: string;
+  creationDate: Date;
+  txSignature: string;
+  createdAt?: Date;
+  updatedAt?: Date;
   assets: BasktAssetInfo[];
   aum: number;
   change24h: number;
@@ -81,3 +92,5 @@ export interface BasktInfo extends Omit<BasktMetadataModel, 'assets'> {
   sharpeRatio?: string;
   account: OnchainBasktAccount;
 }
+
+export * from './history';

@@ -24,7 +24,6 @@ import { ClosePositionDialogProps } from '../../types/orders';
 
 const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen, onClose }) => {
   const [exitPrice, setExitPrice] = useState('');
-  const [oraclePrice, setOraclePrice] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [position, setPosition] = useState<OnchainPosition | null>(null);
   const { protocol } = useProtocol();
@@ -34,16 +33,15 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
     // Reset fields when a new order is selected or dialog is opened
     if (isOpen && order) {
       setExitPrice('');
-      setOraclePrice('');
       fetchPosition();
     }
   }, [isOpen, order]);
 
   const fetchPosition = async () => {
-    if (!client || !order?.targetPosition) return;
+    if (!client || !order?.closeParams?.targetPosition) return;
 
     try {
-      const positionPDA = new PublicKey(order.targetPosition);
+      const positionPDA = new PublicKey(order.closeParams!.targetPosition!);
       const positionAccount = await client.program.account.position.fetch(positionPDA);
       setPosition({
         ...positionAccount,
@@ -55,7 +53,7 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
     }
   };
 
-  if (!order || !order.targetPosition) {
+  if (!order || !order.closeParams?.targetPosition) {
     return null;
   }
 
@@ -65,7 +63,7 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
       return;
     }
 
-    if (!exitPrice || !oraclePrice) {
+    if (!exitPrice) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -80,26 +78,23 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
 
       const basktId = new PublicKey(order.basktId);
       const exitPriceBN = new BN(parseFloat(exitPrice) * PRICE_PRECISION); // Convert to basis points
-      const oraclePriceBN = new BN(parseFloat(oraclePrice) * PRICE_PRECISION); // Convert to basis points
 
       // Ensure targetPosition is not null or undefined before creating PublicKey
-      if (!order.targetPosition) {
+      if (!order.closeParams?.targetPosition) {
         throw new Error('Target position is required');
       }
-      const positionPDA = new PublicKey(order.targetPosition);
+      const positionPDA = new PublicKey(order.closeParams!.targetPosition!);
 
-      // First update the oracle price (Oracle Address == BasktId)
-      await client.updateOraclePrice(basktId, oraclePriceBN);
 
       // Get treasury token account (USDC account owned by treasury)
       const treasuryTokenAccount = await getAssociatedTokenAddressSync(
-        protocol.escrowMint,
+        protocol.collateralMint,
         protocol.treasury,
       );
 
       // Get owner token account (we'll use the matcher's token account)
       const ownerTokenAccount = await getAssociatedTokenAddressSync(
-        protocol.escrowMint,
+        protocol.collateralMint,
         position?.owner || client.getPublicKey(),
       );
 
@@ -133,7 +128,7 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
         <DialogHeader>
           <DialogTitle>Close Position</DialogTitle>
           <DialogDescription>
-            Enter the exit price and oracle price to close the position.
+            Enter the exit price to close the position.
           </DialogDescription>
         </DialogHeader>
 
@@ -174,20 +169,6 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
               required
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="oraclePrice" className="text-right col-span-1">
-              Oracle Price*
-            </Label>
-            <Input
-              id="oraclePrice"
-              placeholder="e.g. 1500.00"
-              type="number"
-              value={oraclePrice}
-              onChange={(e) => setOraclePrice(e.target.value)}
-              className="col-span-3"
-              required
-            />
-          </div>
         </div>
 
         <DialogFooter>
@@ -196,7 +177,7 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
               Cancel
             </Button>
           </DialogClose>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !exitPrice || !oraclePrice}>
+          <Button onClick={handleSubmit} disabled={isSubmitting || !exitPrice}>
             {isSubmitting ? 'Processing...' : 'Close Position'}
           </Button>
         </DialogFooter>

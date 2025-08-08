@@ -21,16 +21,16 @@ const createOrderOpen = async (args: string[]) => {
     client.getPublicKey(),
   );
 
-  const orderId = client.newIdForPosition();
+  const orderId = client.newUID();
   const action = { open: {} };
   const targetPosition = null;
 
   console.log(USDC_MINT.toBase58());
 
 
-  const orderTx = await client.createOrderTx(
+  const orderTx = await client.createOrderTx({
     orderId,
-    new BN(0),
+    size: new BN(0),
     collateral,
     isLong,
     action,
@@ -39,10 +39,10 @@ const createOrderOpen = async (args: string[]) => {
     maxSlippageBps,
     basktId,
     ownerTokenAccount,
-    USDC_MINT,
-    new BN(10000),
-    { market: {} },
-  );
+    collateralMint: USDC_MINT,
+    leverageBps: new BN(10000),
+    orderType: { market: {} },
+  });
 
   const orderPDA = await client.getOrderPDA(orderId, client.getPublicKey());
 
@@ -69,25 +69,25 @@ const createOrderClose = async (args: string[]) => {
     client.getPublicKey(),
   );
 
-  const orderId = client.newIdForPosition();
+  const orderId = client.newUID();
   const isLong = true;
   const action = { close: {} };
 
-  const orderTx = await client.createOrderTx(
+  const orderTx = await client.createOrderTx({
     orderId,
-    new BN(1),
-    new BN(1),
+    size: new BN(1),
+    collateral: new BN(1),
     isLong,
     action,
-    positionPDA,
+    targetPosition: positionPDA,
     limitPrice,
     maxSlippageBps,
-    positionAccount.basktId,
+    basktId: positionAccount.basktId,
     ownerTokenAccount,
-    USDC_MINT,
-    new BN(10000),
-    { market: {} },
-  );
+    collateralMint: USDC_MINT,
+    leverageBps: new BN(10000),
+    orderType: { market: {} },
+  });
 
   console.log('Order creation completed successfully! ', orderTx);
   console.log('Limit Price:', limitPrice.toString());

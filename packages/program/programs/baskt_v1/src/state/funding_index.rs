@@ -11,25 +11,18 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(InitSpace)]
 pub struct FundingIndex {
-    pub baskt_id: Pubkey,
     pub cumulative_index: i128, // Global funding index (scaled by FUNDING_PRECISION)
     pub last_update_timestamp: i64,
     pub current_rate: i64, // Current hourly rate (BPS, can be positive or negative)
-    pub bump: u8,
-
-    // Extra Space
-    pub extra_space: [u8; 128],
 }
 
 impl FundingIndex {
     /// Initialize a new funding index for a basket
     /// The index starts at FUNDING_PRECISION (representing 1.0)
-    pub fn initialize(&mut self, baskt_id: Pubkey, timestamp: i64, bump: u8) -> Result<()> {
-        self.baskt_id = baskt_id;
+    pub fn initialize(&mut self, timestamp: i64) -> Result<()> {
         self.cumulative_index = FUNDING_PRECISION as i128; // Start at 1.0 (scaled)
         self.last_update_timestamp = timestamp;
         self.current_rate = 0; // Start with 0% funding rate
-        self.bump = bump;
         Ok(())
     }
 

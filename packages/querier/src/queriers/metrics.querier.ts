@@ -206,7 +206,6 @@ export class MetricsQuerier {
 
       // Batch asset lookup optimization
       const allAssetsResult = await this.assetQuerier.getAllAssets({
-        withLatestPrices: false,
         withConfig: false,
       });
       const assetLookup = new Map<string, any>();

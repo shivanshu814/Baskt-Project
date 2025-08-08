@@ -14,11 +14,34 @@ export const sequelizeConnection = new Sequelize(process.env.TIMESCALE_DB ?? '',
   dialect: 'postgres',
   protocol: 'postgres',
   dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false,
-    },
+    // SSL configuration differs between environments:
+    // - Production: Requires SSL with strict certificate validation for security
+    // - Local/Development: Disables SSL to avoid certificate issues with local databases
+    ssl:
+      process.env.NODE_ENV === 'production'
+        ? {
+            require: true,
+            rejectUnauthorized: true,
+          }
+        : {
+            require: false,
+            rejectUnauthorized: false,
+            ca: undefined,
+            key: undefined,
+            cert: undefined,
+            checkServerIdentity: () => undefined,
+          },
+    connectTimeout: 60000,
+    acquireTimeout: 60000,
+    timeout: 60000,
   },
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000,
+    idle: 10000,
+  },
+  logging: false,
 });
 
 export const AssetPrice = sequelizeConnection.define(

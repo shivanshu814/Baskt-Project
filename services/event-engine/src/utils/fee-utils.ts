@@ -32,7 +32,7 @@ export function createBaseFeeEventData(
   feeToTreasury: string,
   feeToBlp: string,
   totalFee: string,
-  basktId?: string
+  basktId?: string,
 ): Partial<FeeEventData> {
   return {
     eventId,
@@ -51,7 +51,11 @@ export function createBaseFeeEventData(
  * Create fee event for position-related events
  */
 export async function createPositionFeeEvent(
-  eventType: 'POSITION_OPENED' | 'POSITION_CLOSED' | 'POSITION_LIQUIDATED',
+  eventType:
+    | 'POSITION_OPENED'
+    | 'POSITION_CLOSED'
+    | 'POSITION_LIQUIDATED'
+    | 'POSITION_PARTIALLY_CLOSED',
   transactionSignature: string,
   timestamp: Date,
   basktId: string,
@@ -66,10 +70,10 @@ export async function createPositionFeeEvent(
     entryPrice?: string;
     exitPrice?: string;
     isLong?: boolean;
-  }
+  },
 ): Promise<void> {
   const eventId = `${eventType.toLowerCase()}_${transactionSignature}_${positionId}`;
-  
+
   const feeEventData: FeeEventData = {
     eventId,
     eventType,
@@ -103,10 +107,10 @@ export async function createLiquidityFeeEvent(
   liquidityProvider: string,
   liquidityPool: string,
   liquidityAmount: string,
-  sharesAmount: string
+  sharesAmount: string,
 ): Promise<void> {
   const eventId = `${eventType.toLowerCase()}_${transactionSignature}_${liquidityProvider}`;
-  
+
   const feeEventData: FeeEventData = {
     eventId,
     eventType,

@@ -13,6 +13,13 @@ export interface LiquidityPool {
   lpMint: string;
   tokenVault: string;
   bump: number;
+  withdrawQueueHead: number;
+  withdrawQueueTail: number;
+  pendingLpTokens: string;
+  withdrawRateLimitBps: number;
+  rateLimitPeriodSecs: number;
+  lastRateLimitReset: number;
+  withdrawnInWindow: string;
 }
 
 /**
@@ -29,9 +36,10 @@ export interface PoolDeposit {
  * Pool Query Options
  */
 export interface PoolQueryOptions {
-  includeZeroBalances?: boolean;
-  sortBy?: 'amount' | 'percentage' | 'address';
-  sortOrder?: 'asc' | 'desc';
+  poolId?: string;
+  userAddress?: string;
+  limit?: number;
+  offset?: number;
 }
 
 /**
@@ -42,4 +50,4 @@ export interface PoolStats {
   averageDeposit: number;
   totalValueLocked: number;
   utilizationRate: number;
-} 
+}

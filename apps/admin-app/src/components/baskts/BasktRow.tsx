@@ -6,7 +6,7 @@ import { BasktRowProps } from '../../types/baskt';
 
 export function BasktRow({ baskt, onActivate, isActivating, onViewDetails }: BasktRowProps) {
   const { account } = baskt;
-  const name = baskt.name || account.basktName || 'Unnamed Baskt';
+  const name = baskt.name || 'Unnamed Baskt';
 
   return (
     <TableRow key={baskt.basktId}>

@@ -8,18 +8,6 @@ export interface OnchainAssetConfig {
   baselinePrice: BN; // Price at last rebalance/activation
 }
 
-export interface OnchainOracleParams {
-  price: BN;
-  maxPriceAgeSec: number;
-  publishTime: BN;
-}
-export interface OnchainRebalanceHistory {
-  basktId: PublicKey;
-  rebalanceIndex: BN;
-  assetConfigs: OnchainAssetConfig[];
-  baselineNav: BN;
-  timestamp: BN; // i64 timestamp
-}
 
 export enum BasktStatus {
   Pending = 'pending',
@@ -29,19 +17,49 @@ export enum BasktStatus {
   Closed = 'closed',
 }
 
+export interface OnchainFunding {
+  cumulativeIndex: BN | string;
+  lastUpdateTimestamp: BN | string;
+  currentRate: BN | string;
+}
+
+export interface OnchainRebalanceFee {
+  cumulativeIndex: BN | string;
+  lastUpdateTimestamp: BN | string;
+  currentFeePerUnit: BN | string;
+}
+
+export const statusStringToEnum = (status: any) => {
+  if ('pending' in status) return BasktStatus.Pending;
+  if ('active' in status) return BasktStatus.Active;
+  if ('decommissioning' in status) return BasktStatus.Decommissioning;
+  if ('settled' in status) return BasktStatus.Settled;
+  if ('closed' in status) return BasktStatus.Closed;
+  return BasktStatus.Pending;
+}
+
+export interface OnchainBasktConfig {
+  openingFeeBps: BN | string | null;
+  closingFeeBps: BN | string | null;
+  liquidationFeeBps: BN | string | null;
+  minCollateralRatioBps: BN | string | null;
+  liquidationThresholdBps: BN | string | null;
+}
+
 export interface OnchainBasktAccount {
-  address: PublicKey;
+  uid: BN | string;
   basktId: PublicKey;
-  basktName: string;
   currentAssetConfigs: OnchainAssetConfig[];
   isPublic: boolean;
   creator: PublicKey;
-  creationTime: BN | string; // i64 timestamp
-  lastRebalanceIndex: BN | string;
-  lastRebalanceTime: BN | string; // i64 timestamp
-  oracle: OnchainOracleParams;
   status: BasktStatus;
+  lastRebalanceTime: BN | string; // u32 timestamp
   baselineNav: BN | string;
   bump: number;
   isActive: boolean;
+  basktRebalancePeriod: BN | string; // u32 timestamp
+  fundingIndex: OnchainFunding;
+  rebalanceFeeIndex: OnchainRebalanceFee;
+  config: OnchainBasktConfig;
+  openPositions: BN | string;
 }

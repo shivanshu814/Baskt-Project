@@ -1,0 +1,103 @@
+name: Funding Rate Impact Testing
+description: Tests how funding rate changes affect positions and triggers various system behaviors
+
+events:
+  # Establish initial funding rate
+  - stream: funding.update
+    payload:
+      basktId: "basket_crypto_perp"  # baskt_id from FundingIndexUpdatedEvent
+      cumulativeIndex: "100000"       # cumulative_index as i128 string
+      currentRate: "100"              # current_rate as i64 string (0.01% in basis points)
+      timestamp: "{{timestamp}}"      # timestamp as string
+      
+  # Create multiple long positions
+  - stream: position.opened
+    variables:
+      baseUser: "user_long_"
+    repeat: 5
+    interval: 100
+    payload:
+      orderId: "order_long_{{index}}"      # order_id from PositionOpenedEvent
+      positionId: "pos_long_{{index}}"      # position_id
+      owner: "{{baseUser}}{{index}}"        # owner (was: user)
+      basktId: "basket_crypto_perp"         # baskt_id
+      size: "50000"
+      collateral: "10000"
+      isLong: true
+      entryPrice: "50000.00"
+      entryFundingIndex: "100000"          # entry_funding_index as string
+      feeToTreasury: "50"                  # fee_to_treasury as string
+      feeToBlp: "50"                       # fee_to_blp as string
+      timestamp: "{{timestamp}}"            # timestamp as string
+      txSignature: "sig_{{timestamp}}_{{index}}"  # tx signature
+      
+  # Create multiple short positions
+  - stream: position.opened
+    variables:
+      baseUser: "user_short_"
+    repeat: 3
+    interval: 100
+    delay: 1000
+    payload:
+      positionId: "pos_short_{{index}}"
+      orderId: "order_short_{{index}}"
+      user: "{{baseUser}}{{index}}"
+      basketId: "basket_crypto_perp"
+      size: "30000"
+      collateral: "6000"
+      isLong: false
+      entryPrice: "50100.00"
+      timestamp: "{{timestamp}}"
+      
+  # Funding rate increases significantly
+  - stream: funding.update
+    delay: 5000
+    payload:
+      basketId: "basket_crypto_perp"
+      rate: "0.001"  # 0.1% - 10x increase
+      effectiveTime: "{{timestamp}}"
+      nextUpdate: "{{timestamp}}"
+      
+  # This triggers some long positions to close due to funding costs
+  - stream: position.closed
+    delay: 2000
+    payload:
+      positionId: "pos_long_1"
+      user: "user_long_1"
+      basketId: "basket_crypto_perp"
+      size: "50000"
+      exitPrice: "50200.00"
+      pnl: "200.00"
+      fundingPayment: "-50.00"  # Negative for longs
+      timestamp: "{{timestamp}}"
+      
+  # Funding rate goes negative (shorts pay longs)
+  - stream: funding.update
+    delay: 3000
+    payload:
+      basketId: "basket_crypto_perp"
+      rate: "-0.0005"  # -0.05% 
+      effectiveTime: "{{timestamp}}"
+      nextUpdate: "{{timestamp}}"
+      
+  # Now shorts start closing
+  - stream: position.closed
+    delay: 1000
+    payload:
+      positionId: "pos_short_1"
+      user: "user_short_1"
+      basketId: "basket_crypto_perp"
+      size: "30000"
+      exitPrice: "49800.00"
+      pnl: "300.00"
+      fundingPayment: "-15.00"  # Negative for shorts when rate is negative
+      timestamp: "{{timestamp}}"
+      
+  # System snapshot after all the activity
+  - stream: snapshot.commit
+    delay: 2000
+    payload:
+      slot: 150000
+      timestamp: "{{timestamp}}"
+      positionCount: 6  # 4 longs + 2 shorts remaining
+      basketCount: 1

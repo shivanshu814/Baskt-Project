@@ -1,4 +1,5 @@
-import { AssetMetadataModel, OnchainAsset } from '@baskt/types';
+import {  OnchainAsset } from '@baskt/types';
+import { AssetMetadataModel } from './models';
 
 /**
  * Price information for an asset
@@ -43,8 +44,6 @@ export interface CombinedAsset {
   weight: number;
   /** Asset configuration (optional) */
   config?: AssetConfig;
-  /** Latest price data */
-  latestPrice?: AssetPriceData;
   /** Array of baskt IDs this asset belongs to */
   basktIds: string[];
 }
@@ -77,8 +76,6 @@ export interface AssetCacheStats {
  * Options for asset queries
  */
 export interface AssetQueryOptions {
-  /** Include latest price data */
-  withLatestPrices?: boolean;
   /** Include asset configuration */
   withConfig?: boolean;
-} 
+}

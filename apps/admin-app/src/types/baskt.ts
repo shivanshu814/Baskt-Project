@@ -38,9 +38,7 @@ export interface BasktResponse {
   data: BasktData[];
   message?: string;
 }
-export interface FundingIndexTableProps {
-  basktId: string;
-}
+
 export interface RebalanceHistoryTableProps {
   basktId: string;
 }

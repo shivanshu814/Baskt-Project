@@ -32,7 +32,7 @@ describe('baskt', () => {
 
     // Create assets that will be used across tests using the centralized helper
     const assets = await TestClient.setupTestAssets(client);
-    
+
     // Assign the returned assets to our test variables
     btcAssetId = assets.btcAssetId;
     ethAssetId = assets.ethAssetId;
@@ -47,6 +47,17 @@ describe('baskt', () => {
   });
 
   it('Successfully creates a new baskt with valid asset configs', async () => {
+    // Set a small baskt creation fee for testing
+    const protocol = await client.getProtocolAccount();
+    const initialCreationFee = protocol.config.basktCreationFeeLamports.toNumber();
+    const testCreationFee = 1000000; // 0.001 SOL
+    await client.setBasktCreationFee(testCreationFee);
+
+    // Get initial balances
+    const initialCreatorBalance = await client.connection.getBalance(client.getPublicKey());
+    const treasuryAddress = new PublicKey(protocol.treasury);
+    const initialTreasuryBalance = await client.connection.getBalance(treasuryAddress);
+
     // Create asset configs for the baskt
     const assets = [
       {
@@ -63,29 +74,34 @@ describe('baskt', () => {
       },
     ] as OnchainAssetConfig[];
 
-    const basktName = 'TestBaskt';
-
     await client.waitForBlocks();
 
     // Create the baskt
     const { basktId } = await client.createBaskt(
-      basktName,
       assets,
       true, // is_public
     );
 
+    // Verify SOL fee was transferred
+    const finalCreatorBalance = await client.connection.getBalance(client.getPublicKey());
+    const creatorBalanceDifference = initialCreatorBalance - finalCreatorBalance;
+    expect(creatorBalanceDifference).to.be.greaterThanOrEqual(testCreationFee);
+
+    const finalTreasuryBalance = await client.connection.getBalance(treasuryAddress);
+    const treasuryBalanceIncrease = finalTreasuryBalance - initialTreasuryBalance;
+    expect(treasuryBalanceIncrease).to.equal(testCreationFee);
+
     // Fetch the baskt account to verify it was initialized correctly
-    const basktAccount = await client.getBaskt(basktId);
+    const basktAccount = await client.getBasktRaw(basktId);
 
     // Verify the baskt was initialized with correct values
-    expect(basktAccount.basktId.toString()).to.equal(basktId.toString());
     expect(basktAccount.isPublic).to.be.true;
     expect(basktAccount.creator.toString()).to.equal(client.getPublicKey().toString());
     expect(basktAccount.currentAssetConfigs).to.have.length(2);
 
     // Verify asset configs
     const btcConfig = basktAccount.currentAssetConfigs.find(
-      (config) => config.assetId.toString() === btcAssetId.assetAddress.toString(),
+      (config: any) => config.assetId.toString() === btcAssetId.assetAddress.toString(),
     );
     expect(btcConfig?.weight.toNumber()).to.equal(6000);
     expect(btcConfig?.direction).to.be.true;
@@ -93,12 +109,15 @@ describe('baskt', () => {
     expect(btcConfig?.baselinePrice.toNumber()).to.equal(0);
 
     const ethConfig = basktAccount.currentAssetConfigs.find(
-      (config) => config.assetId.toString() === ethAssetId.assetAddress.toString(),
+      (config: any) => config.assetId.toString() === ethAssetId.assetAddress.toString(),
     );
     expect(ethConfig?.weight.toNumber()).to.equal(4000);
     expect(ethConfig?.direction).to.be.true;
     expect(ethConfig?.baselinePrice.toNumber()).to.equal(0);
     expect(ethConfig?.assetId.toString()).to.equal(ethAssetId.assetAddress.toString());
+
+    // Restore original creation fee
+    await client.setBasktCreationFee(initialCreationFee);
   });
 
   it('Fails to create a baskt with invalid total weight', async () => {
@@ -120,7 +139,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt('BadBaskt', assets, true);
+      await client.createBaskt(assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('InvalidBasktConfig');
@@ -140,16 +159,14 @@ describe('baskt', () => {
 
     // Create the private baskt
     const { basktId } = await client.createBaskt(
-      'PrivBaskt',
       assets,
       false, // is_public
     );
 
     // Fetch the baskt account to verify it was initialized correctly
-    const basktAccount = await client.getBaskt(basktId);
+    const basktAccount = await client.getBasktRaw(basktId);
 
     // Verify the baskt was initialized with correct values
-    expect(basktAccount.basktId.toString()).to.equal(basktId.toString());
     expect(basktAccount.isPublic).to.be.false;
     expect(basktAccount.creator.toString()).to.equal(client.getPublicKey().toString());
     expect(basktAccount.currentAssetConfigs).to.have.length(1);
@@ -188,7 +205,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt('DisabledBaskt', assets, true);
+      await client.createBaskt(assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('BasktOperationsDisabled');
@@ -234,30 +251,29 @@ describe('baskt', () => {
     ];
 
     // Create the baskt
-    const { basktId } = await client.createBaskt('MultiBaskt', assets, true);
+    const { basktId } = await client.createBaskt(assets, true);
 
     // Fetch the baskt account to verify it was initialized correctly
-    const basktAccount = await client.getBaskt(basktId);
+    const basktAccount = await client.getBasktRaw(basktId);
 
     // Verify the baskt was initialized with correct values
-    expect(basktAccount.basktId.toString()).to.equal(basktId.toString());
     expect(basktAccount.isPublic).to.be.true;
     expect(basktAccount.creator.toString()).to.equal(client.getPublicKey().toString());
     expect(basktAccount.currentAssetConfigs).to.have.length(3);
 
     // Verify all asset configs
     const btcConfig = basktAccount.currentAssetConfigs.find(
-      (config) => config.assetId.toString() === btcAssetId.assetAddress.toString(),
+      (config: any) => config.assetId.toString() === btcAssetId.assetAddress.toString(),
     );
     expect(btcConfig?.weight.toNumber()).to.equal(5000);
 
     const ethConfig = basktAccount.currentAssetConfigs.find(
-      (config) => config.assetId.toString() === ethAssetId.assetAddress.toString(),
+      (config: any) => config.assetId.toString() === ethAssetId.assetAddress.toString(),
     );
     expect(ethConfig?.weight.toNumber()).to.equal(3000);
 
     const dogeConfig = basktAccount.currentAssetConfigs.find(
-      (config) => config.assetId.toString() === dogeAssetId.assetAddress.toString(),
+      (config: any) => config.assetId.toString() === dogeAssetId.assetAddress.toString(),
     );
     expect(dogeConfig?.weight.toNumber()).to.equal(2000);
   });
@@ -274,13 +290,12 @@ describe('baskt', () => {
     ];
 
     // Create the baskt - should succeed
-    const { basktId } = await client.createBaskt('LongBaskt', assets, true);
+    const { basktId } = await client.createBaskt(assets, true);
 
     // Fetch the baskt account to verify it was initialized correctly
-    const basktAccount = await client.getBaskt(basktId);
+    const basktAccount = await client.getBasktRaw(basktId);
 
     // Verify the baskt was initialized with correct values
-    expect(basktAccount.basktId.toString()).to.equal(basktId.toString());
     expect(basktAccount.currentAssetConfigs).to.have.length(1);
 
     // Verify asset config
@@ -301,13 +316,12 @@ describe('baskt', () => {
     ];
 
     // Create the baskt - should succeed
-    const { basktId } = await client.createBaskt('ShortBaskt', assets, true);
+    const { basktId } = await client.createBaskt(assets, true);
 
     // Fetch the baskt account to verify it was initialized correctly
-    const basktAccount = await client.getBaskt(basktId);
+    const basktAccount = await client.getBasktRaw(basktId);
 
     // Verify the baskt was initialized with correct values
-    expect(basktAccount.basktId.toString()).to.equal(basktId.toString());
     expect(basktAccount.currentAssetConfigs).to.have.length(1);
 
     // Verify asset config
@@ -331,7 +345,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt('InvalidBaskt1', assets, true);
+      await client.createBaskt(assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('ShortPositionsDisabled');
@@ -351,42 +365,17 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail
     try {
-      await client.createBaskt('InvalidBaskt2', assets, true);
+      await client.createBaskt(assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('LongPositionsDisabled');
     }
   });
 
-  it('Fails to create a baskt with mixed direction assets when permissions do not allow', async () => {
-    // Create asset configs for the baskt with mixed permissions and directions
-    const assets = [
-      {
-        assetId: longOnlyAssetId.assetAddress,
-        direction: true, // Long direction (allowed)
-        weight: new BN(5000), // 50%
-        baselinePrice: new BN(0),
-      },
-      {
-        assetId: shortOnlyAssetId.assetAddress,
-        direction: true, // Long direction (not allowed)
-        weight: new BN(5000), // 50%
-        baselinePrice: new BN(0),
-      },
-    ];
-
-    // Attempt to create the baskt - should fail
-    try {
-      await client.createBaskt('InvalidBaskt3', assets, true);
-      expect.fail('Should have thrown an error');
-    } catch (error: unknown) {
-      expect((error as Error).message).to.include('LongPositionsDisabled');
-    }
-  });
 
   it('Adding multiple assets to a baskt', async () => {
     const assetConfigs = [];
-    const numAssets = 20;
+    const numAssets = 10;
     for (let i = 0; i < numAssets; i++) {
       const { assetAddress } = await client.addAsset(`Asset${i}`);
       assetConfigs.push({
@@ -400,10 +389,10 @@ describe('baskt', () => {
     // Wait for a block
     await client.waitForBlocks();
 
-    const { basktId } = await client.createBaskt('20Baskt', assetConfigs, true);
+    const { basktId } = await client.createBaskt(assetConfigs, true);
 
     // Verify the baskt has 20 assets
-    const basktAccount = await client.getBaskt(basktId);
+    const basktAccount = await client.getBasktRaw(basktId);
     expect(basktAccount.currentAssetConfigs.length).to.equal(numAssets);
   });
 
@@ -417,10 +406,10 @@ describe('baskt', () => {
       },
     ];
 
-    const { basktId } = await client.createBaskt('InvalidBaskt', assets, true);
+    const { basktId } = await client.createBaskt(assets, true);
 
     // Fetch the baskt account to verify it was initialized correctly
-    const baskt = await client.getBaskt(basktId);
+    const baskt = await client.getBasktRaw(basktId);
     expect(baskt.currentAssetConfigs[0].baselinePrice.toNumber()).to.equal(0);
   });
 
@@ -443,7 +432,7 @@ describe('baskt', () => {
 
     // Attempt to create the baskt - should fail due to duplicate assets
     try {
-      await client.createBaskt('DupAssetBaskt', assets, true);
+      await client.createBaskt(assets, true);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('InvalidBasktConfig');

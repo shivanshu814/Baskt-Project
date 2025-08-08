@@ -1,4 +1,11 @@
+import { OnchainOrderStatus } from '@baskt/types';
 import { QueryResult } from '../models/types';
+import { 
+  OpenOrderParams, 
+  CloseOrderParams, 
+  MarketOrderParams, 
+  LimitOrderParams 
+} from './models/OrderMetadata';
 
 /**
  * Combined order data structure from onchain and metadata
@@ -10,28 +17,29 @@ export interface CombinedOrder {
   owner: string;
   status: string;
   action: string;
-  size: string;
-  collateral: string;
-  isLong: boolean;
+  orderType: string;
+  timestamp?: string;
   createOrder?: any;
   fullFillOrder?: any;
   position?: string;
   usdcSize: string;
-  orderType: string;
-  limitPrice: string;
-  maxSlippage: string;
+  
+  // Action-specific parameters
+  openParams?: OpenOrderParams;
+  closeParams?: CloseOrderParams;
+  
+  // Order type-specific parameters  
+  marketParams?: MarketOrderParams;
+  limitParams?: LimitOrderParams;
+
+  // Backward compatibility fields (derived from params for legacy support)
+  size?: string;        // Derived from openParams.notionalValue or closeParams.sizeAsContracts
+  collateral?: string;  // Derived from openParams.collateral
+  isLong?: boolean;     // Derived from openParams.isLong
+  limitPrice?: string;  // Derived from limitParams.limitPrice
+  maxSlippage?: string; // Derived from limitParams.maxSlippageBps
 }
 
-/**
- * Order status enum
- */
-export enum OrderStatus {
-  OPEN = 'OPEN',
-  FILLED = 'FILLED',
-  CANCELLED = 'CANCELLED',
-  EXPIRED = 'EXPIRED',
-  REJECTED = 'REJECTED'
-}
 
 /**
  * Order action enum
@@ -59,7 +67,7 @@ export enum OrderType {
 export interface OrderFilterOptions {
   basktId?: string;
   userId?: string;
-  status?: OrderStatus[];
+  status?: OnchainOrderStatus[];
   action?: OrderAction[];
   orderType?: OrderType[];
   dateFrom?: Date;

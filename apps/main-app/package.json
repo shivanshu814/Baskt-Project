@@ -3,12 +3,13 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack --port 3000",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@baskt/backend": "workspace:*",
     "@baskt/querier": "workspace:*",
     "@baskt/sdk": "workspace:*",
     "@baskt/types": "workspace:*",
@@ -18,7 +19,8 @@
     "@privy-io/react-auth": "^2.18.0",
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "1.98.0",
-    "@tanstack/react-query": "^4.36.1",
+    "@tanstack/react-query": "^4.40.1",
+    "@tanstack/react-query-devtools": "^5.83.0",
     "@trpc/client": "^10.45.1",
     "@trpc/react-query": "^10.45.1",
     "aws4": "^1.13.2",

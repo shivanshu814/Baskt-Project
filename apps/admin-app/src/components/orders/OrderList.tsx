@@ -20,7 +20,7 @@ import { useCopyWithTimeout } from '../../hooks/useCopyWithTimeout';
 import { getStatusColor, getActionColor } from '../../utils/orderUtils';
 import FillPositionDialog from './FillPositionDialog';
 import ClosePositionDialog from './ClosePositionDialog';
-import { OnchainOrder, OrderAction, OrderStatus } from '@baskt/types';
+import { OnchainOrder, OrderAction, OnchainOrderStatus } from '@baskt/types';
 
 const OrderList = () => {
   const { orders = [] } = useOrders();
@@ -36,7 +36,7 @@ const OrderList = () => {
   const orderCounts = useMemo(() => {
     const total = orders.length;
     const pending = orders.filter(
-      (order: OnchainOrder) => order.status === OrderStatus.PENDING,
+      (order: OnchainOrder) => order.status === OnchainOrderStatus.PENDING,
     ).length;
     return { total, pending };
   }, [orders]);
@@ -127,8 +127,8 @@ const OrderList = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className={`text-sm font-medium ${getActionColor(order.isLong)}`}>
-                      {order.isLong ? 'Long' : 'Short'}
+                    <div className={`text-sm font-medium ${getActionColor(order.openParams?.isLong ?? false)}`}>
+                      {order.openParams?.isLong ? 'Long' : 'Short'}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -136,7 +136,10 @@ const OrderList = () => {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm text-gray-200">
-                      <NumberFormat value={parseFloat(order.collateral.toString())} isPrice />
+                      <NumberFormat 
+                        value={parseFloat(order.openParams?.collateral?.toString() || '0')} 
+                        isPrice 
+                      />
                     </div>
                   </TableCell>
                   <TableCell>
@@ -150,10 +153,14 @@ const OrderList = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm text-gray-500">{order.limitPrice.toString()}</div>
+                    <div className="text-sm text-gray-500">
+                      {order.limitParams?.limitPrice?.toString() || 'N/A'}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm text-gray-500">{order.maxSlippage.toString()}</div>
+                    <div className="text-sm text-gray-500">
+                      {order.limitParams?.maxSlippageBps?.toString() || 'N/A'}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm text-gray-500">{order.orderType}</div>
@@ -171,7 +178,7 @@ const OrderList = () => {
                           disabled={
                             !(
                               order.action === OrderAction.Open &&
-                              order.status === OrderStatus.PENDING
+                              order.status === OnchainOrderStatus.PENDING
                             )
                           }
                         >
@@ -182,7 +189,7 @@ const OrderList = () => {
                           disabled={
                             !(
                               order.action === OrderAction.Close &&
-                              order.status === OrderStatus.PENDING
+                              order.status === OnchainOrderStatus.PENDING
                             )
                           }
                         >

@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@baskt/ui';
-import { OrderAction, OrderStatus, PositionStatus } from '@baskt/types';
+import { OrderAction, OnchainOrderStatus, PositionStatus } from '@baskt/types';
 import { Filter, RefreshCw } from 'lucide-react';
 import { HistoryFiltersProps } from '../../types/history';
 
@@ -41,9 +41,9 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
       value: filters.status || 'all',
       options: [
         { value: 'all', label: 'All Status' },
-        { value: OrderStatus.PENDING, label: 'Pending' },
-        { value: OrderStatus.FILLED, label: 'Filled' },
-        { value: OrderStatus.CANCELLED, label: 'Cancelled' },
+        { value: OnchainOrderStatus.PENDING, label: 'Pending' },
+        { value: OnchainOrderStatus.FILLED, label: 'Filled' },
+        { value: OnchainOrderStatus.CANCELLED, label: 'Cancelled' },
         { value: PositionStatus.OPEN, label: 'Open' },
         { value: PositionStatus.CLOSED, label: 'Closed' },
         { value: PositionStatus.LIQUIDATED, label: 'Liquidated' },

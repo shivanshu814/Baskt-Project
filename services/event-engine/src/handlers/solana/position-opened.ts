@@ -1,13 +1,12 @@
 import { querierClient, basktClient } from '../../utils/config';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
-import { OnchainPosition } from '@baskt/types';
 import { PositionStatus } from '@baskt/types';
 import { EventSource, ObserverEvent } from '../../types';
-import { 
-  createPositionFeeEvent, 
-  calculatePositionFees, 
-  convertTimestampToDate 
+import {
+  createPositionFeeEvent,
+  calculatePositionFees,
+  convertTimestampToDate,
 } from '../../utils/fee-utils';
 
 interface PositionOpenedEvent {
@@ -17,7 +16,7 @@ interface PositionOpenedEvent {
   basktId: PublicKey;
   size: BN;
   collateral: BN;
-  isLong: number;
+  isLong: boolean;
   entryPrice: BN;
   entryFundingIndex: BN;
   feeToTreasury: BN;
@@ -31,7 +30,7 @@ interface PositionOpenedEvent {
 async function createPositionOpenedFeeEvent(
   positionOpenedData: PositionOpenedEvent,
   tx: string,
-  isLong: boolean
+  isLong: boolean,
 ): Promise<void> {
   const fees = calculatePositionFees(positionOpenedData.feeToTreasury, positionOpenedData.feeToBlp);
   const timestamp = convertTimestampToDate(positionOpenedData.timestamp);
@@ -51,7 +50,7 @@ async function createPositionOpenedFeeEvent(
       positionSize: positionOpenedData.size.toString(),
       entryPrice: positionOpenedData.entryPrice.toString(),
       isLong,
-    }
+    },
   );
 }
 
@@ -60,16 +59,14 @@ async function positionOpenedHandler(event: ObserverEvent) {
   const tx = event.payload.signature;
 
   try {
-    const positionId = positionOpenedData.positionId instanceof BN 
-      ? positionOpenedData.positionId 
-      : new BN(positionOpenedData.positionId.toString());
+    const positionId =
+      positionOpenedData.positionId instanceof BN
+        ? positionOpenedData.positionId
+        : new BN(positionOpenedData.positionId.toString());
 
-    const positionPDA = await basktClient.getPositionPDA(
-      positionOpenedData.owner,
-      positionId
-    );
+    const positionPDA = await basktClient.getPositionPDA(positionOpenedData.owner, positionId);
 
-    const isLong = positionOpenedData.isLong === 1;
+    const isLong = positionOpenedData.isLong;
 
     const positionData = {
       positionPDA: positionPDA.toString(),
@@ -77,6 +74,7 @@ async function positionOpenedHandler(event: ObserverEvent) {
       owner: positionOpenedData.owner.toString(),
       basktId: positionOpenedData.basktId.toString(),
       size: positionOpenedData.size.toString(),
+      remainingSize: positionOpenedData.size.toString(),
       collateral: positionOpenedData.collateral.toString(),
       entryPrice: positionOpenedData.entryPrice.toString(),
       status: PositionStatus.OPEN,

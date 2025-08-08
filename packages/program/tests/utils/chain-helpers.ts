@@ -14,15 +14,11 @@ export async function waitForTx(
   sig: TransactionSignature,
   commitment: Commitment = DEFAULT_COMMITMENT,
 ): Promise<void> {
-  const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash(commitment);
-  await conn.confirmTransaction(
-    {
-      signature: sig,
-      blockhash,
-      lastValidBlockHeight,
-    },
-    commitment,
-  );
+  // Use signature-only confirmation to avoid fetching a fresh block-hash that
+  // may not match the one the transaction was originally processed with. This
+  // reduces RPC load and prevents needless time-outs when the validator is
+  // under heavy throughput.
+  await conn.confirmTransaction(sig, commitment);
 }
 
 /**

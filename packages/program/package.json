@@ -7,8 +7,10 @@
     "build:anchor": "anchor build && pnpm --filter @baskt/sdk build",
     "clean": "rimraf dist",
     "localnet": "pnpm run generate:mocks && anchor localnet",
-    "test": "NEXT_PUBLIC_USDC_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v anchor build && pnpm --filter @baskt/sdk build && anchor test",
-    "test:file": "anchor build && pnpm --filter @baskt/sdk build && anchor test --run",
+    "test": "NEXT_PUBLIC_USDC_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v anchor build && pnpm --filter @baskt/sdk build && pnpm generate:mocks && anchor test",
+    "test:file": "anchor build && pnpm --filter @baskt/sdk build && pnpm generate:mocks && anchor test --run",
+    "test:parallel": "MOCK_USDC_MINT_AUTHORITY=6UvSQ8aRj4z1iD6eQPV6NJMdPXbMUjUzgDFKB9ExekvK pnpm generate:mocks && NEXT_PUBLIC_USDC_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v npx tsx scripts/run-parallel-tests.ts",
+    "test:suite": "MOCK_USDC_MINT_AUTHORITY=6UvSQ8aRj4z1iD6eQPV6NJMdPXbMUjUzgDFKB9ExekvK pnpm generate:mocks && NEXT_PUBLIC_USDC_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v npx tsx scripts/run-suite.ts",
     "lint": "eslint tests --ext test.ts",
     "deploy:local": "npx tsx scripts/deploy-local.ts",
     "terminal": "npx tsx --watch sim/terminal.ts",
@@ -34,6 +36,9 @@
     "eslint": "^8.56.0",
     "mocha": "^10.2.0",
     "ts-mocha": "^10.0.0",
-    "tsx": "^4.10.1"
+    "tsx": "^4.10.1",
+    "get-port": "^7.0.0",
+    "fast-glob": "^3.3.2",
+    "p-limit": "^4.0.0"
   }
 }

@@ -4,8 +4,7 @@ export { BaseClient } from './base-client';
 // Export utility modules
 export * from './utils/';
 
-export * from './math/nav';
-export * from './math/position';
+export * from './math';
 
 export * from './constants';
 

@@ -9,17 +9,19 @@ export enum PositionStatus {
 }
 
 export interface OnchainPosition {
-  positionPDA: PublicKey;
+  positionPDA: PublicKey; // Not in Rust, but needed for SDK
   owner: PublicKey;
-  positionId: BN;
+  positionId: number;
   basktId: PublicKey;
   size: BN;
   collateral: BN;
   isLong: boolean;
   entryPrice: BN;
-  entryPriceExponent: number;
   exitPrice?: BN;
-  exitPriceExponent?: number;
+  entryFundingIndex: BN;
+  lastFundingIndex: BN;
+  fundingAccumulated: BN;
+  lastRebalanceFeeIndex: BN;
   status: PositionStatus;
   timestampOpen: BN;
   timestampClose?: BN;

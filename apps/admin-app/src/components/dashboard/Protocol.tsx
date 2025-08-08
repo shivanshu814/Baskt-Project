@@ -33,7 +33,7 @@ export function ProtocolDetails({ className = '' }: ProtocolDetailsProps) {
         <ProtocolGeneralInfo
           owner={protocol.owner}
           treasury={protocol.treasury.toString()}
-          escrowMint={protocol.escrowMint.toString()}
+          collateralMint={protocol.collateralMint.toString()}
         />
         <div className="flex flex-col gap-4">
           <FeatureFlags flags={protocol.featureFlags} />

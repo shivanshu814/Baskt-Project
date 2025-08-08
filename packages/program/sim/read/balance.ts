@@ -19,7 +19,7 @@ const getBalance = async (args: string[]) => {
       return;
     } else if (asset === 'blp') {
       const protocolAccount = await client.getProtocolAccount();
-      mint = protocolAccount.escrowMint;
+      mint = protocolAccount.collateralMint;
     }
     const balance = await client.getUserTokenAccount(new PublicKey(user), mint);
     console.log(`${asset} Balance:`, balance.amount.toString());

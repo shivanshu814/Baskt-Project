@@ -7,6 +7,7 @@
     "pnpm": ">=8.0.0"
   },
   "scripts": {
+    "dev:lib": "turbo run dev --filter=@baskt/sdk --filter=@baskt/types --filter=@baskt/querier --filter=@baskt/ui",
     "build": "turbo run build",
     "build:lib": "turbo run build --filter=@baskt/sdk --filter=@baskt/types",
     "build:server": "turbo run build --filter=@baskt/backend --filter=@baskt/oracle --filter=@baskt/event-engine",

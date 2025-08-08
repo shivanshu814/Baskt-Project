@@ -1,11 +1,15 @@
-import { QueryResult } from '../models/types';
-
 /**
  * Fee event data structure
  */
 export interface FeeEventData {
   eventId: string;
-  eventType: 'POSITION_OPENED' | 'POSITION_CLOSED' | 'POSITION_LIQUIDATED' | 'LIQUIDITY_ADDED' | 'LIQUIDITY_REMOVED';
+  eventType:
+    | 'POSITION_OPENED'
+    | 'POSITION_CLOSED'
+    | 'POSITION_LIQUIDATED'
+    | 'LIQUIDITY_ADDED'
+    | 'LIQUIDITY_REMOVED'
+    | 'POSITION_PARTIALLY_CLOSED';
   transactionSignature: string;
   timestamp: Date;
   basktId?: string;
@@ -76,4 +80,4 @@ export interface FeeEventAggregationResult {
     startDate: Date;
     endDate: Date;
   };
-} 
+}

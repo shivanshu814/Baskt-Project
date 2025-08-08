@@ -181,9 +181,9 @@ export class MetadataManager {
   }
 
   // update order
-  async updateOrder(orderPDA: string, updateData: any): Promise<any> {
+  async updateOrderByPDA(orderPDA: string, updateData: any): Promise<any> {
     try {
-      return await OrderMetadataModel.findOneAndUpdate({ orderPDA: orderPDA }, updateData, { new: true });
+      return await OrderMetadataModel.findOneAndUpdate({ orderPDA }, updateData, { new: true });
     } catch (error) {
       throw new Error(`Failed to update order: ${error}`);
     }
@@ -212,6 +212,14 @@ export class MetadataManager {
     }
   }
 
+  async findPositionByPDA(positionPDA: string): Promise<any> {
+    try {
+      return await PositionMetadataModel.findOne({ positionPDA }).exec();
+    } catch (error) {
+      throw new Error(`Failed to find position by PDA: ${error}`);
+    }
+  }
+
   // find positions by baskt id
   async findPositionsByBasktId(basktId: string): Promise<any[]> {
     try {
@@ -231,14 +239,14 @@ export class MetadataManager {
     }
   }
 
-  // update position
-  async updatePosition(positionId: string, updateData: any): Promise<any> {
+
+  async updatePositionByPDA(positionPDA: string, updateData: any): Promise<any> {
     try {
-      return await PositionMetadataModel.findOneAndUpdate({ positionId }, updateData, {
+      return await PositionMetadataModel.findOneAndUpdate({ positionPDA }, updateData, {
         new: true,
       });
     } catch (error) {
-      throw new Error(`Failed to update position: ${error}`);
+      throw new Error(`Failed to update position by PDA: ${error}`);
     }
   }
 

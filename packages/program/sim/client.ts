@@ -60,7 +60,7 @@ class SimClient extends BaseClient {
     return signature;
   }
 
-  public async getOrCreateUSDCAccount(owner: PublicKey): Promise<PublicKey> {
+  public async getOrCreateUSDCAccountKey(owner: PublicKey): Promise<PublicKey> {
 
     // Find the associated token address
     const tokenAccount = await getAssociatedTokenAddress(USDC_MINT, owner);

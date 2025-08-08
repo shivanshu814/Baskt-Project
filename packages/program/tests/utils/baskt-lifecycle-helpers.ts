@@ -98,100 +98,27 @@ export function validateBasktDecommissioning(status: any, expectedInitiatedAt?: 
   };
 }
 
-// getDecommissioningDetails function removed - use validateBasktDecommissioning instead
-
-/**
- * Comprehensive validation for Settled status
- */
-export function validateBasktSettled(status: any, expectedPrice?: any, expectedFundingIndex?: any): {
-  isValid: boolean;
-  details?: { settlementPrice: any; settlementFundingIndex: any; settledAt: number };
-  errors?: string[];
-} {
-  const errors: string[] = [];
-
-  if (!status.settled) {
-    return { isValid: false, errors: ['Status is not settled'] };
-  }
-
-  const details = {
-    settlementPrice: status.settled.settlementPrice,
-    settlementFundingIndex: status.settled.settlementFundingIndex,
-    settledAt: status.settled.settledAt?.toNumber?.() || status.settled.settledAt
-  };
-
-  // Validate settlement price is reasonable
-  if (!details.settlementPrice || details.settlementPrice.lte(new BN(0))) {
-    errors.push('Settlement price must be positive');
-  }
-
-  // Validate timestamp is recent
-  const now = Math.floor(Date.now() / 1000);
-  if (details.settledAt > now + 60) {
-    errors.push('Settled timestamp is in the future');
-  }
-
-  // Validate expected values if provided
-  if (expectedPrice && !details.settlementPrice.eq(expectedPrice)) {
-    errors.push(`Settlement price mismatch: expected ${expectedPrice.toString()}, got ${details.settlementPrice.toString()}`);
-  }
-
-  if (expectedFundingIndex && !details.settlementFundingIndex.eq(expectedFundingIndex)) {
-    errors.push(`Settlement funding index mismatch: expected ${expectedFundingIndex.toString()}, got ${details.settlementFundingIndex.toString()}`);
-  }
-
-  return {
-    isValid: errors.length === 0,
-    details,
-    errors: errors.length > 0 ? errors : undefined
-  };
-}
-
-// getSettlementDetails function removed - use validateBasktSettled instead
-
 /**
  * Comprehensive validation for Closed status
  */
-export function validateBasktClosed(status: any, expectedFinalNav?: any): {
+export async function validateBasktClosed(client: TestClient, basktId: PublicKey): Promise<{
   isValid: boolean;
-  details?: { finalNav: any; closedAt: number };
   errors?: string[];
-} {
-  const errors: string[] = [];
+}> {
 
-  if (!status.closed) {
-    return { isValid: false, errors: ['Status is not closed'] };
+  try {
+    await client.program.account.baskt.fetch(basktId);
+    return {
+      isValid: false,
+      errors: ['Baskt account exists']
+    };
+  } catch (error) {
+    return {
+      isValid: true,
+    };
   }
-
-  const details = {
-    finalNav: status.closed.finalNav,
-    closedAt: status.closed.closedAt?.toNumber?.() || status.closed.closedAt
-  };
-
-  // Validate final NAV is reasonable
-  if (!details.finalNav || details.finalNav.lte(new BN(0))) {
-    errors.push('Final NAV must be positive');
-  }
-
-  // Validate timestamp is recent
-  const now = Math.floor(Date.now() / 1000);
-  if (details.closedAt > now + 60) {
-    errors.push('Closed timestamp is in the future');
-  }
-
-  // Validate expected values if provided
-  if (expectedFinalNav && !details.finalNav.eq(expectedFinalNav)) {
-    errors.push(`Final NAV mismatch: expected ${expectedFinalNav.toString()}, got ${details.finalNav.toString()}`);
-  }
-
-  return {
-    isValid: errors.length === 0,
-    details,
-    errors: errors.length > 0 ? errors : undefined
-  };
 }
 
-// getCloseDetails function removed - use validateBasktClosed instead
 
 /**
  * Validate position count matches expected value
@@ -201,7 +128,7 @@ export async function validatePositionCount(
   basktId: PublicKey,
   expectedCount: number
 ): Promise<{ isValid: boolean; actualCount: number; errors?: string[] }> {
-  const baskt = await client.getBaskt(basktId);
+  const baskt = await client.getBasktRaw(basktId);
   const actualCount = baskt.openPositions.toNumber();
 
   if (actualCount !== expectedCount) {
@@ -252,18 +179,13 @@ export async function validateBasktStateConsistency(
   const errors: string[] = [];
 
   // Get baskt state
-  const baskt = await client.getBaskt(basktId);
+  const baskt = await client.getBasktRaw(basktId);
 
   // Validate position count
   const actualPositions = baskt.openPositions.toNumber();
   if (actualPositions !== expectedOpenPositions) {
     errors.push(`Position count mismatch: expected ${expectedOpenPositions}, got ${actualPositions}`);
   }
-
-  // Additional consistency checks could be added here
-  // - Liquidity pool balance consistency
-  // - Oracle price reasonableness
-  // - Timestamp consistency
 
   return {
     isValid: errors.length === 0,

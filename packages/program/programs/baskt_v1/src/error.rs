@@ -4,12 +4,6 @@ use anchor_lang::prelude::*;
 pub enum PerpetualsError {
     #[msg("Math operation overflow")]
     MathOverflow,
-    #[msg("Invalid oracle account")]
-    InvalidOracleAccount,
-    #[msg("Oracle price is too old")]
-    OraclePriceTooOld,
-    #[msg("Oracle price has too much uncertainty")]
-    OraclePriceTooUncertain,
     #[msg("Insufficient collateral for position")]
     InsufficientCollateral,
     #[msg("Position is not liquidatable")]
@@ -30,47 +24,31 @@ pub enum PerpetualsError {
     UnauthorizedTokenOwner,
     #[msg("Invalid LP token amount")]
     InvalidLpTokenAmount,
-    #[msg("Unsupported oracle type")]
-    UnsupportedOracle,
-    #[msg("Stale oracle price")]
-    StaleOraclePrice,
     #[msg("Invalid oracle price")]
     InvalidOraclePrice,
     #[msg("Submitted price is outside acceptable deviation bounds from oracle price")]
     PriceOutOfBounds,
     #[msg("Insufficient funds for operation")]
     InsufficientFunds,
-    #[msg("Invalid baskt name")]
-    InvalidBasktName,
-    #[msg("Baskt is inactive")]
-    BasktInactive,
+    #[msg("Baskt is not active for trading")]
+    BasktNotActive,
     #[msg("Role not found for the account")]
     RoleNotFound,
-    #[msg("Missing required role for this operation")]
-    MissingRequiredRole,
-    #[msg("Unauthorized signer for this operation")]
-    UnauthorizedSigner,
     #[msg("Invalid role type")]
     InvalidRoleType,
-    #[msg("Invalid remaining accounts")]
-    InvalidRemainingAccounts,
     #[msg("Invalid asset account")]
     InvalidAssetAccount,
     #[msg("Long positions are disabled for this asset")]
     LongPositionsDisabled,
     #[msg("Short positions are disabled for this asset")]
     ShortPositionsDisabled,
-    #[msg("Invalid or stale oracle price")]
-    InvalidOrStaleOraclePrice,
     #[msg("Asset not in baskt")]
     AssetNotInBaskt,
     #[msg("Invalid asset config")]
     InvalidAssetConfig,
-    #[msg("Feature is currently disabled")]
-    FeatureDisabled,
     #[msg("Trading operations are currently disabled")]
     TradingDisabled,
-    #[msg("Liquidity pool operations are currently disabled")]
+    #[msg("Liquidity operations are currently disabled")]
     LiquidityOperationsDisabled,
     #[msg("Position operations are currently disabled")]
     PositionOperationsDisabled,
@@ -82,8 +60,6 @@ pub enum PerpetualsError {
     BasktAlreadyActive,
     #[msg("Invalid asset weights")]
     InvalidAssetWeights,
-    #[msg("Invalid oracle parameter")]
-    InvalidOracleParameter,
     #[msg("Order already processed")]
     OrderAlreadyProcessed,
     #[msg("Invalid escrow account")]
@@ -112,52 +88,22 @@ pub enum PerpetualsError {
     InvalidTreasuryAccount,
     #[msg("Collateral amount would overflow maximum value")]
     CollateralOverflow,
-    #[msg("Liquidity pool deposits are currently disabled")]
-    DepositsDisabled,
-    #[msg("Liquidity pool withdrawals are currently disabled")]
-    WithdrawalsDisabled,
-    #[msg("Deposit amount is below the minimum")]
-    BelowMinimumDeposit,
-    #[msg("Division by zero")]
-    DivisionByZero,
-    #[msg("Invalid liquidity pool account")]
-    InvalidLiquidityPool,
-    #[msg("Invalid token vault account")]
-    InvalidTokenVault,
-    #[msg("Slippage tolerance exceeded")]
-    SlippageExceeded,
-
+    #[msg("Invalid deposit amount")]
+    InvalidDepositAmount,
+    #[msg("Invalid usdc vault account")]
+    InvalidUsdcVault,
     #[msg("Invalid fee basis points")]
     InvalidFeeBps,
-
     #[msg("Invalid collateral ratio")]
     InvalidCollateralRatio,
-
     #[msg("Funding rate exceeds maximum allowed")]
     FundingRateExceedsMaximum,
-
-    #[msg("Invalid pool authority account")]
-    InvalidPoolAuthority,
-
-    #[msg("Invalid account input")]
-    InvalidAccountInput,
-
     #[msg("Invalid owner")]
     InvalidOwner,
-
     #[msg("Invalid funding index account")]
     InvalidFundingIndex,
-
-    #[msg("Invalid oracle account")]
-    InvalidOracle,
-
-    // Baskt decommissioning errors
     #[msg("Invalid baskt state for this operation")]
     InvalidBasktState,
-    #[msg("Baskt is not active for trading")]
-    BasktNotActive,
-    #[msg("Baskt is not settled")]
-    BasktNotSettled,
     #[msg("Grace period has not ended")]
     GracePeriodNotOver,
     #[msg("Positions are still open")]
@@ -166,7 +112,12 @@ pub enum PerpetualsError {
     InvalidGracePeriod,
     #[msg("Price deviation too high")]
     PriceDeviationTooHigh,
-    // Leverage-specific errors
     #[msg("Realised leverage exceeds declared leverage amount")]
     LeverageExceeded,
+    #[msg("Invalid input provided")]
+    InvalidInput,
+    #[msg("SOL transfer failed")]
+    TransferFailed,
+    #[msg("Invalid LP token escrow")]
+    InvalidLpTokenEscrow,
 }

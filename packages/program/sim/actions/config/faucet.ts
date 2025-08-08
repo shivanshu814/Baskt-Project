@@ -25,7 +25,7 @@ const faucet = async (args: string[]) => {
   }
 
   if (token.toLowerCase() === 'usdc') {
-    const userTokenAccount = await client.getOrCreateUSDCAccount(recipient);
+    const userTokenAccount = await client.getOrCreateUSDCAccountKey(recipient);
     const mintAmount = new BN(amount * 10 ** USDC_DECIMALS);
     console.log(`Minting ${mintAmount.toString()} USDC to ${userTokenAccount.toBase58()}`);
     await client.mintUSDC(userTokenAccount, mintAmount);

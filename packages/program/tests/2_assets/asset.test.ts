@@ -23,13 +23,13 @@ describe('asset', () => {
       client.assetManager.publicKey,
       AccessControlRole.AssetManager,
     );
-    const hasOracleManagerRole = await client.hasRole(
-      client.oracleManager.publicKey,
-      AccessControlRole.OracleManager,
+    const hasBasktManagerRole = await client.hasRole(
+      client.basktManager.publicKey,
+      AccessControlRole.BasktManager,
     );
 
     expect(hasAssetManagerRole).to.be.true;
-    expect(hasOracleManagerRole).to.be.true;
+    expect(hasBasktManagerRole).to.be.true;
   });
 
   afterEach(async () => {
@@ -59,10 +59,9 @@ describe('asset', () => {
     const { assetAddress } = await client.addAsset('BTC');
 
     // Fetch the asset account to verify it was initialized correctly
-    const assetAccount = await client.getAssetRaw(assetAddress);
+    const assetAccount = await client.getAsset(assetAddress);
 
     // Verify the asset was initialized with correct values
-    expect(assetAccount.assetId.toString()).to.equal(assetAddress.toString());
     expect(assetAccount.ticker).to.equal('BTC');
 
     // Verify permissions are set to default (both true)
@@ -134,10 +133,7 @@ describe('asset', () => {
     }
 
     // Derive the asset address from the ticker
-    const [assetAddress] = PublicKey.findProgramAddressSync(
-      [Buffer.from('asset'), Buffer.from(ticker)],
-      client.program.programId,
-    );
+    const assetAddress = client.getAssetPDA(ticker);
 
     // Verify the asset was created
     const assetAccount = await client.getAssetRaw(assetAddress);
@@ -161,7 +157,7 @@ describe('asset', () => {
     );
 
     // Fetch the asset account to verify it was initialized correctly
-    const assetAccount = await client.getAssetRaw(assetAddress);
+    const assetAccount = await client.getAsset(assetAddress);
 
     // Verify the asset was initialized with correct values
     expect(assetAccount.ticker).to.equal('SHORT_ONLY');

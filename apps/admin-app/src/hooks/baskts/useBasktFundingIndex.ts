@@ -22,15 +22,6 @@ export function useBasktFundingIndex(basktId: string) {
     }
   };
 
-  const initializeFundingIndex = async () => {
-    try {
-      await client?.initializeFundingIndex(new PublicKey(basktId));
-      fetchFundingIndexes();
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to initialize funding index'));
-    }
-  };
-
   const updateFundingIndex = async (newRate: number) => {
     try {
       await client?.updateFundingIndex(new PublicKey(basktId), new BN(newRate));
@@ -48,7 +39,6 @@ export function useBasktFundingIndex(basktId: string) {
     fundingIndex,
     loading,
     error,
-    initializeFundingIndex,
     updateFundingIndex,
   };
 }

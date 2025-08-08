@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use crate::state::baskt::AssetConfig;
 use anchor_lang::prelude::*;
 
@@ -16,16 +18,23 @@ use crate::instructions::baskt_all::baskt_config::{
     SetBasktMinCollateralRatioBps, SetBasktOpeningFeeBps, UpdateBasktConfig,
     UpdateBasktConfigParams,
 };
-use crate::instructions::baskt_all::lifecycle::ActivateBasktParams;
+use crate::instructions::baskt_all::{
+    create::{CreateBaskt, CreateBasktParams},
+    activate::{ActivateBaskt, ActivateBasktParams},
+    decomission::{DecommissionBaskt},
+    close::{CloseBaskt},
+    rebalance::{Rebalance},
+    rebalance_request::{RebalanceRequest},
+    funding_index::{UpdateFundingIndex},
+};
 use crate::instructions::config::{SetFundingCutBps, SetTreasuryCutBps};
 use crate::instructions::protocol::UpdateFeatureFlagsParams;
 use crate::state::order::OrderAction;
 use instructions::*;
 // Import position instruction structs and params
 use crate::instructions::config::{
-    SetClosingFeeBps, SetLiquidationFeeBps, SetLiquidationPriceDeviationBps,
-    SetLiquidationThresholdBps, SetMaxPriceAgeSec, SetMaxPriceDeviationBps,
-    SetMinCollateralRatioBps, SetMinLiquidity, SetOpeningFeeBps, UpdateTreasury,
+    SetClosingFeeBps, SetLiquidationFeeBps, SetLiquidationThresholdBps, SetMinCollateralRatioBps,
+    SetMinLiquidity, SetOpeningFeeBps, UpdateTreasury, SetRebalanceRequestFee, SetBasktCreationFee,
 };
 use crate::instructions::position::{
     add_collateral::{AddCollateral, AddCollateralParams},
@@ -113,48 +122,32 @@ pub mod baskt {
         instructions::config::update_treasury(ctx, new_treasury)
     }
 
-    pub fn set_max_price_age_sec(
-        ctx: Context<SetMaxPriceAgeSec>,
-        new_max_price_age_sec: u32,
-    ) -> Result<()> {
-        instructions::config::set_max_price_age_sec(ctx, new_max_price_age_sec)
-    }
-
-    pub fn set_max_price_deviation_bps(
-        ctx: Context<SetMaxPriceDeviationBps>,
-        new_max_price_deviation_bps: u64,
-    ) -> Result<()> {
-        instructions::config::set_max_price_deviation_bps(ctx, new_max_price_deviation_bps)
-    }
-
-    pub fn set_liquidation_price_deviation_bps(
-        ctx: Context<SetLiquidationPriceDeviationBps>,
-        new_liquidation_price_deviation_bps: u64,
-    ) -> Result<()> {
-        instructions::config::set_liquidation_price_deviation_bps(
-            ctx,
-            new_liquidation_price_deviation_bps,
-        )
-    }
-
     pub fn set_min_liquidity(ctx: Context<SetMinLiquidity>, new_min_liquidity: u64) -> Result<()> {
         instructions::config::set_min_liquidity(ctx, new_min_liquidity)
     }
 
-    pub fn set_decommission_grace_period(
-        ctx: Context<SetDecommissionGracePeriod>,
-        new_grace_period: i64,
+
+    pub fn set_rebalance_request_fee(
+        ctx: Context<SetRebalanceRequestFee>,
+        new_fee_lamports: u64,
     ) -> Result<()> {
-        instructions::config::set_decommission_grace_period(ctx, new_grace_period)
+        instructions::config::set_rebalance_request_fee(ctx, new_fee_lamports)
+    }
+
+    pub fn set_baskt_creation_fee(
+        ctx: Context<SetBasktCreationFee>,
+        new_fee_lamports: u64,
+    ) -> Result<()> {
+        instructions::config::set_baskt_creation_fee(ctx, new_fee_lamports)
     }
 
     // Baskt Management
     pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Result<()> {
-        instructions::baskt_all::lifecycle::create_baskt(ctx, params)
+        instructions::baskt_all::create::create_baskt(ctx, params)
     }
 
     pub fn activate_baskt(ctx: Context<ActivateBaskt>, params: ActivateBasktParams) -> Result<()> {
-        instructions::baskt_all::lifecycle::activate_baskt(ctx, params)
+        instructions::baskt_all::activate::activate_baskt(ctx, params)
     }
 
     // Baskt Configuration
@@ -211,11 +204,7 @@ pub mod baskt {
 
     // Baskt Lifecycle Management
     pub fn decommission_baskt(ctx: Context<DecommissionBaskt>) -> Result<()> {
-        instructions::baskt_all::lifecycle::decommission_baskt(ctx)
-    }
-
-    pub fn settle_baskt(ctx: Context<SettleBaskt>) -> Result<()> {
-        instructions::baskt_all::lifecycle::settle_baskt(ctx)
+        instructions::baskt_all::decomission::decommission_baskt(ctx)
     }
 
     pub fn force_close_position<'info>(
@@ -226,47 +215,31 @@ pub mod baskt {
     }
 
     pub fn close_baskt(ctx: Context<CloseBaskt>) -> Result<()> {
-        instructions::baskt_all::lifecycle::close_baskt(ctx)
+        instructions::baskt_all::close::close_baskt(ctx)
     }
 
     pub fn add_asset(ctx: Context<AddAsset>, params: AddAssetParams) -> Result<()> {
         instructions::asset::add_asset(ctx, params)
     }
 
-    pub fn rebalance(ctx: Context<Rebalance>, asset_configs: Vec<AssetConfig>) -> Result<()> {
-        instructions::baskt_all::rebalance::rebalance(ctx, asset_configs)
+    pub fn rebalance(
+        ctx: Context<Rebalance>,
+        asset_configs: Vec<AssetConfig>,
+        new_nav: u64,
+        rebalance_fee_per_unit: Option<u64>,
+    ) -> Result<()> {
+        instructions::baskt_all::rebalance::rebalance(ctx, asset_configs, new_nav, rebalance_fee_per_unit)
     }
 
-    pub fn update_custom_oracle(ctx: Context<UpdateCustomOracle>, price: u64) -> Result<()> {
-        instructions::baskt_all::oracle::update_custom_oracle(ctx, price)
+    pub fn rebalance_request(ctx: Context<RebalanceRequest>) -> Result<()> {
+        instructions::baskt_all::rebalance_request::rebalance_request(ctx)
     }
 
     pub fn create_order(
         ctx: Context<CreateOrder>,
-        order_id: u64,
-        size: u64,
-        collateral: u64,
-        is_long: bool,
-        action: OrderAction,
-        target_position: Option<Pubkey>,
-        limit_price: u64,
-        max_slippage_bps: u64,
-        leverage_bps: u64,
-        order_type: crate::state::order::OrderType,
+        params: instructions::order::create_order::CreateOrderParams,
     ) -> Result<()> {
-        instructions::order::create_order(
-            ctx,
-            order_id,
-            size,
-            collateral,
-            is_long,
-            action,
-            target_position,
-            limit_price,
-            max_slippage_bps,
-            leverage_bps,
-            order_type,
-        )
+        instructions::order::create_order(ctx, params)
     }
 
     pub fn cancel_order(ctx: Context<CancelOrder>) -> Result<()> {
@@ -303,14 +276,8 @@ pub mod baskt {
         ctx: Context<InitializeLiquidityPool>,
         deposit_fee_bps: u16,
         withdrawal_fee_bps: u16,
-        min_deposit: u64,
     ) -> Result<()> {
-        instructions::liquidity::initialize_liquidity_pool(
-            ctx,
-            deposit_fee_bps,
-            withdrawal_fee_bps,
-            min_deposit,
-        )
+        instructions::liquidity::initialize_liquidity_pool(ctx, deposit_fee_bps, withdrawal_fee_bps)
     }
 
     pub fn add_liquidity(
@@ -321,20 +288,21 @@ pub mod baskt {
         instructions::liquidity::add_liquidity(ctx, amount, min_shares_out)
     }
 
-    pub fn remove_liquidity(
-        ctx: Context<RemoveLiquidity>,
-        lp_amount: u64,
-        min_tokens_out: u64,
-    ) -> Result<()> {
-        instructions::liquidity::remove_liquidity(ctx, lp_amount, min_tokens_out)
-    }
-
-    // Funding Index Management
-    pub fn initialize_funding_index(ctx: Context<InitializeFundingIndex>) -> Result<()> {
-        instructions::baskt_all::funding_index::initialize_funding_index(ctx)
-    }
-
     pub fn update_funding_index(ctx: Context<UpdateFundingIndex>, new_rate: i64) -> Result<()> {
         instructions::baskt_all::funding_index::update_funding_index(ctx, new_rate)
+    }
+
+    // Withdrawal Queue Management
+    pub fn queue_withdraw_liquidity(
+        ctx: Context<QueueWithdrawLiquidity>,
+        params: RequestWithdrawParams,
+    ) -> Result<()> {
+        instructions::liquidity::queue_withdraw_liquidity(ctx, params)
+    }
+
+    pub fn process_withdraw_queue<'info>(
+        ctx: Context<'_, '_, '_, 'info, ProcessWithdrawQueue<'info>>,
+    ) -> Result<()> {
+        instructions::liquidity::process_withdraw_queue(ctx)
     }
 }

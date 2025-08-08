@@ -6,7 +6,7 @@ import {
   FeeEventMetadataSchema,
   AccessCodeSchema,
   AuthorizedWalletSchema,
-} from '@baskt/types';
+} from '../../types/models';
 import mongoose from 'mongoose';
 
 export const AssetMetadataModel = mongoose.model('AssetMetadata', AssetMetadataSchema);

@@ -1,4 +1,4 @@
-import { BasktMetadataModel, OnchainBasktAccount } from '@baskt/types';
+import {  OnchainBasktAccount } from '@baskt/types';
 import { CombinedAsset } from './asset';
 
 /**
@@ -34,8 +34,6 @@ export interface CombinedBaskt {
   name: string;
   /** Creator address */
   creator: string;
-  /** Rebalance period configuration */
-  rebalancePeriod: BasktMetadataModel['rebalancePeriod'];
   /** Transaction signature */
   txSignature: string;
   /** Array of combined assets in the baskt */
@@ -90,8 +88,6 @@ export interface BasktNAV {
  * Options for baskt queries
  */
 export interface BasktQueryOptions {
-  /** Include latest price data for assets */
-  withLatestPrices?: boolean;
   /** Include asset configuration data */
   withConfig?: boolean;
   /** Include performance metrics */

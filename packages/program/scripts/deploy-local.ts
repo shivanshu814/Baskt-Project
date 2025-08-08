@@ -117,11 +117,29 @@ async function createFakePrices(assetConfig: any[]) {
 async function main() {
   // Delete the entire DB
 
+  console.log('Starting deployment');
+
   const usdcMint = new PublicKey(
     process.env.NEXT_PUBLIC_USDC_MINT || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
   );
 
   const { program, wallet, provider } = getProvider();
+  const fundingAccount = new PublicKey(process.env.FUNDING_ACCOUNT || '');
+
+  const transaction = new anchor.web3.Transaction().add(
+    anchor.web3.SystemProgram.transfer({
+      fromPubkey: wallet.publicKey,
+      toPubkey: fundingAccount,
+      lamports: anchor.web3.LAMPORTS_PER_SOL * 10, // Transfer 10 SOL
+    }),
+  );
+
+  await provider.sendAndConfirm(transaction);
+  
+  console.log('Funding account balance:', await provider.connection.getBalance(fundingAccount));
+  console.log('Wallet balance:', await provider.connection.getBalance(wallet.publicKey));
+
+
 
   const client = new TestClient(program);
   client.setPublicKey(wallet.publicKey);
@@ -143,7 +161,6 @@ async function main() {
   await client.initializeLiquidityPool(
     100,
     100,
-    new anchor.BN(1e6),
     lpMintKeypair.publicKey,
     usdcMint,
     lpMintKeypair,
@@ -168,16 +185,6 @@ async function main() {
     console.error('Error adding assets to backend:', error);
   }
 
-  const fundingAccount = new PublicKey(process.env.FUNDING_ACCOUNT || '');
-
-  // Giving some funding to the FUNDING_ACCOUNT
-  const transaction = new anchor.web3.Transaction().add(
-    anchor.web3.SystemProgram.transfer({
-      fromPubkey: wallet.publicKey,
-      toPubkey: fundingAccount,
-      lamports: anchor.web3.LAMPORTS_PER_SOL * 10, // Transfer 10 SOL
-    }),
-  );
 
   await client.addRole(fundingAccount, AccessControlRole.Owner);
 
@@ -185,8 +192,8 @@ async function main() {
 
   // 1. Derive PDAs
   const protocolPDA = await client.protocolPDA;
-  const liquidityPoolPDA = await client.findLiquidityPoolPDA();
-  const poolAuthorityPDA = await client.findPoolAuthorityPDA();
+  const liquidityPoolPDA = await client.liquidityPoolPDA;
+  const poolAuthorityPDA = await client.poolAuthorityPDA;
   console.log('Protocol PDA:', protocolPDA.toBase58());
   console.log('Liquidity Pool PDA:', liquidityPoolPDA.toBase58());
   console.log('Pool Authority PDA:', poolAuthorityPDA.toBase58());
@@ -227,16 +234,12 @@ async function main() {
   ];
 
   // Lets also just create a baskt
-  const basket = await client.createBaskt('Test Basket', assetsConfig, true);
+  const basket = await client.createBaskt(assetsConfig, true);
   trpc.baskt.createBasktMetadata.mutate({
     basktId: basket.basktId.toString(),
-    name: 'Test Basket',
+    name: basket.uid.toString(),
     creator: wallet.publicKey.toString(),
     assets: assetsConfig.map((asset) => asset.assetId.toString()),
-    rebalancePeriod: {
-      value: 1,
-      unit: 'day',
-    },
     txSignature: basket.txSignature,
   });
 

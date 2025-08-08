@@ -4,16 +4,19 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { getAccount } from '@solana/spl-token';
 import { TestClient, requestAirdrop } from '../utils/test-client';
-import { AccessControlRole } from '@baskt/types';
-import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
+import { TestCleanup } from '../utils/test-cleanup';
+import { TEST_AMOUNTS, TEST_PRICES, TEST_TICKERS, TEST_PARAMS } from '../utils/test-constants-shared';
+import { AccessControlRole, OrderAction, OrderType } from '@baskt/types';
+import { BASELINE_PRICE } from '../utils/test-constants';
 
 describe('Order Cancellation', () => {
   // Get the test client instance
   const client = TestClient.getInstance();
 
   // Test parameters
-  const ORDER_SIZE = new BN(10_000_000); // 10 units
-  const COLLATERAL_AMOUNT = new BN(11_020_000); // 11.02 USDC (110% + opening fee)
+  const NOTIONAL_ORDER_VALUE = new BN(10 * 1e6); // 10 units
+  const LIMIT_PRICE = BASELINE_PRICE; // $50,000 price with 6 decimals
+  const COLLATERAL_AMOUNT = NOTIONAL_ORDER_VALUE.muln(1.1).add(new BN(1000000)); // 110% + opening fee
   const TICKER = 'BTC';
 
   // Test accounts
@@ -21,6 +24,7 @@ describe('Order Cancellation', () => {
   let treasury: Keypair;
   let matcher: Keypair;
   let userClient: TestClient;
+  let matcherClient: TestClient;
   let otherUser: Keypair;
   let otherUserClient: TestClient;
 
@@ -35,12 +39,15 @@ describe('Order Cancellation', () => {
   const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
   // Order state for tests
-  let longOrderId: BN;
+  let longOrderId: number;
   let longOrderPDA: PublicKey;
-  let shortOrderId: BN;
+  let shortOrderId: number;
   let shortOrderPDA: PublicKey;
 
   before(async () => {
+    // Initialize protocol and core roles
+    await TestClient.initializeProtocolAndRoles(client);
+
     // Create test keypairs
     user = Keypair.generate();
     treasury = Keypair.generate();
@@ -58,7 +65,18 @@ describe('Order Cancellation', () => {
     );
     // Create user clients
     userClient = await TestClient.forUser(user);
+    matcherClient = await TestClient.forUser(matcher);
     otherUserClient = await TestClient.forUser(otherUser);
+
+    await client.addRole(user.publicKey, AccessControlRole.Matcher);
+
+    await client.setupLiquidityPoolWithLiquidity({
+      depositFeeBps: 0,
+      withdrawalFeeBps: 0,
+      minDeposit: new BN(0),
+      initialDeposit: new BN(10 * 1e6),
+      provider: user,
+    });
 
     // Add roles
     await client.addRole(matcher.publicKey, AccessControlRole.Matcher);
@@ -86,8 +104,6 @@ describe('Order Cancellation', () => {
     assetId = assetResult.assetAddress;
 
     // Create a baskt with the asset - use a unique name with timestamp
-    const basktName = `TestBaskt_Cancel_${Date.now()}`;
-
     // Format asset config correctly with assetId
     const formattedAssetConfig = {
       weight: new BN(10000), // 100% weight (10000 bps)
@@ -97,8 +113,7 @@ describe('Order Cancellation', () => {
     };
 
     const { basktId: createdBasktId } = await client.createBaskt(
-      basktName,
-      [formattedAssetConfig],
+      [formattedAssetConfig], 
       true, // isPublic
     );
     basktId = createdBasktId;
@@ -107,20 +122,16 @@ describe('Order Cancellation', () => {
     await client.activateBaskt(
       basktId,
       [new BN(50000 * 1000000)], // $50,000 price with 6 decimals
-      60, // maxPriceAgeSec
     );
 
     // Use the USDC mock token for collateral
     collateralMint = USDC_MINT;
 
     // Create token accounts for the test using userClient so the user pays for the ATA
-    userTokenAccount = await userClient.getOrCreateUSDCAccount(user.publicKey);
+    userTokenAccount = await userClient.getOrCreateUSDCAccountKey(user.publicKey);
 
     // Derive the user escrow token account PDA
-    [escrowTokenAccount] = PublicKey.findProgramAddressSync(
-      [Buffer.from('user_escrow'), user.publicKey.toBuffer()],
-      client.program.programId,
-    );
+    escrowTokenAccount = client.getOrderEscrowPDA(user.publicKey);
 
     // Mint USDC tokens to user
     await client.mintUSDC(
@@ -131,107 +142,66 @@ describe('Order Cancellation', () => {
     // Create orders that we'll cancel in our tests
 
     // Create a long order
-    longOrderId = new BN(Date.now());
-    [longOrderPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('order'), user.publicKey.toBuffer(), longOrderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId,
-    );
+    longOrderId = client.newUID();
+    longOrderPDA = await userClient.getOrderPDA(longOrderId, user.publicKey);
 
-    await userClient.createOrder({
+    await userClient.createMarketOpenOrder({
       orderId: longOrderId,
-      size: ORDER_SIZE,
+      basktId,
+      notionalValue: NOTIONAL_ORDER_VALUE,
       collateral: COLLATERAL_AMOUNT,
       isLong: true,
-      action: { open: {} },
-      targetPosition: null,
-      basktId: basktId,
-      ownerTokenAccount: userTokenAccount,
-      collateralMint: collateralMint,
       leverageBps: new BN(10000), // 1x leverage
+      ownerTokenAccount: userTokenAccount,
     });
 
     // Create a short order
-    shortOrderId = new BN(Date.now() + 1);
-    [shortOrderPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('order'), user.publicKey.toBuffer(), shortOrderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId,
-    );
+    shortOrderId = client.newUID();
+    shortOrderPDA = await userClient.getOrderPDA(shortOrderId, user.publicKey);
 
-    await userClient.createOrder({
+    await userClient.createMarketOpenOrder({
       orderId: shortOrderId,
-      size: ORDER_SIZE,
+      basktId,
+      notionalValue: NOTIONAL_ORDER_VALUE,
       collateral: COLLATERAL_AMOUNT,
       isLong: false,
-      action: { open: {} },
-      targetPosition: null,
-      basktId: basktId,
+      leverageBps: new BN(10000), // 1x leverage
       ownerTokenAccount: userTokenAccount,
-      collateralMint: collateralMint,
     });
 
     // Create the additional order
-    const additionalOrderId = new BN(Date.now() + 100);
-    await userClient.createOrder({
+    const additionalOrderId = client.newUID();
+    await userClient.createMarketOpenOrder({
       orderId: additionalOrderId,
-      size: ORDER_SIZE,
+      basktId,
+      notionalValue: NOTIONAL_ORDER_VALUE,
       collateral: COLLATERAL_AMOUNT,
       isLong: true,
-      action: { open: {} },
-      targetPosition: null,
-      basktId: basktId,
+      leverageBps: new BN(10000), // 1x leverage
       ownerTokenAccount: userTokenAccount,
-      collateralMint: collateralMint,
     });
   });
 
   after(async () => {
-    // Clean up roles and feature flags
-    try {
-      // Remove matcher role
-      const removeMatcherSig = await client.removeRole(
-        matcher.publicKey,
-        AccessControlRole.Matcher
-      );
-      await waitForTx(client.connection, removeMatcherSig);
-
-      // Reset feature flags to enabled state
-      const resetSig = await client.updateFeatureFlags({
-        allowAddLiquidity: true,
-        allowRemoveLiquidity: true,
-        allowOpenPosition: true,
-        allowClosePosition: true,
-        allowPnlWithdrawal: true,
-        allowCollateralWithdrawal: true,
-        allowAddCollateral: true,
-        allowBasktCreation: true,
-        allowBasktUpdate: true,
-        allowTrading: true,
-        allowLiquidations: true,
-      });
-      await waitForTx(client.connection, resetSig);
-      await waitForNextSlot(client.connection);
-    } catch (error) {
-      // Silently handle cleanup errors to avoid masking test failures
-      console.warn('Cleanup error in cancel_order.test.ts:', error);
-    }
+    // Use centralized cleanup for both roles and feature flags
+    await TestCleanup.fullCleanup(client, [
+      { publicKey: matcher.publicKey, role: AccessControlRole.Matcher }
+    ]);
   });
 
   it('Cancels a long order and returns collateral', async () => {
     // Create a new order PDA for additional testing
-    const additionalOrderId = new BN(Date.now() + 100);
+    const additionalOrderId = client.newUID();
 
     // Create the additional order
-    await userClient.createOrder({
+    await userClient.createMarketOpenOrder({
       orderId: additionalOrderId,
-      size: ORDER_SIZE,
+      basktId,
+      notionalValue: NOTIONAL_ORDER_VALUE,
       collateral: COLLATERAL_AMOUNT,
       isLong: true,
-      action: { open: {} },
-      targetPosition: null,
-      basktId: basktId,
-      ownerTokenAccount: userTokenAccount,
-      collateralMint: collateralMint,
       leverageBps: new BN(10000), // 1x leverage
+      ownerTokenAccount: userTokenAccount,
     });
 
     // Get balances before cancellation
@@ -307,23 +277,18 @@ describe('Order Cancellation', () => {
 
   it('Fails to cancel an order by a non-owner', async () => {
     // Create a new order for testing
-    const testOrderId = new BN(Date.now() + 200);
-    const [testOrderPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('order'), user.publicKey.toBuffer(), testOrderId.toArrayLike(Buffer, 'le', 8)],
-      client.program.programId,
-    );
+    const testOrderId = client.newUID();
+    const testOrderPDA = await userClient.getOrderPDA(testOrderId, user.publicKey);
 
     // Create the test order
-    await userClient.createOrder({
+    await userClient.createMarketOpenOrder({
       orderId: testOrderId,
-      size: ORDER_SIZE,
+      basktId,
+      notionalValue: NOTIONAL_ORDER_VALUE,
       collateral: COLLATERAL_AMOUNT,
       isLong: true,
-      action: { open: {} },
-      targetPosition: null,
-      basktId: basktId,
+      leverageBps: new BN(10000), // 1x leverage
       ownerTokenAccount: userTokenAccount,
-      collateralMint: collateralMint,
     });
 
     // Try to cancel the order as a different user (which should fail)
@@ -352,27 +317,18 @@ describe('Order Cancellation', () => {
 
   it('Fails to cancel an already cancelled order', async () => {
     // Create a new order for testing
-    const orderIdToCancel = new BN(Date.now() + 300);
-    const [orderPDAToCancel] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from('order'),
-        user.publicKey.toBuffer(),
-        orderIdToCancel.toArrayLike(Buffer, 'le', 8),
-      ],
-      client.program.programId,
-    );
+    const orderIdToCancel = client.newUID();
+    const orderPDAToCancel = await userClient.getOrderPDA(orderIdToCancel, user.publicKey);
 
     // Create the order
-    await userClient.createOrder({
+    await userClient.createMarketOpenOrder({
       orderId: orderIdToCancel,
-      size: ORDER_SIZE,
+      basktId,
+      notionalValue: NOTIONAL_ORDER_VALUE,
       collateral: COLLATERAL_AMOUNT,
       isLong: true,
-      action: { open: {} },
-      targetPosition: null,
-      basktId: basktId,
+      leverageBps: new BN(10000), // 1x leverage
       ownerTokenAccount: userTokenAccount,
-      collateralMint: collateralMint,
     });
 
     // Cancel the order first time
@@ -393,5 +349,198 @@ describe('Order Cancellation', () => {
       // This is expected - account should be closed
       expect((error as Error).message).to.include('Account does not exist');
     }
+  });
+
+  it('Cancels a close order (no collateral to return)', async () => {
+    // First, create a position to close
+    const positionOrderId = client.newUID();
+    const positionId = client.newUID();
+    const positionOrderPDA = await userClient.getOrderPDA(positionOrderId, user.publicKey);
+    const positionPDA = await userClient.getPositionPDA(user.publicKey, positionId);
+
+    const entryPrice = new BN(100 * 1e6);
+
+    // Create and open a position first
+    await userClient.createMarketOpenOrder({
+      orderId: positionOrderId,
+      basktId,
+      notionalValue: NOTIONAL_ORDER_VALUE,
+      collateral: COLLATERAL_AMOUNT,
+      isLong: true,
+      leverageBps: new BN(10000), // 1x leverage
+      ownerTokenAccount: userTokenAccount,
+    });
+
+    // Open the position
+    await matcherClient.openPosition({
+      positionId: positionId,
+      entryPrice,
+      order: positionOrderPDA,
+      baskt: basktId,
+      orderOwner: user.publicKey,
+    });
+
+    // Now create a close order
+    const closeOrderId = client.newUID();
+    const closeOrderPDA = await userClient.getOrderPDA(closeOrderId, user.publicKey);
+
+    // Get balances before creating close order
+    const userTokenBefore = await getAccount(client.connection, userTokenAccount);
+    const escrowTokenBefore = await getAccount(client.connection, escrowTokenAccount);
+
+    // Create the close order
+    await userClient.createMarketCloseOrder({
+      orderId: closeOrderId,
+      basktId,
+      sizeAsContracts: NOTIONAL_ORDER_VALUE,
+      targetPosition: positionPDA, // Target the position we just created
+      ownerTokenAccount: userTokenAccount,
+    });
+
+    // Verify no collateral was transferred for close order creation
+    const userTokenAfterCreation = await getAccount(client.connection, userTokenAccount);
+    const escrowTokenAfterCreation = await getAccount(client.connection, escrowTokenAccount);
+
+    const userBalanceChange = new BN(userTokenAfterCreation.amount.toString()).sub(
+      new BN(userTokenBefore.amount.toString()),
+    );
+    const escrowBalanceChange = new BN(escrowTokenAfterCreation.amount.toString()).sub(
+      new BN(escrowTokenBefore.amount.toString()),
+    );
+
+    // No tokens should be transferred for a close order creation
+    expect(userBalanceChange.toString()).to.equal('0');
+    expect(escrowBalanceChange.toString()).to.equal('0');
+
+    // Cancel the close order
+    await userClient.cancelOrder({
+      orderPDA: closeOrderPDA,
+      ownerTokenAccount: userTokenAccount,
+    });
+
+    // Try to fetch the order account after cancellation
+    try {
+      await client.program.account.order.fetch(closeOrderPDA);
+      expect.fail('Order account should be closed');
+    } catch (error) {
+      expect((error as Error).message).to.include('Account does not exist');
+    }
+
+    // Verify no collateral transfer occurred during cancellation
+    const userTokenAfter = await getAccount(client.connection, userTokenAccount);
+    const escrowTokenAfter = await getAccount(client.connection, escrowTokenAccount);
+
+    const userBalanceDiff = new BN(userTokenAfter.amount.toString()).sub(
+      new BN(userTokenAfterCreation.amount.toString()),
+    );
+    const escrowBalanceDiff = new BN(escrowTokenAfter.amount.toString()).sub(
+      new BN(escrowTokenAfterCreation.amount.toString()),
+    );
+
+    // No tokens should be transferred for close order cancellation
+    expect(userBalanceDiff.toString()).to.equal('0');
+    expect(escrowBalanceDiff.toString()).to.equal('0');
+  });
+
+  it('Fails to cancel order when trading is disabled', async () => {
+    // Create an order first
+    const orderId = client.newUID();
+    const orderPDA = await userClient.getOrderPDA(orderId, user.publicKey);
+
+    await userClient.createMarketOpenOrder({
+      orderId,
+      basktId,
+      notionalValue: NOTIONAL_ORDER_VALUE,
+      collateral: COLLATERAL_AMOUNT,
+      isLong: true,
+      leverageBps: new BN(10000), // 1x leverage
+      ownerTokenAccount: userTokenAccount,
+    });
+
+    // Disable trading
+    await client.updateFeatureFlags({
+      allowAddLiquidity: true,
+      allowRemoveLiquidity: true,
+      allowOpenPosition: true,
+      allowClosePosition: true,
+      allowPnlWithdrawal: true,
+      allowCollateralWithdrawal: true,
+      allowAddCollateral: true,
+      allowBasktCreation: true,
+      allowBasktUpdate: true,
+      allowTrading: false, // DISABLED
+      allowLiquidations: true,
+    });
+
+    // Try to cancel order (should fail)
+    try {
+      await userClient.cancelOrder({
+        orderPDA,
+        ownerTokenAccount: userTokenAccount,
+      });
+      expect.fail('Should have failed due to disabled trading');
+    } catch (error) {
+      expect((error as Error).message).to.include('TradingDisabled');
+    }
+
+    // Re-enable trading for cleanup
+    await client.updateFeatureFlags({
+      allowAddLiquidity: true,
+      allowRemoveLiquidity: true,
+      allowOpenPosition: true,
+      allowClosePosition: true,
+      allowPnlWithdrawal: true,
+      allowCollateralWithdrawal: true,
+      allowAddCollateral: true,
+      allowBasktCreation: true,
+      allowBasktUpdate: true,
+      allowTrading: true, // RE-ENABLED
+      allowLiquidations: true,
+    });
+
+    // Clean up by cancelling with trading re-enabled
+    await userClient.cancelOrder({
+      orderPDA,
+      ownerTokenAccount: userTokenAccount,
+    });
+  });
+
+  it('Fails to cancel order with wrong token account', async () => {
+    // Create order with user's token account
+    const orderId = client.newUID();
+    const orderPDA = await userClient.getOrderPDA(orderId, user.publicKey);
+
+    await userClient.createMarketOpenOrder({
+      orderId,
+      basktId,
+      notionalValue: NOTIONAL_ORDER_VALUE,
+      collateral: COLLATERAL_AMOUNT,
+      isLong: true,
+      leverageBps: new BN(10000), // 1x leverage
+      ownerTokenAccount: userTokenAccount,
+    });
+
+    // Try to cancel with different user's token account
+    const otherUserTokenAccount = await otherUserClient.getOrCreateUSDCAccountKey(otherUser.publicKey);
+    await client.mintUSDC(otherUserTokenAccount, COLLATERAL_AMOUNT.muln(10).toNumber());
+    
+    try {
+      // Kept getting a blockhash mismatch error here
+      const tx = await userClient.program.methods.cancelOrder().accountsPartial({
+        owner: user.publicKey,
+        order: orderPDA,
+        ownerCollateralAccount: otherUserTokenAccount,
+      }).rpc();
+      expect.fail('Should have failed with wrong token account');
+    } catch (error) {
+      console.log(error);
+      expect((error as Error).message).to.include('UnauthorizedTokenOwner');
+    }
+
+    // Clean up by cancelling with correct token account
+    await userClient.cancelOrder({
+      orderPDA,
+      ownerTokenAccount: userTokenAccount,
+    });
   });
 });

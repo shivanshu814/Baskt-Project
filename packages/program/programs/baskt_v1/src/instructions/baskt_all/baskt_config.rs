@@ -1,21 +1,14 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::keccak;
 
 use crate::constants::{BASKT_SEED, PROTOCOL_SEED};
 use crate::error::PerpetualsError;
 use crate::events::*;
-use crate::state::baskt::Baskt;
-use crate::state::config::BasktConfig;
+use crate::state::baskt::{Baskt, BasktConfig};
 use crate::state::protocol::{Protocol, Role};
 use crate::utils::{
-    validate_baskt_config, validate_baskt_fee_bps, validate_baskt_liquidation_threshold_bps,
-    validate_baskt_min_collateral_ratio_bps,
+     validate_baskt_config, validate_baskt_fee_bps,
+    validate_baskt_liquidation_threshold_bps, validate_baskt_min_collateral_ratio_bps,
 };
-
-// Helper function to get baskt name seed
-fn get_baskt_name_seed(baskt_name: &str) -> [u8; 32] {
-    keccak::hash(baskt_name.as_bytes()).to_bytes()
-}
 
 // Helper function to check if authority can modify baskt config
 fn can_modify_baskt_config(baskt: &Baskt, authority: Pubkey, protocol: &Protocol) -> bool {
@@ -46,7 +39,7 @@ pub struct SetBasktOpeningFeeBps<'info> {
     /// Baskt account to update
     #[account(
         mut,
-        seeds = [BASKT_SEED, &get_baskt_name_seed(&baskt.baskt_name)[..]],
+        seeds = [BASKT_SEED, &baskt.uid.to_le_bytes()],
         bump = baskt.bump
     )]
     pub baskt: Account<'info, Baskt>,
@@ -83,7 +76,7 @@ pub struct SetBasktClosingFeeBps<'info> {
     /// Baskt account to update
     #[account(
         mut,
-        seeds = [BASKT_SEED, &get_baskt_name_seed(&baskt.baskt_name)[..]],
+        seeds = [BASKT_SEED, &baskt.uid.to_le_bytes()],
         bump = baskt.bump
     )]
     pub baskt: Account<'info, Baskt>,
@@ -120,7 +113,7 @@ pub struct SetBasktLiquidationFeeBps<'info> {
     /// Baskt account to update
     #[account(
         mut,
-        seeds = [BASKT_SEED, &get_baskt_name_seed(&baskt.baskt_name)[..]],
+        seeds = [BASKT_SEED, &baskt.uid.to_le_bytes()],
         bump = baskt.bump
     )]
     pub baskt: Account<'info, Baskt>,
@@ -157,7 +150,7 @@ pub struct SetBasktMinCollateralRatioBps<'info> {
     /// Baskt account to update
     #[account(
         mut,
-        seeds = [BASKT_SEED, &get_baskt_name_seed(&baskt.baskt_name)[..]],
+        seeds = [BASKT_SEED, &baskt.uid.to_le_bytes()],
         bump = baskt.bump
     )]
     pub baskt: Account<'info, Baskt>,
@@ -167,38 +160,30 @@ pub struct SetBasktMinCollateralRatioBps<'info> {
     pub protocol: Account<'info, Protocol>,
 }
 
-// Wrapper function for min collateral ratio validation with cross-validation
-fn validate_baskt_min_collateral_ratio_with_context(
-    ctx: &Context<SetBasktMinCollateralRatioBps>,
-    new_value: Option<u64>,
-) -> Result<()> {
-    validate_baskt_min_collateral_ratio_bps(
-        new_value,
-        ctx.accounts.baskt.config.liquidation_threshold_bps,
-    )
-}
 
 pub fn set_baskt_min_collateral_ratio_bps(
     ctx: Context<SetBasktMinCollateralRatioBps>,
     new_min_collateral_ratio_bps: Option<u64>,
 ) -> Result<()> {
     // Validate with cross-validation against existing liquidation threshold
-    validate_baskt_min_collateral_ratio_with_context(&ctx, new_min_collateral_ratio_bps)?;
-
+    validate_baskt_min_collateral_ratio_bps(
+        new_min_collateral_ratio_bps,
+        ctx.accounts.baskt.config.get_liquidation_threshold_bps(),
+    )?;
     let baskt = &mut ctx.accounts.baskt;
-    let old_min_collateral_ratio_bps = baskt.config.min_collateral_ratio_bps;
+    let old_min_collateral_ratio_bps = baskt.config.get_min_collateral_ratio_bps();
 
     // Early exit if nothing changed
     if old_min_collateral_ratio_bps == new_min_collateral_ratio_bps {
         return Ok(());
     }
 
-    baskt.config.min_collateral_ratio_bps = new_min_collateral_ratio_bps;
+    baskt.config.set_min_collateral_ratio_bps(new_min_collateral_ratio_bps);
 
     let clock = Clock::get()?;
     emit!(BasktMinCollateralRatioUpdatedEvent {
         baskt: baskt.key(),
-        old_min_collateral_ratio_bps,
+        old_min_collateral_ratio_bps: old_min_collateral_ratio_bps,
         new_min_collateral_ratio_bps,
         updated_by: ctx.accounts.authority.key(),
         timestamp: clock.unix_timestamp,
@@ -223,7 +208,7 @@ pub struct SetBasktLiquidationThresholdBps<'info> {
     /// Baskt account to update
     #[account(
         mut,
-        seeds = [BASKT_SEED, &get_baskt_name_seed(&baskt.baskt_name)[..]],
+        seeds = [BASKT_SEED, &baskt.uid.to_le_bytes()],
         bump = baskt.bump
     )]
     pub baskt: Account<'info, Baskt>,
@@ -233,38 +218,30 @@ pub struct SetBasktLiquidationThresholdBps<'info> {
     pub protocol: Account<'info, Protocol>,
 }
 
-// Wrapper function for liquidation threshold validation with cross-validation
-fn validate_baskt_liquidation_threshold_with_context(
-    ctx: &Context<SetBasktLiquidationThresholdBps>,
-    new_value: Option<u64>,
-) -> Result<()> {
-    validate_baskt_liquidation_threshold_bps(
-        new_value,
-        ctx.accounts.baskt.config.min_collateral_ratio_bps,
-    )
-}
 
 pub fn set_baskt_liquidation_threshold_bps(
     ctx: Context<SetBasktLiquidationThresholdBps>,
     new_liquidation_threshold_bps: Option<u64>,
 ) -> Result<()> {
     // Validate with cross-validation against existing min collateral ratio
-    validate_baskt_liquidation_threshold_with_context(&ctx, new_liquidation_threshold_bps)?;
-
+    validate_baskt_liquidation_threshold_bps(
+        new_liquidation_threshold_bps,
+        ctx.accounts.baskt.config.get_min_collateral_ratio_bps(),
+    )?;
     let baskt = &mut ctx.accounts.baskt;
-    let old_liquidation_threshold_bps = baskt.config.liquidation_threshold_bps;
+    let old_liquidation_threshold_bps = baskt.config.get_liquidation_threshold_bps();
 
     // Early exit if nothing changed
     if old_liquidation_threshold_bps == new_liquidation_threshold_bps {
         return Ok(());
     }
 
-    baskt.config.liquidation_threshold_bps = new_liquidation_threshold_bps;
+    baskt.config.set_liquidation_threshold_bps(new_liquidation_threshold_bps);
 
     let clock = Clock::get()?;
     emit!(BasktLiquidationThresholdUpdatedEvent {
         baskt: baskt.key(),
-        old_liquidation_threshold_bps,
+        old_liquidation_threshold_bps: old_liquidation_threshold_bps,
         new_liquidation_threshold_bps,
         updated_by: ctx.accounts.authority.key(),
         timestamp: clock.unix_timestamp,
@@ -298,7 +275,7 @@ pub struct UpdateBasktConfig<'info> {
     /// Baskt account to update
     #[account(
         mut,
-        seeds = [BASKT_SEED, &get_baskt_name_seed(&baskt.baskt_name)[..]],
+        seeds = [BASKT_SEED, &baskt.uid.to_le_bytes()],
         bump = baskt.bump
     )]
     pub baskt: Account<'info, Baskt>,
@@ -319,13 +296,12 @@ pub fn update_baskt_config(
     let old_config = baskt.config;
 
     // Create new config with updated values
-    let new_config = BasktConfig {
-        opening_fee_bps: params.opening_fee_bps,
-        closing_fee_bps: params.closing_fee_bps,
-        liquidation_fee_bps: params.liquidation_fee_bps,
-        min_collateral_ratio_bps: params.min_collateral_ratio_bps,
-        liquidation_threshold_bps: params.liquidation_threshold_bps,
-    };
+    let mut new_config = BasktConfig::default();
+    new_config.set_opening_fee_bps(params.opening_fee_bps);
+    new_config.set_closing_fee_bps(params.closing_fee_bps);
+    new_config.set_liquidation_fee_bps(params.liquidation_fee_bps);
+    new_config.set_min_collateral_ratio_bps(params.min_collateral_ratio_bps);
+    new_config.set_liquidation_threshold_bps(params.liquidation_threshold_bps);
 
     // Validate the new config
     validate_baskt_config(&new_config)?;
@@ -348,4 +324,75 @@ pub fn update_baskt_config(
     });
 
     Ok(())
+}
+
+
+
+/// Macro to generate boiler-plate setter instructions for baskt-level configuration fields
+/// that are expressed in basis points (Option<u64>) and share the exact same flow:
+///  1. Validate the new value using the provided validation function
+///  2. Early-return if the value is unchanged
+///  3. Write the new value to baskt.config.<field>
+///  4. Emit the corresponding event
+///
+/// This macro handles baskt-specific optional configuration fields and their validation.
+#[macro_export]
+macro_rules! impl_baskt_bps_setter {
+    (
+        // Function name, e.g. `set_baskt_opening_fee_bps`
+        $fn_name:ident,
+        // The Accounts context type, e.g. `SetBasktOpeningFeeBps<'info>`
+        $accounts:ty,
+        // Name of the `BasktConfig` field to update, e.g. `opening_fee_bps`
+        $field:ident,
+        // Validation function to call, e.g. `validate_baskt_fee_bps`
+        $validation_fn:path,
+        // Event struct to emit, e.g. `BasktOpeningFeeUpdatedEvent`
+        $event:ident,
+        // Identifier for the *old* field value captured for the event
+        $old_ident:ident,
+        // Identifier for the *new* field value passed in by the caller
+        $new_ident:ident
+    ) => {
+        pub fn $fn_name<'info>(
+            ctx: anchor_lang::prelude::Context<$accounts>,
+            $new_ident: Option<u64>,
+        ) -> anchor_lang::prelude::Result<()> {
+            // --- Validation -------------------------------------------------
+            $validation_fn($new_ident)?;
+
+            // --- State update ----------------------------------------------
+            let baskt = &mut ctx.accounts.baskt;
+            let $old_ident = match stringify!($field) {
+                "opening_fee_bps" => baskt.config.get_opening_fee_bps(),
+                "closing_fee_bps" => baskt.config.get_closing_fee_bps(),
+                "liquidation_fee_bps" => baskt.config.get_liquidation_fee_bps(),
+                _ => panic!("Unknown field"),
+            };
+
+            // Early exit if nothing changed – saves compute
+            if $old_ident == $new_ident {
+                return Ok(());
+            }
+
+            match stringify!($field) {
+                "opening_fee_bps" => baskt.config.set_opening_fee_bps($new_ident),
+                "closing_fee_bps" => baskt.config.set_closing_fee_bps($new_ident),
+                "liquidation_fee_bps" => baskt.config.set_liquidation_fee_bps($new_ident),
+                _ => panic!("Unknown field"),
+            };
+
+            // --- Event ------------------------------------------------------
+            let clock = anchor_lang::prelude::Clock::get()?;
+            anchor_lang::prelude::emit!($event {
+                baskt: baskt.key(),
+                $old_ident,
+                $new_ident,
+                updated_by: ctx.accounts.authority.key(),
+                timestamp: clock.unix_timestamp,
+            });
+
+            Ok(())
+        }
+    };
 }

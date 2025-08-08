@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useBasktClient } from '@baskt/ui';
-import { PublicKey } from '@solana/web3.js';
-import { OnchainRebalanceHistory } from '@baskt/types';
-import { toast } from 'sonner';
 
 export function useBasktRebalanceHistory(basktId: string) {
-  const [rebalanceHistory, setRebalanceHistory] = useState<OnchainRebalanceHistory[]>([]);
+  const [rebalanceHistory, setRebalanceHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const { client } = useBasktClient();
@@ -17,32 +14,33 @@ export function useBasktRebalanceHistory(basktId: string) {
       setLoading(true);
       setError(null);
 
-      try {
-        const basktPubkey = new PublicKey(basktId);
+      // try {
+      //   const basktPubkey = new PublicKey(basktId);
 
-        const baskt = await client.getBaskt(basktPubkey);
-        const lastRebalanceIndex =
-          typeof baskt.lastRebalanceIndex === 'string'
-            ? parseInt(baskt.lastRebalanceIndex, 10)
-            : baskt.lastRebalanceIndex.toNumber();
+      //   const baskt = await client.getBasktRaw(basktPubkey);
+      //   const lastRebalanceIndex =
+      //     typeof baskt.lastRebalanceIndex === 'string'
+      //       ? parseInt(baskt.lastRebalanceIndex, 10)
+      //       : baskt.lastRebalanceIndex.toNumber();
 
-        const history: OnchainRebalanceHistory[] = [];
+      //   const history: OnchainRebalanceHistory[] = [];
 
-        for (let i = 0; i < lastRebalanceIndex; i++) {
-          try {
-            const rebalanceEntry = await client.getRebalanceHistory(basktPubkey, i);
-            history.push(rebalanceEntry);
-          } catch (err) {
-            toast(`Rebalance history not found for index ${i}`);
-          }
-        }
+      //   for (let i = 0; i < lastRebalanceIndex; i++) {
+      //     try {
+      //       const rebalanceEntry = await client.getRebalanceHistory(basktPubkey, i);
+      //       history.push(rebalanceEntry);
+      //     } catch (err) {
+      //       toast(`Rebalance history not found for index ${i}`);
+      //     }
+      //   }
 
-        setRebalanceHistory(history);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch rebalance history'));
-      } finally {
-        setLoading(false);
-      }
+      //   setRebalanceHistory(history);
+      // } catch (err) {
+      //   setError(err instanceof Error ? err : new Error('Failed to fetch rebalance history'));
+      // } finally {
+      //   setLoading(false);
+      // }
+      setRebalanceHistory([]);
     };
 
     fetchRebalanceHistory();

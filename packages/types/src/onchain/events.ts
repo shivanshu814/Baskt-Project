@@ -6,20 +6,6 @@ import { OrderAction, OrderType } from './order';
 // EVENTS
 //----------------------------------------------------------------------------
 
-export interface RegistryInitializedEvent {
-  registry: PublicKey;
-  protocol: PublicKey;
-  treasury: PublicKey;
-  treasuryToken: PublicKey;
-  liquidityPool: PublicKey;
-  tokenVault: PublicKey;
-  poolAuthority: PublicKey;
-  programAuthority: PublicKey;
-  escrowMint: PublicKey;
-  initializer: PublicKey;
-  timestamp: BN;
-}
-
 export interface OrderCreatedEvent {
   owner: PublicKey;
   orderId: BN;
@@ -32,6 +18,7 @@ export interface OrderCreatedEvent {
   limitPrice: BN;
   maxSlippageBps: BN;
   orderType: OrderType;
+  leverageBps: BN;
   timestamp: BN;
 }
 
@@ -74,7 +61,8 @@ export interface PositionClosedEvent {
   owner: PublicKey;
   positionId: BN;
   basktId: PublicKey;
-  size: BN;
+  sizeClosed: BN;
+  sizeRemaining: BN;
   exitPrice: BN;
   pnl: BN;
   feeToTreasury: BN;
@@ -82,6 +70,7 @@ export interface PositionClosedEvent {
   fundingPayment: BN;
   settlementAmount: BN;
   poolPayout: BN;
+  collateralRemaining: BN;
   timestamp: BN;
 }
 
@@ -89,7 +78,8 @@ export interface PositionLiquidatedEvent {
   owner: PublicKey;
   positionId: BN;
   basktId: PublicKey;
-  size: BN;
+  sizeLiquidated: BN;
+  sizeRemaining: BN;
   exitPrice: BN;
   pnl: BN;
   feeToTreasury: BN;
@@ -97,6 +87,7 @@ export interface PositionLiquidatedEvent {
   fundingPayment: BN;
   remainingCollateral: BN;
   poolPayout: BN;
+  collateralRemaining: BN;
   timestamp: BN;
 }
 
@@ -116,19 +107,14 @@ export interface FundingIndexUpdatedEvent {
   timestamp: BN;
 }
 
-export interface FundingIndexInitializedEvent {
-  basktId: PublicKey;
-  initialIndex: BN;
-  timestamp: BN;
-}
-
 export interface BasktCreatedEvent {
+  uid: BN;
   basktId: PublicKey;
-  basktName: string;
   creator: PublicKey;
   isPublic: boolean;
   assetCount: number;
   timestamp: BN;
+  basktRebalancePeriod: BN;
 }
 
 export interface BasktActivatedEvent {
@@ -149,16 +135,6 @@ export interface BasktRebalancedEvent {
 export interface BasktDecommissioningInitiated {
   baskt: PublicKey;
   initiatedAt: BN;
-  gracePeriodEnd: BN;
-  openPositions: BN;
-}
-
-export interface BasktSettled {
-  baskt: PublicKey;
-  settlementPrice: BN;
-  settlementFundingIndex: BN;
-  settledAt: BN;
-  remainingPositions: BN;
 }
 
 export interface PositionForceClosed {
@@ -168,7 +144,8 @@ export interface PositionForceClosed {
   settlementPrice: BN;
   closePrice: BN;
   entryPrice: BN;
-  size: BN;
+  sizeClosed: BN;
+  sizeRemaining: BN;
   isLong: boolean;
   collateralReturned: BN;
   pnl: BN;
@@ -181,11 +158,11 @@ export interface PositionForceClosed {
   badDebtAbsorbed: BN;
   basktSettlementTimestamp: BN;
   positionDurationSeconds: BN;
+  collateralRemaining: BN;
 }
 
 export interface BasktClosed {
   baskt: PublicKey;
-  finalNav: BN;
   closedAt: BN;
 }
 
@@ -194,7 +171,7 @@ export interface BasktClosed {
 export interface LiquidityPoolInitializedEvent {
   liquidityPool: PublicKey;
   lpMint: PublicKey;
-  tokenVault: PublicKey;
+  usdcVault: PublicKey;
   depositFeeBps: number;
   withdrawalFeeBps: number;
   minDeposit: BN;
@@ -317,14 +294,6 @@ export interface FundingCutUpdatedEvent {
   timestamp: BN;
 }
 
-export interface DecommissionGracePeriodUpdatedEvent {
-  protocol: PublicKey;
-  oldGracePeriod: BN;
-  newGracePeriod: BN;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
 // Baskt Config Events
 
 export interface BasktOpeningFeeUpdatedEvent {
@@ -373,4 +342,23 @@ export interface BasktConfigUpdatedEvent {
   newConfig: any; // TODO: Import BasktConfig type when available
   updatedBy: PublicKey;
   timestamp: BN;
-} 
+}
+
+export interface WithdrawalQueuedEvent {
+  provider: PublicKey;
+  requestId: BN;
+  lpTokensBurned: BN;
+  withdrawalAmount: BN;
+  queuePosition: BN;
+  timestamp: BN;
+}
+
+export interface WithdrawQueueProcessedEvent {
+  liquidityPool: PublicKey;
+  keeper: PublicKey;
+  requestsProcessed: number;
+  totalAmountProcessed: BN;
+  feesCollected: BN;
+  queueTailUpdated: BN;
+  timestamp: BN;
+}

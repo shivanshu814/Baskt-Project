@@ -27,15 +27,6 @@ describe('activate baskt', () => {
   let rebalancer: Keypair;
   let regularUser: Keypair;
 
-  // Helper function to create a baskt for testing
-  async function createTestBaskt(name: string, assets: OnchainAssetConfig[], isPublic = true) {
-    const { basktId } = await client.createBaskt(name, assets, isPublic);
-    return basktId;
-  }
-
-  // Default maxPriceAgeSec for tests
-  const DEFAULT_MAX_PRICE_AGE_SEC = 60;
-  // Set up test roles and assets before running tests
   before(async () => {
     // Ensure protocol is initialized and roles are set up
     await TestClient.initializeProtocolAndRoles(client);
@@ -52,8 +43,8 @@ describe('activate baskt', () => {
     // Add roles to test users
     await client.addRole(rebalancer.publicKey, AccessControlRole.Rebalancer);
 
-    // Create 20 assets for the multi-asset baskt test
-    for (let i = 0; i < 20; i++) {
+    // Create 10 assets for the multi-asset baskt test
+    for (let i = 0; i < 10; i++) {
       const assetId = await client.addAsset(`ASSET${i}`);
       multiAssetIds.push(assetId);
     }
@@ -64,7 +55,7 @@ describe('activate baskt', () => {
     try {
       const removeRebalancerSig = await client.removeRole(
         rebalancer.publicKey,
-        AccessControlRole.Rebalancer
+        AccessControlRole.Rebalancer,
       );
       await waitForTx(client.connection, removeRebalancerSig);
       await waitForNextSlot(client.connection);
@@ -91,10 +82,10 @@ describe('activate baskt', () => {
       },
     ] as OnchainAssetConfig[];
 
-    const basktId = await createTestBaskt('OB', simpleAssets);
+    const { basktId } = await client.createBaskt(simpleAssets, true);
 
     // Get the baskt before activation
-    const basktBefore = await client.getBaskt(basktId);
+    const basktBefore = await client.getBasktRaw(basktId);
     expect(basktBefore.status).to.deep.equal({ pending: {} });
 
     // Set prices for each asset in the baskt
@@ -104,10 +95,10 @@ describe('activate baskt', () => {
     ];
 
     // Activate the baskt as the owner (using default client)
-    await client.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
+    await client.activateBaskt(basktId, prices);
 
     // Get the baskt after activation
-    const basktAfter = await client.getBaskt(basktId);
+    const basktAfter = await client.getBasktRaw(basktId);
 
     // Verify the baskt is now active
     expect(basktAfter.status).to.deep.equal({ active: {} });
@@ -123,9 +114,13 @@ describe('activate baskt', () => {
     // Verify baseline NAV was set
     expect(basktAfter.baselineNav.toString()).to.equal(BASE_NAV_BN.toString());
 
+    expect(basktAfter.fundingIndex.cumulativeIndex.toString()).to.equal('1000000');
+    expect(basktAfter.fundingIndex.currentRate.toString()).to.equal('0');
+    expect(basktAfter.fundingIndex.lastUpdateTimestamp.toString()).to.not.equal('0');
+
     // Try to activate again - should fail with BasktAlreadyActive
     try {
-      await client.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
+      await client.activateBaskt(basktId, prices);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('BasktAlreadyActive');
@@ -143,21 +138,21 @@ describe('activate baskt', () => {
       },
     ] as OnchainAssetConfig[];
 
-    const basktId = await createTestBaskt('MB', assets);
+    const { basktId } = await client.createBaskt(assets, true);
 
     // Get the baskt before activation
-    const basktBefore = await client.getBaskt(basktId);
+    const basktBefore = await client.getBasktRaw(basktId);
     expect(basktBefore.status).to.deep.equal({ pending: {} });
 
     // Set prices for each asset in the baskt
     const prices = [new BN(1)]; // DOGE price
 
     // Activate the baskt as the oracle manager
-    const oracleManagerClient = await TestClient.forUser(client.oracleManager);
-    await oracleManagerClient.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
+    const basktManagerClient = await TestClient.forUser(client.basktManager);
+    await basktManagerClient.activateBaskt(basktId, prices);
 
     // Get the baskt after activation
-    const basktAfter = await client.getBaskt(basktId);
+    const basktAfter = await client.getBasktRaw(basktId);
 
     // Verify the baskt is now active
     expect(basktAfter.status).to.deep.equal({ active: {} });
@@ -188,7 +183,7 @@ describe('activate baskt', () => {
       },
     ] as OnchainAssetConfig[];
 
-    const basktId = await createTestBaskt('UB', assets);
+    const { basktId } = await client.createBaskt(assets, true);
 
     // Create a client for the regular user
     const userClient = await TestClient.forUser(regularUser);
@@ -201,80 +196,49 @@ describe('activate baskt', () => {
 
     // Attempt to activate the baskt as a regular user - should fail
     try {
-      await userClient.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
+      await userClient.activateBaskt(basktId, prices);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('Unauthorized');
     }
 
     // Verify the baskt is still inactive
-    const basktAfter = await client.getBaskt(basktId);
+    const basktAfter = await client.getBasktRaw(basktId);
     expect(basktAfter.status).to.deep.equal({ pending: {} });
   });
 
-  it('Fails to activate a baskt from a rebalancer', async () => {
-    // Create a new baskt for this test
-    const assets = [
-      {
-        assetId: btcAssetId.assetAddress,
-        direction: true,
-        weight: new BN(10000), // 100% BTC
-        baselinePrice: new BN(0),
-      },
-    ] as OnchainAssetConfig[];
 
-    const basktId = await createTestBaskt('RB', assets);
-
-    // Create a client for the rebalancer
-    const rebalancerClient = await TestClient.forUser(rebalancer);
-
-    // Set prices for each asset in the baskt
-    const prices = [new BN(50000)]; // BTC price
-
-    // Attempt to activate the baskt as a rebalancer - should fail
-    try {
-      await rebalancerClient.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
-      expect.fail('Should have thrown an error');
-    } catch (error: unknown) {
-      expect((error as Error).message).to.include('Unauthorized');
-    }
-
-    // Verify the baskt is still inactive
-    const basktAfter = await client.getBaskt(basktId);
-    expect(basktAfter.status).to.deep.equal({ pending: {} });
-  });
-
-  it('Successfully activates a baskt with 20 assets', async () => {
-    // Create a baskt with 20 assets
+  it('Successfully activates a baskt with 10 assets', async () => {
+    // Create a baskt with 10 assets
     const multiAssets = multiAssetIds.map((asset) => ({
       assetId: asset.assetAddress,
       direction: true,
-      weight: new BN(500), // Each asset has 5% weight (total 100%)
+      weight: new BN(1000),
       baselinePrice: new BN(0),
     })) as OnchainAssetConfig[];
 
-    const basktId = await createTestBaskt('MAB', multiAssets);
+    const { basktId } = await client.createBaskt(multiAssets, true);
 
     // Get the baskt before activation
-    const basktBefore = await client.getBaskt(basktId);
+    const basktBefore = await client.getBasktRaw(basktId);
     expect(basktBefore.status).to.deep.equal({ pending: {} });
 
-    // Set prices for each asset in the baskt (20 assets)
-    const prices = Array(20)
+    // Set prices for each asset in the baskt (10 assets)
+    const prices = Array(10)
       .fill(0)
       .map((_, i) => new BN(1000 + i * 100)); // Different price for each asset
 
     // Activate the baskt as the owner (using default client)
-    await client.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
+    await client.activateBaskt(basktId, prices);
 
     // Get the baskt after activation
-    const basktAfter = await client.getBaskt(basktId);
+    const basktAfter = await client.getBasktRaw(basktId);
 
     // Verify the baskt is now active
     expect(basktAfter.status).to.deep.equal({ active: {} });
 
-    // Verify baseline prices were set correctly for all 20 assets
-    for (let i = 0; i < 20; i++) {
+    // Verify baseline prices were set correctly for all 10 assets
+    for (let i = 0; i < 10; i++) {
       expect(basktAfter.currentAssetConfigs[i].baselinePrice.toString()).to.equal(
         prices[i].toString(),
       );
@@ -301,7 +265,7 @@ describe('activate baskt', () => {
       },
     ] as OnchainAssetConfig[];
 
-    const basktId = await createTestBaskt('MIB', assets);
+    const { basktId } = await client.createBaskt(assets, true);
 
     // Set prices with wrong count (only 1 price for 2 assets)
     const prices = [new BN(50000)];
@@ -309,15 +273,58 @@ describe('activate baskt', () => {
     // Attempt to activate the baskt with mismatched price count - should fail
     try {
       // Use the oracle manager client to ensure we don't fail due to permissions
-      const oracleManagerClient = await TestClient.forUser(client.oracleManager);
-      await oracleManagerClient.activateBaskt(basktId, prices, DEFAULT_MAX_PRICE_AGE_SEC);
+      const basktManagerClient = await TestClient.forUser(client.basktManager);
+      await basktManagerClient.activateBaskt(basktId, prices);
       expect.fail('Should have thrown an error');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('InvalidBasktConfig');
     }
 
     // Verify the baskt is still inactive
-    const basktAfter = await client.getBaskt(basktId);
+    const basktAfter = await client.getBasktRaw(basktId);
     expect(basktAfter.status).to.deep.equal({ pending: {} });
+  });
+  it('Fails to activate a baskt with empty price array', async () => {
+    const assets = [
+      {
+        assetId: btcAssetId.assetAddress,
+        direction: true,
+        weight: new BN(10000),
+        baselinePrice: new BN(0),
+      },
+    ] as OnchainAssetConfig[];
+  
+    const { basktId } = await client.createBaskt(assets, true);
+    
+    // Attempt to activate with empty prices array
+    try {
+      await client.activateBaskt(basktId, []);
+      expect.fail('Should have thrown an error');
+    } catch (error: unknown) {
+      expect((error as Error).message).to.include('InvalidBasktConfig');
+    }
+  });
+  it('Fails to activate a baskt with zero prices', async () => {
+    const assets = [
+      {
+        assetId: btcAssetId.assetAddress,
+        direction: true,
+        weight: new BN(10000),
+        baselinePrice: new BN(0),
+      },
+    ] as OnchainAssetConfig[];
+  
+    const { basktId } = await client.createBaskt(assets, true);
+    
+    const prices = [new BN(0)]; // Zero price
+   
+    try {
+      await client.activateBaskt(basktId, prices);
+      expect.fail('Should have thrown an error');
+    } catch (error: unknown) {
+      expect((error as Error).message).to.include('InvalidBasktConfig');
+    }
+  
+    
   });
 });

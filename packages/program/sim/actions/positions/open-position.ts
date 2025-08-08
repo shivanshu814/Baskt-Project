@@ -9,26 +9,15 @@ const openPosition = async (args: string[]) => {
     }
 
     const orderPDA = new PublicKey(args[0]);
-    const entryPrice = new BN(parseFloat(args[1]) * (1e6));
-
+    const entryPrice = new BN(parseFloat(args[1]) * 1e6);
 
     // Fetch the order by ID
     const order = await client.getOrder(orderPDA);
-    
 
     const basktId = order.basktId;
 
-    // Initialize funding index if it doesn't exist
-    const fundingIndex = await client.getFundingIndex(basktId);
-    if (!fundingIndex) {
-      await client.initializeFundingIndex(basktId);
-    }
-
-    // Update oracle price
-    await client.updateOraclePrice(basktId, entryPrice);
-
     // Generate position ID
-    const positionId = new BN(Date.now());
+    const positionId = client.newUID();
 
     // Open the position
     const protocolAccount = await client.getProtocolAccount();
@@ -52,7 +41,8 @@ const openPosition = async (args: string[]) => {
   }
 };
 
-openPosition.description = 'Opens a position for an order. Usage: open-position <orderId> <entryPrice> <size> <collateral> <isLong>';
+openPosition.description =
+  'Opens a position for an order. Usage: open-position <orderId> <entryPrice> <size> <collateral> <isLong>';
 openPosition.aliases = ['op'];
 
 export default openPosition;

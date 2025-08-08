@@ -19,14 +19,13 @@ export async function fetchTokenPrice(
 
   const multipliedPrice = prices.priceUSD.muln(units);
 
+
   return { priceUSD: multipliedPrice };
 }
 
-export async function fetchAssetPrices(tokens: AssetPriceProviderConfig[], addresses: string[]): Promise<AssetPrice[]> {
-  const tokenPrices: AssetPrice[] = [];
+export async function fetchAssetPrices(tokens: AssetPriceProviderConfig[], addresses: string[]): Promise<(AssetPrice | null)[]> {
 
-  for (let index = 0; index < tokens.length; index++) {
-    const token = tokens[index];
+  const prices = await Promise.all(tokens.map(async (token, index) => {
     let prices;
     const priceProvider = token.provider;
     const units = (token as any).units || 1;
@@ -39,7 +38,7 @@ export async function fetchAssetPrices(tokens: AssetPriceProviderConfig[], addre
     );
 
     if (!prices) {
-      continue;
+      return null;
     }
 
     const priceUSD = prices.priceUSD;
@@ -51,10 +50,11 @@ export async function fetchAssetPrices(tokens: AssetPriceProviderConfig[], addre
       assetAddress: addresses[index],
     };
 
-    tokenPrices.push(data);
-  }
+    return data;
+  }));
 
-  return tokenPrices;
+
+  return prices;
 }
 
 /**
@@ -74,7 +74,7 @@ export async function calculateLiveNav(
   baselineNav: BN,
 ): Promise<{
   liveNav: BN;
-  assetPrices: AssetPrice[];
+  assetPrices: (AssetPrice | null)[];
 }> {
   const priceConfigs = basktAssets.map((asset) => asset.priceConfig);
   const assetPrices = await fetchAssetPrices(priceConfigs, basktAssets.map((asset) => asset.assetId));

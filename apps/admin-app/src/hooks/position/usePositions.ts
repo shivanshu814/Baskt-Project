@@ -1,20 +1,33 @@
-import { useQuery } from '@tanstack/react-query';
 import { useBasktClient } from '@baskt/ui';
 import { OnchainPosition } from '@baskt/types';
+import { trpc } from '../../utils/trpc';
 
 export const usePositions = () => {
   const { client } = useBasktClient();
 
-  return useQuery<OnchainPosition[]>({
-    queryKey: ['positions'],
-    queryFn: async () => {
-      if (!client) throw new Error('Client not initialized');
-      const positions = await client.getAllPositions();
-      return positions.map((position: OnchainPosition) => ({
-        ...position,
-        publicKey: position.positionPDA.toString(),
-      }));
+  // Fetch combined positions (onchain + offchain) from backend MongoDB
+  const {
+    data: backendPositions,
+    isLoading,
+    error,
+  } = trpc.position.getPositions.useQuery(
+    {},
+    {
+      refetchInterval: 10 * 1000, // Refetch every 10 seconds
+      staleTime: 0,
+      cacheTime: 0,
     },
-    enabled: !!client,
-  });
+  );
+
+  // Determine which data to use
+  const positions = backendPositions?.success && backendPositions.data ? backendPositions.data : [];
+
+  const isBackendData = backendPositions?.success && !!backendPositions.data;
+
+  return {
+    positions,
+    isLoading,
+    error,
+    isBackendData,
+  };
 };

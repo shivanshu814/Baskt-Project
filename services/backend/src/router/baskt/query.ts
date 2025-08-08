@@ -4,10 +4,10 @@ import { querier } from '../../utils/querier';
 
 // get baskt metadata by id
 const getBasktMetadataById = publicProcedure
-  .input(z.object({ basktId: z.string() }))
+  .input(z.object({ basktId: z.string(), withPerformance: z.boolean().default(false) }))
   .query(async ({ input }) => {
     try {
-      const result = await querier.baskt.getBasktById(input.basktId);
+      const result = await querier.baskt.getBasktById(input.basktId, { withPerformance: input.withPerformance });
       return result;
     } catch (error) {
       console.error('Error fetching baskt metadata:', error);
@@ -20,9 +20,9 @@ const getBasktMetadataById = publicProcedure
   });
 
 // get all baskts
-const getAllBaskts = publicProcedure.query(async () => {
+const getAllBaskts = publicProcedure.input(z.object({ withPerformance: z.boolean().default(false) })).query(async ({ input }) => {
   try {
-    const result = await querier.baskt.getAllBaskts({ withConfig: true });
+    const result = await querier.baskt.getAllBaskts({ withConfig: true, withPerformance: input.withPerformance });
     return result;
   } catch (error) {
     console.error('Error fetching baskts:', error);
@@ -46,6 +46,23 @@ const getBasktNAV = publicProcedure
       };
     }
   });
+
+// get baskt metadata by name
+const getBasktMetadataByName = publicProcedure
+.input(z.object({ basktName: z.string(), withPerformance: z.boolean().default(false) }))
+.query(async ({ input }) => {
+  try {
+    const result = await querier.baskt.getBasktByName(input.basktName, { withConfig: true, withPerformance: input.withPerformance });
+    return result;
+  } catch (error) {
+    console.error('Error fetching baskt metadata:', error);
+    return {
+      success: false,
+      message: 'Failed to fetch baskt metadata',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+});
 
 // get trading data using real nav-tracker data
 const getTradingData = publicProcedure
@@ -119,22 +136,6 @@ const getTradingData = publicProcedure
     }
   });
 
-// get baskt metadata by name
-const getBasktMetadataByName = publicProcedure
-  .input(z.object({ basktName: z.string() }))
-  .query(async ({ input }) => {
-    try {
-      const result = await querier.baskt.getBasktByName(input.basktName, { withConfig: true });
-      return result;
-    } catch (error) {
-      console.error('Error fetching baskt metadata:', error);
-      return {
-        success: false,
-        message: 'Failed to fetch baskt metadata',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  });
 
 export const getRouter = {
   getBasktMetadataById,

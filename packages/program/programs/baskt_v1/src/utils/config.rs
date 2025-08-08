@@ -1,8 +1,10 @@
 use crate::constants::{BPS_DIVISOR, MAX_FEE_BPS, MIN_COLLATERAL_RATIO_BPS};
 use crate::error::PerpetualsError;
-use crate::state::config::BasktConfig;
+use crate::state::baskt::BasktConfig;
 use crate::utils::validate_bps;
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::keccak;
+
 
 /// Returns the effective value for a u64 parameter, using the override if available.
 pub fn effective_u64(override_val: Option<u64>, global_val: u64) -> u64 {
@@ -65,20 +67,20 @@ pub fn validate_baskt_liquidation_threshold_bps(
 /// Used by the bulk update setter.
 pub fn validate_baskt_config(config: &BasktConfig) -> Result<()> {
     // Validate all fee fields using the same validation as individual setters
-    validate_baskt_fee_bps(config.opening_fee_bps)?;
-    validate_baskt_fee_bps(config.closing_fee_bps)?;
-    validate_baskt_fee_bps(config.liquidation_fee_bps)?;
+    validate_baskt_fee_bps(config.get_opening_fee_bps())?;
+    validate_baskt_fee_bps(config.get_closing_fee_bps())?;
+    validate_baskt_fee_bps(config.get_liquidation_fee_bps())?;
 
     // Validate min collateral ratio with cross-validation against liquidation threshold
     validate_baskt_min_collateral_ratio_bps(
-        config.min_collateral_ratio_bps,
-        config.liquidation_threshold_bps,
+        config.get_min_collateral_ratio_bps(),
+        config.get_liquidation_threshold_bps(),
     )?;
 
     // Validate liquidation threshold with cross-validation against min collateral ratio
     validate_baskt_liquidation_threshold_bps(
-        config.liquidation_threshold_bps,
-        config.min_collateral_ratio_bps,
+        config.get_liquidation_threshold_bps(),
+        config.get_min_collateral_ratio_bps(),
     )?;
 
     Ok(())

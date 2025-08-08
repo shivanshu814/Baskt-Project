@@ -33,23 +33,23 @@ pub struct AddCollateral<'info> {
 
     #[account(
         mut,
-        constraint = owner_token.owner == owner.key() @ PerpetualsError::Unauthorized,
-        constraint = owner_token.mint == protocol.escrow_mint @ PerpetualsError::InvalidMint,
-        constraint = owner_token.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
-        constraint = owner_token.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
+        constraint = owner_collateral_account.owner == owner.key() @ PerpetualsError::Unauthorized,
+        constraint = owner_collateral_account.mint == protocol.collateral_mint @ PerpetualsError::InvalidMint,
+        constraint = owner_collateral_account.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
+        constraint = owner_collateral_account.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
     )]
-    pub owner_token: Account<'info, TokenAccount>,
+    pub owner_collateral_account: Account<'info, TokenAccount>,
 
     #[account(
         mut,
         seeds = [ESCROW_SEED, position.key().as_ref()],
         bump,
-        constraint = escrow_token.mint == protocol.escrow_mint @ PerpetualsError::InvalidMint,
-        constraint = escrow_token.owner == program_authority.key() @ PerpetualsError::InvalidProgramAuthority,
-        constraint = escrow_token.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
-        constraint = escrow_token.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
+        constraint = owner_collateral_escrow_account.mint == protocol.collateral_mint @ PerpetualsError::InvalidMint,
+        constraint = owner_collateral_escrow_account.owner == program_authority.key() @ PerpetualsError::InvalidProgramAuthority,
+        constraint = owner_collateral_escrow_account.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
+        constraint = owner_collateral_escrow_account.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
     )]
-    pub escrow_token: Account<'info, TokenAccount>,
+    pub owner_collateral_escrow_account: Account<'info, TokenAccount>,
 
     /// PDA used for token authority over escrow
     #[account(
@@ -84,8 +84,11 @@ pub fn add_collateral(ctx: Context<AddCollateral>, params: AddCollateralParams) 
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
             Transfer {
-                from: ctx.accounts.owner_token.to_account_info(),
-                to: ctx.accounts.escrow_token.to_account_info(),
+                from: ctx.accounts.owner_collateral_account.to_account_info(),
+                to: ctx
+                    .accounts
+                    .owner_collateral_escrow_account
+                    .to_account_info(),
                 authority: ctx.accounts.owner.to_account_info(),
             },
         ),
@@ -98,7 +101,7 @@ pub fn add_collateral(ctx: Context<AddCollateral>, params: AddCollateralParams) 
     // Emit event
     emit!(CollateralAddedEvent {
         owner: position.owner,
-        position_id: position.position_id,
+        position_id: position.position_id as u64,
         baskt_id: position.baskt_id,
         additional_collateral: params.additional_collateral,
         new_total_collateral: position.collateral,

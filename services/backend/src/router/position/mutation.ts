@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { PositionStatus } from '@baskt/types';
 import { publicProcedure } from '../../trpc/trpc';
 import { querier } from '../../utils/querier';
+import BN from 'bn.js';
 
 // create a position
 export const createPosition = publicProcedure
@@ -21,6 +22,7 @@ export const createPosition = publicProcedure
       entryPrice: z.string(),
       owner: z.string(),
       size: z.string(),
+      remainingSize: z.string(),
       collateral: z.string(),
       isLong: z.boolean(),
     }),
@@ -56,7 +58,7 @@ export const closePosition = publicProcedure
     try {
       const { positionPDA, exitPrice, tx, ts, closeOrder } = input;
 
-      const position = await querier.metadata.findPositionById(positionPDA);
+      const position = await querier.metadata.findPositionByPDA(positionPDA);
 
       if (!position) {
         return {
@@ -75,7 +77,7 @@ export const closePosition = publicProcedure
         ...(closeOrder && { closeOrder }),
       };
 
-      const updatedPosition = await querier.metadata.updatePosition(positionPDA, updateData);
+      const updatedPosition = await querier.metadata.updatePositionByPDA(positionPDA, updateData);
 
       return {
         success: true,
@@ -86,6 +88,122 @@ export const closePosition = publicProcedure
       return {
         success: false,
         message: 'Failed to close position',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
+
+// partially close a position
+export const partialClosePosition = publicProcedure
+  .input(
+    z.object({
+      positionPDA: z.string(),
+      closeAmount: z.string(),
+      closePrice: z.string(),
+      pnl: z.string(),
+      feeCollected: z.string(),
+      tx: z.string(),
+      ts: z.string(),
+      closeOrder: z.string().optional(),
+      sizeRemaining: z.string().optional(),
+    }),
+  )
+  .mutation(async ({ input }) => {
+    try {
+      const {
+        positionPDA,
+        closeAmount,
+        closePrice,
+        pnl,
+        feeCollected,
+        tx,
+        ts,
+        closeOrder,
+        sizeRemaining,
+      } = input;
+
+      const position = await querier.metadata.findPositionByPDA(positionPDA);
+
+      if (!position) {
+        return {
+          success: false,
+          message: 'Position not found',
+        };
+      }
+
+      const partialCloseEntry = {
+        id: `${positionPDA}-${Date.now()}`,
+        closeAmount,
+        closePrice,
+        pnl,
+        feeCollected,
+        closePosition: {
+          tx,
+          ts,
+        },
+      };
+
+      let remainingSize: BN;
+      let closeAmountBN: BN;
+      let currentSize: BN;
+
+      if (sizeRemaining) {
+        remainingSize = new BN(sizeRemaining);
+        closeAmountBN = new BN(closeAmount);
+        currentSize = new BN(position.remainingSize || position.size || '0');
+        // console.log('using onchain sizremaining:', remainingsize.toString());
+      } else {
+        currentSize = new BN(position.remainingSize || position.size || '0');
+        closeAmountBN = new BN(closeAmount);
+
+        if (closeAmountBN.gt(currentSize)) {
+          return {
+            success: false,
+            message: `Cannot close ${closeAmountBN.toString()} when remaining size is ${currentSize.toString()}`,
+          };
+        }
+
+        remainingSize = currentSize.sub(closeAmountBN);
+
+        if (remainingSize.lt(new BN(1000))) {
+          remainingSize = new BN(0);
+          // console.log(
+          //   'onchain  small remaining size detected:',
+          //   remainingSize.toString(),
+          // );
+        }
+      }
+
+      const currentCollateral = new BN(position.collateral || '0');
+      const closeAmountRatio = closeAmountBN.mul(new BN(1000000)).div(currentSize);
+      const collateralToClose = currentCollateral.mul(closeAmountRatio).div(new BN(1000000));
+      const remainingCollateral = currentCollateral.sub(collateralToClose);
+
+      const updateData = {
+        size: remainingSize.toString(),
+        remainingSize: remainingSize.toString(),
+        collateral: remainingCollateral.toString(),
+        partialCloseHistory: [...(position.partialCloseHistory || []), partialCloseEntry],
+        ...(closeOrder && { closeOrder }),
+      };
+
+      const updatedPosition = await querier.metadata.updatePositionByPDA(positionPDA, updateData);
+
+      if (!updatedPosition) {
+        return {
+          success: false,
+          message: 'Failed to update position',
+        };
+      }
+
+      return {
+        success: true,
+        data: updatedPosition,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to partially close position',
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }

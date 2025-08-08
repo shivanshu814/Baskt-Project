@@ -1,7 +1,7 @@
 use {
     crate::constants::{
-        AUTHORITY_SEED, ESCROW_SEED, FUNDING_INDEX_SEED, LIQUIDITY_POOL_SEED, ORDER_SEED,
-        POSITION_SEED, PRICE_PRECISION, PROTOCOL_SEED, USER_ESCROW_SEED, BPS_DIVISOR,
+        AUTHORITY_SEED, BPS_DIVISOR, ESCROW_SEED, LIQUIDITY_POOL_SEED, ORDER_SEED, POSITION_SEED,
+        PRICE_PRECISION, PROTOCOL_SEED, USER_ESCROW_SEED,
     },
     crate::error::PerpetualsError,
     crate::events::*,
@@ -16,7 +16,7 @@ use {
     },
     crate::utils::{
         calc_min_collateral_from_notional, calc_opening_fee_with_effective_rate, effective_u64,
-        split_fee, validate_treasury_and_vault,
+        split_fee,
     },
     anchor_lang::prelude::*,
     anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer},
@@ -25,7 +25,7 @@ use {
 /// Parameters for opening a position
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
 pub struct OpenPositionParams {
-    pub position_id: u64,
+    pub position_id: u32,
     pub entry_price: u64,
 }
 
@@ -42,9 +42,16 @@ pub struct OpenPosition<'info> {
         bump = order.bump,
         constraint = order.status as u8 == OrderStatus::Pending as u8 @ PerpetualsError::OrderAlreadyProcessed,
         constraint = order.action as u8 == OrderAction::Open as u8 @ PerpetualsError::InvalidOrderAction,
-        close = matcher // Close the order account and return rent to matcher
+        close = order_owner // Close the order account and return rent to matcher
     )]
-    pub order: Account<'info, Order>,
+    pub order: Box<Account<'info, Order>>,
+
+    /// CHECK: Order owner for return rent to owner
+    #[account(
+        mut,
+        constraint = order_owner.key() == order.owner @ PerpetualsError::InvalidInput
+    )]
+    pub order_owner: UncheckedAccount<'info>,
 
     #[account(
         init,
@@ -54,13 +61,6 @@ pub struct OpenPosition<'info> {
         bump
     )]
     pub position: Box<Account<'info, Position>>,
-
-    #[account(
-        mut,
-        seeds = [FUNDING_INDEX_SEED, order.baskt_id.as_ref()],
-        bump = funding_index.bump
-    )]
-    pub funding_index: Account<'info, FundingIndex>,
 
     /// Baskt account that contains the embedded oracle for price validation
     #[account(
@@ -86,103 +86,64 @@ pub struct OpenPosition<'info> {
         seeds = [LIQUIDITY_POOL_SEED],
         bump = liquidity_pool.bump
     )]
-    pub liquidity_pool: Account<'info, LiquidityPool>,
+    pub liquidity_pool: Box<Account<'info, LiquidityPool>>,
 
     #[account(
         mut,
         seeds = [USER_ESCROW_SEED, order.owner.as_ref()],
         bump,
         constraint = order_escrow.owner == program_authority.key() @ PerpetualsError::InvalidProgramAuthority,
-        constraint = order_escrow.mint == protocol.escrow_mint @ PerpetualsError::InvalidMint
+        constraint = order_escrow.mint == protocol.collateral_mint @ PerpetualsError::InvalidMint
     )]
-    pub order_escrow: Account<'info, TokenAccount>,
+    pub order_escrow: Box<Account<'info, TokenAccount>>,
 
     #[account(
         init_if_needed,
         payer = matcher,
         seeds = [ESCROW_SEED, position.key().as_ref()],
         bump,
-        token::mint = escrow_mint,
+        token::mint = collateral_mint,
         token::authority = program_authority,
     )]
-    pub escrow_token: Account<'info, TokenAccount>,
+    pub owner_collateral_escrow_account: Box<Account<'info, TokenAccount>>,
 
     /// PDA used for token authority over escrow
     #[account(
         seeds = [AUTHORITY_SEED],
         bump,
     )]
-    pub program_authority: Account<'info, ProgramAuthority>,
+    pub program_authority: Box<Account<'info, ProgramAuthority>>,
 
     /// Escrow mint (USDC) - validated via protocol
     #[account(
-        constraint = escrow_mint.key() == protocol.escrow_mint @ PerpetualsError::InvalidMint
+        constraint = collateral_mint.key() == protocol.collateral_mint @ PerpetualsError::InvalidMint
     )]
-    pub escrow_mint: Account<'info, Mint>,
+    pub collateral_mint: Account<'info, Mint>,
+
+    /// Protocol treasury token account for fee collection
+    #[account(
+        mut,
+        constraint = treasury_token.mint == protocol.collateral_mint @ PerpetualsError::InvalidMint,
+        constraint = treasury_token.owner == protocol.treasury @ PerpetualsError::InvalidTreasuryAccount,
+        constraint = treasury_token.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
+        constraint = treasury_token.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
+    )]
+    pub treasury_token: Box<Account<'info, TokenAccount>>,
+
+    /// BLP token vault for liquidity pool fees
+    #[account(
+        mut,
+        constraint = usdc_vault.key() == liquidity_pool.usdc_vault @ PerpetualsError::InvalidUsdcVault,
+        constraint = usdc_vault.mint == protocol.collateral_mint @ PerpetualsError::InvalidMint,
+        constraint = treasury_token.key() != usdc_vault.key() @ PerpetualsError::InvalidInput
+    )]
+    pub usdc_vault: Box<Account<'info, TokenAccount>>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
 }
 
-/// Wrapper for remaining accounts: expect treasury token account at index 0, BLP token vault at index 1
-pub struct OpenPositionRemainingAccounts<'info> {
-    /// CHECK: protocol treasury token account
-    pub treasury_token: AccountInfo<'info>,
-    /// CHECK: BLP token vault account
-    pub token_vault: AccountInfo<'info>,
-}
-
-impl<'info> OpenPositionRemainingAccounts<'info> {
-    pub fn parse(remaining: &'info [AccountInfo<'info>]) -> Result<Self> {
-        require!(remaining.len() >= 2, PerpetualsError::InvalidAccountInput);
-        Ok(Self {
-            treasury_token: remaining[0].clone(),
-            token_vault: remaining[1].clone(),
-        })
-    }
-
-    /// Validate that accounts match expected protocol accounts
-    pub fn validate(&self, protocol: &Protocol, liquidity_pool: &LiquidityPool) -> Result<()> {
-        validate_treasury_and_vault(
-            &self.treasury_token,
-            &self.token_vault,
-            protocol,
-            liquidity_pool,
-        )
-    }
-}
-
-// -----------------------------------------------------------------------------
-// Helper: derive the effective position size, handling market-order auto sizing
-// -----------------------------------------------------------------------------
-fn calculate_effective_size(
-    order: &Order,
-    entry_price: u64,
-    collateral: u64,
-    effective_min_cr_bps: u64,
-    effective_opening_fee_bps: u64,
-) -> Result<u64> {
-    // For limit orders or any non-market order, keep the user-supplied size.
-    if order.order_type != OrderType::Market {
-        return Ok(order.size);
-    }
-
-    // total bps that must be covered by collateral (min CR + opening fee)
-    let total_bps = effective_min_cr_bps
-        .checked_add(effective_opening_fee_bps)
-        .ok_or(PerpetualsError::MathOverflow)?;
-    require!(total_bps > 0, PerpetualsError::MathOverflow);
-
-    // Maximum notional supported by the provided collateral
-    let notional_allowed = mul_div_u64(collateral, BPS_DIVISOR, total_bps)?;
-
-    // Derive size from notional
-    let size = mul_div_u64(notional_allowed, PRICE_PRECISION, entry_price)?;
-    require!(size > 0, PerpetualsError::ZeroSizedPosition);
-
-    Ok(size)
-}
 
 pub fn open_position<'info>(
     ctx: Context<'_, '_, 'info, 'info, OpenPosition<'info>>,
@@ -190,107 +151,67 @@ pub fn open_position<'info>(
 ) -> Result<()> {
     let order = &ctx.accounts.order; // Order is closed, access immutably
     let position = &mut ctx.accounts.position;
-    let funding_index = &ctx.accounts.funding_index;
+    let funding_index = &ctx.accounts.baskt.funding_index;
     let bump = ctx.bumps.position;
     let clock = Clock::get()?;
+    
 
-    // 1. Validate oracle price is fresh and valid
-    ctx.accounts
-        .baskt
-        .oracle
-        .validate_execution_price(params.entry_price)?;
+    let open_params = order.get_open_params()?;
 
-    // 2. Validate execution price is within order's slippage bounds
+    // 1. Validate execution price is within order's slippage bounds
     order.validate_execution_price(params.entry_price)?;
 
-    // New: Add limit order execution validation
-    if order.order_type == OrderType::Limit {
-        if order.is_long {
-            require!(
-                params.entry_price <= order.limit_price,
-                PerpetualsError::PriceOutOfBounds
-            );
-        } else {
-            require!(
-                params.entry_price >= order.limit_price,
-                PerpetualsError::PriceOutOfBounds
-            );
-        }
-    }
 
-    // -------------------------------------------------------------
-    // Pre-compute effective fee / collateral ratio parameters once
-    // -------------------------------------------------------------
-    let effective_opening_fee_bps = effective_u64(
-        ctx.accounts.baskt.config.opening_fee_bps,
-        ctx.accounts.protocol.config.opening_fee_bps,
-    );
-    let effective_min_cr_bps = effective_u64(
-        ctx.accounts.baskt.config.min_collateral_ratio_bps,
-        ctx.accounts.protocol.config.min_collateral_ratio_bps,
-    );
 
     // ------------------------------------------------------------------
     // Derive the effective position size (auto-sizing for market orders)
     // ------------------------------------------------------------------
-    let effective_size = calculate_effective_size(
-        order,
-        params.entry_price,
-        order.collateral,
-        effective_min_cr_bps,
-        effective_opening_fee_bps,
-    )?;
 
-    // 3. Calculate real notional value using safe helper
-    let real_notional_u64 = mul_div_u64(effective_size, params.entry_price, PRICE_PRECISION)?;
+    let effective_leverage_bps = mul_div_u64(BPS_DIVISOR, open_params.leverage_bps, BPS_DIVISOR)?;
+    let effective_min_cr_bps = std::cmp::max(effective_u64(
+        ctx.accounts.baskt.config.get_min_collateral_ratio_bps(),
+        ctx.accounts.protocol.config.min_collateral_ratio_bps,
+    ), effective_leverage_bps);
 
-    // ------------------------------------------------------------------
-    // Enforce declared leverage (only for Limit orders)
-    // ------------------------------------------------------------------
-    if order.order_type == OrderType::Limit {
-        let realised_leverage_bps = mul_div_u64(real_notional_u64, BPS_DIVISOR, order.collateral)?;
-        require!(
-            realised_leverage_bps <= order.leverage_bps,
-            PerpetualsError::LeverageExceeded
-        );
-    }
 
-    // 4. Calculate opening fee based on real notional value
     let opening_fee = calc_opening_fee_with_effective_rate(
-        real_notional_u64,
-        ctx.accounts.baskt.config.opening_fee_bps,
+        open_params.notional_value,
+        ctx.accounts.baskt.config.get_opening_fee_bps(),
         ctx.accounts.protocol.config.opening_fee_bps,
     )?;
 
-    // 5. Re-validate minimum collateral using real notional
-    let min_collateral_ratio_bps = effective_min_cr_bps;
+ 
     let min_collateral_real =
-        calc_min_collateral_from_notional(real_notional_u64, min_collateral_ratio_bps)?;
+        calc_min_collateral_from_notional(open_params.notional_value, effective_min_cr_bps)?;
     let total_required_real = min_collateral_real
         .checked_add(opening_fee)
         .ok_or(PerpetualsError::MathOverflow)?;
 
     require!(
-        order.collateral >= total_required_real,
+        open_params.collateral >= total_required_real,
         PerpetualsError::InsufficientCollateral
     );
 
     // 6. Calculate net collateral after fee (using real notional for fee calculation)
-    let net_collateral_amount = order
+    let net_collateral_amount = open_params
         .collateral
         .checked_sub(opening_fee)
         .ok_or(PerpetualsError::InsufficientCollateral)?;
 
+    let num_of_contracts = mul_div_u64(open_params.notional_value, PRICE_PRECISION, params.entry_price)?;
+
+    require!(num_of_contracts > 0, PerpetualsError::ZeroSizedPosition);
     position.initialize(
         order.owner,
-        params.position_id,
+        params.position_id as u32,
         order.baskt_id,
-        effective_size,
+        num_of_contracts,
         net_collateral_amount,
-        order.is_long,
+        open_params.is_long,
         params.entry_price,
         funding_index.cumulative_index,
-        clock.unix_timestamp,
+        ctx.accounts.baskt.rebalance_fee_index.cumulative_index,
+        clock.unix_timestamp as u32,
         bump,
     )?;
 
@@ -301,12 +222,6 @@ pub fn open_position<'info>(
         .open_positions
         .checked_add(1)
         .ok_or(PerpetualsError::MathOverflow)?;
-
-    // Remaining accounts (treasury token)
-    let remaining_accounts = OpenPositionRemainingAccounts::parse(ctx.remaining_accounts)?;
-
-    // Validate remaining accounts for security
-    remaining_accounts.validate(&ctx.accounts.protocol, &ctx.accounts.liquidity_pool)?;
 
     // Signer seeds for program authority
     let authority_seeds: &[&[u8]] = &[AUTHORITY_SEED, &[ctx.bumps.program_authority]];
@@ -324,7 +239,7 @@ pub fn open_position<'info>(
                     ctx.accounts.token_program.to_account_info(),
                     Transfer {
                         from: ctx.accounts.order_escrow.to_account_info(),
-                        to: remaining_accounts.treasury_token.clone(),
+                        to: ctx.accounts.treasury_token.to_account_info(),
                         authority: ctx.accounts.program_authority.to_account_info(),
                     },
                     authority_signer,
@@ -340,7 +255,7 @@ pub fn open_position<'info>(
                     ctx.accounts.token_program.to_account_info(),
                     Transfer {
                         from: ctx.accounts.order_escrow.to_account_info(),
-                        to: remaining_accounts.token_vault.clone(),
+                        to: ctx.accounts.usdc_vault.to_account_info(),
                         authority: ctx.accounts.program_authority.to_account_info(),
                     },
                     authority_signer,
@@ -365,7 +280,10 @@ pub fn open_position<'info>(
             ctx.accounts.token_program.to_account_info(),
             Transfer {
                 from: ctx.accounts.order_escrow.to_account_info(),
-                to: ctx.accounts.escrow_token.to_account_info(),
+                to: ctx
+                    .accounts
+                    .owner_collateral_escrow_account
+                    .to_account_info(),
                 authority: ctx.accounts.program_authority.to_account_info(),
             },
             authority_signer,
@@ -373,26 +291,12 @@ pub fn open_position<'info>(
         collateral_amount,
     )?;
 
-    // Order account is closed automatically via `close = matcher`.
-    // No need to call order.fill() if closing.
-
     // Emit events
-    emit!(OrderFilledEvent {
-        owner: order.owner,
-        order_id: order.order_id,
-        baskt_id: order.baskt_id,
-        action: order.action,
-        size: effective_size,
-        fill_price: params.entry_price,
-        position_id: Some(params.position_id),
-        target_position: None,
-        timestamp: clock.unix_timestamp,
-    });
-
+ 
     emit!(PositionOpenedEvent {
-        order_id: order.order_id,
+        order_id: order.order_id as u64,
         owner: position.owner,
-        position_id: params.position_id,
+        position_id: params.position_id as u64,
         baskt_id: position.baskt_id,
         size: position.size,
         collateral: position.collateral,

@@ -2,32 +2,70 @@ import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
 import { querier } from '../../utils/querier';
 import { OrderAction, OrderType } from '@baskt/types';
+import { PublicKey } from '@solana/web3.js';
+import BN from 'bn.js';
 
 // create an order
 export const createOrder = publicProcedure
   .input(
     z.object({
-      orderPDA: z.string(),
       orderId: z.string(),
-      basktId: z.string(),
-      orderStatus: z.string(),
-      orderAction: z.enum([OrderAction.Close, OrderAction.Open]),
       owner: z.string(),
-      size: z.string(),
-      collateral: z.string(),
-      isLong: z.boolean(),
       createOrder: z.object({
         tx: z.string(),
         ts: z.string(),
       }),
-      orderType: z.enum([OrderType.Market, OrderType.Limit]),
-      limitPrice: z.string(),
-      maxSlippage: z.string(),
     }),
   )
   .mutation(async ({ input }) => {
     try {
-      const order = await querier.metadata.createOrder(input);
+      const basktClient = querier.getBasktClient();
+      const onchainOrder = await basktClient.getOrderById(
+        new BN(input.orderId), 
+        new PublicKey(input.owner)
+      );
+
+      const order = await querier.metadata.createOrder({
+        orderPDA: onchainOrder.address.toString(),
+        orderId: onchainOrder.orderId.toString(),
+        basktId: onchainOrder.basktId.toString(),
+        createOrder: {
+          tx: input.createOrder.tx,
+          ts: input.createOrder.ts,
+        },
+        orderStatus: onchainOrder.status,
+        orderAction: onchainOrder.action,
+        orderType: onchainOrder.orderType,
+        owner: input.owner,
+        timestamp: onchainOrder.timestamp.toString(),
+        
+        // Action-specific parameters
+        ...(onchainOrder.openParams && {
+          openParams: {
+            notionalValue: onchainOrder.openParams.notionalValue.toString(),
+            leverageBps: onchainOrder.openParams.leverageBps.toString(),
+            collateral: onchainOrder.openParams.collateral.toString(),
+            isLong: onchainOrder.openParams.isLong,
+          }
+        }),
+        ...(onchainOrder.closeParams && {
+          closeParams: {
+            sizeAsContracts: onchainOrder.closeParams.sizeAsContracts.toString(),
+            targetPosition: onchainOrder.closeParams.targetPosition.toString(),
+          }
+        }),
+        
+        // Order type-specific parameters
+        ...(onchainOrder.marketParams && {
+          marketParams: onchainOrder.marketParams
+        }),
+        ...(onchainOrder.limitParams && {
+          limitParams: {
+            limitPrice: onchainOrder.limitParams.limitPrice.toString(),
+            maxSlippageBps: onchainOrder.limitParams.maxSlippageBps.toString(),
+          }
+        }),
+      });
       return {
         success: true,
         data: order,
@@ -56,7 +94,7 @@ export const updateOrderStatus = publicProcedure
   .mutation(async ({ input }) => {
     try {
       const { orderPDA, ...updateData } = input;
-      const order = await querier.metadata.updateOrder(orderPDA, {
+      const order = await querier.metadata.updateOrderByPDA(orderPDA, {
         orderStatus: updateData.orderStatus,
         fullFillOrder: {
           tx: updateData.orderFullFillTx,

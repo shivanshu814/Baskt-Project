@@ -1,6 +1,5 @@
 // Shared types for the querier package
 export interface QueryOptions {
-  withLatestPrices?: boolean;
   withConfig?: boolean;
   limit?: number;
   offset?: number;

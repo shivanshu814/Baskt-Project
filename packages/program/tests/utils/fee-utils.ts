@@ -1,3 +1,4 @@
+import { NAV_PRECISION, PRICE_PRECISION } from '@baskt/sdk';
 import BN from 'bn.js';
 
 /**
@@ -18,4 +19,72 @@ export function calcFee(amount: BN, feeBps: BN): BN {
  */
 export function netCollateral(collateral: BN, size: BN, openingFeeBps: BN): BN {
   return collateral.sub(calcFee(size, openingFeeBps));
+}
+
+export function calculateSettlementDetails(
+  collateral: BN,
+  numOfContracts: BN,
+  feeBps: BN, 
+  fundingAccumulated: BN,
+  entryPrice: BN,
+  exitPrice: BN,
+  isLong: boolean,
+  treasuryCutBps: BN,
+): {
+  feeToTreasury: BN;
+  feeToBLP: BN;
+  collateralReturned: BN;
+  escrowToBLP: BN;
+  expectedUserPayout: BN;
+  poolToUser: BN;
+  isBadDebt: boolean;
+} {
+
+
+
+
+
+  let fundingPaidByUser = fundingAccumulated.gt(new BN(0)) ? fundingAccumulated : new BN(0);
+  let fundingPaidByPool = fundingAccumulated.lt(new BN(0)) ? fundingAccumulated.abs() : new BN(0);
+
+  const priceDelta = isLong ? exitPrice.sub(entryPrice) : entryPrice.sub(exitPrice); 
+  const pnl = priceDelta.mul(numOfContracts).div(PRICE_PRECISION);  
+
+  const exitNotional = numOfContracts.mul(exitPrice).div(PRICE_PRECISION);
+  const closingFee = exitNotional.mul(feeBps).div(BPS_DIVISOR);
+ 
+  const netCollateral = collateral.sub(closingFee); 
+  const userEquity = netCollateral.add(pnl).add(fundingAccumulated);
+
+
+  if(userEquity.lt(new BN(0))) { 
+    return {
+      feeToTreasury: new BN(0),
+      feeToBLP: new BN(0),
+      collateralReturned: new BN(0),
+      escrowToBLP: collateral,
+      expectedUserPayout: new BN(0),
+      poolToUser: new BN(0),
+      isBadDebt: true,
+    }
+  }
+
+  let treasuryCut = closingFee.mul(treasuryCutBps).div(BPS_DIVISOR); 
+  let expectedUserPayout = netCollateral.add(pnl).add(fundingPaidByPool);
+  let escrowToBLP = fundingPaidByUser.add(pnl.lt(new BN(0)) ? pnl.abs() : new BN(0)).add(closingFee.sub(treasuryCut));
+  let poolToUser = fundingPaidByPool.add(pnl.gt(new BN(0)) ? pnl : new BN(0));
+
+
+  return {
+
+    // From Escrow
+    feeToTreasury: treasuryCut,
+    feeToBLP: closingFee.sub(treasuryCut),
+    collateralReturned: netCollateral,
+    escrowToBLP,    
+    expectedUserPayout,
+    // How much does the pool pay to the user
+    poolToUser,
+    isBadDebt: false,
+  }
 }

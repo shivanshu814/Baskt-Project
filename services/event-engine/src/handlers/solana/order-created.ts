@@ -1,7 +1,7 @@
 //OrderCreatedEvent
 
 import { PublicKey } from '@solana/web3.js';
-import { OnchainOrder, OrderAction, OrderStatus } from '@baskt/types';
+import { OnchainOrder, OrderAction, OnchainOrderStatus, OrderType } from '@baskt/types';
 import { basktClient, querierClient } from '../../utils/config';
 import { BN } from 'bn.js';
 import { EventSource, ObserverEvent } from '../../types';
@@ -39,7 +39,7 @@ async function getCurrentNavForBaskt(basktId: PublicKey) {
 async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder: OnchainOrder) {
   console.log("Opening position for order", onchainOrder.address.toString());
   try {
-    const positionId = basktClient.newIdForPosition();
+    const positionId = basktClient.newUID();
     const price = await getCurrentNavForBaskt(onchainOrder.basktId);
 
     if (price.isZero()) {
@@ -54,7 +54,6 @@ async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder
       entryPrice: price,
       baskt: onchainOrder.basktId,
       orderOwner: onchainOrder.owner,
-      preInstructions: [await basktClient.updateOraclePriceWithItx(onchainOrder.basktId, price)],
     });
 
     console.log('Position Opened', positionId.toString(), tx);
@@ -62,7 +61,7 @@ async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder
 
  
     // update order status in db
-    await querierClient.metadata.updateOrder(onchainOrder.address.toString(), {
+    await querierClient.metadata.updateOrderByPDA(onchainOrder.address.toString(), {
       orderStatus: 'FILLED',
       orderFullFillTx: tx,
       orderFullfillTs: onchainOrder.timestamp.toString(),
@@ -79,13 +78,15 @@ async function handleOpenOrder(orderCreatedData: OrderCreatedEvent, onchainOrder
 async function handleCloseOrder(orderCreatedData: OrderCreatedEvent, onchainOrder: OnchainOrder) {
   try {
     const protocolAccount = await basktClient.getProtocolAccount();
-    const positionAccount = await basktClient.getPosition(onchainOrder.targetPosition!);
+    const positionAccount = await basktClient.getPosition(onchainOrder.closeParams!.targetPosition);
     const exitPrice = await getCurrentNavForBaskt(onchainOrder.basktId);
 
-    await basktClient.updateOraclePrice(onchainOrder.basktId, exitPrice);
 
     const ownerTokenAccount = await basktClient.getUSDCAccount(onchainOrder.owner);
     const treasuryTokenAccount = await basktClient.getUSDCAccount(protocolAccount.treasury);
+
+    const isPartialClose = onchainOrder.closeParams!.sizeAsContracts.lt(positionAccount.size);
+    const sizeToClose = isPartialClose ? onchainOrder.closeParams!.sizeAsContracts : undefined;
 
     // close position onchain
     const tx = await basktClient.closePosition({
@@ -97,12 +98,13 @@ async function handleCloseOrder(orderCreatedData: OrderCreatedEvent, onchainOrde
       treasury: protocolAccount.treasury,
       treasuryTokenAccount: treasuryTokenAccount.address,
       orderOwner: onchainOrder.owner,
+      sizeToClose: sizeToClose,
     });
 
     console.log("Position closed", positionAccount.positionPDA.toString(), tx);
 
     // update order status in db
-    await querierClient.metadata.updateOrder(onchainOrder.address.toString(), {
+    await querierClient.metadata.updateOrderByPDA(onchainOrder.address.toString(), {
       orderStatus: 'FILLED',
       orderFullFillTx: tx,
       orderFullfillTs: onchainOrder.timestamp.toString(),
@@ -144,24 +146,51 @@ async function orderCreatedHandler(event: ObserverEvent) {
 
     // Create the order
     try {
-      const orderResult = await querierClient.metadata.createOrder({
+      const orderData: any = {
         orderPDA: onchainOrder.address.toString(),
         orderId: onchainOrder.orderId.toString(),
         basktId: onchainOrder.basktId.toString(),
-        orderStatus: OrderStatus.PENDING,
+        orderStatus: OnchainOrderStatus.PENDING,
         orderAction: onchainOrder.action,
+        orderType: onchainOrder.orderType,
         owner: onchainOrder.owner.toString(),
-        size: onchainOrder.size.toString(),
-        collateral: onchainOrder.collateral.toString(),
-        isLong: onchainOrder.isLong,
+        timestamp: onchainOrder.timestamp.toString(),
         createOrder: {
           tx: signature,
           ts: onchainOrder.timestamp.toString(),
         },
-        orderType: onchainOrder.orderType,
-        limitPrice: onchainOrder.limitPrice.toString(),
-        maxSlippage: onchainOrder.maxSlippage.toString(),
-      });
+      };
+
+      // Add action-specific parameters
+      if (onchainOrder.action === OrderAction.Open && onchainOrder.openParams) {
+        orderData.openParams = {
+          notionalValue: onchainOrder.openParams.notionalValue.toString(),
+          leverageBps: onchainOrder.openParams.leverageBps.toString(),
+          collateral: onchainOrder.openParams.collateral.toString(),
+          isLong: onchainOrder.openParams.isLong,
+        };
+      }
+
+      if (onchainOrder.action === OrderAction.Close && onchainOrder.closeParams) {
+        orderData.closeParams = {
+          sizeAsContracts: onchainOrder.closeParams.sizeAsContracts.toString(),
+          targetPosition: onchainOrder.closeParams.targetPosition.toString(),
+        };
+      }
+
+      // Add order type-specific parameters
+      if (onchainOrder.orderType === OrderType.Market) {
+        orderData.marketParams = {};
+      }
+
+      if (onchainOrder.orderType === OrderType.Limit && onchainOrder.limitParams) {
+        orderData.limitParams = {
+          limitPrice: onchainOrder.limitParams.limitPrice.toString(),
+          maxSlippageBps: onchainOrder.limitParams.maxSlippageBps.toString(),
+        };
+      }
+
+      const orderResult = await querierClient.metadata.createOrder(orderData);
 
       console.log('Order created successfully in DB');
 
@@ -178,7 +207,7 @@ async function orderCreatedHandler(event: ObserverEvent) {
         }
       } catch (error) {
         console.error('Error handling order:', error);
-        await querierClient.metadata.updateOrder(onchainOrder.address.toString(), {
+        await querierClient.metadata.updateOrderByPDA(onchainOrder.address.toString(), {
           orderStatus: 'FAILED',
         });
         throw error;

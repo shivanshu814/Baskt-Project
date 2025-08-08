@@ -31,6 +31,7 @@ export * from './models/types';
 export type { QueryResult } from './models/types';
 export * from './types';
 export * from './types/fee-event';
+export * from './types/withdraw-queue';
 
 // Export individual queriers (will be added as we implement them)
 export * from './queriers/asset.querier';
@@ -44,3 +45,4 @@ export * from './queriers/metrics.querier';
 export * from './queriers/access.querier';
 export * from './queriers/faucet.querier';
 export * from './queriers/pool.querier';
+export * from './queriers/withdraw-queue.querier';

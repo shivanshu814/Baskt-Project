@@ -1,14 +1,14 @@
-import { OrderStatus, PositionStatus } from '@baskt/types';
+import { OnchainOrderStatus, PositionStatus } from '@baskt/types';
 
 export function getStatusColor(status: string) {
   switch (status) {
-    case OrderStatus.PENDING:
+    case OnchainOrderStatus.PENDING:
     case 'Pending':
       return 'text-yellow-500';
-    case OrderStatus.FILLED:
+    case OnchainOrderStatus.FILLED:
     case 'Filled':
       return 'text-green-500';
-    case OrderStatus.CANCELLED:
+    case OnchainOrderStatus.CANCELLED:
     case 'Cancelled':
       return 'text-red-500';
     case PositionStatus.OPEN:

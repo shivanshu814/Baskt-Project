@@ -13,6 +13,7 @@ import {
   TableRow,
   NumberFormat,
 } from '@baskt/ui';
+import { OnchainAssetConfig } from '@baskt/types';
 
 export function RebalanceHistoryTable({ basktId }: RebalanceHistoryTableProps) {
   const { rebalanceHistory, loading, error } = useBasktRebalanceHistory(basktId);
@@ -63,7 +64,7 @@ export function RebalanceHistoryTable({ basktId }: RebalanceHistoryTableProps) {
               <TableCell className="text-right">
                 <div className="text-sm">{entry.assetConfigs.length} assets</div>
                 <div className="text-xs text-white/60">
-                  {entry.assetConfigs.map((asset, assetIndex) => (
+                  {entry.assetConfigs.map((asset: OnchainAssetConfig, assetIndex: number) => (
                     <div key={assetIndex} className="flex justify-between">
                       <span>{formatNumber(asset.weight.toNumber() / BASIS_POINT)}%</span>
                       <span className="ml-2">{asset.direction ? 'Long' : 'Short'}</span>

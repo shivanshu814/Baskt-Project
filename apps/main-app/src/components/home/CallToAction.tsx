@@ -1,6 +1,7 @@
 import { Button } from '@baskt/ui';
-import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { ROUTES } from '../../routes/route';
 
 export function CallToAction() {
   return (
@@ -11,7 +12,7 @@ export function CallToAction() {
           Join thousands of investors who are already using Baskt to simplify their crypto journey.
         </p>
         <Button size="lg" asChild>
-          <Link href="/baskts">
+          <Link href={ROUTES.EXPLORE}>
             Get Started Now
             <ArrowRight className="ml-2 h-5 w-5" />
           </Link>

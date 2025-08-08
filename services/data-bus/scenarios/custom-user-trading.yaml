@@ -1,0 +1,59 @@
+name: Custom User Trading
+description: Demonstrates variable substitution from CLI - use --var userId=alice123 --var basketId=btc_basket
+
+events:
+  # Initial price
+  - stream: price.update
+    payload:
+      asset: BTC
+      price: "60000.00"
+      confidence: 98
+      sources: 5
+      timestamp: "{{timestampNum}}"  # price.update expects number
+      
+  # User places an order - using CLI variables
+  - stream: order.request
+    delay: 500
+    payload:
+      orderId: "order_{{timestamp}}"
+      owner: "{{userId}}"  # From CLI: --var userId=alice123
+      basktId: "{{basketId}}"  # From CLI: --var basketId=btc_basket
+      size: "50000"
+      collateral: "10000"
+      isLong: true
+      action: "OPEN"
+      targetPosition: null
+      orderType: "MARKET"
+      limitPrice: "0"
+      maxSlippageBps: "50"
+      leverageBps: "500"  # 5x leverage = 500 bps
+      timestamp: "{{timestamp}}"
+      txSignature: "sig_{{timestamp}}"
+      
+  # Order accepted
+  - stream: order.accepted
+    delay: 200
+    payload:
+      orderId: "order_{{timestamp}}"
+      owner: "{{userId}}"
+      basktId: "{{basketId}}"
+      action: "OPEN"
+      size: "50000"
+      fillPrice: "60100.00"
+      positionId: "pos_{{timestamp}}"
+      targetPosition: null
+      timestamp: "{{timestamp}}"
+      txSignature: "sig_{{timestamp}}"
+      
+  # Service heartbeat with custom service name
+  - stream: service.heartbeat
+    delay: 100
+    payload:
+      service: "{{service}}"  # Use CLI var directly
+      timestamp: "{{timestampNum}}"   # service.heartbeat expects number
+      lastUpdate: "{{timestampNum}}"
+      health: "healthy"
+      stats:
+        cpu: 45
+        memory: 512
+        connections: 10

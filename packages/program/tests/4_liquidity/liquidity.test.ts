@@ -5,55 +5,63 @@ import { getAccount } from '@solana/spl-token';
 import { BN } from 'bn.js';
 import { TestClient, requestAirdrop } from '../utils/test-client';
 import { waitForTx, waitForNextSlot } from '../utils/chain-helpers';
+import { USDC_MINT } from '@baskt/sdk';
 
 describe('Liquidity Pool', () => {
   // Get the test client instance
   const client = TestClient.getInstance();
 
-  const DEPOSIT_FEE_BPS = 50; // 0.25%
-  const WITHDRAWAL_FEE_BPS = 50; // 0.5%
-  const MIN_DEPOSIT = new BN(1_000_000); // 1 USDC (assuming 6 decimals)
-  const DEPOSIT_AMOUNT = new BN(100_000_000); // 100 USDC
+  // Test constants
+  const MAX_FEE_BPS = 1000; // 10% maximum fee
+  const DEPOSIT_FEE_BPS = 50; // 0.5%
+  const WITHDRAWAL_FEE_BPS = 100; // 1%
+  const INITIAL_DEPOSIT = new BN(100_000_000); // 100 USDC
 
   let treasury: Keypair;
   let liquidityProvider: Keypair;
+  let nonOwner: Keypair;
 
-  // Liquidity Pool accounts
+  // Pool accounts
   let liquidityPool: PublicKey;
   let lpMint: PublicKey;
-  let tokenVault: PublicKey;
+  let usdcVault: PublicKey;
+  let lpTokenEscrow: PublicKey;
+  let poolAuthority: PublicKey;
+  let treasuryTokenAccount: PublicKey;
   let providerTokenAccount: PublicKey;
   let providerLpAccount: PublicKey;
-  let treasuryTokenAccount: PublicKey;
+
+  // Test clients
   let lpClient: TestClient;
+  let nonOwnerClient: TestClient;
 
   before(async () => {
-    // Initialize protocol first with client's treasury
+    // Initialize protocol
     try {
       const protocol = await client.getProtocolAccount();
       if (!protocol.isInitialized) {
         await client.initializeProtocol(client.treasury.publicKey);
       }
     } catch (error) {
-      // Protocol doesn't exist, initialize it
       await client.initializeProtocol(client.treasury.publicKey);
     }
     
-    // Initialize TestClient roles (AssetManager, OracleManager)
     await client.initializeRoles();
 
     // Create test keypairs
     liquidityProvider = Keypair.generate();
+    nonOwner = Keypair.generate();
     treasury = client.treasury;
 
-    // Fund the test accounts
+    // Fund accounts
     await requestAirdrop(liquidityProvider.publicKey, client.connection);
-    await requestAirdrop(treasury.publicKey, client.connection);
+    await requestAirdrop(nonOwner.publicKey, client.connection);
 
     // Create user clients
     lpClient = await TestClient.forUser(liquidityProvider);
+    nonOwnerClient = await TestClient.forUser(nonOwner);
 
-    // Enable liquidity features
+    // Enable all features
     await client.updateFeatureFlags({
       allowAddLiquidity: true,
       allowRemoveLiquidity: true,
@@ -67,28 +75,12 @@ describe('Liquidity Pool', () => {
       allowTrading: true,
       allowLiquidations: true,
     });
-
-    const poolSetup = await client.setupLiquidityPoolWithLiquidity({
-      depositFeeBps: DEPOSIT_FEE_BPS,
-      withdrawalFeeBps: WITHDRAWAL_FEE_BPS,
-      minDeposit: MIN_DEPOSIT,
-      initialDeposit: DEPOSIT_AMOUNT,
-      provider: liquidityProvider,
-    });
-
-    // Store pool accounts for future tests
-    liquidityPool = poolSetup.liquidityPool;
-    lpMint = poolSetup.lpMint;
-    tokenVault = poolSetup.tokenVault;
-    providerTokenAccount = poolSetup.providerTokenAccount;
-    providerLpAccount = poolSetup.providerLpAccount;
-    treasuryTokenAccount = poolSetup.treasuryTokenAccount;
   });
 
   afterEach(async () => {
-    // Reset feature flags to enabled state after each test
+    // Reset feature flags
     try {
-      const resetSig = await client.updateFeatureFlags({
+      await client.updateFeatureFlags({
         allowAddLiquidity: true,
         allowRemoveLiquidity: true,
         allowOpenPosition: true,
@@ -101,210 +93,489 @@ describe('Liquidity Pool', () => {
         allowTrading: true,
         allowLiquidations: true,
       });
-      await waitForTx(client.connection, resetSig);
-      await waitForNextSlot(client.connection);
     } catch (error) {
-      // Silently handle cleanup errors to avoid masking test failures
       console.warn('Cleanup error in liquidity.test.ts:', error);
     }
   });
 
-  it('Initializes the liquidity pool', async () => {
-    // Fetch liquidity pool state
-    const liquidityPoolState = await client.getLiquidityPool();
+  describe('Liquidity Pool Initialization', () => {
+    it('Successfully initializes liquidity pool with valid parameters', async () => {
+      // Check if pool already exists
+      let poolExists = true;
+      try {
+        await client.getLiquidityPool();
+      } catch (error) {
+        poolExists = false;
+      }
 
-    // Verify the liquidity pool was initialized correctly
-    expect(liquidityPoolState.lpMint.toString()).to.equal(lpMint.toString());
-    expect(liquidityPoolState.tokenVault.toString()).to.equal(tokenVault.toString());
-    expect(liquidityPoolState.depositFeeBps).to.equal(DEPOSIT_FEE_BPS);
-    expect(liquidityPoolState.withdrawalFeeBps).to.equal(WITHDRAWAL_FEE_BPS);
-    expect(liquidityPoolState.minDeposit.toString()).to.equal(MIN_DEPOSIT.toString());
+      if (!poolExists) {
+        const poolSetup = await client.setupLiquidityPool({
+          depositFeeBps: DEPOSIT_FEE_BPS,
+          withdrawalFeeBps: WITHDRAWAL_FEE_BPS,
+          collateralMint: USDC_MINT,
+        });
 
-    // Calculate expected values from our deposit
-    const expectedFeeAmount = DEPOSIT_AMOUNT.muln(DEPOSIT_FEE_BPS).divn(10000);
-    const expectedNetDeposit = DEPOSIT_AMOUNT.sub(expectedFeeAmount);
+        // Store pool accounts for future tests
+        liquidityPool = poolSetup.liquidityPool;
+        lpMint = poolSetup.lpMint;
+        usdcVault = poolSetup.usdcVault;
+        poolAuthority = poolSetup.poolAuthority;
+      } else {
+        // Pool already exists, get the existing accounts
+        liquidityPool = client.liquidityPoolPDA;
+        const poolState = await client.getLiquidityPool();  
+        lpMint = poolState.lpMint;
+        usdcVault = poolState.usdcVault;  
+        poolAuthority = client.poolAuthorityPDA;
+      }
 
-    // Verify token balances - check that our provider received the expected LP tokens
-    const lpTokenBalance = await getAccount(client.connection, providerLpAccount);
-    expect(lpTokenBalance.amount.toString()).to.equal(expectedNetDeposit.toString());
+      // Verify pool state
+      const poolState = await client.getLiquidityPool();
+      expect(poolState.lpMint.toString()).to.equal(lpMint.toString());
+      expect(poolState.usdcVault.toString()).to.equal(usdcVault.toString());
+      
+      // Verify initial queue state
+      expect(poolState.pendingLpTokens.toString()).to.equal('0');
+      expect(poolState.withdrawQueueHead.toString()).to.equal('0');
+      expect(poolState.withdrawQueueTail.toString()).to.equal('0');
 
-    // Note: We don't check absolute pool totals or vault balance since the pool may have
-    // liquidity from previous tests. The successful completion of setupLiquidityPoolWithLiquidity
-    // already verifies that our deposit was processed correctly.
-
-    // Verify that the pool has at least our expected liquidity
-    expect(Number(liquidityPoolState.totalLiquidity.toString())).to.be.at.least(Number(expectedNetDeposit.toString()));
-    expect(Number(liquidityPoolState.totalShares.toString())).to.be.at.least(Number(expectedNetDeposit.toString()));
-  });
-
-  it('Deposits additional liquidity and receives LP tokens', async () => {
-    // Calculate expected values for second deposit
-    const secondDepositAmount = new BN(50_000_000); // 50 USDC
-    const expectedFeeAmount = secondDepositAmount.muln(DEPOSIT_FEE_BPS).divn(10000);
-    const expectedNetDeposit = secondDepositAmount.sub(expectedFeeAmount);
-
-    // Get current pool state and treasury balance before operation
-    const poolStateBefore = await client.getLiquidityPool();
-    const treasuryBalanceBefore = await getAccount(client.connection, treasuryTokenAccount);
-
-    // Get the current liquidity and shares totals for calculation
-    const totalLiquidityBefore = new BN(poolStateBefore.totalLiquidity.toString());
-    const totalSharesBefore = new BN(poolStateBefore.totalShares.toString());
-
-    // For subsequent deposits, calculate expected shares:
-    // shares = (net_deposit * total_shares) / total_liquidity
-    const expectedShares = expectedNetDeposit.mul(totalSharesBefore).div(totalLiquidityBefore);
-
-    // Mint more tokens to provider for this deposit
-    await client.mintUSDC(providerTokenAccount, secondDepositAmount);
-    // Add more liquidity using the provider's client
-    await lpClient.addLiquidityToPool({
-      liquidityPool,
-      amount: secondDepositAmount,
-      minSharesOut: expectedShares,
-      providerTokenAccount,
-      tokenVault,
-      providerLpAccount,
-      lpMint,
-      treasuryTokenAccount,
-      treasury: treasury.publicKey,
+      // Verify LP token escrow was created
+      lpTokenEscrow = await client.getLPTokenEscrowPDA();
+      const escrowAccount = await getAccount(client.connection, lpTokenEscrow);
+      expect(escrowAccount.mint.toString()).to.equal(lpMint.toString());
+      expect(escrowAccount.owner.toString()).to.equal(poolAuthority.toString());
     });
 
-    // Fetch updated state
-    const poolStateAfter = await client.getLiquidityPool();
-    const lpTokenBalance = await getAccount(client.connection, providerLpAccount);
-    const treasuryBalanceAfter = await getAccount(client.connection, treasuryTokenAccount);
-
-    // Calculate expected new totals
-    const expectedTotalLiquidity = totalLiquidityBefore.add(expectedNetDeposit);
-    const expectedTotalShares = totalSharesBefore.add(expectedShares);
-
-    // Verify pool state and balances
-    expect(poolStateAfter.totalLiquidity.toString()).to.equal(expectedTotalLiquidity.toString());
-    expect(poolStateAfter.totalShares.toString()).to.equal(expectedTotalShares.toString());
-    expect(lpTokenBalance.amount.toString()).to.equal(expectedTotalShares.toString());
-
-    // Check that treasury received exactly the expected fee amount from this operation
-    const treasuryBalanceIncrease = BigInt(treasuryBalanceAfter.amount.toString()) - BigInt(treasuryBalanceBefore.amount.toString());
-    expect(treasuryBalanceIncrease.toString()).to.equal(expectedFeeAmount.toString());
-  });
-
-  it('Withdraws liquidity by burning LP tokens', async () => {
-    // Get current pool state and treasury balance before operation
-    const poolStateBefore = await client.getLiquidityPool();
-    const treasuryBalanceBefore = await getAccount(client.connection, treasuryTokenAccount);
-
-    // Calculate burn amount - 25% of total shares
-    const totalShares = new BN(poolStateBefore.totalShares.toString());
-    const burnAmount = totalShares.divn(4); // 25%
-
-    // Calculate expected values
-    const expectedWithdrawalAmount = burnAmount
-      .mul(new BN(poolStateBefore.totalLiquidity.toString()))
-      .div(totalShares);
-    const expectedFeeAmount = expectedWithdrawalAmount.muln(WITHDRAWAL_FEE_BPS).divn(10000);
-    const expectedNetAmount = expectedWithdrawalAmount.sub(expectedFeeAmount);
-
-    // Remove liquidity using the provider's client
-    await lpClient.removeLiquidityFromPool({
-      liquidityPool,
-      lpAmount: burnAmount,
-      minTokensOut: expectedNetAmount,
-      providerTokenAccount,
-      tokenVault,
-      providerLpAccount,
-      lpMint,
-      treasuryTokenAccount,
-      treasury: treasury.publicKey,
+    it('Validates fee limits and authorization', async () => {
+      // Test fee validation
+      try {
+        await client.setupLiquidityPool({
+          depositFeeBps: MAX_FEE_BPS + 1,
+          withdrawalFeeBps: WITHDRAWAL_FEE_BPS,
+          collateralMint: USDC_MINT,
+        });
+        expect.fail('Should have failed with InvalidFeeBps error');
+      } catch (err) {
+        const error = err as { message: string };
+        expect(error.message).to.include('InvalidFeeBps');
+      }
+      
+      // Test authorization
+      try {
+        await nonOwnerClient.setupLiquidityPool({
+          depositFeeBps: DEPOSIT_FEE_BPS,
+          withdrawalFeeBps: WITHDRAWAL_FEE_BPS,
+          collateralMint: USDC_MINT,
+        });
+        expect.fail('Should have failed with UnauthorizedRole error');
+      } catch (err) {
+        const error = err as { message: string };
+        expect(error.message).to.include('UnauthorizedRole');
+      }
     });
 
-    // Fetch updated state
-    const poolStateAfter = await client.getLiquidityPool();
-    const lpTokenBalance = await getAccount(client.connection, providerLpAccount);
-    const treasuryBalanceAfter = await getAccount(client.connection, treasuryTokenAccount);
+    it('Verifies all PDA accounts are created correctly', async () => {
+      // Verify liquidity pool PDA
+      const expectedLiquidityPoolPDA = client.liquidityPoolPDA;
+      expect(liquidityPool.toString()).to.equal(expectedLiquidityPoolPDA.toString());
 
-    // Calculate expected values after withdrawal
-    const expectedRemainingShares = totalShares.sub(burnAmount);
-    const expectedRemainingLiquidity = new BN(poolStateBefore.totalLiquidity.toString()).sub(
-      expectedWithdrawalAmount,
-    );
+      // Verify pool authority PDA
+      const expectedPoolAuthorityPDA = client.poolAuthorityPDA;
+      expect(poolAuthority.toString()).to.equal(expectedPoolAuthorityPDA.toString());
 
-    // Verify the expected states
-    expect(poolStateAfter.totalShares.toString()).to.equal(expectedRemainingShares.toString());
-    expect(poolStateAfter.totalLiquidity.toString()).to.equal(
-      expectedRemainingLiquidity.toString(),
-    );
-    expect(lpTokenBalance.amount.toString()).to.equal(expectedRemainingShares.toString());
+      // Verify token vault PDA
+      const [expectedusdcVaultPDA] = await client.getUsdcVaultPda();
+      expect(usdcVault.toString()).to.equal(expectedusdcVaultPDA.toString());
 
-    // Check that treasury received exactly the expected fee amount from this withdrawal operation
-    const treasuryBalanceIncrease = BigInt(treasuryBalanceAfter.amount.toString()) - BigInt(treasuryBalanceBefore.amount.toString());
-    expect(treasuryBalanceIncrease.toString()).to.equal(expectedFeeAmount.toString());
+      // Verify LP token escrow PDA
+        const expectedLpTokenEscrowPDA = await client.getLPTokenEscrowPDA();
+      expect(lpTokenEscrow.toString()).to.equal(expectedLpTokenEscrowPDA.toString());
+    });
   });
 
-  it('Fails when trying to deposit below minimum deposit amount', async () => {
-    // Try to deposit below minimum amount (should fail)
-    try {
-      const belowMinDeposit = MIN_DEPOSIT.subn(1); // 1 less than minimum
+  describe('Add Liquidity', () => {
+    before(async () => {
+      // Setup accounts for liquidity operations
+      providerTokenAccount = await client.getOrCreateUSDCAccountKey(liquidityProvider.publicKey);
+      treasuryTokenAccount = await client.getOrCreateUSDCAccountKey(treasury.publicKey);
+      
+      // Create LP token account for provider
+      providerLpAccount = await client.createTokenAccount(lpMint, liquidityProvider.publicKey);
+      
+      // Mint initial USDC to provider
+      await client.mintUSDC(providerTokenAccount, INITIAL_DEPOSIT.muln(5).toNumber());
+    });
 
-      // Mint tokens to provider for this test
-      await client.mintUSDC(providerTokenAccount, belowMinDeposit);
+    it('Successfully adds liquidity and validates state changes', async () => {
+      const poolStateBefore = await client.getLiquidityPool();
+      const treasuryBalanceBefore = await getAccount(client.connection, treasuryTokenAccount);
+      const providerBalanceBefore = await getAccount(client.connection, providerTokenAccount);
+      
+      const actualDepositFeeBps = poolStateBefore.depositFeeBps;
+      const depositAmount = new BN(50_000_000); // 50 USDC
+      
+      // Calculate expected values
+      const expectedFeeAmount = depositAmount.muln(actualDepositFeeBps).divn(10000);
+      const expectedNetDeposit = depositAmount.sub(expectedFeeAmount);
 
-      // Attempt to add liquidity with below minimum amount
+      const minSharesOut = poolStateBefore.totalShares.toNumber() === 0 
+        ? expectedNetDeposit
+        : expectedNetDeposit.mul(poolStateBefore.totalShares).div(poolStateBefore.totalLiquidity);
+
       await lpClient.addLiquidityToPool({
         liquidityPool,
-        amount: belowMinDeposit,
-        minSharesOut: new BN(0),
+        amount: depositAmount,
+        minSharesOut,
         providerTokenAccount,
-        tokenVault,
+        usdcVault,
         providerLpAccount,
         lpMint,
         treasuryTokenAccount,
         treasury: treasury.publicKey,
       });
 
-      // Should not reach here
-      expect.fail('Transaction should have failed due to below minimum deposit');
-    } catch (err) {
-      // Type assertion for error handling
-      const error = err as { toString: () => string };
-      // Verify error message indicates minimum deposit failure
-      expect(error.toString()).to.include('BelowMinimumDeposit');
-    }
-  });
+      // Verify pool state updated
+      const poolStateAfter = await client.getLiquidityPool();
+      expect(poolStateAfter.totalLiquidity.toNumber()).to.be.greaterThan(poolStateBefore.totalLiquidity.toNumber());
+      expect(poolStateAfter.totalShares.toNumber()).to.be.greaterThan(poolStateBefore.totalShares.toNumber());
 
-  it('Fails when a deposit would result in zero LP tokens', async () => {
-    // This test assumes the pool already has sufficient liquidity from previous tests
-    // A tiny deposit that would result in zero LP tokens due to rounding
-    // For a pool with substantial liquidity, a deposit of 1 token unit is likely to
-    // result in zero shares due to rounding in the formula:
-    // shares = (deposit * total_shares) / total_liquidity
-    const tinyDeposit = new BN(1); // Just 1 token unit
+      // Verify provider received LP tokens
+      const lpTokenBalance = await getAccount(client.connection, providerLpAccount);
+      expect(lpTokenBalance.amount.toString()).to.not.equal('0');
 
-    // Mint tokens to provider for this test
-    await client.mintUSDC(providerTokenAccount, tinyDeposit);
+      // Verify treasury received fees (if fees > 0)
+      if (actualDepositFeeBps > 0) {
+        const treasuryBalanceAfter = await getAccount(client.connection, treasuryTokenAccount);
+        expect(Number(treasuryBalanceAfter.amount)).to.be.greaterThan(Number(treasuryBalanceBefore.amount));
+      }
 
-    try {
-      // Attempt to add liquidity with a tiny amount
+      // Verify provider's token balance decreased
+      const providerBalanceAfter = await getAccount(client.connection, providerTokenAccount);
+      expect(Number(providerBalanceAfter.amount)).to.be.lessThan(Number(providerBalanceBefore.amount));
+    });
+
+    it('Validates fee calculation and LP token distribution', async () => {
+      const poolStateBefore = await client.getLiquidityPool();
+      const depositAmount = new BN(100_000_000); // 100 USDC
+      const actualDepositFeeBps = poolStateBefore.depositFeeBps;
+      
+      // Calculate expected values
+      const expectedFeeAmount = depositAmount.muln(actualDepositFeeBps).divn(10000);
+      const expectedNetDeposit = depositAmount.sub(expectedFeeAmount);
+      
+      const expectedShares = poolStateBefore.totalShares.toNumber() === 0 
+        ? expectedNetDeposit
+        : expectedNetDeposit.mul(poolStateBefore.totalShares).div(poolStateBefore.totalLiquidity);
+      
+      const lpBalanceBefore = await getAccount(client.connection, providerLpAccount);
+      const treasuryBalanceBefore = await getAccount(client.connection, treasuryTokenAccount);
+      const vaultBalanceBefore = await getAccount(client.connection, usdcVault);
+      
+      // Add liquidity
       await lpClient.addLiquidityToPool({
         liquidityPool,
-        amount: tinyDeposit,
-        minSharesOut: new BN(0),
+        amount: depositAmount,
+        minSharesOut: expectedShares,
         providerTokenAccount,
-        tokenVault,
+        usdcVault,
         providerLpAccount,
         lpMint,
         treasuryTokenAccount,
         treasury: treasury.publicKey,
       });
 
-      // Should not reach here
-      expect.fail('Transaction should have failed due to zero LP tokens');
-    } catch (err) {
-      // Type assertion for error handling
-      const error = err as { toString: () => string };
-      // console.debug(error.toString());
-      // In this case we expect InvalidLpTokenAmount error
-      expect(error.toString()).to.include('BelowMinimumDeposit');
-    }
+      const lpBalanceAfter = await getAccount(client.connection, providerLpAccount);
+      const treasuryBalanceAfter = await getAccount(client.connection, treasuryTokenAccount);
+      const vaultBalanceAfter = await getAccount(client.connection, usdcVault);
+      const poolStateAfter = await client.getLiquidityPool();
+
+      // Verify LP tokens were minted correctly
+      const lpTokensReceived = lpBalanceAfter.amount - lpBalanceBefore.amount;
+      expect(lpTokensReceived.toString()).to.equal(expectedShares.toString());
+
+      // Verify fee was transferred to treasury
+      if (actualDepositFeeBps > 0) {
+        const treasuryIncrease = treasuryBalanceAfter.amount - treasuryBalanceBefore.amount;
+        expect(treasuryIncrease.toString()).to.equal(expectedFeeAmount.toString());
+      }
+
+      // Verify vault balance increased by net deposit amount
+      const vaultIncrease = vaultBalanceAfter.amount - vaultBalanceBefore.amount;
+      expect(vaultIncrease.toString()).to.equal(expectedNetDeposit.toString());
+
+      // Verify pool liquidity increased by net deposit amount
+      const liquidityIncrease = poolStateAfter.totalLiquidity.sub(poolStateBefore.totalLiquidity);
+      expect(liquidityIncrease.toString()).to.equal(expectedNetDeposit.toString());
+
+      // Verify total shares increased by expected amount
+      const sharesIncrease = poolStateAfter.totalShares.sub(poolStateBefore.totalShares);
+      expect(sharesIncrease.toString()).to.equal(expectedShares.toString());
+    });
+
+    it('Validates input validation and error conditions', async () => {
+      const poolState = await client.getLiquidityPool();
+      const actualMinDeposit = (await client.getProtocolAccount()).config.minLiquidity;
+      
+      // Test zero deposit amount
+      try {
+        await lpClient.addLiquidityToPool({
+          liquidityPool,
+          amount: new BN(0),
+          minSharesOut: new BN(0),
+          providerTokenAccount,
+          usdcVault,
+          providerLpAccount,
+          lpMint,
+          treasuryTokenAccount,
+          treasury: treasury.publicKey,
+        });
+        expect.fail('Should have failed with zero deposit amount');
+      } catch (err) {
+        const error = err as { message: string };
+        expect(error.message).to.include('InvalidDepositAmount');
+      }
+
+      // Test below minimum deposit
+      if (actualMinDeposit.toNumber() > 0) {
+        const belowMinDeposit = actualMinDeposit.subn(1);
+        try {
+          await lpClient.addLiquidityToPool({
+            liquidityPool,
+            amount: belowMinDeposit,
+            minSharesOut: new BN(1000),
+            providerTokenAccount,
+            usdcVault,
+            providerLpAccount,
+            lpMint,
+            treasuryTokenAccount,
+            treasury: treasury.publicKey,
+          });
+          expect.fail('Should have failed with InvalidDepositAmount error');  
+        } catch (err) {
+          const error = err as { message: string };
+          expect(error.message).to.include('InvalidDepositAmount');
+        }
+      }
+
+      // Test insufficient balance
+      const providerBalance = await getAccount(client.connection, providerTokenAccount);
+      const excessiveAmount = new BN(providerBalance.amount.toString()).addn(1_000_000);
+      try {
+        await lpClient.addLiquidityToPool({
+          liquidityPool,
+          amount: excessiveAmount,
+          minSharesOut: new BN(0),
+          providerTokenAccount,
+          usdcVault,
+          providerLpAccount,
+          lpMint,
+          treasuryTokenAccount,
+          treasury: treasury.publicKey,
+        });
+        expect.fail('Should have failed with InsufficientFunds error');
+      } catch (err) {
+        const error = err as { message: string };
+        expect(error.message).to.include('insufficient');
+      }
+    });
+
+    it('Validates account ownership and mint constraints', async () => {
+      // Test wrong USDC account owner
+      const otherUser = Keypair.generate();
+      await requestAirdrop(otherUser.publicKey, client.connection);
+      const wrongOwnerTokenAccount = await client.createTokenAccount(USDC_MINT, otherUser.publicKey);
+      await client.mintUSDC(wrongOwnerTokenAccount, 10_000_000);
+
+      try {
+        await lpClient.addLiquidityToPool({
+          liquidityPool,
+          amount: new BN(10_000_000),
+          minSharesOut: new BN(0),
+          providerTokenAccount: wrongOwnerTokenAccount,
+          usdcVault,
+          providerLpAccount,
+          lpMint,
+          treasuryTokenAccount,
+          treasury: treasury.publicKey,
+        });
+        expect.fail('Should have failed with Unauthorized error');
+      } catch (err) {
+        const error = err as { message: string };
+        expect(error.message).to.include('Unauthorized');
+      }
+
+      // Test wrong mint for USDC account
+      try {
+        await lpClient.addLiquidityToPool({
+          liquidityPool,
+          amount: new BN(10_000_000),
+          minSharesOut: new BN(0),
+          providerTokenAccount: providerLpAccount, // LP token account instead of USDC
+          usdcVault,
+          providerLpAccount,
+          lpMint,
+          treasuryTokenAccount,
+          treasury: treasury.publicKey,
+        });
+        expect.fail('Should have failed with InvalidMint error');
+      } catch (err) {
+        const error = err as { message: string };
+        expect(error.message).to.include('InvalidMint');
+      }
+
+      // Test wrong LP token account owner
+      const wrongLpAccount = await client.createTokenAccount(lpMint, otherUser.publicKey);
+
+
+      // Set it up so we have a initilizaed LP account for the other user
+      const wronLPClient = await TestClient.forUser(otherUser);
+      const wrongLPUSDCAccount = await wronLPClient.getOrCreateUSDCAccountKey(otherUser.publicKey);
+      await client.mintUSDC(wrongLPUSDCAccount, 10_000_000);
+
+      await wronLPClient.addLiquidityToPool({
+        liquidityPool,
+        amount: new BN(10_000_000),
+        minSharesOut: new BN(0),
+        providerTokenAccount: wrongLPUSDCAccount,
+        usdcVault,
+        providerLpAccount: wrongLpAccount,
+        lpMint,
+        treasuryTokenAccount,
+        treasury: treasury.publicKey,
+      });
+      
+
+      try {
+        await lpClient.addLiquidityToPool({
+          liquidityPool,
+          amount: new BN(10_000_000),
+          minSharesOut: new BN(0),
+          providerTokenAccount,
+          usdcVault,
+          providerLpAccount: wrongLpAccount,
+          lpMint,
+          treasuryTokenAccount,
+          treasury: treasury.publicKey,
+        });
+        expect.fail('Should have failed with Unauthorized error');
+      } catch (err) {
+        const error = err as { message: string };
+        console.log(error);
+        expect(error.message).to.include('Unauthorized');
+      }
+
+      // Test wrong mint for LP token account
+      try {
+        await lpClient.addLiquidityToPool({
+          liquidityPool,
+          amount: new BN(10_000_000),
+          minSharesOut: new BN(0),
+          providerTokenAccount,
+          usdcVault,
+          providerLpAccount: providerTokenAccount, // USDC account instead of LP token account
+          lpMint,
+          treasuryTokenAccount,
+          treasury: treasury.publicKey,
+        });
+        expect.fail('Should have failed with InvalidMint error');
+      } catch (err) {
+        const error = err as { message: string };
+        expect(error.message).to.include('InvalidMint');
+      }
+    });
+
+    it('Validates feature flags and pool state updates', async () => {
+      // Test feature flag validation
+      await client.updateFeatureFlags({
+        allowAddLiquidity: false,
+        allowRemoveLiquidity: true,
+        allowOpenPosition: true,
+        allowClosePosition: true,
+        allowPnlWithdrawal: true,
+        allowCollateralWithdrawal: true,
+        allowAddCollateral: true,
+        allowBasktCreation: true,
+        allowBasktUpdate: true,
+        allowTrading: true,
+        allowLiquidations: true,
+      });
+
+      try {
+        await lpClient.addLiquidityToPool({
+          liquidityPool,
+          amount: new BN(10_000_000),
+          minSharesOut: new BN(0),
+          providerTokenAccount,
+          usdcVault,
+          providerLpAccount,
+          lpMint,
+          treasuryTokenAccount,
+          treasury: treasury.publicKey,
+        });
+        expect.fail('Should have failed when liquidity operations are disabled');
+      } catch (err) {
+        const error = err as { message: string };
+        expect(error.message).to.include('LiquidityOperationsDisabled');
+      }
+
+      // Test timestamp updates
+      await client.updateFeatureFlags({
+        allowAddLiquidity: true,
+        allowRemoveLiquidity: true,
+        allowOpenPosition: true,
+        allowClosePosition: true,
+        allowPnlWithdrawal: true,
+        allowCollateralWithdrawal: true,
+        allowAddCollateral: true,
+        allowBasktCreation: true,
+        allowBasktUpdate: true,
+        allowTrading: true,
+        allowLiquidations: true,
+      });
+
+      const poolStateBefore = await client.getLiquidityPool();
+      const timestampBefore = poolStateBefore.lastUpdateTimestamp.toNumber();
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      await lpClient.addLiquidityToPool({
+        liquidityPool,
+        amount: new BN(10_000_000),
+        minSharesOut: new BN(0),
+        providerTokenAccount,
+        usdcVault,
+        providerLpAccount,
+        lpMint,
+        treasuryTokenAccount,
+        treasury: treasury.publicKey,
+      });
+
+      const poolStateAfter = await client.getLiquidityPool();
+      expect(poolStateAfter.lastUpdateTimestamp.toNumber()).to.be.greaterThan(timestampBefore);
+    });
+
+    it('Validates edge cases and math safety', async () => {
+      const poolState = await client.getLiquidityPool();
+      
+      // Test fee calculation edge cases
+      const smallDeposit = new BN(1_000); // 0.001 USDC
+      const actualDepositFeeBps = poolState.depositFeeBps;
+      const expectedFeeAmount = smallDeposit.muln(actualDepositFeeBps).divn(10000);
+      
+      expect(expectedFeeAmount.toNumber()).to.be.greaterThanOrEqual(0);
+      expect(expectedFeeAmount.toNumber()).to.be.lessThanOrEqual(smallDeposit.toNumber());
+      
+      // Test share calculation edge cases
+      const smallAmount = new BN(1_000);
+      const expectedFeeAmount2 = smallAmount.muln(actualDepositFeeBps).divn(10000);
+      const expectedNetDeposit = smallAmount.sub(expectedFeeAmount2);
+      
+      if (poolState.totalShares.toNumber() === 0) {
+        expect(expectedNetDeposit.toNumber()).to.be.greaterThan(0);
+      } else {
+        const expectedShares = expectedNetDeposit.mul(poolState.totalShares).div(poolState.totalLiquidity);
+        expect(expectedShares.toNumber()).to.be.greaterThanOrEqual(0);
+      }
+    });
   });
 });

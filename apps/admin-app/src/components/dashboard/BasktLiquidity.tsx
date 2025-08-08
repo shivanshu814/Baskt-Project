@@ -5,7 +5,10 @@ import { PoolInitializationForm } from '../pool/PoolInitializationForm';
 import { PoolInformation } from '../pool/PoolInformation';
 import { PoolParticipants } from '../pool/PoolParticipants';
 import { StatCard } from '../pool/StatCard';
+import { WithdrawQueueStats } from '../pool/WithdrawQueueStats';
+import { WithdrawQueueItems } from '../pool/WithdrawQueueItems';
 import { usePool } from '../../hooks/pool/usePool';
+import { useWithdrawQueue } from '../../hooks/pool/useWithdrawQueue';
 import { POOL_STATS } from '../../constants/pool';
 
 export function LiquidityPoolManagement() {
@@ -28,6 +31,21 @@ export function LiquidityPoolManagement() {
     handlePageSizeChange,
   } = usePool({
     onInitializationSuccess: () => refetch(),
+  });
+
+  const {
+    queueStats,
+    paginatedQueueItems,
+    totalQueuePages,
+    currentQueuePage,
+    queuePageSize,
+    isLoadingStats,
+    isLoadingQueue,
+    isProcessing,
+    handleQueuePageChange,
+    handleQueuePageSizeChange,
+  } = useWithdrawQueue({
+    poolId: isInitialized ? 'default' : undefined,
   });
 
   const stats = React.useMemo(
@@ -100,6 +118,9 @@ export function LiquidityPoolManagement() {
               ))}
             </div>
 
+            {/* Withdrawal Queue Stats */}
+            <WithdrawQueueStats stats={queueStats} isLoading={isLoadingStats} />
+
             <div className="grid grid-cols-1 gap-8">
               {poolData && <PoolInformation poolData={poolData} />}
 
@@ -110,6 +131,22 @@ export function LiquidityPoolManagement() {
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
                 onPageSizeChange={handlePageSizeChange}
+              />
+
+              {/* Withdrawal Queue Items */}
+              <WithdrawQueueItems
+                items={paginatedQueueItems}
+                currentPage={currentQueuePage}
+                pageSize={queuePageSize}
+                totalPages={totalQueuePages}
+                isLoading={isLoadingQueue}
+                isProcessing={isProcessing}
+                onPageChange={handleQueuePageChange}
+                onPageSizeChange={handleQueuePageSizeChange}
+                onProcessQueue={async (x,y) => {
+                  alert('Processing queue | To be implemented');
+                  return true;
+                }}
               />
             </div>
           </>

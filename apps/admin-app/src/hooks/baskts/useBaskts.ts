@@ -10,7 +10,9 @@ import { toast } from 'sonner';
 export function useBaskts() {
   const [activatingBasktId, setActivatingBasktId] = useState<string | null>(null);
   const [selectedBaskt, setSelectedBaskt] = useState<BasktData | null>(null);
-  const { data: trpcResponse, isLoading, error } = trpc.baskt.getAllBaskts.useQuery();
+  const { data: trpcResponse, isLoading, error } = trpc.baskt.getAllBaskts.useQuery({
+    withPerformance: false
+  });
   const { client } = useBasktClient();
   const router = useRouter();
   const searchParams = useSearchParams();

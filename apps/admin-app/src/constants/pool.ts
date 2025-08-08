@@ -35,3 +35,30 @@ export const POOL_STATS = [
     tooltip: 'The fee charged when withdrawing from the pool',
   },
 ] as const;
+
+export const WITHDRAW_QUEUE_STATS = [
+  {
+    label: 'Total Queue Items',
+    key: 'totalQueueItems',
+    subtext: 'Items waiting to be processed',
+    tooltip: 'Total number of withdrawal requests in the queue',
+  },
+  {
+    label: 'Processing Rate',
+    key: 'queueProcessingRate',
+    subtext: 'Items processed per hour',
+    tooltip: 'Average number of queue items processed per hour',
+  },
+  {
+    label: 'Avg Processing Time',
+    key: 'averageProcessingTime',
+    subtext: 'Average time to process',
+    tooltip: 'Average time it takes to process a queue item',
+  },
+  {
+    label: 'Next Processing',
+    key: 'nextProcessingTime',
+    subtext: 'Next scheduled processing',
+    tooltip: 'Next scheduled processing time',
+  },
+] as const;

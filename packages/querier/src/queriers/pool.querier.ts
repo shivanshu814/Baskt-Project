@@ -27,20 +27,27 @@ export class PoolQuerier {
         this.sdkClient.connection,
         new PublicKey(poolData.lpMint),
       );
-      const lpMint = lpMintAccount?.supply.toString();
+      const lpMint = lpMintAccount?.supply?.toString() || '0';
 
       return {
         success: true,
         data: {
-          totalLiquidity: poolData.totalLiquidity.toString(),
-          totalShares: lpMint,
-          depositFeeBps: poolData.depositFeeBps,
-          withdrawalFeeBps: poolData.withdrawalFeeBps,
-          minDeposit: poolData.minDeposit.toString(),
-          lastUpdateTimestamp: poolData.lastUpdateTimestamp.toNumber(),
-          lpMint: poolData.lpMint.toString(),
-          tokenVault: poolData.tokenVault.toString(),
-          bump: poolData.bump,
+          totalLiquidity: poolData.totalLiquidity?.toString() || '0',
+          totalShares: lpMint || '0',
+          depositFeeBps: poolData.depositFeeBps || 0,
+          withdrawalFeeBps: poolData.withdrawalFeeBps || 0,
+          minDeposit: poolData.minDeposit?.toString() || '0',
+          lastUpdateTimestamp: poolData.lastUpdateTimestamp?.toNumber() || 0,
+          lpMint: poolData.lpMint?.toString() || '',
+          tokenVault: poolData.usdcVault?.toString() || '',
+          bump: poolData.bump || 0,
+          withdrawQueueHead: poolData.withdrawQueueHead?.toNumber() || 0,
+          withdrawQueueTail: poolData.withdrawQueueTail?.toNumber() || 0,
+          pendingLpTokens: poolData.pendingLpTokens?.toString() || '0',
+          withdrawRateLimitBps: poolData.withdrawRateLimitBps || 0,
+          rateLimitPeriodSecs: poolData.rateLimitPeriodSecs || 0,
+          lastRateLimitReset: poolData.lastRateLimitReset?.toNumber() || 0,
+          withdrawnInWindow: poolData.withdrawnInWindow?.toString() || '0',
         },
       };
     } catch (error) {
@@ -93,16 +100,17 @@ export class PoolQuerier {
       const deposits = await Promise.all(
         tokenAccounts.map(async (account: any) => {
           const tokenAccount = await getAccount(this.sdkClient.connection, account.pubkey);
-          if (tokenAccount.amount.toString() === '0') return null;
+          if (tokenAccount.amount?.toString() === '0') return null;
           const sharePercentage =
-            (Number(tokenAccount.amount.toString()) / Number(poolData.totalShares.toString())) *
+            (Number(tokenAccount.amount?.toString() || '0') /
+              Number(poolData.totalShares?.toString() || '0')) *
             100;
-          const usdcValue = Number(tokenAccount.amount.toString()) / 1_000_000;
+          const usdcValue = Number(tokenAccount.amount?.toString() || '0') / 1_000_000;
           return {
-            address: tokenAccount.owner.toString(),
+            address: tokenAccount.owner?.toString() || '',
             usdcDeposit: usdcValue,
             sharePercentage: sharePercentage.toFixed(2),
-            lpTokens: Number(tokenAccount.amount.toString()) / 1_000_000,
+            lpTokens: Number(tokenAccount.amount?.toString() || '0') / 1_000_000,
           };
         }),
       );

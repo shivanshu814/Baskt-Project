@@ -129,10 +129,14 @@ export class PositionQuerier {
         owner: positionMetadata.owner,
         status: positionMetadata.status,
         size: positionMetadata.size || '0',
+        remainingSize: positionMetadata.remainingSize || positionMetadata.size || '0',
         collateral: positionMetadata.collateral || '0',
         isLong: positionMetadata.isLong,
         usdcSize: usdcSize,
         fees: fees,
+        partialCloseHistory: positionMetadata.partialCloseHistory || [],
+        createdAt: positionMetadata.createdAt,
+        updatedAt: positionMetadata.updatedAt,
       } as CombinedPosition;
     }
 
@@ -153,10 +157,14 @@ export class PositionQuerier {
       owner: onchainPosition.owner?.toString(),
       status: onchainPosition.status,
       size: onchainPosition.size?.toString(),
+      remainingSize: positionMetadata?.remainingSize || onchainPosition.size?.toString(),
       collateral: onchainPosition.collateral?.toString(),
       isLong: onchainPosition.isLong,
       usdcSize: usdcSize,
       fees: fees,
+      partialCloseHistory: positionMetadata?.partialCloseHistory || [],
+      createdAt: positionMetadata?.createdAt,
+      updatedAt: positionMetadata?.updatedAt,
     } as CombinedPosition;
   }
 }

@@ -9,8 +9,6 @@ export const ASSET_TABLE_IDS = {
   ALLOW_LONG: 'allowLong',
   ALLOW_SHORT: 'allowShort',
   STATUS: 'status',
-  LATEST_PRICE: 'latestPrice',
-  LATEST_PRICE_TIME: 'latestPriceTime',
 } as const;
 
 export type AssetTableId = (typeof ASSET_TABLE_IDS)[keyof typeof ASSET_TABLE_IDS];

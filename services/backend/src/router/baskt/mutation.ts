@@ -7,10 +7,6 @@ const createBasktSchema = z.object({
   name: z.string().min(1).max(30),
   creator: z.string(),
   assets: z.array(z.string()),
-  rebalancePeriod: z.object({
-    value: z.number().min(1),
-    unit: z.enum(['day', 'hour']),
-  }),
   txSignature: z.string(),
 });
 

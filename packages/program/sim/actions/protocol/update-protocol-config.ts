@@ -32,20 +32,8 @@ const updateProtocolConfig = async (args: string[]) => {
       case 'liquidationthresholdbps':
         txSignature = await client.setLiquidationThresholdBps(parseInt(value));
         break;
-      case 'maxpriceagesec':
-        txSignature = await client.setMaxPriceAgeSec(parseInt(value));
-        break;
-      case 'maxpricedeviationbps':
-        txSignature = await client.setMaxPriceDeviationBps(parseInt(value));
-        break;
-      case 'liquidationpricedeviationbps':
-        txSignature = await client.setLiquidationPriceDeviationBps(parseInt(value));
-        break;
       case 'minliquidity':
         txSignature = await client.setMinLiquidity(parseInt(value));
-        break;
-      case 'decommissiongraceperiod':
-        txSignature = await client.setDecommissionGracePeriod(parseInt(value));
         break;
       case 'treasury':
         if (args.length < 2) {
@@ -54,7 +42,7 @@ const updateProtocolConfig = async (args: string[]) => {
         txSignature = await client.updateTreasury(new PublicKey(value));
         break;
       default:
-        throw new Error(`Unknown parameter: ${parameter}. Available parameters: openingfeebps, closingfeebps, liquidationfeebps, mincollateralratiobps, liquidationthresholdbps, maxpriceagesec, maxpricedeviationbps, liquidationpricedeviationbps, minliquidity, decommissiongraceperiod, treasury`);
+        throw new Error(`Unknown parameter: ${parameter}. Available parameters: openingfeebps, closingfeebps, liquidationfeebps, mincollateralratiobps, liquidationthresholdbps, maxpriceagesec, maxpricedeviationbps, liquidationpricedeviationbps, minliquidity, treasury`);
     }
 
     console.log('Protocol configuration updated successfully! Transaction:', txSignature);

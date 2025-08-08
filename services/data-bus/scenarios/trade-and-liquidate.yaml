@@ -1,0 +1,121 @@
+name: Trade and Liquidate Scenario
+description: Simulates a user opening a position that gets liquidated due to price movement
+
+events:
+  # Price update to establish initial market conditions
+  - stream: price.update
+    payload:
+      asset: BTC
+      price: "50000.00"
+      confidence: 95
+      sources: 5
+      timestamp: "{{timestampNum}}"  # price.update expects number
+    
+  # User requests to open a long position
+  - stream: order.request
+    delay: 100
+    payload:
+      orderId: "order_001"
+      owner: "user_alice"
+      basktId: "basket_btc_index"
+      size: "100000"
+      collateral: "20000"
+      isLong: true
+      action: "OPEN"
+      targetPosition: null
+      orderType: "MARKET"
+      limitPrice: "0"
+      maxSlippageBps: "100"
+      leverageBps: "500"  # 5x leverage
+      timestamp: "{{timestamp}}"
+      txSignature: "sig_{{timestamp}}"
+  
+  # Order gets accepted by the system
+  - stream: order.accepted
+    delay: 50
+    payload:
+      orderId: "order_001"
+      owner: "user_alice"
+      basktId: "basket_btc_index"
+      action: "OPEN"
+      size: "100000"
+      fillPrice: "50050.00"
+      positionId: "pos_001"
+      targetPosition: null
+      timestamp: "{{timestamp}}"
+      txSignature: "sig_{{timestamp}}"
+  
+  # Position is opened
+  - stream: position.opened
+    delay: 100
+    payload:
+      orderId: "order_001"
+      positionId: "pos_001"
+      owner: "user_alice"
+      basktId: "basket_btc_index"
+      size: "100000"
+      collateral: "20000"
+      isLong: true
+      entryPrice: "50050.00"
+      entryFundingIndex: "0"
+      feeToTreasury: "100"
+      feeToBlp: "100"
+      timestamp: "{{timestamp}}"
+      txSignature: "sig_{{timestamp}}"
+  
+  # Simulate price drops over time
+  - stream: price.update
+    delay: 5000
+    payload:
+      asset: BTC
+      price: "48000.00"
+      confidence: 92
+      sources: 5
+      timestamp: "{{timestampNum}}"
+      
+  - stream: price.update
+    delay: 2000
+    payload:
+      asset: BTC
+      price: "46000.00"
+      confidence: 90
+      sources: 5
+      timestamp: "{{timestampNum}}"
+  
+  # Risk engine detects liquidation opportunity
+  - stream: liquidation.signal
+    delay: 500
+    payload:
+      positionId: "pos_001"
+      positionPda: "pos_pda_001"
+      size: "100000"
+      urgency: 8
+      estimatedSlippage: 150
+      timestamp: "{{timestampNum}}"  # liquidation.signal expects number
+      
+  - stream: price.update
+    delay: 1000
+    payload:
+      asset: BTC
+      price: "45000.00"
+      confidence: 88
+      sources: 5
+      timestamp: "{{timestampNum}}"
+  
+  # Position gets liquidated
+  - stream: position.liquidated
+    delay: 1000
+    payload:
+      positionId: "pos_001"
+      owner: "user_alice"
+      basktId: "basket_btc_index"
+      size: "100000"
+      exitPrice: "45100.00"
+      pnl: "-4950"  # Loss on position
+      feeToTreasury: "100"
+      feeToBlp: "100"
+      fundingPayment: "-50"
+      remainingCollateral: "500"
+      poolPayout: "0"
+      timestamp: "{{timestamp}}"
+      txSignature: "sig_{{timestamp}}"

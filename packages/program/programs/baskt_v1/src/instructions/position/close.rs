@@ -1,70 +1,33 @@
 use {
     crate::constants::{
-        AUTHORITY_SEED, ESCROW_SEED, FUNDING_INDEX_SEED, LIQUIDITY_POOL_SEED, ORDER_SEED,
-        POOL_AUTHORITY_SEED, POSITION_SEED, PROTOCOL_SEED,
+        AUTHORITY_SEED, ESCROW_SEED, LIQUIDITY_POOL_SEED, ORDER_SEED, POOL_AUTHORITY_SEED,
+        POSITION_SEED, PROTOCOL_SEED,
     },
     crate::error::PerpetualsError,
     crate::events::*,
     crate::state::{
         baskt::Baskt,
-        funding_index::FundingIndex,
         liquidity::LiquidityPool,
         order::{Order, OrderAction, OrderStatus},
         position::{Position, PositionStatus, ProgramAuthority},
         protocol::{Protocol, Role},
     },
     crate::utils::{
-        calculate_settlement, effective_u64, execute_settlement_transfers, update_pool_state,
-        validate_treasury_and_vault, ClosingType, TransferParams,
+        effective_u64, execute_settlement_transfers, update_pool_state,
+        ClosingType, TransferParams, close_account, close_escrow_account, calculate_position_settlement, update_position_after_settlement,
     },
     anchor_lang::prelude::*,
-    anchor_spl::token::{self, CloseAccount, Token, TokenAccount},
+    anchor_spl::token::{self, Token, TokenAccount},
 };
 
 /// Parameters for closing a position
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug)]
 pub struct ClosePositionParams {
     pub exit_price: u64,
-}
-
-/// Wrapper for remaining accounts to improve readability
-pub struct ClosePositionRemainingAccounts<'info> {
-    pub owner_token: &'info AccountInfo<'info>,
-    pub treasury_token: &'info AccountInfo<'info>,
-    pub token_vault: &'info AccountInfo<'info>,
-}
-
-impl<'info> ClosePositionRemainingAccounts<'info> {
-    pub fn parse(remaining_accounts: &'info [AccountInfo<'info>]) -> Result<Self> {
-        require!(
-            remaining_accounts.len() >= 3,
-            PerpetualsError::InvalidAccountInput
-        );
-
-        Ok(Self {
-            owner_token: &remaining_accounts[0],
-            treasury_token: &remaining_accounts[1],
-            token_vault: &remaining_accounts[2],
-        })
-    }
-
-    /// Validate that accounts match expected protocol accounts
-    pub fn validate(&self, protocol: &Protocol, liquidity_pool: &LiquidityPool) -> Result<()> {
-        validate_treasury_and_vault(
-            &self.treasury_token,
-            &self.token_vault,
-            protocol,
-            liquidity_pool,
-        )
-    }
+    pub size_to_close: Option<u64>, // None = full close, Some(size) = partial close
 }
 
 /// ClosePosition
-///
-/// Remaining accounts expected (in order):
-/// 0. owner_token account
-/// 1. treasury_token account
-/// 2. token_vault account
 #[derive(Accounts)]
 pub struct ClosePosition<'info> {
     #[account(mut)]
@@ -76,10 +39,17 @@ pub struct ClosePosition<'info> {
         bump = order.bump,
         constraint = order.status as u8 == OrderStatus::Pending as u8 @ PerpetualsError::OrderAlreadyProcessed,
         constraint = order.action as u8 == OrderAction::Close as u8 @ PerpetualsError::InvalidOrderAction,
-        constraint = order.target_position.is_some() @ PerpetualsError::InvalidTargetPosition,
-        close = matcher
+        close = order_owner
     )]
     pub order: Box<Account<'info, Order>>,
+
+    /// CHECK: Order owner for return rent to owner
+    #[account(
+        mut,
+        constraint = order_owner.key() == order.owner @ PerpetualsError::InvalidInput
+    )]
+    pub order_owner: UncheckedAccount<'info>,
+
 
     #[account(
         mut,
@@ -87,16 +57,8 @@ pub struct ClosePosition<'info> {
         bump = position.bump,
         constraint = position.owner == order.owner @ PerpetualsError::Unauthorized,
         constraint = position.status as u8 == PositionStatus::Open as u8 @ PerpetualsError::PositionAlreadyClosed,
-        close = matcher,
     )]
     pub position: Box<Account<'info, Position>>,
-
-    #[account(
-        mut,
-        seeds = [FUNDING_INDEX_SEED, position.baskt_id.as_ref()],
-        bump = funding_index.bump
-    )]
-    pub funding_index: Account<'info, FundingIndex>,
 
     #[account(
         mut,
@@ -132,12 +94,41 @@ pub struct ClosePosition<'info> {
         mut,
         seeds = [ESCROW_SEED, position.key().as_ref()],
         bump,
-        constraint = escrow_token.mint == protocol.escrow_mint @ PerpetualsError::InvalidMint,
-        constraint = escrow_token.owner == program_authority.key() @ PerpetualsError::InvalidProgramAuthority,
-        constraint = escrow_token.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
-        constraint = escrow_token.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
+        constraint = owner_collateral_escrow_account.mint == protocol.collateral_mint @ PerpetualsError::InvalidMint,
+        constraint = owner_collateral_escrow_account.owner == program_authority.key() @ PerpetualsError::InvalidProgramAuthority,
+        constraint = owner_collateral_escrow_account.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
+        constraint = owner_collateral_escrow_account.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
     )]
-    pub escrow_token: Account<'info, TokenAccount>,
+    pub owner_collateral_escrow_account: Account<'info, TokenAccount>,
+
+    /// User's collateral token account to receive settlement
+    #[account(
+        mut,
+        constraint = owner_collateral_account.mint == protocol.collateral_mint @ PerpetualsError::InvalidMint,
+        constraint = owner_collateral_account.owner == position.owner @ PerpetualsError::Unauthorized
+    )]
+    pub owner_collateral_account: Account<'info, TokenAccount>,
+
+    /// Protocol treasury token account for fee collection
+    #[account(
+        mut,
+        constraint = treasury_token.mint == protocol.collateral_mint @ PerpetualsError::InvalidMint,
+        constraint = treasury_token.owner == protocol.treasury @ PerpetualsError::InvalidTreasuryAccount,
+        constraint = treasury_token.delegate.is_none() @ PerpetualsError::TokenHasDelegate,
+        constraint = treasury_token.close_authority.is_none() @ PerpetualsError::TokenHasCloseAuthority
+    )]
+    pub treasury_token: Account<'info, TokenAccount>,
+
+    /// BLP token vault for liquidity pool fees
+    #[account(
+        mut,
+        constraint = usdc_vault.key() == liquidity_pool.usdc_vault @ PerpetualsError::InvalidUsdcVault,
+        constraint = usdc_vault.mint == protocol.collateral_mint @ PerpetualsError::InvalidMint,
+        constraint = treasury_token.key() != usdc_vault.key() @ PerpetualsError::InvalidInput,
+        constraint = owner_collateral_account.key() != usdc_vault.key() @ PerpetualsError::InvalidInput,
+        constraint = owner_collateral_account.key() != treasury_token.key() @ PerpetualsError::InvalidInput
+    )]
+    pub usdc_vault: Account<'info, TokenAccount>,
 
     /// PDA used for token authority over escrow - still needed for CPI signing
     #[account(
@@ -146,7 +137,7 @@ pub struct ClosePosition<'info> {
     )]
     pub program_authority: Account<'info, ProgramAuthority>,
 
-    /// CHECK: PDA authority for token_vault - validated via protocol
+    /// CHECK: PDA authority for usdc_vault - validated via protocol
     #[account(
         seeds = [POOL_AUTHORITY_SEED, liquidity_pool.key().as_ref(), protocol.key().as_ref()],
         bump,
@@ -162,123 +153,127 @@ pub fn close_position<'info>(
 ) -> Result<()> {
     let order = &ctx.accounts.order;
     let position = &mut ctx.accounts.position;
-    let funding_index = &ctx.accounts.funding_index;
+    let funding_index = &ctx.accounts.baskt.funding_index;
     let clock = Clock::get()?;
 
+
+    let close_params = order.get_close_params()?;
+
+    let size_to_close = params.size_to_close.unwrap_or(close_params.size_as_contracts);
+
+    require!(size_to_close > 0, PerpetualsError::InvalidPositionSize);
+    require!(size_to_close <= position.size, PerpetualsError::InvalidPositionSize);
+
+    
+    order.validate_execution_price(params.exit_price)?;
+
     // Validate target position
-    let target_pos_key = order
-        .target_position
-        .ok_or(PerpetualsError::InvalidTargetPosition)?;
+    let target_pos_key = order.get_close_params()?.target_position;
+
     require_keys_eq!(
         target_pos_key,
         position.key(),
         PerpetualsError::InvalidTargetPosition
     );
 
-    // Validate oracle price
-    ctx.accounts
-        .baskt
-        .oracle
-        .validate_execution_price(params.exit_price)?;
+    // Update funding for the full position first
+    position.update_funding(funding_index.cumulative_index)?;
 
-    // Settle position
-    position.settle_close(
-        params.exit_price,
-        funding_index.cumulative_index,
-        clock.unix_timestamp,
-    )?;
 
-    // Decrement open positions count
-    ctx.accounts.baskt.open_positions = ctx
-        .accounts
-        .baskt
-        .open_positions
-        .checked_sub(1)
-        .ok_or(PerpetualsError::MathOverflow)?; // prevent silent underflow
 
-    // Calculate amounts
-    let pnl = position.calculate_pnl()?;
-
-    // Parse remaining accounts
-    let remaining_accounts = ClosePositionRemainingAccounts::parse(ctx.remaining_accounts)?;
-
-    // Validate remaining accounts for security
-    remaining_accounts.validate(&ctx.accounts.protocol, &ctx.accounts.liquidity_pool)?;
+    let is_full_close = size_to_close == position.size;
 
     // Get effective closing fee from baskt config or protocol config
     let closing_fee_bps = effective_u64(
-        ctx.accounts.baskt.config.closing_fee_bps,
+        ctx.accounts.baskt.config.get_closing_fee_bps(),
         ctx.accounts.protocol.config.closing_fee_bps,
     );
 
-    // Calculate settlement details
-    let settlement_details = calculate_settlement(
+    // Calculate settlement details using shared utility
+    let settlement_details = calculate_position_settlement(
         position,
-        pnl,
+        size_to_close,
+        params.exit_price,
         ClosingType::Normal { closing_fee_bps },
         ctx.accounts.protocol.config.treasury_cut_bps,
-        params.exit_price,
     )?;
-
-    // Prepare transfer parameters
-    let transfer_params = TransferParams {
-        escrow_balance: ctx.accounts.escrow_token.amount,
-        authority_bump: ctx.bumps.program_authority,
-        pool_authority_bump: ctx.bumps.pool_authority,
-    };
 
     // Execute all settlement transfers
     let transfer_result = execute_settlement_transfers(
         &ctx.accounts.token_program,
-        &ctx.accounts.escrow_token,
-        &remaining_accounts.owner_token,
-        Some(&remaining_accounts.treasury_token),
-        &remaining_accounts.token_vault,
+        &ctx.accounts.owner_collateral_escrow_account,
+        &ctx.accounts.owner_collateral_account.to_account_info(),
+        Some(&ctx.accounts.treasury_token.to_account_info()),
+        &ctx.accounts.usdc_vault.to_account_info(),
         &ctx.accounts.program_authority.to_account_info(),
         &ctx.accounts.pool_authority.to_account_info(),
         ctx.accounts.liquidity_pool.key(),
         ctx.accounts.protocol.key(),
-        &transfer_params,
-        &settlement_details,
+        &TransferParams {
+            escrow_balance: ctx.accounts.owner_collateral_escrow_account.amount,
+            authority_bump: ctx.bumps.program_authority,
+            pool_authority_bump: ctx.bumps.pool_authority,
+        },
+        &settlement_details
     )?;
 
-    // Update liquidity pool state using actual transferred amounts
+    // Update pool state using actual transferred amounts
     update_pool_state(
         &mut ctx.accounts.liquidity_pool,
         &transfer_result,
-        0, // No bad debt in normal close
+        settlement_details.bad_debt_amount,
     )?;
 
-    // Close escrow token account
-    let authority_signer_seeds = [AUTHORITY_SEED.as_ref(), &[ctx.bumps.program_authority]];
-    let authority_signer = &[&authority_signer_seeds[..]];
+    // Update position state after settlement
+    update_position_after_settlement(
+        position,
+        size_to_close,
+        settlement_details.collateral_to_release,
+        settlement_details.funding_accumulated as u64,
+    )?;
 
-    token::close_account(CpiContext::new_with_signer(
-        ctx.accounts.token_program.to_account_info(),
-        CloseAccount {
-            account: ctx.accounts.escrow_token.to_account_info(),
-            destination: ctx.accounts.matcher.to_account_info(),
-            authority: ctx.accounts.program_authority.to_account_info(),
-        },
-        authority_signer,
-    ))?;
-
-    // Emit event
     emit!(PositionClosedEvent {
-        order_id: order.order_id,
+        order_id: order.order_id as u64,
         owner: position.owner,
-        position_id: position.position_id,
+        position_id: position.position_id as u64,
         baskt_id: position.baskt_id.key(),
-        size: position.size,
+        size_closed: size_to_close,
+        size_remaining: position.size,
         exit_price: params.exit_price,
         pnl: settlement_details.pnl as i64,
-        fee_to_treasury: transfer_result.actual_fee_to_treasury,
-        fee_to_blp: transfer_result.actual_fee_to_blp,
+        fee_to_treasury: transfer_result.fee_to_treasury,
+        fee_to_blp: transfer_result.fee_to_blp,
         funding_payment: settlement_details.funding_accumulated,
         settlement_amount: settlement_details.user_payout_u64,
         pool_payout: transfer_result.from_pool_to_user,
+        collateral_remaining: position.collateral,
         timestamp: clock.unix_timestamp,
     });
+
+    // Handle instruction-specific logic (account closing, event emission)
+    if is_full_close {
+        // Decrement open positions count
+        ctx.accounts.baskt.open_positions = ctx
+            .accounts
+            .baskt
+            .open_positions
+            .checked_sub(1)
+            .ok_or(PerpetualsError::MathOverflow)?;
+
+        // Close escrow token account
+        close_escrow_account(
+            &ctx.accounts.token_program,
+            &ctx.accounts.owner_collateral_escrow_account,
+            &ctx.accounts.matcher.to_account_info(),
+            &ctx.accounts.program_authority.to_account_info(),
+            ctx.bumps.program_authority,
+        )?;
+
+        // Close position account manually since we removed the close attribute
+        close_account(&ctx.accounts.position.to_account_info(), &ctx.accounts.matcher.to_account_info())?;
+  
+    }
+ 
 
     Ok(())
 }

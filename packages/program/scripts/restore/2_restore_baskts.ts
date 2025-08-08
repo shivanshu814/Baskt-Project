@@ -44,10 +44,6 @@ async function migrateBaskts() {
         name: baskt.account.basktName,
         creator: baskt.account.creator,
         creationDate: new Date(baskt.account.creationTime.toNumber()),
-        rebalancePeriod: {
-          value: 24,
-          unit: 'hour',
-        },
         txSignature: 'pending',
         createdAt: new Date(baskt.account.creationTime.toNumber()),
         updatedAt: new Date(baskt.account.creationTime.toNumber()),

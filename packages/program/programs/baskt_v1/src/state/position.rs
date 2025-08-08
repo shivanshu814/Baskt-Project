@@ -11,35 +11,45 @@ use anchor_lang::prelude::*;
 //----------------------------------------------------------------------------
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Debug, Default, InitSpace)]
+#[repr(u8)]
 pub enum PositionStatus {
     #[default]
-    Open,
-    Closed,
-    Liquidated,
-    ForceClosed,
+    Open = 0,
+    Closed = 1,
+    Liquidated = 2,
+    ForceClosed = 3,
 }
 
 #[account]
 #[derive(InitSpace)]
 pub struct Position {
     pub owner: Pubkey,
-    pub position_id: u64,
+    pub position_id: u32,
     pub baskt_id: Pubkey,
     pub size: u64,
     pub collateral: u64,
     pub is_long: bool,
     pub entry_price: u64,
-    pub exit_price: Option<u64>,
+    pub exit_info: ExitInfo,
     pub entry_funding_index: i128, // Index at position open (scaled by FUNDING_PRECISION)
     pub last_funding_index: i128,  // Last updated index (scaled by FUNDING_PRECISION)
     pub funding_accumulated: i128, // Total funding paid/received (scaled by token decimals, NOT funding precision)
+    pub last_rebalance_fee_index: u64, // Last applied rebalance fee index (prevents double charging)
     pub status: PositionStatus,
-    pub timestamp_open: i64,
-    pub timestamp_close: Option<i64>,
+    pub timestamp_open: u32,
     pub bump: u8,
 
     // Extra Space
-    pub extra_space: [u8; 128],
+    pub extra_space: [u8; 120], // Reduced to account for new field
+}
+
+// Combined exit information
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, InitSpace)]
+pub enum ExitInfo {
+    None,
+    Closed { price: u64, timestamp: u32 },
+    Liquidated { price: u64, timestamp: u32 },
+    ForceClosed { price: u64, timestamp: u32 },
 }
 
 #[account]
@@ -53,14 +63,15 @@ impl Position {
     pub fn initialize(
         &mut self,
         owner: Pubkey,
-        position_id: u64,
+        position_id: u32,
         baskt_id: Pubkey,
         size: u64,
         collateral: u64,
         is_long: bool,
         entry_price: u64,
         entry_funding_index: i128,
-        timestamp_open: i64,
+        entry_rebalance_fee_index: u64,
+        timestamp_open: u32,
         bump: u8,
     ) -> Result<()> {
         require!(size > 0, PerpetualsError::ZeroSizedPosition);
@@ -77,13 +88,13 @@ impl Position {
         self.collateral = collateral;
         self.is_long = is_long;
         self.entry_price = entry_price;
-        self.exit_price = None;
+        self.exit_info = ExitInfo::None;
         self.entry_funding_index = entry_funding_index;
         self.last_funding_index = entry_funding_index;
         self.funding_accumulated = 0;
+        self.last_rebalance_fee_index = entry_rebalance_fee_index;
         self.status = PositionStatus::Open;
         self.timestamp_open = timestamp_open;
-        self.timestamp_close = None;
         self.bump = bump;
         Ok(())
     }
@@ -108,57 +119,6 @@ impl Position {
 
         // Update the collateral amount
         self.collateral = new_collateral;
-
-        Ok(())
-    }
-
-    /// Close the position with given exit price and funding index
-    pub fn settle_close(
-        &mut self,
-        exit_price: u64,
-        current_funding_index: i128,
-        timestamp_close: i64,
-    ) -> Result<()> {
-        require!(
-            self.status == PositionStatus::Open,
-            PerpetualsError::PositionAlreadyClosed
-        );
-
-        // Update funding accumulated
-        self.update_funding(current_funding_index)?;
-
-        // Close the position
-        self.exit_price = Some(exit_price);
-        self.status = PositionStatus::Closed;
-        self.timestamp_close = Some(timestamp_close);
-
-        Ok(())
-    }
-
-    /// Liquidate the position with given exit price and funding index
-    /// Note: This assumes update_funding has already been called before this method
-    pub fn liquidate(
-        &mut self,
-        exit_price: u64,
-        current_funding_index: i128,
-        timestamp_close: i64,
-    ) -> Result<()> {
-        require!(
-            self.status == PositionStatus::Open,
-            PerpetualsError::PositionAlreadyClosed
-        );
-
-        // We don't need to update funding here as it should be done before calling this method
-        // Just verify that the funding index is up to date
-        require!(
-            self.last_funding_index == current_funding_index,
-            PerpetualsError::FundingNotUpToDate
-        );
-
-        // Liquidate the position
-        self.exit_price = Some(exit_price);
-        self.status = PositionStatus::Liquidated;
-        self.timestamp_close = Some(timestamp_close);
 
         Ok(())
     }
@@ -203,34 +163,6 @@ impl Position {
         self.last_funding_index = current_funding_index;
 
         Ok(())
-    }
-
-    /// Calculate realized PnL for this position (scaled by token decimals)
-    /// Requires the position to have an exit price
-    pub fn calculate_pnl(&self) -> Result<i64> {
-        // Require that position has an exit price
-        let exit_price = self.exit_price.ok_or(PerpetualsError::PositionStillOpen)?;
-
-        // Calculate price difference based on direction
-        // PnL = direction * (exit_price - entry_price) * size / PRICE_PRECISION
-        let price_delta = if self.is_long {
-            // For longs: profit if exit_price > entry_price
-            (exit_price as i128).checked_sub(self.entry_price as i128)
-        } else {
-            // For shorts: profit if entry_price > exit_price
-            (self.entry_price as i128).checked_sub(exit_price as i128)
-        }
-        .ok_or(PerpetualsError::MathOverflow)?;
-
-        let pnl = (price_delta)
-            .checked_mul(self.size as i128)
-            .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(PRICE_PRECISION as i128)
-            .ok_or(PerpetualsError::MathOverflow)?
-            .try_into()
-            .map_err(|_| PerpetualsError::MathOverflow)?;
-
-        Ok(pnl)
     }
 
     /// Check if position can be liquidated at the given price
@@ -281,5 +213,61 @@ impl Position {
             .map_err(|_| PerpetualsError::MathOverflow)?;
 
         Ok(pnl)
+    }
+
+    /// Apply rebalance fee to position based on current rebalance fee index
+    /// 
+    /// This method calculates the rebalance fee owed by the position based on the
+    /// difference between the baskt's current rebalance fee index and the
+    /// position's last applied rebalance fee index.
+    /// 
+    /// The position's last_rebalance_fee_index is updated to prevent double charging.
+    /// 
+    /// @param current_rebalance_fee_index Current rebalance fee index from the baskt
+    /// @return Amount of fee owed (in collateral token units)
+    pub fn apply_rebalance_fee(&mut self, current_rebalance_fee_index: u64) -> Result<u64> {
+        use crate::constants::PRICE_PRECISION;
+        use crate::math::mul_div_u64;
+        
+        // Calculate the fee difference
+        let fee_index_diff = current_rebalance_fee_index
+            .checked_sub(self.last_rebalance_fee_index)
+            .ok_or(PerpetualsError::MathOverflow)?;
+        
+        // If no difference, no fee owed
+        if fee_index_diff == 0 {
+            return Ok(0);
+        }
+        
+        // Calculate fee owed: (position_size * fee_index_diff) / PRICE_PRECISION
+        let fee_owed = mul_div_u64(self.size, fee_index_diff, PRICE_PRECISION)?;
+
+        // Update last applied rebalance fee index to current index
+        self.last_rebalance_fee_index = current_rebalance_fee_index;
+
+        Ok(fee_owed)
+    }
+
+    // Helper methods for ExitInfo
+    pub fn get_exit_price(&self) -> Option<u64> {
+        match &self.exit_info {
+            ExitInfo::None => None,
+            ExitInfo::Closed { price, .. } => Some(*price),
+            ExitInfo::Liquidated { price, .. } => Some(*price),
+            ExitInfo::ForceClosed { price, .. } => Some(*price),
+        }
+    }
+
+    pub fn get_exit_timestamp(&self) -> Option<u32> {
+        match &self.exit_info {
+            ExitInfo::None => None,
+            ExitInfo::Closed { timestamp, .. } => Some(*timestamp),
+            ExitInfo::Liquidated { timestamp, .. } => Some(*timestamp),
+            ExitInfo::ForceClosed { timestamp, .. } => Some(*timestamp),
+        }
+    }
+
+    pub fn set_exit_info(&mut self, exit_info: ExitInfo) {
+        self.exit_info = exit_info;
     }
 }

@@ -1,11 +1,11 @@
-import { Worker } from 'bullmq';
-import { pricingQueue, connection } from './config/queue';
-import { AssetMetadataModel as AssetMetadataModelType, AssetMetadataSchema } from '@baskt/types';
+import { AssetMetadataSchema } from '@baskt/querier';
 import { fetchAssetPrices } from '@baskt/sdk';
-import { connectMongoDB } from './config/mongo';
-import { AssetPrice } from './config/sequelize';
-import { Op } from 'sequelize';
+import { Worker } from 'bullmq';
 import mongoose from 'mongoose';
+import { Op } from 'sequelize';
+import { connectMongoDB } from './config/mongo';
+import { connection, pricingQueue } from './config/queue';
+import { AssetPrice } from './config/sequelize';
 
 //TODO: We need to store strings as stuff for all numbers
 //TODO: This is broken for 24h window
@@ -20,7 +20,7 @@ const pricingWorker = new Worker(
   async (job) => {
     console.log(`Processing job: ${job.name} ${job.data._id}`);
 
-    const oracleConfig = job.data as AssetMetadataModelType;
+    const oracleConfig = job.data as any;
 
     const priceDBID = oracleConfig.ticker;
 
@@ -29,6 +29,12 @@ const pricingWorker = new Worker(
         [oracleConfig.priceConfig],
         [oracleConfig.assetAddress],
       );
+
+      if (!prices[0]) {
+        console.error(`No price data available for ${oracleConfig.name}`);
+        return;
+      }
+
       const currentPrice = Number(prices[0].priceUSD);
 
       await AssetPrice.create({

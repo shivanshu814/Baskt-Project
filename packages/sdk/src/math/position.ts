@@ -1,5 +1,5 @@
 import BN from 'bn.js';
-import { PRICE_PRECISION_BN, COLLATERAL_MULTIPLIER, COLLATERAL_DENOMINATOR } from './const';
+import { PRICE_PRECISION_BN, COLLATERAL_MULTIPLIER, COLLATERAL_DENOMINATOR, BPS_DIVISOR } from './const';
 
 export interface CalculateSharesParams {
   collateral: number;
@@ -27,7 +27,6 @@ export const calculateLiquidationPrice = ({
   position,
   liquidationThresholdBps = 500,
 }: CalculateLiquidationPriceParams): number => {
-  const positionSize = collateral;
   const liquidationThreshold = liquidationThresholdBps / 10000;
   
   if (position === 'long') {
@@ -42,8 +41,10 @@ export const calculateLiquidationPrice = ({
  * @param size - The position size in USDC
  * @returns The required collateral amount (110% of size)
  */
-export const calculateCollateralAmount = (size: BN): BN => {
-  return size.mul(COLLATERAL_MULTIPLIER).div(COLLATERAL_DENOMINATOR);
+export const calculateCollateralAmount = (notionalValue: BN, openingFeeBps: BN = new BN(10)): BN => {
+  const openingFee = notionalValue.mul(openingFeeBps).div(BPS_DIVISOR);
+  const collateralAmount = notionalValue.add(openingFee);
+  return collateralAmount;
 };
 
 /**

@@ -41,7 +41,10 @@ export function UsersTable({ roles, isLoading, onCopyAddress, onFaucet }: UsersT
     },
   );
 
-  const { data: basktsData } = trpc.baskt.getAllBaskts.useQuery(undefined, {
+  //TODO: We should just use a useBasktList hook here and give it a user address
+  const { data: basktsData } = trpc.baskt.getAllBaskts.useQuery({
+    withPerformance: false,
+  }, {
     refetchInterval: 30 * 1000,
   });
 
