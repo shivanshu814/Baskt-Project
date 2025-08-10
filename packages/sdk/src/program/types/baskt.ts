@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/baskt.json`.
  */
 export type Baskt = {
-  "address": "8JaW8fhu46ii83WapMp64i4B4bKTM76XUSXftJfHfLyg",
+  "address": "Bw6sN8LvQMqVhgZYihtkxoYqUZdPZe3vMWJ8N7ba6jLW",
   "metadata": {
     "name": "baskt",
     "version": "0.1.0",
@@ -7331,21 +7331,10 @@ export type Baskt = {
             "type": "u64"
           },
           {
-            "name": "assetConfigs",
-            "type": {
-              "vec": {
-                "defined": {
-                  "name": "assetConfig"
-                }
-              }
-            }
-          },
-          {
-            "name": "baselineNav",
-            "type": "u64"
-          },
-          {
-            "name": "timestamp",
+            "name": "lastUpdateTimestamp",
+            "docs": [
+              "Timestamp of the last rebalance that updated this index"
+            ],
             "type": "i64"
           }
         ]

@@ -7336,17 +7336,6 @@ export type Baskt = {
               "Timestamp of the last rebalance that updated this index"
             ],
             "type": "i64"
-<<<<<<< HEAD
-=======
-          },
-          {
-            "name": "currentFeePerUnit",
-            "docs": [
-              "Current rebalance fee amount per unit position size (scaled by PRICE_PRECISION)",
-              "This is the fee that will be applied in the next rebalance"
-            ],
-            "type": "u64"
->>>>>>> 9eccfeb63504e6bec043285fbe14fdfd43b3ed2b
           }
         ]
       }
