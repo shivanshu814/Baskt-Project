@@ -123,10 +123,6 @@ describe('Liquidate Position', () => {
 
     const protocolConfig = await client.getProtocolAccount();
     const liquidationThreshold = protocolConfig.config.liquidationThresholdBps;
-    const minCollateralRatio = protocolConfig.config.minCollateralRatioBps;
-
-
-  
 
     
       // Create and open SHORT position with minimal collateral
@@ -149,7 +145,6 @@ describe('Liquidate Position', () => {
       basktId
     );
 
-
     const liquidationPrice = calculateLiquidationPriceInternal(
       snapshotBeforeLiquidation.positionAccount!.entryPrice,
       snapshotBeforeLiquidation.positionAccount!.collateral,
@@ -157,8 +152,8 @@ describe('Liquidate Position', () => {
       new BN(liquidationThreshold),
       false,
       new BN(0),
+      new BN(50) // 0.5% closing fee
     ).add(new BN(1e6));
-
 
 
     await liquidatorClient.liquidatePosition({
@@ -179,6 +174,7 @@ describe('Liquidate Position', () => {
         exitPrice: liquidationPrice,
         sizeClosed: snapshotBeforeLiquidation.positionAccount!.size,
         feeBps: liquidationFeeBps,
+        isLiquidation: true,
     });
     
     
@@ -237,6 +233,7 @@ describe('Liquidate Position', () => {
       exitPrice: LIQUIDATION_PRICE,
       sizeClosed: snapshotAfterOpen.positionAccount!.size,
       feeBps: liquidationFeeBps,
+      isLiquidation: true,
     });
   
     // Take snapshot after liquidation
@@ -255,6 +252,7 @@ describe('Liquidate Position', () => {
         snapshotAfter: snapshotAfterLiquidation,
         basktId,
         feeBps: liquidationFeeBps,
+        isLiquidation: true,
     });
        
   });
@@ -415,6 +413,7 @@ describe('Liquidate Position', () => {
       exitPrice: highLiquidationPrice,
       sizeClosed: snapshotBeforeLiquidation1.positionAccount!.size,
       feeBps: liquidationFeeBps,
+      isLiquidation: true,
     });
 
     
@@ -463,6 +462,7 @@ describe('Liquidate Position', () => {
       exitPrice: moderateLiquidationPrice,
       sizeClosed: snapshotBeforeLiquidation2.positionAccount!.size,
       feeBps: liquidationFeeBps,
+      isLiquidation: true,
     });
   });
 

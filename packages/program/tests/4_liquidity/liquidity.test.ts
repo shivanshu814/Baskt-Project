@@ -460,7 +460,6 @@ describe('Liquidity Pool', () => {
         expect.fail('Should have failed with Unauthorized error');
       } catch (err) {
         const error = err as { message: string };
-        console.log(error);
         expect(error.message).to.include('Unauthorized');
       }
 

@@ -86,7 +86,6 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
         return Err(PerpetualsError::InvalidBasktConfig.into());
     }
 
-    let baskt_key = baskt.key();
     // Ensure asset list does not contain duplicates
     let mut seen_assets: HashSet<Pubkey> = HashSet::with_capacity(params.asset_params.len());
 

@@ -1,5 +1,5 @@
 use crate::{
-    constants::{FUNDING_PRECISION, PRICE_PRECISION},
+    constants::{FUNDING_PRECISION, PRICE_PRECISION, BPS_DIVISOR},
     error::PerpetualsError,
     math::mul_div_u64,
     utils::calc_fee,
@@ -31,7 +31,6 @@ pub struct Position {
     pub is_long: bool,
     pub entry_price: u64,
     pub exit_info: ExitInfo,
-    pub entry_funding_index: i128, // Index at position open (scaled by FUNDING_PRECISION)
     pub last_funding_index: i128,  // Last updated index (scaled by FUNDING_PRECISION)
     pub funding_accumulated: i128, // Total funding paid/received (scaled by token decimals, NOT funding precision)
     pub last_rebalance_fee_index: u64, // Last applied rebalance fee index (prevents double charging)
@@ -40,7 +39,7 @@ pub struct Position {
     pub bump: u8,
 
     // Extra Space
-    pub extra_space: [u8; 120], // Reduced to account for new field
+    pub extra_space: [u8; 120],
 }
 
 // Combined exit information
@@ -89,7 +88,6 @@ impl Position {
         self.is_long = is_long;
         self.entry_price = entry_price;
         self.exit_info = ExitInfo::None;
-        self.entry_funding_index = entry_funding_index;
         self.last_funding_index = entry_funding_index;
         self.funding_accumulated = 0;
         self.last_rebalance_fee_index = entry_rebalance_fee_index;
@@ -129,7 +127,7 @@ impl Position {
     /// - The position size
     /// - The position direction (long pays on positive index delta, short pays on negative)
     /// Resulting payment is scaled by token decimals.
-    pub fn update_funding(&mut self, current_funding_index: i128) -> Result<()> {
+    pub fn update_funding(&mut self, current_funding_index: i128, exit_price: u64) -> Result<()> {
         // Calculate index delta (scaled by FUNDING_PRECISION)
         let index_delta = current_funding_index
             .checked_sub(self.last_funding_index)
@@ -144,9 +142,11 @@ impl Position {
         // For shorts: invert the payment direction
         let direction_multiplier: i128 = if self.is_long { -1 } else { 1 };
 
+        let current_notional_u64 = mul_div_u64(self.size, exit_price, PRICE_PRECISION)?;
+
         // Calculate funding payment: size * index_delta * direction / FUNDING_PRECISION
         // Result is scaled by token decimals (implicitly, as size is scaled)
-        let funding_payment = (self.size as i128)
+        let funding_payment = (current_notional_u64 as i128)
             .checked_mul(index_delta)
             .ok_or(PerpetualsError::MathOverflow)?
             .checked_mul(direction_multiplier)
@@ -170,21 +170,30 @@ impl Position {
         &self,
         current_price: u64,
         liquidation_threshold_bps: u64,
+        current_rebalance_fee_index: u64,
     ) -> Result<bool> {
         // Calculate unrealized PnL
         let unrealized_pnl = self.calculate_unrealized_pnl(current_price)?;
 
-        // Calculate total equity = collateral + unrealized_pnl + funding_accumulated
+        // Calculate rebalance fee owed
+        let rebalance_fee_owed = self.calculate_rebalance_fee_owed(current_rebalance_fee_index, current_price)?;
+
+        // Calculate total equity = collateral + unrealized_pnl + funding_accumulated - rebalance_fee_owed
         let total_equity = (self.collateral as i128)
             .checked_add(unrealized_pnl as i128)
             .ok_or(PerpetualsError::MathOverflow)?
             .checked_add(self.funding_accumulated)
+            .ok_or(PerpetualsError::MathOverflow)?
+            .checked_sub(rebalance_fee_owed as i128)
             .ok_or(PerpetualsError::MathOverflow)?;
 
         // Calculate minimum required collateral based on threshold using current notional value
-        let current_notional_u64 = mul_div_u64(self.size, current_price, PRICE_PRECISION)?;
 
+        let current_notional_u64 = mul_div_u64(self.size, current_price, PRICE_PRECISION)?;
         let min_collateral = calc_fee(current_notional_u64, liquidation_threshold_bps)? as u128;
+
+        msg!("total_equity: {}", total_equity);
+        msg!("min_collateral: {}", min_collateral);
 
         // Liquidatable if total equity falls below the maintenance margin
         // This allows liquidation even when equity is positive but below threshold
@@ -225,27 +234,27 @@ impl Position {
     /// 
     /// @param current_rebalance_fee_index Current rebalance fee index from the baskt
     /// @return Amount of fee owed (in collateral token units)
-    pub fn apply_rebalance_fee(&mut self, current_rebalance_fee_index: u64) -> Result<u64> {
-        use crate::constants::PRICE_PRECISION;
-        use crate::math::mul_div_u64;
-        
-        // Calculate the fee difference
+    pub fn apply_rebalance_fee(&mut self, current_rebalance_fee_index: u64, current_price: u64) -> Result<u64> {
+        // Update last applied rebalance fee index to current index
+        let fee_owed = self.calculate_rebalance_fee_owed(current_rebalance_fee_index, current_price)?;
+        self.last_rebalance_fee_index = current_rebalance_fee_index;
+        Ok(fee_owed)
+    }
+
+    pub fn calculate_rebalance_fee_owed(&self, current_rebalance_fee_index: u64, current_price: u64) -> Result<u64> {
         let fee_index_diff = current_rebalance_fee_index
             .checked_sub(self.last_rebalance_fee_index)
             .ok_or(PerpetualsError::MathOverflow)?;
-        
-        // If no difference, no fee owed
-        if fee_index_diff == 0 {
-            return Ok(0);
-        }
-        
-        // Calculate fee owed: (position_size * fee_index_diff) / PRICE_PRECISION
-        let fee_owed = mul_div_u64(self.size, fee_index_diff, PRICE_PRECISION)?;
 
-        // Update last applied rebalance fee index to current index
-        self.last_rebalance_fee_index = current_rebalance_fee_index;
+        let current_notional_u64 = mul_div_u64(self.size, current_price, PRICE_PRECISION)?;
 
-        Ok(fee_owed)
+        let rebalance_fee_owed = current_notional_u64
+            .checked_mul(fee_index_diff)
+            .ok_or(PerpetualsError::MathOverflow)?
+            .checked_div(BPS_DIVISOR)
+            .ok_or(PerpetualsError::MathOverflow)?;
+
+        Ok(rebalance_fee_owed)
     }
 
     // Helper methods for ExitInfo

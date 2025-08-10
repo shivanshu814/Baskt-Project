@@ -555,7 +555,6 @@ describe('Order Creation', () => {
       } catch (error: any) {
         // If the position doesn't exist, this will fail
         // That's expected in the test environment, so we'll just log it
-        console.log('Market close order test skipped due to missing position:', error.message);
       }
     });
     
@@ -601,8 +600,6 @@ describe('Order Creation', () => {
       const userTokenBefore = await getAccount(client.connection, userTokenAccount);
       const escrowTokenBefore = await getAccount(client.connection, escrowTokenAccount);
 
-      // Create a limit close order
-      try {
         await userClient.createLimitCloseOrder({
           orderId,
           basktId,
@@ -652,11 +649,7 @@ describe('Order Creation', () => {
         // No tokens should be transferred for a close order
         expect(userBalanceChange.toString()).to.equal('0');
         expect(escrowBalanceChange.toString()).to.equal('0');
-      } catch (error: any) {
-        // If the position doesn't exist, this will fail
-        // That's expected in the test environment, so we'll just log it
-        console.log('Limit close order test skipped due to missing position:', error.message);
-      }
+      
     });
 
     it('Fails to create a limit close order with zero limit price', async () => {

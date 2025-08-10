@@ -18,7 +18,6 @@ export interface OnchainPosition {
   isLong: boolean;
   entryPrice: BN;
   exitPrice?: BN;
-  entryFundingIndex: BN;
   lastFundingIndex: BN;
   fundingAccumulated: BN;
   lastRebalanceFeeIndex: BN;

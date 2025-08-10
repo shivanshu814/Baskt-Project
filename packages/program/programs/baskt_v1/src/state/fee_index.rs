@@ -10,9 +10,6 @@ pub struct RebalanceFeeIndex {
     /// Timestamp of the last rebalance that updated this index
     pub last_update_timestamp: i64,
     
-    /// Current rebalance fee amount per unit position size (scaled by PRICE_PRECISION)
-    /// This is the fee that will be applied in the next rebalance
-    pub current_fee_per_unit: u64,
 }
 
 impl RebalanceFeeIndex {
@@ -20,10 +17,10 @@ impl RebalanceFeeIndex {
     pub fn initialize(&mut self, timestamp: i64) -> Result<()> {
         self.cumulative_index = 0; // Start at 0
         self.last_update_timestamp = timestamp;
-        self.current_fee_per_unit = 0; // Start with no fee
         Ok(())
     }
-        pub fn update_index(&mut self, new_fee_per_unit: u64, current_timestamp: i64) -> Result<()> {
+    
+    pub fn update_index(&mut self, new_fee_per_unit: u64, current_timestamp: i64) -> Result<()> {
         use crate::error::PerpetualsError;
         
         // Add the new fee to the cumulative index
@@ -34,7 +31,6 @@ impl RebalanceFeeIndex {
         
         // Update timestamp and current fee
         self.last_update_timestamp = current_timestamp;
-        self.current_fee_per_unit = new_fee_per_unit;
         
         Ok(())
     }

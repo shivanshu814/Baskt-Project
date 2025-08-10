@@ -195,9 +195,6 @@ describe('Position Opening', () => {
     expect(positionAccount.collateral.toString()).to.equal(expectedNetCollateral.toString());
     expect(positionAccount.isLong).to.be.true;
     expect(positionAccount.entryPrice.toString()).to.equal(ENTRY_PRICE.toString());
-    expect(positionAccount.entryFundingIndex.toString()).to.equal(
-      fundingIndexBefore?.cumulativeIndex.toString(),
-    );
     expect(positionAccount.lastFundingIndex.toString()).to.equal(
       fundingIndexBefore?.cumulativeIndex.toString(),
     );
@@ -279,7 +276,6 @@ describe('Position Opening', () => {
 
       expect.fail('Transaction should have failed due to wrong order owner');
     } catch (error: any) {
-      console.log(error.toString());
       expect(error.error?.errorName || error.toString()).to.include('InvalidInput');
     }
   });
@@ -316,7 +312,6 @@ describe('Position Opening', () => {
 
       expect.fail('Transaction should have failed due to wrong baskt');
     } catch (error: any) {
-      console.log(error.toString());
       expect(error.error?.errorName || error.toString()).to.include('InvalidBaskt');
     }
   });
@@ -357,7 +352,6 @@ describe('Position Opening', () => {
 
       expect.fail('Transaction should have failed due to already processed order');
     } catch (error: any) {
-      console.log(error.toString());
       expect(error.error?.errorName || error.toString()).to.include('AccountNotInitialized');
     }
   });
@@ -549,7 +543,6 @@ describe('Position Opening', () => {
 
       expect.fail('Transaction should have failed due to inactive baskt');
     } catch (error: any) {
-      console.log(error.toString());
       expect(error.error?.errorName || error.toString()).to.include('BasktNotActive');
     }
   });
@@ -582,7 +575,6 @@ describe('Position Opening', () => {
 
       expect.fail('Transaction should have failed due to wrong token account');
     } catch (error: any) {
-      console.log(error.toString());
       // The error could be various types depending on the specific constraint that fails
       expect(error.toString()).to.not.be.empty;
     }
@@ -616,7 +608,6 @@ describe('Position Opening', () => {
 
       expect.fail('Transaction should have failed due to zero size position');
     } catch (error: any) {
-      console.log(error.toString());
       expect(error.error?.errorName || error.toString()).to.include('ZeroSizedPosition');
     }
   });
@@ -683,7 +674,6 @@ describe('Position Opening', () => {
       });
       expect.fail('Transaction should have failed due to price outside range');
     } catch (error: any) {
-      console.log(error.toString());
       expect(error.error?.errorName || error.toString()).to.include('PriceOutOfBounds');
     }
   });

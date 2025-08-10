@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::constants::BPS_DIVISOR;
 use crate::error::PerpetualsError;
-use crate::math::{checked_percentage, checked_sub, mul_div_u64};
+use crate::math::{checked_percentage, checked_sub};
 
 /// Calculate a generic fee from `amount * fee_bps / BPS_DIVISOR`.
 /// Returns [`PerpetualsError::MathOverflow`] on overflow.

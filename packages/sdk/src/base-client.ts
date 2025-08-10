@@ -563,7 +563,6 @@ export abstract class BaseClient {
       isLong: position.isLong,
       entryPrice: position.entryPrice,
       exitPrice: position.exitPrice ? new BN(position.exitPrice) : undefined,
-      entryFundingIndex: new BN(position.entryFundingIndex || 0),
       lastFundingIndex: new BN(position.lastFundingIndex || 0),
       fundingAccumulated: new BN(position.fundingAccumulated || 0),
       lastRebalanceFeeIndex: new BN(position.lastRebalanceFeeIndex || 0),

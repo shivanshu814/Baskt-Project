@@ -11,13 +11,27 @@ describe('Basic Trading Scenario', () => {
   // Get the test client instance
   const client = TestClient.getInstance();
 
-  const NOTIONAL_ORDER_VALUE = new BN(10_000_000);
-  const COLLATERAL_AMOUNT = new BN(1_200_000_000);
+  const NOTIONAL_ORDER_VALUE = new BN(100 * 1e6);
+  const COLLATERAL_AMOUNT = new BN(120 * 1e6);
   const ENTRY_PRICE = BASELINE_PRICE;
-  const EXIT_PRICE_PROFIT = ENTRY_PRICE.add(new BN(20_000_000)); // $120 for significant profit
-  const EXIT_PRICE_LOSS = ENTRY_PRICE.sub(new BN(20_000_000)); // $80 for significant loss
+  const EXIT_PRICE_PROFIT = ENTRY_PRICE.add(new BN(20 * 1e6)); // $120 for significant profit
+  const EXIT_PRICE_LOSS = ENTRY_PRICE.sub(new BN(20 * 1e6)); // $80 for significant loss
   const TICKER = 'BTC';
   
+  /*
+   totalFees = 0.12
+   treasuryCut = 0.012
+   pnl = 20 
+
+   escrowToTreasury = 0.012
+   tentativeEscrowToPool = 0.108
+   tentativePoolToUser = 20 
+
+   escrowToPool = 0
+   escrowToTreasury = 0.012
+   escrowToUser = 120 - 0.12 = 119.88
+   poolToUser = 20 - 0.108 = 19.892
+  */
 
   let treasury: Keypair;
 
@@ -158,6 +172,7 @@ describe('Basic Trading Scenario', () => {
     const vaultBefore = await getAccount(client.connection, usdcVault);
 
     // Close the position with profit
+    
     await matcherClient.closePosition({
       orderPDA: closeOrderPDA,
       position: positionPDA,
@@ -235,12 +250,6 @@ describe('Basic Trading Scenario', () => {
     const expectedUserPayout = netCollateral.add(expectedProfit).sub(closingFee);
 
     // STEP 6: Verify the user got ~20% profit
-    console.log('Profit scenario verification:', {
-      expectedProfit: expectedProfit.toString(),
-      actualUserPayout: winnerBalanceDiff.toString(),
-      expectedUserPayout: expectedUserPayout.toString(),
-      profitPercentage: expectedProfit.mul(new BN(10000)).div(NOTIONAL_ORDER_VALUE).toString() + ' bps',
-    });
 
     expect(winnerBalanceDiff.toString()).to.equal(expectedUserPayout.toString());
     expect(expectedProfit.gt(new BN(0))).to.be.true; // Should be profitable
@@ -255,8 +264,6 @@ describe('Basic Trading Scenario', () => {
     expect(vaultDiff.toString()).to.equal(expectedVaultDecrease.toString());
     expect(vaultDiff.gt(new BN(0))).to.be.true; // Pool should have net outflow
 
-    console.log('✅ Profit position closed successfully!');
-    console.log(`Winner made profit of ${expectedProfit.div(new BN(1_000_000)).toString()} USDC`);
   });
 
   it('Successfully closes a position with loss', async () => {  
@@ -379,13 +386,6 @@ describe('Basic Trading Scenario', () => {
     const netCollateral = COLLATERAL_AMOUNT.sub(openingFee);
     const expectedUserPayout = netCollateral.add(expectedLoss).sub(closingFee);
 
-    // STEP 6: Verify the user got ~20% loss
-    console.log('Loss scenario verification:', {
-      expectedLoss: expectedLoss.toString(),
-      actualUserPayout: loserBalanceDiff.toString(),
-      expectedUserPayout: expectedUserPayout.toString(),
-      lossPercentage: expectedLoss.abs().mul(new BN(10000)).div(NOTIONAL_ORDER_VALUE).toString() + ' bps',
-    });
 
     expect(loserBalanceDiff.toString()).to.equal(expectedUserPayout.toString());
     expect(expectedLoss.lt(new BN(0))).to.be.true; // Should be a loss (negative)
@@ -401,7 +401,5 @@ describe('Basic Trading Scenario', () => {
     expect(vaultDiff.toString()).to.equal(expectedVaultIncrease.toString());
     expect(vaultDiff.gt(new BN(0))).to.be.true; // Pool should have net inflow
 
-    console.log('✅ Loss position closed successfully!');
-    console.log(`Loser lost ${expectedLoss.abs().div(new BN(1_000_000)).toString()} USDC`);
   });
 });

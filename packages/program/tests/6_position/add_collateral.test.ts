@@ -232,7 +232,6 @@ describe('Add Collateral to Position', () => {
     
     // Ensure at least some operations succeeded (ideally all 3)
     expect(successfulOperations).to.be.greaterThan(0);
-    console.log(`Successfully completed ${successfulOperations}/${numOperations} add collateral operations`);
   });
 
   it('Fails with token account owned by different user', async () => {
@@ -345,7 +344,6 @@ describe('Add Collateral to Position', () => {
       expect.fail('Transaction should have failed due to position being closed');
     } catch (error: any) {
       // Position should be closed, so the account won't exist or will be in closed state
-      console.log(error.toString());
       expect(
         error.toString().includes('AccountNotInitialized')
       ).to.be.true;

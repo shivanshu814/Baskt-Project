@@ -267,7 +267,6 @@ describe('baskt config setters', () => {
         await configManagerClient.setBasktLiquidationThresholdBps(publicBasktPDA, 0);
         expect.fail('Should have thrown error');
       } catch (error: any) {
-        console.log('Actual error:', error.toString());
         expect(error.toString()).to.include('InvalidCollateralRatio');
       }
     });

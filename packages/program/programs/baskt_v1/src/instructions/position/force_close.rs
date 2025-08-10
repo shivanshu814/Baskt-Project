@@ -135,7 +135,10 @@ pub fn force_close_position<'info>(
     require!(settlement_price > 0, PerpetualsError::InvalidOraclePrice);
 
     // Update position funding to settlement index
-    position.update_funding(settlement_funding_index)?;
+    position.update_funding(settlement_funding_index, params.close_price)?;
+
+    // Apply rebalance fee to position
+    let rebalance_fee_owed = position.apply_rebalance_fee(baskt.rebalance_fee_index.cumulative_index, params.close_price)?;
 
     // Determine size to close
     let size_to_close = params.size_to_close.unwrap_or(position.size);
@@ -160,6 +163,7 @@ pub fn force_close_position<'info>(
         params.close_price,
         ClosingType::ForceClose { closing_fee_bps },
         ctx.accounts.protocol.config.treasury_cut_bps,
+        rebalance_fee_owed,
     )?;
 
     // Get escrow balance

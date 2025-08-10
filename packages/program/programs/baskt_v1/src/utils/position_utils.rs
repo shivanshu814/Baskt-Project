@@ -1,4 +1,4 @@
-use super::calc_fee;
+use super::{calc_fee, split_fee};
 use crate::constants::{AUTHORITY_SEED, POOL_AUTHORITY_SEED, PRICE_PRECISION};
 use crate::error::PerpetualsError;
 use crate::math::mul_div_u64;
@@ -17,104 +17,19 @@ pub enum ClosingType {
 
 /// Settlement calculation result
 pub struct SettlementDetails {
-    pub collateral_to_release: u64,
+    pub escrow_to_treasury: u64,
+    pub escrow_to_pool: u64,
+    pub escrow_to_user: u64,
+    pub fee_to_treasury: u64,
+    pub user_payout_u64: u64,    // escrow_to_user + pool_to_user
+    pub fee_to_blp: u64,
+    pub pool_to_user: u64,
     pub funding_accumulated: i128,
     pub pnl: i128,
-    pub fee_to_treasury: u64,
-    pub fee_to_blp: u64,
-    pub user_payout_u64: u64,    // Always >= 0 (what user actually receives)
     pub bad_debt_amount: u64,
+    pub collateral_to_release: u64,
 }
 
-/// Calculate settlement details for a position
-/// This is a pure function with no side effects
-/// Note: exit_price is used to calculate the correct notional value for fee assessment
-pub fn calculate_settlement(
-    collateral: u64,
-    funding_accumulated: i128,
-    size_to_close: u64,
-    pnl: i64,
-    closing_type: ClosingType,
-    treasury_cut_bps: u64,
-    exit_price: u64,
-) -> Result<SettlementDetails> {
-    // All calculations in i128 to handle negatives safely
-    let collateral = collateral as i128;
-    let pnl_i128 = pnl as i128;
-    let funding_accumulated = funding_accumulated;
-
-    // Calculate gross payout before fees
-    let gross_payout = collateral
-        .checked_add(pnl_i128)
-        .ok_or(PerpetualsError::MathOverflow)?
-        .checked_add(funding_accumulated)
-        .ok_or(PerpetualsError::MathOverflow)?;
-
-    // Calculate notional value at exit price for fee calculation
-    let exit_notional_u64 = mul_div_u64(size_to_close, exit_price, PRICE_PRECISION)?;
-
-    // Calculate expected total fee based on closing type using exit notional
-    let expected_total_fee = match closing_type {
-        ClosingType::Normal { closing_fee_bps } => calc_fee(exit_notional_u64, closing_fee_bps)?,
-        ClosingType::Liquidation {
-            liquidation_fee_bps,
-        } => calc_fee(exit_notional_u64, liquidation_fee_bps)?,
-        ClosingType::ForceClose { closing_fee_bps } => calc_fee(exit_notional_u64, closing_fee_bps)?,
-    };
-
-    // Determine how much fee can actually be collected from available funds
-    let collectible_fee = if gross_payout > 0 {
-        expected_total_fee.min(gross_payout as u64)
-    } else {
-        0 // Can't collect any fees from negative equity positions
-    };
-
-    // Calculate uncollected fees (part of protocol loss)
-    let uncollected_fee = expected_total_fee.saturating_sub(collectible_fee);
-
-    // Split only the collectible fee between treasury and BLP
-    let (fee_to_treasury, fee_to_blp) = if collectible_fee > 0 {
-        super::split_fee(collectible_fee, treasury_cut_bps)?
-    } else {
-        (0, 0)
-    };
-
-    // Calculate net payout after deducting only collectible fees
-    let total_user_payout = if gross_payout > 0 {
-        let gross_u64 = gross_payout as u64;
-        let net = gross_u64.saturating_sub(collectible_fee);
-        net as i128
-    } else {
-        // Negative payout - bad debt scenario (fees already accounted for separately)
-        gross_payout // Keep it negative
-    };
-
-    // Determine bad debt including both negative equity AND uncollected fees
-    let (user_payout_u64,  bad_debt_amount) = if total_user_payout >= 0 {
-        if uncollected_fee > 0 {
-            // Even if user breaks even, uncollected fees are still a protocol loss
-            (total_user_payout as u64,  uncollected_fee)
-        } else {
-            (total_user_payout as u64,  0)
-        }
-    } else {
-        // Bad debt = negative equity + uncollected fees
-        let negative_equity = total_user_payout.abs() as u64;
-        let calculated_bad_debt = negative_equity + uncollected_fee;
-
-        (0,  calculated_bad_debt)
-    };
-
-    Ok(SettlementDetails {
-        collateral_to_release: collateral as u64,
-        pnl: pnl_i128,
-        funding_accumulated: funding_accumulated as i128,
-        fee_to_treasury,
-        fee_to_blp,
-        user_payout_u64,
-        bad_debt_amount
-    })
-}
 
 /// Transfer parameters for settlement execution
 pub struct TransferParams {
@@ -182,61 +97,7 @@ pub fn execute_settlement_transfers<'info>(
     ];
     let pool_authority_signer = &[&pool_authority_signer_seeds[..]];
 
-
-    let available_escrow = details.collateral_to_release; 
-
-    let (funding_paid_to_user, funding_paid_to_pool) = if details.funding_accumulated > 0 {
-        (details.funding_accumulated as u64 , 0)
-    } else {
-        (0, details.funding_accumulated.abs() as u64)
-    };
-
-    let (user_profit, user_loss) = if details.pnl > 0 {
-        (details.pnl as u64, 0)
-    } else {
-        (0, details.pnl.abs() as u64)
-    };
-
-
-
-    let escrow_to_pool = details.fee_to_blp
-        .checked_add(funding_paid_to_pool)
-        .ok_or(PerpetualsError::MathOverflow)?
-        .checked_add(user_loss)
-        .ok_or(PerpetualsError::MathOverflow)?;
-    let escrow_to_treasury = details.fee_to_treasury;
-    
-    // Handle bad debt scenarios with checked arithmetic
-    // In bad debt: total required transfers may exceed available escrow
-    let total_required_from_escrow = escrow_to_pool
-        .checked_add(escrow_to_treasury)
-        .ok_or(PerpetualsError::MathOverflow)?;
-    
-    let (final_escrow_to_treasury, final_escrow_to_pool, escrow_to_user) = 
-        if total_required_from_escrow <= available_escrow {
-            // Normal case: sufficient escrow to cover all transfers
-            (escrow_to_treasury, escrow_to_pool, available_escrow
-                .checked_sub(total_required_from_escrow)
-                .ok_or(PerpetualsError::MathOverflow)?)
-        } else {
-            // Bad debt case: insufficient escrow, prioritize pool first then treasury
-            // Treasury will not get any fees in this case. Since the losses suffered 
-            // are > collateral. All of the escrow will be used to pay the pool.
-            
-            let actual_pool = std::cmp::min(escrow_to_pool, available_escrow);
-            let remaining_escrow = available_escrow
-                .checked_sub(actual_pool)
-                .ok_or(PerpetualsError::MathOverflow)?;
-            let actual_treasury = remaining_escrow; // Treasury gets remainder after pool
-            (actual_treasury, actual_pool, 0) // User gets nothing in bad debt scenario
-        };
-    
-    let pool_to_user = user_profit
-        .checked_add(funding_paid_to_user)
-        .ok_or(PerpetualsError::MathOverflow)?;
-
-
-    if final_escrow_to_treasury > 0 {
+    if details.escrow_to_treasury > 0 {
         require!(
             treasury_token.is_some(),
             PerpetualsError::InvalidInput
@@ -251,11 +112,11 @@ pub fn execute_settlement_transfers<'info>(
                 },
                 authority_signer,
             ),
-            final_escrow_to_treasury,
+            details.escrow_to_treasury,
         )?;
     }
 
-    if final_escrow_to_pool > 0 {
+    if details.escrow_to_pool > 0 {
         token::transfer(
             CpiContext::new_with_signer(
                 token_program.to_account_info(),
@@ -266,11 +127,11 @@ pub fn execute_settlement_transfers<'info>(
                 },
                 authority_signer,
             ),
-            final_escrow_to_pool,
+            details.escrow_to_pool,
         )?;
     }
 
-    if escrow_to_user > 0 {
+    if details.escrow_to_user > 0 {
         token::transfer(
             CpiContext::new_with_signer(
                 token_program.to_account_info(),
@@ -281,11 +142,11 @@ pub fn execute_settlement_transfers<'info>(
                 },
                 authority_signer,
             ),
-            escrow_to_user,
+            details.escrow_to_user,
         )?; 
     }
 
-    if pool_to_user > 0 {
+    if details.pool_to_user > 0 {
         token::transfer(
             CpiContext::new_with_signer(
                 token_program.to_account_info(),
@@ -296,16 +157,16 @@ pub fn execute_settlement_transfers<'info>(
                 },
                 pool_authority_signer,
             ),
-            pool_to_user,
+            details.pool_to_user,
         )?;
     }   
 
             
     Ok(SettlementTransferResult {
-        from_escrow_to_user: escrow_to_user,
-        from_pool_to_user: pool_to_user,
-        from_escrow_to_pool: final_escrow_to_pool,
-        fee_to_treasury: final_escrow_to_treasury,
+        from_escrow_to_user: details.escrow_to_user,
+        from_pool_to_user: details.pool_to_user,
+        from_escrow_to_pool: details.escrow_to_pool,
+        fee_to_treasury: details.escrow_to_treasury,
         fee_to_blp: details.fee_to_blp,
     })
 }
@@ -319,11 +180,9 @@ pub fn update_pool_state(
 
     // Calculate net change to pool using ACTUAL transferred amounts
     // Pool gains from escrow and actual BLP fees, loses from payouts and bad debt
-    let gains = (transfer_result.from_escrow_to_pool as i128);
-    
+    let gains = transfer_result.from_escrow_to_pool as i128;
     // Removed bad debt from pool losses
-    let losses = (transfer_result.from_pool_to_user as i128);
-
+    let losses = transfer_result.from_pool_to_user as i128;
 
     let net_change = gains
         .checked_sub(losses)
@@ -339,88 +198,125 @@ pub fn update_pool_state(
     Ok(())
 }
 
-/// Close escrow token account and reclaim rent
-pub fn close_escrow_account<'info>(
-    token_program: &Program<'info, Token>,
-    owner_collateral_escrow_account: &Account<'info, TokenAccount>,
-    destination: &AccountInfo<'info>,
-    program_authority: &AccountInfo<'info>,
-    authority_bump: u8,
-) -> Result<()> {
-    let authority_signer_seeds = [AUTHORITY_SEED.as_ref(), &[authority_bump]];
-    let authority_signer = &[&authority_signer_seeds[..]];
-
-    token::close_account(CpiContext::new_with_signer(
-        token_program.to_account_info(),
-        CloseAccount {
-            account: owner_collateral_escrow_account.to_account_info(),
-            destination: destination.clone(),
-            authority: program_authority.clone(),
-        },
-        authority_signer,
-    ))?;
-
-    Ok(())
-}
-
-/// Shared position closing logic
-/// 
-/// This function handles the common logic for closing positions:
-/// - Proportional amount calculations
-/// - Settlement calculations
-/// - Position state updates
-/// - Pool state updates
-/// 
-/// # Arguments
-/// * `position` - The position to close
-/// * `size_to_close` - Amount to close
-/// * `exit_price` - Price at which to close
-/// * `closing_type` - Type of closing (Normal, ForceClose, etc.)
-/// * `treasury_cut_bps` - Treasury fee split
-/// * `liquidity_pool` - Liquidity pool to update
-/// * `transfer_result` - Result from settlement transfers
-/// * `is_full_close` - Whether this is a full close
-/// 
-/// # Returns
-/// * `Result<SettlementDetails>` - settlement_details
 pub fn calculate_position_settlement(
     position: &Position,
     size_to_close: u64,
     exit_price: u64,
     closing_type: ClosingType,
     treasury_cut_bps: u64,
+    rebalance_fee_owed: u64,
 ) -> Result<SettlementDetails> {
-    // Calculate proportional amounts for settlement
-    let (collateral_to_release, funding_to_release) = if size_to_close == position.size {
-        (position.collateral, position.funding_accumulated)
+    if size_to_close == 0 || size_to_close > position.size {
+        return Err(PerpetualsError::InvalidInput.into());
+    }
+
+    // 1. Calculate prorated collateral (handles partial close)
+    let collateral_closed = if size_to_close == position.size {
+        position.collateral
     } else {
-        let collateral = mul_div_u64(position.collateral, size_to_close, position.size)?;
-        let funding = ((position.funding_accumulated as i128)
-            .checked_mul(size_to_close as i128)
-            .ok_or(PerpetualsError::MathOverflow)?)
-        .checked_div(position.size as i128)
-        .ok_or(PerpetualsError::MathOverflow)?;
-        (collateral, funding as i128)
+        mul_div_u64(position.collateral, size_to_close, position.size)?
     };
 
+    // 2. Calculate PnL and funding (handles leverage)
+    let funding_closed_i128 = position.funding_accumulated;
+    let realized_pnl_i128 = calculate_pnl(
+        position.is_long, 
+        position.entry_price, 
+        size_to_close, 
+        exit_price
+    )? as i128;
+
+    // 3. Calculate total equity (can be negative)
+    let equity_i128 = (collateral_closed as i128)
+        .checked_add(realized_pnl_i128).ok_or(PerpetualsError::MathOverflow)?
+        .checked_add(funding_closed_i128).ok_or(PerpetualsError::MathOverflow)?;
+
+    // 4. Calculate total fees
+    let exit_notional_u64 = mul_div_u64(size_to_close, exit_price, PRICE_PRECISION)?;
+    let base_fee = match closing_type {
+        ClosingType::Normal { closing_fee_bps } => calc_fee(exit_notional_u64, closing_fee_bps)?,
+        ClosingType::ForceClose { closing_fee_bps } => calc_fee(exit_notional_u64, closing_fee_bps)?,
+        ClosingType::Liquidation { liquidation_fee_bps } => calc_fee(exit_notional_u64, liquidation_fee_bps)?,
+    };
+    let total_fees_u64 = base_fee.checked_add(rebalance_fee_owed).ok_or(PerpetualsError::MathOverflow)?;
+
+    // 5. Handle bad debt case (equity < 0)
+    if equity_i128 < 0 {
+        let loss_amount = equity_i128.unsigned_abs();
+        let available_collateral = collateral_closed;
         
+        // Bad debt = losses that exceed available collateral + uncollected fees
+        let bad_debt_from_losses = loss_amount.saturating_sub(available_collateral.into());
+        let bad_debt_amount = bad_debt_from_losses.saturating_add(total_fees_u64.into());
+        
+        return Ok(SettlementDetails {
+            escrow_to_treasury: 0,
+            escrow_to_pool: collateral_closed, // All collateral goes to pool
+            escrow_to_user: 0,
+            pool_to_user: 0,
+            fee_to_treasury: 0,
+            fee_to_blp: 0,
+            pnl: realized_pnl_i128,
+            funding_accumulated: funding_closed_i128,
+            bad_debt_amount: bad_debt_amount.try_into().unwrap_or(u64::MAX),
+            user_payout_u64: 0,
+            collateral_to_release: collateral_closed,
+        });
+    }
 
-    // Calculate PnL for the portion being closed
-    let pnl = calculate_pnl(position.is_long, position.entry_price, size_to_close, exit_price)?;
+    // 6. Collect fees from positive equity
+    let collectible_fee = core::cmp::min(total_fees_u64, equity_i128 as u64);
+    let uncollected_fee = total_fees_u64.saturating_sub(collectible_fee);
+    let (fee_to_treasury, fee_to_blp) = if collectible_fee > 0 {
+        split_fee(collectible_fee, treasury_cut_bps)?
+    } else { (0, 0) };
 
-    // Calculate settlement details using the snapshot
-    let settlement_details = calculate_settlement(
-        collateral_to_release,
-        funding_to_release,
-        size_to_close,
-        pnl,
-        closing_type,
-        treasury_cut_bps,
-        exit_price,
-    )?;
+    // 7. Calculate user payout after fees
+    let user_total_payout = (equity_i128 as u64).saturating_sub(collectible_fee);
 
-    Ok(settlement_details)
+    // 8. Handle liquidation vs normal close
+    if matches!(closing_type, ClosingType::Liquidation { .. }) {
+        // In liquidation: user gets nothing, pool gets remainder after fees
+        let escrow_to_pool = collateral_closed.saturating_sub(fee_to_treasury);
+        
+        return Ok(SettlementDetails {
+            escrow_to_treasury: fee_to_treasury,
+            escrow_to_pool,
+            escrow_to_user: 0,
+            pool_to_user: 0,
+            fee_to_treasury,
+            fee_to_blp,
+            pnl: realized_pnl_i128,
+            funding_accumulated: funding_closed_i128,
+            bad_debt_amount: uncollected_fee,
+            user_payout_u64: 0,
+            collateral_to_release: collateral_closed,
+        });
+    }
+
+    // 9. Normal close: split payout between escrow and pool
+    let net_collateral = collateral_closed.saturating_sub(fee_to_treasury);
+    let escrow_to_user = core::cmp::min(net_collateral, user_total_payout);
+    let pool_to_user = user_total_payout.saturating_sub(escrow_to_user);
+    
+    let escrow_to_pool = net_collateral.saturating_sub(escrow_to_user);
+
+    Ok(SettlementDetails {
+        escrow_to_treasury: fee_to_treasury,
+        escrow_to_pool,
+        escrow_to_user,
+        pool_to_user,
+        fee_to_treasury,
+        fee_to_blp,
+        pnl: realized_pnl_i128,
+        funding_accumulated: funding_closed_i128,
+        bad_debt_amount: uncollected_fee,
+        user_payout_u64: escrow_to_user + pool_to_user,
+        collateral_to_release: collateral_closed,
+    })
 }
+
+
 
 pub fn calculate_pnl(
     is_long: bool,
@@ -460,5 +356,30 @@ pub fn update_position_after_settlement(
     position.size -= size_to_close;
     position.collateral -= collateral_to_release;
     position.funding_accumulated -= funding_to_release as i128;
+    Ok(())
+}
+
+
+/// Close escrow token account and reclaim rent
+pub fn close_escrow_account<'info>(
+    token_program: &Program<'info, Token>,
+    owner_collateral_escrow_account: &Account<'info, TokenAccount>,
+    destination: &AccountInfo<'info>,
+    program_authority: &AccountInfo<'info>,
+    authority_bump: u8,
+) -> Result<()> {
+    let authority_signer_seeds = [AUTHORITY_SEED.as_ref(), &[authority_bump]];
+    let authority_signer = &[&authority_signer_seeds[..]];
+
+    token::close_account(CpiContext::new_with_signer(
+        token_program.to_account_info(),
+        CloseAccount {
+            account: owner_collateral_escrow_account.to_account_info(),
+            destination: destination.clone(),
+            authority: program_authority.clone(),
+        },
+        authority_signer,
+    ))?;
+
     Ok(())
 }

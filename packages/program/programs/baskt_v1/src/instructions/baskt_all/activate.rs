@@ -8,7 +8,7 @@ use crate::state::protocol::{Protocol, Role};
 use anchor_lang::prelude::*;
 
 // Helper function to check if an authority can activate a baskt
-fn can_activate_baskt(baskt: &Baskt, authority: Pubkey, protocol: &Protocol) -> bool {
+fn can_activate_baskt(authority: Pubkey, protocol: &Protocol) -> bool {
     protocol.has_permission(authority, Role::BasktManager)
 }
 
@@ -27,7 +27,7 @@ pub struct ActivateBaskt<'info> {
     #[account(seeds = [PROTOCOL_SEED], bump)]
     pub protocol: Account<'info, Protocol>,
 
-    #[account(mut, constraint = can_activate_baskt(&baskt, authority.key(), &protocol) @ PerpetualsError::Unauthorized)]
+    #[account(mut, constraint = can_activate_baskt(authority.key(), &protocol) @ PerpetualsError::Unauthorized)]
     pub authority: Signer<'info>,
 }
 

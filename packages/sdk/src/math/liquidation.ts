@@ -1,125 +1,105 @@
 import BN from 'bn.js';
-import { PRICE_PRECISION } from './nav';
+import { PRICE_PRECISION } from './nav';        // e.g., 1e6
+import { BPS_DIVISOR } from './const';          // e.g., 10_000
 
-export const LIQUIDATION_PRECISION = new BN(10 ** 4); // 10,000 for basis points
+export const LIQUIDATION_PRECISION = new BN(10_000); // keep for clarity
 
 /**
- * Calculates the liquidation price for a position based on the liquidation condition:
- * total_equity < min_collateral_required
- * 
- * Where:
- * - total_equity = collateral + unrealized_pnl + funding_accumulated
- * - min_collateral_required = (size * current_price * liquidation_threshold_bps) / 10000
- * - unrealized_pnl = (current_price - entry_price) * size * direction
- * 
- * At liquidation point, these are equal, so we solve for current_price (liquidation_price)
+ * Solve for liquidation price including optional closing fee (bps of current notional).
  *
- * @param entryPrice - The price at which the position was entered (in price precision, e.g., 1e6 for $1)
- * @param collateral - The amount of collateral posted (in USDC, e.g., 1e6 for $1)
- * @param size - The position size (in contracts, already scaled)
- * @param liquidationThresholdBps - The liquidation threshold in basis points (e.g., 500 for 5%)
- * @param isLong - true for long positions, false for short positions
- * @param fundingAccumulated - Accumulated funding payments (default: 0)
- * @returns The liquidation price (in same precision as entryPrice)
+ * Liquidation condition at liq:
+ *   equity = collateral + funding + PnL(liq) 
+ *   PnL(liq) = (liq - entry) * size * dir / PRICE_PRECISION
+ *   maint + closeFee = size * liq * (lt_bps + fee_bps) / 10_000 / PRICE_PRECISION
+ *
+ * => collateral + funding + (liq - entry)*size*dir/PP
+ *    = liq*size*(lt_bps + fee_bps)/BPS/PP
+ *
+ * Solve for liq:
+ *   liq * size * (dir - (lt_bps+fee_bps)/BPS) / PP = entry*size*dir/PP - collateral - funding
+ *   liq = (entry*size*dir/PP - collateral - funding) / (size*(dir - (lt_bps+fee_bps)/BPS)/PP)
+ *   liq = (entry*size*dir - (collateral+funding)*PP) / (size*(dir*BPS - (lt_bps+fee_bps))) * BPS
  */
 export function calculateLiquidationPriceInternal(
-    entryPrice: BN,
-    collateral: BN,
-    size: BN,
-    liquidationThresholdBps: BN,
-    isLong: boolean,
-    fundingAccumulated: BN = new BN(0)
-  ): BN {
-    if (isLong) {
-      // LONG: numerator = collateral - entry_price * size + funding
-      // denominator = size * (ltFraction - 1) = size * (liquidationThresholdBps - 10000) / 10000
-      
-      const numerator = collateral
-        .sub(entryPrice.mul(size).div(PRICE_PRECISION))
-        .add(fundingAccumulated);
-      
-      const denominator = size
-        .mul(liquidationThresholdBps.sub(LIQUIDATION_PRECISION))
-        .div(LIQUIDATION_PRECISION);
-      
-      return numerator.div(denominator).mul(PRICE_PRECISION);
-    } else {
-      // SHORT: numerator = collateral + entry_price * size + funding  
-      // denominator = size * (ltFraction + 1) = size * (liquidationThresholdBps + 10000) / 10000
-      
-      const numerator = collateral
-        .add(entryPrice.mul(size).div(PRICE_PRECISION))  // Need to scale properly
-        .add(fundingAccumulated);
-      
-      const denominator = size
-        .mul(liquidationThresholdBps.add(LIQUIDATION_PRECISION))
-        .div(LIQUIDATION_PRECISION);
-      
-      return numerator.div(denominator).mul(PRICE_PRECISION);
-    }
-  }
-
-/**
- * Calculates the maximum loss a position can sustain before liquidation
- *
- * @param collateral - The amount of collateral posted
- * @param size - The position size
- * @param currentPrice - The current market price
- * @param liquidationThresholdBps - The liquidation threshold in basis points
- * @param fundingAccumulated - Accumulated funding payments (default: 0)
- * @returns The maximum loss before liquidation
- */
-export function calculateMaxLossBeforeLiquidation(
-  collateral: BN,
-  size: BN,
-  currentPrice: BN,
-  liquidationThresholdBps: BN,
-  fundingAccumulated: BN = new BN(0)
+  entryPrice: BN,                // in PRICE_PRECISION
+  collateral: BN,                // in USDC precision
+  size: BN,                      // scaled contracts
+  liquidationThresholdBps: BN,   // bps, e.g., 500
+  isLong: boolean,
+  fundingAccumulated: BN = new BN(0), // in USDC precision
+  totalFeeBps: BN = new BN(0)         // closing fee bps on current notional; 0 if none
 ): BN {
-    const maintenanceMargin = size
-      .mul(currentPrice)
-      .mul(liquidationThresholdBps)
-      .div(LIQUIDATION_PRECISION);
-    
-    return collateral.add(fundingAccumulated).sub(maintenanceMargin);
+  const dir = isLong ? new BN(1) : new BN(-1);
+  const bps = LIQUIDATION_PRECISION; // 10_000
+
+  // numerator = entry*size*dir - (collateral+funding)*PP
+  const entryTimesSize = entryPrice.mul(size);              // (PP * size)
+  const equityFixed = collateral.add(fundingAccumulated);   // USDC
+  const numerator = entryTimesSize.mul(dir).sub(equityFixed.mul(PRICE_PRECISION)); // PP*size*dir - USDC*PP
+
+  // denom = size * (dir*BPS - (lt_bps + fee_bps))
+  const ltPlusFee = liquidationThresholdBps.add(totalFeeBps);   // bps
+  const denom = size.mul(dir.mul(bps).sub(ltPlusFee));          // size * (dir*BPS - (lt+fee))
+
+  // liq = (numerator / denom) * BPS
+  // Keep precision: (numerator * BPS) / denom
+  // Result should be in PRICE_PRECISION
+  if (denom.isZero()) throw new Error('Invalid parameters: denominator is zero');
+  const liq = numerator.mul(bps).div(denom); // still in PRICE_PRECISION units
+  return liq;
 }
 
 /**
- * Checks if a position is liquidatable at the current price
- *
- * @param entryPrice - The entry price of the position
- * @param currentPrice - The current market price
- * @param collateral - The amount of collateral posted
- * @param size - The position size
- * @param liquidationThresholdBps - The liquidation threshold in basis points
- * @param isLong - true for long positions, false for short positions
- * @param fundingAccumulated - Accumulated funding payments (default: 0)
- * @returns true if the position is liquidatable
+ * Max loss before liquidation at a given current price.
+ * Includes optional closing fee bps on current notional.
+ */
+export function calculateMaxLossBeforeLiquidation(
+  collateral: BN,               // USDC
+  size: BN,
+  currentPrice: BN,             // PRICE_PRECISION
+  liquidationThresholdBps: BN,  // bps
+  fundingAccumulated: BN = new BN(0), // USDC
+  totalFeeBps: BN = new BN(0)         // bps
+): BN {
+  // maintenance + closing fee = size * price * (lt+fee) / BPS / PP   => USDC
+  const ltPlusFee = liquidationThresholdBps.add(totalFeeBps);
+  const maintPlusFee = size
+    .mul(currentPrice)
+    .mul(ltPlusFee)
+    .div(LIQUIDATION_PRECISION)
+    .div(PRICE_PRECISION);
+
+  // equity available to absorb loss
+  return collateral.add(fundingAccumulated).sub(maintPlusFee);
+}
+
+/**
+ * Checks if a position is liquidatable at currentPrice.
+ * Includes optional closing fee bps on current notional.
  */
 export function isPositionLiquidatable(
-  entryPrice: BN,
-  currentPrice: BN,
-  collateral: BN,
+  entryPrice: BN,               // PRICE_PRECISION
+  currentPrice: BN,             // PRICE_PRECISION
+  collateral: BN,               // USDC
   size: BN,
-  liquidationThresholdBps: BN,
+  liquidationThresholdBps: BN,  // bps
   isLong: boolean,
-  fundingAccumulated: BN = new BN(0)
+  fundingAccumulated: BN = new BN(0), // USDC
+  totalFeeBps: BN = new BN(0)         // bps
 ): boolean {
-    // Calculate unrealized PnL
-    const priceDelta = isLong 
-      ? currentPrice.sub(entryPrice)
-      : entryPrice.sub(currentPrice);
-    
-    const unrealizedPnl = priceDelta.mul(size);
-    
-    // Calculate total equity
-    const totalEquity = collateral.add(unrealizedPnl).add(fundingAccumulated);
-    
-    // Calculate minimum required collateral
-    const minCollateral = size
-      .mul(currentPrice)
-      .mul(liquidationThresholdBps)
-      .div(LIQUIDATION_PRECISION);
-    
-    return totalEquity.lt(minCollateral);
+  // PnL = (current - entry) * size * dir / PP   => USDC
+  const priceDelta = isLong ? currentPrice.sub(entryPrice) : entryPrice.sub(currentPrice);
+  const unrealizedPnl = priceDelta.mul(size).div(PRICE_PRECISION);
+
+  const totalEquity = collateral.add(unrealizedPnl).add(fundingAccumulated); // USDC
+
+  // min collateral = size * price * (lt+fee) / BPS / PP   => USDC
+  const ltPlusFee = liquidationThresholdBps.add(totalFeeBps);
+  const minCollateral = size
+    .mul(currentPrice)
+    .mul(ltPlusFee)
+    .div(LIQUIDATION_PRECISION)
+    .div(PRICE_PRECISION);
+
+  return totalEquity.lt(minCollateral);
 }

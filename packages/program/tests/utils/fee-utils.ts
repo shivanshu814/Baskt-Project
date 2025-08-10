@@ -23,13 +23,15 @@ export function netCollateral(collateral: BN, size: BN, openingFeeBps: BN): BN {
 
 export function calculateSettlementDetails(
   collateral: BN,
-  numOfContracts: BN,
+  numOfContractsToClose: BN,
   feeBps: BN, 
   fundingAccumulated: BN,
   entryPrice: BN,
   exitPrice: BN,
   isLong: boolean,
   treasuryCutBps: BN,
+  rebalanceFeeOwed: BN = new BN(0),
+  isLiquidation: boolean = false,
 ): {
   feeToTreasury: BN;
   feeToBLP: BN;
@@ -42,20 +44,20 @@ export function calculateSettlementDetails(
 
 
 
-
-
   let fundingPaidByUser = fundingAccumulated.gt(new BN(0)) ? fundingAccumulated : new BN(0);
   let fundingPaidByPool = fundingAccumulated.lt(new BN(0)) ? fundingAccumulated.abs() : new BN(0);
 
   const priceDelta = isLong ? exitPrice.sub(entryPrice) : entryPrice.sub(exitPrice); 
-  const pnl = priceDelta.mul(numOfContracts).div(PRICE_PRECISION);  
+  const pnl = priceDelta.mul(numOfContractsToClose).div(PRICE_PRECISION); 
 
-  const exitNotional = numOfContracts.mul(exitPrice).div(PRICE_PRECISION);
+  const exitNotional = numOfContractsToClose.mul(exitPrice).div(PRICE_PRECISION);
   const closingFee = exitNotional.mul(feeBps).div(BPS_DIVISOR);
+  
+  // Total fees include closing fee + rebalance fee
+  const totalFees = closingFee.add(rebalanceFeeOwed);
  
-  const netCollateral = collateral.sub(closingFee); 
+  const netCollateral = collateral.sub(totalFees); 
   const userEquity = netCollateral.add(pnl).add(fundingAccumulated);
-
 
   if(userEquity.lt(new BN(0))) { 
     return {
@@ -68,10 +70,25 @@ export function calculateSettlementDetails(
       isBadDebt: true,
     }
   }
+  let treasuryCut = totalFees.mul(treasuryCutBps).div(BPS_DIVISOR); 
 
-  let treasuryCut = closingFee.mul(treasuryCutBps).div(BPS_DIVISOR); 
+  if(isLiquidation) {
+    const treasuryCut = totalFees.mul(treasuryCutBps).div(BPS_DIVISOR); 
+    const escrowToBLP = collateral.sub(treasuryCut);
+    return {
+      feeToTreasury: treasuryCut,
+      feeToBLP: new BN(0),
+      collateralReturned: new BN(0),
+      escrowToBLP,
+      expectedUserPayout: new BN(0),
+      poolToUser: new BN(0),
+      isBadDebt: false,
+    }
+  }
+
+
   let expectedUserPayout = netCollateral.add(pnl).add(fundingPaidByPool);
-  let escrowToBLP = fundingPaidByUser.add(pnl.lt(new BN(0)) ? pnl.abs() : new BN(0)).add(closingFee.sub(treasuryCut));
+  let escrowToBLP = fundingPaidByUser.add(pnl.lt(new BN(0)) ? pnl.abs() : new BN(0)).add(totalFees.sub(treasuryCut));
   let poolToUser = fundingPaidByPool.add(pnl.gt(new BN(0)) ? pnl : new BN(0));
 
 
@@ -79,7 +96,7 @@ export function calculateSettlementDetails(
 
     // From Escrow
     feeToTreasury: treasuryCut,
-    feeToBLP: closingFee.sub(treasuryCut),
+    feeToBLP: totalFees.sub(treasuryCut),
     collateralReturned: netCollateral,
     escrowToBLP,    
     expectedUserPayout,

@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/baskt.json`.
  */
 export type Baskt = {
-  "address": "8JaW8fhu46ii83WapMp64i4B4bKTM76XUSXftJfHfLyg",
+  "address": "Bw6sN8LvQMqVhgZYihtkxoYqUZdPZe3vMWJ8N7ba6jLW",
   "metadata": {
     "name": "baskt",
     "version": "0.1.0",
@@ -6838,10 +6838,6 @@ export type Baskt = {
             }
           },
           {
-            "name": "entryFundingIndex",
-            "type": "i128"
-          },
-          {
             "name": "lastFundingIndex",
             "type": "i128"
           },
@@ -7131,10 +7127,6 @@ export type Baskt = {
             "type": "u64"
           },
           {
-            "name": "entryFundingIndex",
-            "type": "i128"
-          },
-          {
             "name": "feeToTreasury",
             "type": "u64"
           },
@@ -7344,6 +7336,8 @@ export type Baskt = {
               "Timestamp of the last rebalance that updated this index"
             ],
             "type": "i64"
+<<<<<<< HEAD
+=======
           },
           {
             "name": "currentFeePerUnit",
@@ -7352,6 +7346,7 @@ export type Baskt = {
               "This is the fee that will be applied in the next rebalance"
             ],
             "type": "u64"
+>>>>>>> 9eccfeb63504e6bec043285fbe14fdfd43b3ed2b
           }
         ]
       }

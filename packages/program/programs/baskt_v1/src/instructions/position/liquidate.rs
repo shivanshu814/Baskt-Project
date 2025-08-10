@@ -139,7 +139,20 @@ pub fn liquidate_position<'info>(
     require!(params.exit_price > 0, PerpetualsError::InvalidOraclePrice);
 
     // Update funding for the full position first
-    position.update_funding(funding_index.cumulative_index)?;
+    position.update_funding(funding_index.cumulative_index, params.exit_price)?;
+
+    // Apply rebalance fee to position
+    let rebalance_fee_owed = position.apply_rebalance_fee(ctx.accounts.baskt.rebalance_fee_index.cumulative_index, params.exit_price)?;
+
+    // Determine size to liquidate
+    let size_to_liquidate = params.size_to_close.unwrap_or(position.size);
+    require!(size_to_liquidate > 0, PerpetualsError::ZeroSizedPosition);
+    require!(
+        size_to_liquidate <= position.size,
+        PerpetualsError::InvalidPositionSize
+    );
+
+    let is_full_liquidation = size_to_liquidate == position.size;
 
     // Determine size to liquidate
     let size_to_liquidate = params.size_to_close.unwrap_or(position.size);
@@ -158,7 +171,11 @@ pub fn liquidate_position<'info>(
     );
 
     // Check if position is liquidatable (using current price for the portion being liquidated)
-    let is_liquidatable = position.is_liquidatable(params.exit_price, liquidation_threshold_bps)?;
+    let is_liquidatable = position.is_liquidatable(
+        params.exit_price, 
+        liquidation_threshold_bps,
+        ctx.accounts.baskt.rebalance_fee_index.cumulative_index,
+    )?;
     require!(is_liquidatable, PerpetualsError::PositionNotLiquidatable);
 
     // Get effective liquidation fee from baskt config or protocol config
@@ -174,6 +191,7 @@ pub fn liquidate_position<'info>(
         params.exit_price,
         ClosingType::Liquidation { liquidation_fee_bps },
         ctx.accounts.protocol.config.treasury_cut_bps,
+        rebalance_fee_owed,
     )?;
 
     // Execute all settlement transfers

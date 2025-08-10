@@ -6838,10 +6838,6 @@ export type Baskt = {
             }
           },
           {
-            "name": "entryFundingIndex",
-            "type": "i128"
-          },
-          {
             "name": "lastFundingIndex",
             "type": "i128"
           },
@@ -7131,10 +7127,6 @@ export type Baskt = {
             "type": "u64"
           },
           {
-            "name": "entryFundingIndex",
-            "type": "i128"
-          },
-          {
             "name": "feeToTreasury",
             "type": "u64"
           },
@@ -7339,19 +7331,22 @@ export type Baskt = {
             "type": "u64"
           },
           {
-            "name": "lastUpdateTimestamp",
-            "docs": [
-              "Timestamp of the last rebalance that updated this index"
-            ],
-            "type": "i64"
+            "name": "assetConfigs",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "assetConfig"
+                }
+              }
+            }
           },
           {
-            "name": "currentFeePerUnit",
-            "docs": [
-              "Current rebalance fee amount per unit position size (scaled by PRICE_PRECISION)",
-              "This is the fee that will be applied in the next rebalance"
-            ],
+            "name": "baselineNav",
             "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }

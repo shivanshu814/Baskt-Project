@@ -177,9 +177,10 @@ pub fn close_position<'info>(
     );
 
     // Update funding for the full position first
-    position.update_funding(funding_index.cumulative_index)?;
+    position.update_funding(funding_index.cumulative_index, params.exit_price)?;
 
-
+    // Apply rebalance fee to position
+    let rebalance_fee_owed = position.apply_rebalance_fee(ctx.accounts.baskt.rebalance_fee_index.cumulative_index, params.exit_price)?;
 
     let is_full_close = size_to_close == position.size;
 
@@ -196,6 +197,7 @@ pub fn close_position<'info>(
         params.exit_price,
         ClosingType::Normal { closing_fee_bps },
         ctx.accounts.protocol.config.treasury_cut_bps,
+        rebalance_fee_owed,
     )?;
 
     // Execute all settlement transfers

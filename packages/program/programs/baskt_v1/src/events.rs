@@ -49,7 +49,6 @@ pub struct PositionOpenedEvent {
     pub collateral: u64,
     pub is_long: bool,
     pub entry_price: u64,
-    pub entry_funding_index: i128,
     pub fee_to_treasury: u64,
     pub fee_to_blp: u64,
     pub timestamp: i64,

@@ -1,5 +1,5 @@
 {
-  "address": "8JaW8fhu46ii83WapMp64i4B4bKTM76XUSXftJfHfLyg",
+  "address": "Bw6sN8LvQMqVhgZYihtkxoYqUZdPZe3vMWJ8N7ba6jLW",
   "metadata": {
     "name": "baskt",
     "version": "0.1.0",
@@ -6832,10 +6832,6 @@
             }
           },
           {
-            "name": "entry_funding_index",
-            "type": "i128"
-          },
-          {
             "name": "last_funding_index",
             "type": "i128"
           },
@@ -7125,10 +7121,6 @@
             "type": "u64"
           },
           {
-            "name": "entry_funding_index",
-            "type": "i128"
-          },
-          {
             "name": "fee_to_treasury",
             "type": "u64"
           },
@@ -7338,6 +7330,8 @@
               "Timestamp of the last rebalance that updated this index"
             ],
             "type": "i64"
+<<<<<<< HEAD
+=======
           },
           {
             "name": "current_fee_per_unit",
@@ -7346,6 +7340,7 @@
               "This is the fee that will be applied in the next rebalance"
             ],
             "type": "u64"
+>>>>>>> 9eccfeb63504e6bec043285fbe14fdfd43b3ed2b
           }
         ]
       }

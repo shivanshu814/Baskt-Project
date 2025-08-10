@@ -1,4 +1,4 @@
-import { BaseClient, USDC_MINT } from '@baskt/sdk';
+import { BaseClient, BPS_DIVISOR, PRICE_PRECISION, USDC_MINT } from '@baskt/sdk';
 import { AccessControlRole, OnchainAssetPermissions, OnchainBasktAccount, OnchainPosition } from '@baskt/types';
 import * as anchor from '@coral-xyz/anchor';
 import { Program } from '@coral-xyz/anchor';
@@ -1247,7 +1247,6 @@ export class TestClient extends BaseClient {
   }
 
   public async verifyClose({
-    collateralRatioBps,
     entryPrice,
     exitPrice,
     sizeClosed,    
@@ -1256,6 +1255,8 @@ export class TestClient extends BaseClient {
     basktId,
     isBadDebt = false,
     feeBps = new BN(0),
+    rebalanceFeePerUnitDiff = new BN(0),
+    isLiquidation = false,
   }: {
     collateralRatioBps: BN;
     entryPrice: BN;
@@ -1266,12 +1267,21 @@ export class TestClient extends BaseClient {
     basktId?: PublicKey;
     isBadDebt?: boolean;
     feeBps?: BN;
+    rebalanceFeePerUnitDiff?: BN;
+    isLiquidation?: boolean;
   }) {
 
    const fundingAccumulated = snapshotBefore.positionAccount?.fundingAccumulated || new BN(0);
    const closeFee = feeBps.gt(new BN(0)) ? feeBps : (await this.getProtocolAccount()).config.closingFeeBps;
 
    const sizePercentageClosed = sizeClosed.mul(new BN(10000)).div(snapshotBefore.positionAccount?.size || new BN(1));
+
+   // Calculate rebalance fee owed: (position_size * rebalance_fee_per_unit) / PRICE_PRECISION
+   // Note: We charge the FULL rebalance fee even for partial closes
+
+   let totalExitNotional = snapshotBefore.positionAccount!.size.mul(exitPrice).div(PRICE_PRECISION);
+   let rebalanceFeeOwed = rebalanceFeePerUnitDiff.mul(totalExitNotional).div(BPS_DIVISOR);
+
 
    const settlementDetails = calculateSettlementDetails(
     snapshotBefore.escrowBalance.mul(sizePercentageClosed).div(new BN(10000)), // Escrow balance is the total collateral, so we need to multiply by the size percentage closed
@@ -1282,7 +1292,9 @@ export class TestClient extends BaseClient {
     exitPrice,
     snapshotBefore.positionAccount?.isLong || false,
     new BN(1000), // 10%
-   )
+    rebalanceFeeOwed,
+    isLiquidation,
+   )  
 
    expect(settlementDetails.isBadDebt).to.be.equal(isBadDebt);
 
@@ -1305,10 +1317,9 @@ export class TestClient extends BaseClient {
 
    // 4. Treasury fee collection
    expect(settlementDetails.feeToTreasury.eq(snapshotAfter.trasuryBalance.sub(snapshotBefore.trasuryBalance))).to.be.true;
-  
+   
    // 5. Pool balance changes
-   const poolGain = settlementDetails.escrowToBLP;
-   const netPoolDelta = poolGain.sub(settlementDetails.poolToUser);
+   const netPoolDelta = settlementDetails.escrowToBLP.sub(settlementDetails.poolToUser);
    expect(netPoolDelta.eq(snapshotAfter.poolUSDCBalance.sub(snapshotBefore.poolUSDCBalance))).to.be.true;
   
    // 6. Pool state consistency

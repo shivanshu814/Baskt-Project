@@ -302,7 +302,6 @@ pub fn open_position<'info>(
         collateral: position.collateral,
         is_long: position.is_long,
         entry_price: params.entry_price,
-        entry_funding_index: position.entry_funding_index,
         fee_to_treasury,
         fee_to_blp,
         timestamp: clock.unix_timestamp,
