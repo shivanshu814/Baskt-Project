@@ -4,18 +4,20 @@ import { createSetAuthorityInstruction, AuthorityType, getMint } from '@solana/s
 
 async function main() {
   const { wallet, provider } = getProvider(
-    'https://attentive-long-replica.solana-mainnet.quiknode.pro/5338b0732eff649c847a73b9132b485b8e9d7346/',
+    'https://fabled-indulgent-seed.solana-devnet.quiknode.pro/19abbec85e908d5bdf453cc6bf35fb6d8d559b80/',
   );
 
   const tokenKeypair = Keypair.fromSecretKey(
-    Uint8Array.from([83,88,254,63,240,16,13,204,29,152,31,232,140,239,158,38,165,95,97,101,115,204,155,70,249,146,84,219,180,37,213,223,87,168,160,248,73,209,136,92,207,227,160,183,163,162,113,172,52,60,61,48,151,1,62,239,128,61,49,236,22,104,53,39]),
+    Uint8Array.from([207,23,204,192,93,152,5,222,39,13,3,74,139,137,140,242,129,28,140,36,82,191,207,189,205,44,242,172,140,178,49,72,191,229,35,57,127,190,29,200,10,40,222,50,21,230,221,75,182,165,170,2,52,118,143,225,191,17,50,74,189,110,39,162]),
   );
 
   console.log(tokenKeypair.publicKey.toBase58());
 
+  const MINT = new PublicKey('Dv5XCiVvpvrMgEo5MuBYX6P4ce9dU3f5vubN6XVahMzR');
+
   const mintAccount = await getMint(
     provider.connection,
-    new PublicKey('6uBc97h6XMKY4kqQ3DJA9R8y9AXC7yUMsm7AUxM8QKpr'),
+    MINT,
   );
 
   console.log('Mint Account:', mintAccount);
@@ -35,11 +37,9 @@ async function main() {
     Buffer.from(newMintAuthority.secretKey).toString('base64'),
   );
 
-  const tokenMint = new PublicKey('6uBc97h6XMKY4kqQ3DJA9R8y9AXC7yUMsm7AUxM8QKpr');
-
   const transaction = new Transaction().add(
     createSetAuthorityInstruction(
-      tokenMint,
+      MINT,
       wallet.publicKey,
       AuthorityType.MintTokens,
       newMintAuthority.publicKey,
