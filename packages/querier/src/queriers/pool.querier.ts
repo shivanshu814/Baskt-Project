@@ -16,10 +16,6 @@ export class PoolQuerier {
   // get liquidity pool data
   async getLiquidityPool(): Promise<QueryResult<LiquidityPool>> {
     try {
-      const [liquidityPoolPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('liquidity_pool'), this.sdkClient.protocolPDA.toBuffer()],
-        this.sdkClient.program.programId,
-      );
 
       const poolData = await this.sdkClient.getLiquidityPool();
 
@@ -62,10 +58,6 @@ export class PoolQuerier {
   // get pool deposits
   async getPoolDeposits(): Promise<QueryResult<PoolDeposit[]>> {
     try {
-      const [liquidityPoolPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('liquidity_pool'), this.sdkClient.protocolPDA.toBuffer()],
-        this.sdkClient.program.programId,
-      );
 
       const poolData = await this.sdkClient.getLiquidityPool();
       const lpMint = new PublicKey(poolData.lpMint);

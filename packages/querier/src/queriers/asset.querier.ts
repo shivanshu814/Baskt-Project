@@ -27,7 +27,6 @@ export class AssetQuerier {
    * Get all assets with optional price and config data
    */
   async getAllAssets(options: AssetQueryOptions = {}): Promise<QueryResult<CombinedAsset[]>> {
-    console.time('getAllAssets');
     try {
       const { withConfig = false} = options;
 
@@ -59,8 +58,6 @@ export class AssetQuerier {
         success: true,
         data: combinedAssets,
       };
-
-      console.timeEnd('getAllAssets');
 
       return result;
     } catch (error) {

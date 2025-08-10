@@ -1,13 +1,15 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import { AssetMetadataModel, AssetMetadataSchema } from '@baskt/types';
+import dotenv, { config } from 'dotenv';
+import { AssetMetadataModel, AssetMetadataSchema } from '../../../querier/src/types/models';
+import { getProvider } from '../utils';
+import { TestClient } from '../../tests/utils/test-client';
 
 dotenv.config();
 
 // Define connection URLs (these can be passed as environment variables or command line args)
-const SOURCE_DB_URL =
+const  SOURCE_DB_URL=
   'mongodb+srv://server:L7NdahgkanJVrBBY@basktbeta.jozlje1.mongodb.net/?retryWrites=true&w=majority&appName=BasktBeta';
-const TARGET_DB_URL =
+const  TARGET_DB_URL=
   'mongodb+srv://server:L7NdahgkanJVrBBY@cluster0.rjadk4r.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 
 // Create mongoose connections
@@ -48,14 +50,37 @@ async function migrateAssetMetadata() {
     await TargetAssetMetadata.deleteMany({});
     console.log('Cleared existing assets in target database');
 
-    // Insert all assets into target database
-    const insertResult = await TargetAssetMetadata.insertMany(assets);
-    console.log(`Successfully migrated ${insertResult.length} assets to target database`);
+    const newAssets = assets;
 
-    // Log some sample data for verification
-    console.log('Sample migrated assets:');
-    const sampleAssets = await TargetAssetMetadata.find().limit(3).lean();
-    console.log(JSON.stringify(sampleAssets, null, 2));
+    console.log('Migrating assets on chain...');
+
+    const {  provider, wallet, program } = getProvider('https://fabled-indulgent-seed.solana-devnet.quiknode.pro/19abbec85e908d5bdf453cc6bf35fb6d8d559b80/');
+    const client = new TestClient(program);
+
+    console.log(program.programId.toBase58());
+
+    for (const asset of newAssets) {
+      const assetPDA = await client.getAssetPDA(asset.ticker);
+
+      if(assetPDA.toBase58() === asset.assetAddress) {
+        console.log(`Asset already exists on chain and in db`, asset.ticker, asset.assetAddress, assetPDA.toBase58());
+        continue;
+      } 
+      asset.assetAddress = assetPDA.toBase58();
+
+      try {
+        const account = await client.getAsset(assetPDA);
+        console.log(`Asset ${asset.ticker} ${asset.assetAddress} ${assetPDA.toBase58()} already exists on chain. will add to DB`);
+        continue;
+      } catch (error) {
+        const addAssetTx = await client.addAsset(asset.ticker); 
+        console.log(`Added asset ${asset.ticker} ${asset.assetAddress} to blockchain`, addAssetTx);
+      }
+    }
+    
+    // Insert all assets into target database
+    const insertResult = await TargetAssetMetadata.insertMany(newAssets);
+    console.log(`Successfully migrated ${insertResult.length} assets to target database`);
   } catch (error) {
     console.error('Error during asset metadata migration:', error);
   } finally {

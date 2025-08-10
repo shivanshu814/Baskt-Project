@@ -150,10 +150,7 @@ async function main() {
 
     // Create models for each connection
     const sourceModel = sourceConnection.model('AssetMetadata', AssetMetadataSchema);    
-    console.log(sourceModel);
-
     const targetModel = targetConnection.model('AssetMetadata', AssetMetadataSchema);
-    console.log(targetModel);
 
 
     // Initialize blockchain client
@@ -184,6 +181,13 @@ async function main() {
       console.log(`   Address: ${asset.assetAddress}`);
 
       try {
+
+        // Add to blockchain
+        const blockchainSuccess = await addAssetToBlockchain(client, asset);
+        if (blockchainSuccess) {
+          blockchainCount++;
+        }
+        
                 // Check if asset already exists in target database
         const existsInTarget = await checkAssetExistsInTarget(targetModel, asset.ticker);
         
@@ -201,11 +205,7 @@ async function main() {
 
         migratedCount++;
 
-        // Add to blockchain
-        const blockchainSuccess = await addAssetToBlockchain(client, asset);
-        if (blockchainSuccess) {
-          blockchainCount++;
-        }
+
 
         // Add delay between operations to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
