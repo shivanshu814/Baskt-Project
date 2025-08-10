@@ -97,20 +97,6 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
       },
-    },
-    {
-      name: 'keeper:withdraw-queue',
-      cwd: './services/keeper',
-      script: 'bash',
-      args: "-c 'node dist/index.js'",
-      interpreter: 'none',
-      exec_mode: 'fork',
-      autorestart: true,
-      watch: false,
-      env_file: '.env', // Absolute path to root .env
-      env: {
-        NODE_ENV: 'production',
-      },
-    },
+    }
   ],
 };
