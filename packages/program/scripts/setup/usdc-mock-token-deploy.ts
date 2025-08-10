@@ -7,7 +7,7 @@ import { Keypair } from '@solana/web3.js';
 
 async function main() {
   const { wallet, provider } = getProvider(
-    'https://attentive-long-replica.solana-mainnet.quiknode.pro/5338b0732eff649c847a73b9132b485b8e9d7346/',
+    'https://fabled-indulgent-seed.solana-devnet.quiknode.pro/19abbec85e908d5bdf453cc6bf35fb6d8d559b80/',
   );
 
   const tokenKeypair = Keypair.generate();

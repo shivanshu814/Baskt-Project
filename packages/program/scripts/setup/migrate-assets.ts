@@ -1,14 +1,14 @@
 import { getProvider } from '../utils';
 import { BaseClient } from '../../../sdk/src/base-client';
 import mongoose from 'mongoose';
-import { AssetMetadataSchema } from '@baskt/types';
+import { AssetMetadataSchema } from '../../../querier/src/types/models';
 import dotenv from 'dotenv';
 
 // Configuration - Hardcoded values
 const config: MigrationConfig = {
-    sourceMongoUri: 'mongodb+srv://server:L7NdahgkanJVrBBY@cluster0.rjadk4r.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0',
-    targetMongoUri: 'mongodb+srv://server:L7NdahgkanJVrBBY@basktbeta.jozlje1.mongodb.net/?retryWrites=true&w=majority&appName=BasktBeta',
-    rpcUrl: 'https://attentive-long-replica.solana-mainnet.quiknode.pro/5338b0732eff649c847a73b9132b485b8e9d7346/',
+  sourceMongoUri: 'mongodb+srv://server:L7NdahgkanJVrBBY@basktbeta.jozlje1.mongodb.net/?retryWrites=true&w=majority&appName=BasktBeta',
+  targetMongoUri: 'mongodb+srv://server:L7NdahgkanJVrBBY@cluster0.rjadk4r.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0',
+    rpcUrl: 'https://fabled-indulgent-seed.solana-devnet.quiknode.pro/19abbec85e908d5bdf453cc6bf35fb6d8d559b80/',
     walletPath: process.env.ANCHOR_WALLET,
   };
 
@@ -133,25 +133,28 @@ async function addAssetToBlockchain(client: AssetMigrationClient, asset: AssetMe
 }
 
 async function main() {
-  console.log('🔧 Using hardcoded configuration:');
-  console.log('   Source DB: cluster0.rjadk4r.mongodb.net (dev)');
-  console.log('   Target DB: basktbeta.jozlje1.mongodb.net (beta.prod)');
-  console.log('   RPC URL: Solana Mainnet');
 
   console.log('🚀 Starting asset migration process...');
   console.log('📋 Configuration:');
-  console.log(`   Source DB: cluster0.rjadk4r.mongodb.net (dev)`);
-  console.log(`   Target DB: basktbeta.jozlje1.mongodb.net (beta.prod)`);
-  console.log(`   RPC URL: Solana Mainnet`);
+  console.log(`   Source DB: basktbeta.jozlje1.mongodb.net (beta.prod)`);
+  console.log(`   Target DB: cluster0.rjadk4r.mongodb.net (dev)`);
+  console.log(`   RPC URL: Solana Devnet`);
 
   try {
     // Connect to both databases
     const sourceConnection = await mongoose.createConnection(config.sourceMongoUri);
     const targetConnection = await mongoose.createConnection(config.targetMongoUri);
 
+
+
+
     // Create models for each connection
-    const sourceModel = sourceConnection.model('AssetMetadata', AssetMetadataSchema);
+    const sourceModel = sourceConnection.model('AssetMetadata', AssetMetadataSchema);    
+    console.log(sourceModel);
+
     const targetModel = targetConnection.model('AssetMetadata', AssetMetadataSchema);
+    console.log(targetModel);
+
 
     // Initialize blockchain client
     const { provider, wallet } = getProvider(config.rpcUrl);

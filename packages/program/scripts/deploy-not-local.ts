@@ -64,7 +64,6 @@ async function main() {
   await client.initializeLiquidityPool(
     100,
     100,
-    new anchor.BN(1e6),
     lpMintKeypair.publicKey,
     usdcMint,
     lpMintKeypair,
@@ -72,8 +71,8 @@ async function main() {
 
   // 1. Derive PDAs
   const protocolPDA = await client.protocolPDA;
-  const liquidityPoolPDA = await client.findLiquidityPoolPDA();
-  const poolAuthorityPDA = await client.findPoolAuthorityPDA();
+  const liquidityPoolPDA = await client.liquidityPoolPDA;
+  const poolAuthorityPDA = await client.poolAuthorityPDA;
   console.log('Protocol PDA:', protocolPDA.toBase58());
   console.log('Liquidity Pool PDA:', liquidityPoolPDA.toBase58());
   console.log('Pool Authority PDA:', poolAuthorityPDA.toBase58());

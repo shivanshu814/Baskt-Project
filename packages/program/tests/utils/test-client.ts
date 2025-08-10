@@ -1122,7 +1122,7 @@ export class TestClient extends BaseClient {
   }
 
   public async initializeProtocol(treasury: PublicKey) {
-    await requestAirdrop(this.publicKey, this.connection);
+    // await requestAirdrop(this.publicKey, this.connection);
     return await super.initializeProtocol(treasury);
   }
 
