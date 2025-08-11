@@ -1,19 +1,19 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { createMint, getOrCreateAssociatedTokenAccount } from '@solana/spl-token';
+import { createMint, getMint, getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';
 import { getProvider } from '../utils';
 import { Keypair, PublicKey } from '@solana/web3.js';
 
 async function main() {
   const { wallet, provider } = getProvider(
-    'https://attentive-long-replica.solana-mainnet.quiknode.pro/5338b0732eff649c847a73b9132b485b8e9d7346/',
+    'https://fabled-indulgent-seed.solana-devnet.quiknode.pro/19abbec85e908d5bdf453cc6bf35fb6d8d559b80/',
   );
 
 
-  const account = new PublicKey("6eEovMpy9rY8bQ3MYdM5D57xMpEAB2XJZ6eMURZZG1Wn");
+  const account = new PublicKey("BLMLnp7mYcHWRSeiZi39AH7yx7hLLmGC35uHzdYPzwkd");
   console.log('Account:', account.toBase58());
-  const mint = new PublicKey("6uBc97h6XMKY4kqQ3DJA9R8y9AXC7yUMsm7AUxM8QKpr");
+  const mint = new PublicKey("Dv5XCiVvpvrMgEo5MuBYX6P4ce9dU3f5vubN6XVahMzR");
   const isPDA = process.argv[4] === 'true';
 
   console.log('Mint:', mint.toBase58());
@@ -28,9 +28,30 @@ async function main() {
     isPDA,
   );
 
+  const mintAuthority = Keypair.fromSecretKey(
+    Buffer.from(
+      'uXb1D9H0qDO4o0EvSy6U0QB0seqk7gnpWpNJAQNXvFV/BE6Rod1zMqIb44vJgTFUtVrC1tZK+u+6MedlEk+k+w==',
+      'base64',
+    ),
+  );
+
+  console.log('Mint', await mintTo(
+    provider.connection,
+    wallet.payer,
+    mint,
+    ata.address,
+    mintAuthority.publicKey,
+    10_000 * 1e6,
+    [mintAuthority],
+  ))
+
+
+
   console.log("Sol Balance:", await provider.connection.getBalance(account));
   console.log('ATA:', ata.address.toBase58());
   console.log('ATA Balance:', await provider.connection.getTokenAccountBalance(ata.address)); 
+
+
 
 
   
