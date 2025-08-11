@@ -292,3 +292,30 @@ export interface AssetDisplayConfig {
   multiAssetSize: string;
   overlapAmount: string;
 }
+
+// Define the missing types
+export interface TooltipData {
+  x: number;
+  y: number;
+  value: number;
+  time: number;
+  show: boolean;
+}
+
+export type ChartPeriod = '1D' | '1W' | '1M' | '3M' | '1Y';
+
+export interface TradingDataPoint {
+  time: number;
+  value: number;
+  min?: number;
+  max?: number;
+  count?: number;
+}
+
+export interface TradingDataResponse {
+  success: boolean;
+  data: TradingDataPoint[];
+  dataSource?: string;
+  message?: string;
+  error?: string;
+}

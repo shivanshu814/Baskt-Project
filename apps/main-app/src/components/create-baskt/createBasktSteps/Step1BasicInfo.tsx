@@ -52,29 +52,31 @@ export function Step1BasicInfo({ formData, setFormData }: Step1BasicInfoProps) {
         <div className="text-sm text-muted-foreground -mt-2 mb-3">
           Controls whether your baskt is visible and available for others to view and buy.
         </div>
-        <div className="flex gap-3 w-1/2">
+        <div className="flex gap-2 w-1/3">
           <Button
+            size="sm"
             variant={formData.visibility === 'public' ? 'default' : 'outline'}
             onClick={() => handleVisibilityChange('public')}
-            className={`flex-1 justify-start ${
+            className={`flex-1 justify-start px-2 py-1 text-sm ${
               formData.visibility === 'public'
                 ? 'bg-purple-600 hover:bg-purple-700 text-white border border-white/20'
                 : 'border-white/20'
             }`}
           >
-            <BookOpenCheck className="h-4 w-4 mr-2" />
+            <BookOpenCheck className="h-3 w-3 mr-1" />
             Public
           </Button>
           <Button
+            size="sm"
             variant={formData.visibility === 'private' ? 'default' : 'outline'}
             onClick={() => handleVisibilityChange('private')}
-            className={`flex-1 justify-start ${
+            className={`flex-1 justify-start px-2 py-1 text-sm ${
               formData.visibility === 'private'
                 ? 'bg-purple-600 hover:bg-purple-700 text-white border border-white/20'
                 : 'border-white/20'
             }`}
           >
-            <Lock className="h-4 w-4 mr-2" />
+            <Lock className="h-3 w-3 mr-1" />
             Private
           </Button>
         </div>
@@ -88,34 +90,36 @@ export function Step1BasicInfo({ formData, setFormData }: Step1BasicInfoProps) {
             Choose how your baskt will be rebalanced.
           </div>
         </div>
-        <div className="flex gap-3 w-1/2">
+        <div className="flex gap-2 w-1/3">
           <Button
+            size="sm"
             variant="outline"
             onClick={() => handleRebalancingTypeChange('automatic')}
-            className={`flex-1 justify-start ${
+            className={`flex-1 justify-start px-2 py-1 text-sm ${
               formData.rebalancingType === 'automatic'
                 ? 'bg-purple-600 hover:bg-purple-700 text-white border border-white/20'
                 : 'border-white/20'
             }`}
           >
             <div
-              className={`h-3 w-3 mr-3 rounded-full ${
+              className={`h-3 w-3 mr-1 rounded-full ${
                 formData.rebalancingType === 'automatic' ? 'bg-purple-300' : 'bg-gray-600'
               }`}
             />
             Automatic
           </Button>
           <Button
+            size="sm"
             variant="outline"
             onClick={() => handleRebalancingTypeChange('manual')}
-            className={`flex-1 justify-start ${
+            className={`flex-1 justify-start px-2 py-1 text-sm ${
               formData.rebalancingType === 'manual'
                 ? 'bg-purple-600 hover:bg-purple-700 text-white border border-white/20'
                 : 'border-white/20'
             }`}
           >
             <div
-              className={`h-3 w-3 mr-3 rounded-full ${
+              className={`h-3 w-3 mr-1 rounded-full ${
                 formData.rebalancingType === 'manual' ? 'bg-purple-300' : 'bg-gray-600'
               }`}
             />
@@ -128,7 +132,7 @@ export function Step1BasicInfo({ formData, setFormData }: Step1BasicInfoProps) {
       {formData.rebalancingType === 'automatic' && (
         <div className="space-y-3">
           <Label>Rebalancing Period</Label>
-          <div className="flex gap-3 w-1/2">
+          <div className="flex gap-2 w-1/3">
             <Input
               type="number"
               min="1"

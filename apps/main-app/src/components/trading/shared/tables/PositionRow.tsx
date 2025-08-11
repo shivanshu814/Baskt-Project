@@ -27,9 +27,6 @@ export function PositionRow({ position, onAddCollateral, onClosePosition }: Posi
         <span className={positionTypeColor}>{positionTypeLabel}</span>
       </td>
       <td className="py-2 px-2">
-        <NumberFormat value={position.size} isPrice={true} />
-      </td>
-      <td className="py-2 px-2">
         <NumberFormat value={calculations.positionValue} isPrice={true} showCurrency={true} />
       </td>
       <td className="py-2 px-2">

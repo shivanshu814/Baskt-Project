@@ -1,7 +1,7 @@
 'use client';
 
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, NumberFormat } from '@baskt/ui';
-import { CheckCircle, FileText, Lock } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { useStep3Review } from '../../../hooks/create-baskt/steps/use-step-3-review';
 import { Step3ReviewProps } from '../../../types/baskt/creation';
 import { formatRebalancingDisplay } from '../../../utils/baskt/baskt';
@@ -57,23 +57,15 @@ export function Step3Review({ formData, selectedAssets, assetDetails }: Step3Rev
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="space-y-3">
-              <CardTitle className="text-lg font-bold text-white">{formData.name}</CardTitle>
-              <div className="flex items-center gap-3">
-                {formData.visibility === 'public' ? (
-                  <FileText className="h-4 w-4 text-emerald-400" />
-                ) : (
-                  <Lock className="h-4 w-4 text-amber-400" />
-                )}
-                <Badge
-                  variant={formData.visibility === 'public' ? 'default' : 'secondary'}
-                  className="px-2 py-1 text-xs font-medium rounded-sm"
-                >
+              <CardTitle className="text-lg font-bold text-white">
+                {formData.name}{' '}
+                <span className="ml-2 text-sm font-medium text-primary capitalize bg-primary/10 px-2 py-1 rounded-sm">
                   {formData.visibility}
-                </Badge>
-              </div>
+                </span>
+              </CardTitle>
             </div>
-            <div className="flex items-center justify-center h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-500/30">
-              <CheckCircle className="h-6 w-6 text-emerald-400" />
+            <div className="flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
+              <Sparkles className="h-5 w-5 text-primary" />
             </div>
           </div>
         </CardHeader>

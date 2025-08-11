@@ -18,7 +18,6 @@ export function PositionsTab({
         <thead className="sticky top-0 bg-zinc-900/95 z-10 border-b border-border">
           <tr>
             <th className="text-left py-2 px-2">Long/Short</th>
-            <th className="text-left py-2 px-2">Size</th>
             <th className="text-left py-2 px-2 whitespace-nowrap">Position Value</th>
             <th className="text-left py-2 px-2 whitespace-nowrap">Entry Price</th>
             <th className="text-left py-2 px-2 whitespace-nowrap">Current Price</th>

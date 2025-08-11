@@ -78,10 +78,10 @@ export function Step2Assets({
                 onClick={handleAddAsset}
                 variant="outline"
                 size="sm"
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto bg-primary/10 border-primary/30 hover:bg-primary/20 hover:border-primary/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10"
               >
                 <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">Add More Assets</span>
+                <span className="hidden sm:inline">Add Assets</span>
                 <span className="sm:hidden">Add Assets</span>
               </Button>
             </div>

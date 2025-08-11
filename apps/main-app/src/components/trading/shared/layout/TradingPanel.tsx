@@ -142,57 +142,6 @@ export function TradingPanel({ baskt }: TradingPanelProps) {
                 />
               </span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Current Position</span>
-              <span className="font-semibold">
-                {positions.length > 0
-                  ? (() => {
-                      const totals = {
-                        long: 0,
-                        short: 0,
-                      };
-
-                      positions.forEach((position: any) => {
-                        if (position.isLong) {
-                          totals.long += Number(position.size || 0);
-                        } else {
-                          totals.short += Number(position.size || 0);
-                        }
-                      });
-
-                      const hasLong = totals.long > 0;
-                      const hasShort = totals.short > 0;
-
-                      return (
-                        <div className="flex flex-col items-end space-y-1">
-                          {hasLong && (
-                            <span className="text-xs">
-                              <span className="text-green-500">Long</span>{' '}
-                              <NumberFormat
-                                value={totals.long}
-                                isPrice={true}
-                                showCurrency={false}
-                              />{' '}
-                              units
-                            </span>
-                          )}
-                          {hasShort && (
-                            <span className="text-xs">
-                              <span className="text-red-500">Short</span>{' '}
-                              <NumberFormat
-                                value={totals.short}
-                                isPrice={true}
-                                showCurrency={false}
-                              />{' '}
-                              units
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })()
-                  : 'No Position'}
-              </span>
-            </div>
           </div>
 
           <div className="space-y-2">
@@ -200,31 +149,36 @@ export function TradingPanel({ baskt }: TradingPanelProps) {
               <label className="text-sm font-medium">Size</label>
               <span className="text-sm text-muted-foreground">USDC</span>
             </div>
-            <Input
-              type="number"
-              placeholder="0.00"
-              value={size}
-              onChange={(e) => {
-                const newSize = e.target.value;
-                setSize(newSize);
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none select-none">
+                $
+              </span>
+              <Input
+                type="number"
+                placeholder="0.00"
+                value={size}
+                onChange={(e) => {
+                  const newSize = e.target.value;
+                  setSize(newSize);
 
-                const usdcBalanceNum = parseFloat(hookUsdcBalance) || 0;
-                if (usdcBalanceNum > 0 && newSize && parseFloat(newSize) > 0) {
-                  const newPercentage = (parseFloat(newSize) / usdcBalanceNum) * 100;
-                  setSizePercentage(Math.min(newPercentage, 100));
-                } else {
-                  setSizePercentage(0);
-                }
-              }}
-              className="mb-2"
-              disabled={isLoading}
-              min="0.00001"
-              onKeyDown={(e) => {
-                if (e.key === '-') {
-                  e.preventDefault();
-                }
-              }}
-            />
+                  const usdcBalanceNum = parseFloat(hookUsdcBalance) || 0;
+                  if (usdcBalanceNum > 0 && newSize && parseFloat(newSize) > 0) {
+                    const newPercentage = (parseFloat(newSize) / usdcBalanceNum) * 100;
+                    setSizePercentage(Math.min(newPercentage, 100));
+                  } else {
+                    setSizePercentage(0);
+                  }
+                }}
+                className="mb-2 text-right pl-7"
+                disabled={isLoading}
+                min="0.00001"
+                onKeyDown={(e) => {
+                  if (e.key === '-') {
+                    e.preventDefault();
+                  }
+                }}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -269,14 +223,6 @@ export function TradingPanel({ baskt }: TradingPanelProps) {
               <span className="text-muted-foreground">Current Price:</span>
               <span className={priceColor}>
                 <NumberFormat value={currentPrice} isPrice={true} showCurrency={true} />
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Position Size:</span>
-              <span>
-                {Number(size) > 0 && baskt?.price
-                  ? `${((Number(size) / baskt.price) * 1e6).toFixed(2)} units`
-                  : '---'}
               </span>
             </div>
             <div className="flex justify-between items-center">
