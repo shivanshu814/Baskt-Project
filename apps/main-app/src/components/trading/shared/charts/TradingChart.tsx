@@ -20,6 +20,8 @@ import {
 import { TradingChartProps } from '../../../../types/trading/orders';
 import { TradingPanel } from '../layout/TradingPanel';
 
+const NAV_TRACKING_INTERVAL_MINUTES = 5;
+
 const CHART_OPTIONS = {
   layout: {
     textColor: '#FFFFFF',
@@ -34,8 +36,8 @@ const CHART_OPTIONS = {
     borderColor: 'hsl(var(--border))',
     textColor: '#FFFFFF',
     scaleMargins: {
-      top: 0.15,
-      bottom: 0.15,
+      top: 0.25,
+      bottom: 0.25,
     },
     borderVisible: true,
     ticksVisible: true,
@@ -71,12 +73,12 @@ const CHART_OPTIONS = {
 } as const;
 
 const AREA_SERIES_OPTIONS = {
-  topColor: 'rgba(139, 92, 246, 0.4)',
-  bottomColor: 'rgba(139, 92, 246, 0.02)',
+  topColor: 'rgba(139, 92, 246, 0.8)',
+  bottomColor: 'rgba(139, 92, 246, 0.1)',
   lineColor: 'hsl(var(--primary))',
-  lineWidth: 2 as const,
+  lineWidth: 1 as const,
   crosshairMarkerVisible: true,
-  crosshairMarkerRadius: 4,
+  crosshairMarkerRadius: 6,
   crosshairMarkerBorderColor: 'hsl(var(--background))',
   crosshairMarkerBorderWidth: 2,
   lineType: 2,
@@ -134,15 +136,6 @@ export function TradingChart({ baskt }: TradingChartProps) {
     },
   ) as { data: TradingDataResponse | undefined; isLoading: boolean; error: any };
 
-  // Debug logging
-  console.log('TradingChart Debug:', {
-    basktId: baskt.basktId,
-    tradingData,
-    isLoading,
-    error,
-    hasData: tradingData?.data && tradingData.data.length > 0,
-  });
-
   const formatDate = useCallback((time: Time) => {
     const date = new Date(Number(time) * 1000);
     return date.toLocaleDateString([], { day: '2-digit', month: 'short' });
@@ -156,8 +149,8 @@ export function TradingChart({ baskt }: TradingChartProps) {
       timeVisible: true,
       secondsVisible: false,
       rightOffset: 8,
-      barSpacing: 3,
-      minBarSpacing: 2,
+      barSpacing: 4,
+      minBarSpacing: 3,
       fixLeftEdge: true,
       fixRightEdge: true,
       lockVisibleTimeRangeOnResize: true,
@@ -229,9 +222,9 @@ export function TradingChart({ baskt }: TradingChartProps) {
         fixLeftEdge: true,
         fixRightEdge: true,
         lockVisibleTimeRangeOnResize: true,
-        rightOffset: 12,
-        barSpacing: 3,
-        minBarSpacing: 2,
+        rightOffset: 8,
+        barSpacing: 4,
+        minBarSpacing: 3,
       },
       handleScroll: {
         vertTouchDrag: false,
@@ -262,7 +255,7 @@ export function TradingChart({ baskt }: TradingChartProps) {
     (chart as any).activeSeries = areaSeries;
     chart.priceScale('right').applyOptions({
       autoScale: true,
-      scaleMargins: { top: 0.15, bottom: 0.15 },
+      scaleMargins: { top: 0.3, bottom: 0.3 },
       borderVisible: true,
       borderColor: 'hsl(var(--border))',
     });
@@ -301,9 +294,9 @@ export function TradingChart({ baskt }: TradingChartProps) {
           const timeDiff = nextPoint.time - point.time;
           const valueDiff = nextPoint.value - point.value;
 
-          for (let i = 1; i <= 2; i++) {
-            const interpolatedTime = point.time + (timeDiff * i) / 3;
-            const interpolatedValue = point.value + (valueDiff * i) / 3;
+          for (let i = 1; i <= 4; i++) {
+            const interpolatedTime = point.time + (timeDiff * i) / 5;
+            const interpolatedValue = point.value + (valueDiff * i) / 5;
             acc.push({
               time: interpolatedTime,
               value: interpolatedValue,
@@ -330,7 +323,7 @@ export function TradingChart({ baskt }: TradingChartProps) {
         to: lastPoint.time as Time,
       });
     }
-  }, [tradingData?.data, responsivePeriod]);
+  }, [tradingData, responsivePeriod]);
 
   const renderChart = () => {
     if (isLoading && !tradingData?.data?.length) {
@@ -366,7 +359,7 @@ export function TradingChart({ baskt }: TradingChartProps) {
       );
     }
 
-    if (!tradingData?.data || tradingData.data.length === 0) {
+    if (!tradingData || tradingData.data.length === 0) {
       return (
         <div className="flex items-center justify-center h-full">
           <div className="flex flex-col items-center gap-3">
@@ -408,23 +401,40 @@ export function TradingChart({ baskt }: TradingChartProps) {
               <div className="flex items-center justify-between">
                 <div className="text-muted-foreground font-semibold text-xs uppercase tracking-wider">
                   {tooltipData.time
-                    ? new Date(tooltipData.time * 1000).toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
+                    ? (() => {
+                        const date = new Date(tooltipData.time * 1000);
+                        const formattedDate = date.toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        });
+
+                        // Debug: Log tooltip time
+                        console.log('🕐 Tooltip Time Debug:', {
+                          timestamp: tooltipData.time,
+                          utcDate: date.toISOString(),
+                          formattedDate: formattedDate,
+                          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        });
+
+                        return formattedDate;
+                      })()
                     : ''}
                 </div>
               </div>
               <div className="text-muted-foreground text-xs font-medium">
                 {tooltipData.time
-                  ? new Date(tooltipData.time * 1000).toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: true,
-                    })
+                  ? (() => {
+                      const date = new Date(tooltipData.time * 1000);
+                      const formattedTime = date.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true,
+                      });
+                      return formattedTime;
+                    })()
                   : ''}
               </div>
               <div className="text-foreground font-bold text-xl">

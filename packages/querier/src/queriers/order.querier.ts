@@ -1,9 +1,9 @@
-import { OrderMetadataModel } from '../models/mongodb';
-import { handleQuerierError } from '../utils/error-handling';
-import { OrderOptions, QueryResult } from '../models/types';
 import { BaseClient } from '@baskt/sdk';
-import { CombinedOrder } from '../types/order';
 import BN from 'bn.js';
+import { OrderMetadataModel } from '../models/mongodb';
+import { OrderOptions, QueryResult } from '../models/types';
+import { CombinedOrder } from '../types/order';
+import { handleQuerierError } from '../utils/error-handling';
 
 /**
  * Order Querier
@@ -29,7 +29,34 @@ export class OrderQuerier {
         this.getFilteredOrderMetadata(options),
       ]);
 
-      const combinedOrders = this.combineOrderData(onchainOrders, orderMetadatas);
+      // Filter onchain orders based on the same criteria as metadata
+      let filteredOnchainOrders = onchainOrders;
+
+      if (options.basktId) {
+        filteredOnchainOrders = filteredOnchainOrders.filter(
+          (order) => order.basktId?.toString() === options.basktId,
+        );
+      }
+
+      if (options.userId) {
+        filteredOnchainOrders = filteredOnchainOrders.filter(
+          (order) => order.owner?.toString().toLowerCase() === options.userId?.toLowerCase(),
+        );
+      }
+
+      if (options.orderStatus) {
+        filteredOnchainOrders = filteredOnchainOrders.filter(
+          (order) => order.status === options.orderStatus,
+        );
+      }
+
+      if (options.orderAction) {
+        filteredOnchainOrders = filteredOnchainOrders.filter(
+          (order) => order.action === options.orderAction,
+        );
+      }
+
+      const combinedOrders = this.combineOrderData(filteredOnchainOrders, orderMetadatas);
 
       return {
         success: true,
@@ -144,12 +171,15 @@ export class OrderQuerier {
   private createOrderFromMetadata(orderMetadata: any): CombinedOrder {
     // Extract values from new modular structure or fall back to old flat structure
     const limitPrice = orderMetadata.limitParams?.limitPrice || orderMetadata.limitPrice || '0';
-    const maxSlippage = orderMetadata.limitParams?.maxSlippageBps || orderMetadata.maxSlippage || '0';
+    const maxSlippage =
+      orderMetadata.limitParams?.maxSlippageBps || orderMetadata.maxSlippage || '0';
     const collateral = orderMetadata.openParams?.collateral || orderMetadata.collateral || '0';
     const isLong = orderMetadata.openParams?.isLong ?? orderMetadata.isLong ?? false;
-    const size = orderMetadata.closeParams?.sizeAsContracts || 
-                 orderMetadata.openParams?.notionalValue || 
-                 orderMetadata.size || '0';
+    const size =
+      orderMetadata.closeParams?.sizeAsContracts ||
+      orderMetadata.openParams?.notionalValue ||
+      orderMetadata.size ||
+      '0';
 
     const usdcSize = this.calculateUsdcSize(size, limitPrice);
 
@@ -166,13 +196,13 @@ export class OrderQuerier {
       fullFillOrder: orderMetadata.fullFillOrder,
       position: orderMetadata.position,
       usdcSize: orderMetadata.usdcSize || usdcSize,
-      
+
       // New modular parameters
       openParams: orderMetadata.openParams,
       closeParams: orderMetadata.closeParams,
       marketParams: orderMetadata.marketParams,
       limitParams: orderMetadata.limitParams,
-      
+
       // Backward compatibility fields
       size: size,
       collateral: collateral,
@@ -187,17 +217,23 @@ export class OrderQuerier {
    */
   private createOrderFromBothSources(onchainOrder: any, orderMetadata: any): CombinedOrder {
     // Extract data from onchain order's modular structure
-    const onchainLimitPrice = onchainOrder.limitParams?.limitPrice?.toString() || 
-                              onchainOrder.limitPrice?.toString() || '0';
-    const onchainMaxSlippage = onchainOrder.limitParams?.maxSlippageBps?.toString() || 
-                               onchainOrder.maxSlippage?.toString() || '0';
-    const onchainCollateral = onchainOrder.openParams?.collateral?.toString() || 
-                              onchainOrder.collateral?.toString() || '0';
+    const onchainLimitPrice =
+      onchainOrder.limitParams?.limitPrice?.toString() ||
+      onchainOrder.limitPrice?.toString() ||
+      '0';
+    const onchainMaxSlippage =
+      onchainOrder.limitParams?.maxSlippageBps?.toString() ||
+      onchainOrder.maxSlippage?.toString() ||
+      '0';
+    const onchainCollateral =
+      onchainOrder.openParams?.collateral?.toString() || onchainOrder.collateral?.toString() || '0';
     const onchainIsLong = onchainOrder.openParams?.isLong ?? onchainOrder.isLong ?? false;
-    
-    let size = onchainOrder.closeParams?.sizeAsContracts?.toString() || 
-               onchainOrder.openParams?.notionalValue?.toString() || 
-               onchainOrder.size?.toString() || '0';
+
+    let size =
+      onchainOrder.closeParams?.sizeAsContracts?.toString() ||
+      onchainOrder.openParams?.notionalValue?.toString() ||
+      onchainOrder.size?.toString() ||
+      '0';
 
     // Fallback: calculate size from collateral if size is 0
     if (size === '0' && onchainCollateral !== '0' && onchainLimitPrice !== '0') {
@@ -219,13 +255,13 @@ export class OrderQuerier {
       fullFillOrder: orderMetadata?.fullFillOrder,
       position: orderMetadata?.position,
       usdcSize: orderMetadata?.usdcSize || usdcSize,
-      
+
       // New modular parameters (prioritize onchain data, fallback to metadata)
       openParams: onchainOrder.openParams || orderMetadata?.openParams,
       closeParams: onchainOrder.closeParams || orderMetadata?.closeParams,
       marketParams: onchainOrder.marketParams || orderMetadata?.marketParams,
       limitParams: onchainOrder.limitParams || orderMetadata?.limitParams,
-      
+
       // Backward compatibility fields
       size: size,
       collateral: onchainCollateral,

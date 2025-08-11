@@ -43,7 +43,7 @@ export function OpenOrdersTab({ baskt, orders, onCancelOrder }: OpenOrdersTabPro
                   </span>
                 </td>
                 <td className="py-2 px-2">
-                  <NumberFormat value={order.orderSize} isPrice={true} />
+                  <NumberFormat value={order.orderSize / 1e6} isPrice={true} />
                 </td>
                 <td className="py-2 px-2">
                   {order.orderType === 'Market' ? (
@@ -56,11 +56,15 @@ export function OpenOrdersTab({ baskt, orders, onCancelOrder }: OpenOrdersTabPro
                   <NumberFormat value={order.limitPrice} isPrice={true} showCurrency={true} />
                 </td>
                 <td className="py-2 px-2">
-                  <NumberFormat value={order.orderCollateral} isPrice={true} showCurrency={true} />
+                  <NumberFormat
+                    value={order.orderCollateral / 1e4}
+                    isPrice={true}
+                    showCurrency={true}
+                  />
                 </td>
                 <td className="py-2 px-2">
                   <button
-                    onClick={() => onCancelOrder(orders[index])}
+                    onClick={() => onCancelOrder(processedOrders[index])}
                     className="text-xs px-2 py-1 bg-red-500/20 text-red-500 rounded hover:bg-red-500/30 transition-colors"
                   >
                     Cancel

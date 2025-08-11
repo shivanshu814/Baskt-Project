@@ -1,4 +1,6 @@
+import { calculateCollateralAmount } from '@baskt/sdk';
 import { BasktInfo } from '@baskt/types';
+import BN from 'bn.js';
 import {
   Asset,
   AssetCompositionData,
@@ -282,7 +284,16 @@ export function processOrderDetails(order: any, baskt: BasktInfo): OrderDetails 
   }
 
   const orderPrice = order.price || baskt?.price || 0;
-  const orderCollateral = order.collateral ? parseFloat(order.collateral) : 0;
+
+  // Calculate collateral using the same logic as positions
+  let orderCollateral = 0;
+  if (order.collateral) {
+    orderCollateral = parseFloat(order.collateral);
+  } else if (orderSize > 0) {
+    // If no collateral is provided, calculate it from the order size
+    orderCollateral = calculateCollateralAmount(new BN(orderSize)).toNumber();
+  }
+
   const limitPrice = order.orderType?.limit?.price || orderPrice;
   const isLong = order.isLong || false;
 

@@ -51,7 +51,10 @@ export function OrdersHistoryTab({ baskt, orders }: OrdersHistoryTabProps) {
                     </span>
                   </td>
                   <td className="py-2 px-2">
-                    <NumberFormat value={order.orderSize} isPrice={true} />
+                    <NumberFormat
+                      value={order.isLong ? order.orderSize : order.orderSize / 1e6}
+                      isPrice={true}
+                    />
                   </td>
                   <td className="py-2 px-2">
                     {order.orderType === 'Market' ? (
@@ -64,10 +67,18 @@ export function OrdersHistoryTab({ baskt, orders }: OrdersHistoryTabProps) {
                     <span className={getStatusColor(order.status as any)}>{order.status}</span>
                   </td>
                   <td className="py-2 px-2">
-                    <NumberFormat value={order.filledAmount} isPrice={true} showCurrency={true} />
+                    <NumberFormat
+                      value={order.isLong ? order.filledAmount : order.filledAmount / 1e6}
+                      isPrice={true}
+                      showCurrency={true}
+                    />
                   </td>
                   <td className="py-2 px-2">
-                    <NumberFormat value={order.fees} isPrice={true} showCurrency={true} />
+                    <NumberFormat
+                      value={order.isLong ? order.fees : order.fees / 1e6}
+                      isPrice={true}
+                      showCurrency={true}
+                    />
                   </td>
                   <td className="py-2 px-2">
                     <div className="text-xs">

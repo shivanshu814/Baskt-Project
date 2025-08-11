@@ -4,6 +4,9 @@ import { OrderInfoCardProps } from '../../../../types/trading/orders';
 export function OrderInfoCard({ order }: OrderInfoCardProps) {
   const orderType = order?.isLong ? 'Long' : 'Short';
   const orderTypeColor = order?.isLong ? 'text-green-500' : 'text-red-500';
+  const orderSize = order?.orderSize || order?.size || 0;
+  const orderPrice = order?.orderPrice || order?.price || 0;
+  const orderCollateral = order?.orderCollateral || 0;
 
   return (
     <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
@@ -15,13 +18,19 @@ export function OrderInfoCard({ order }: OrderInfoCardProps) {
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">Size</span>
           <span className="font-semibold text-foreground">
-            <NumberFormat value={order?.size || 0} isPrice={true} />
+            <NumberFormat value={orderSize / 1e6} isPrice={true} />
           </span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">Price</span>
           <span className="font-semibold text-foreground">
-            <NumberFormat value={order?.price || 0} isPrice={true} showCurrency={true} />
+            <NumberFormat value={orderPrice} isPrice={true} showCurrency={true} />
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-muted-foreground">Collateral</span>
+          <span className="font-semibold text-foreground">
+            <NumberFormat value={orderCollateral / 1e4} isPrice={true} showCurrency={true} />
           </span>
         </div>
       </div>
