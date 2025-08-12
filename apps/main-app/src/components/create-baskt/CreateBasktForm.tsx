@@ -107,6 +107,7 @@ export function CreateBasktForm() {
                 (formData.rebalancingType === 'automatic' && formData.rebalancingPeriod === 0))) ||
             (currentStep === 2 && formData.assets.length === 0) ||
             (currentStep === 2 && !isWeightExactly100()) ||
+            (currentStep === 2 && formData.assets.length > 10) ||
             (currentStep === 3 && isSubmitting)
           }
           className="bg-primary hover:bg-primary/90 text-white border border-white/20"

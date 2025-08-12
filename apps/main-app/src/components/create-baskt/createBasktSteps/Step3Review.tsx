@@ -169,7 +169,7 @@ export function Step3Review({ formData, selectedAssets, assetDetails }: Step3Rev
                               assetDetail.position === 'long'
                                 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                                 : 'bg-red-500/20 text-red-400 border-red-500/30'
-                            } border`}
+                            } border rounded-sm pointer-events-none`}
                           >
                             {assetDetail.position === 'long' ? 'Long' : 'Short'}
                           </Badge>

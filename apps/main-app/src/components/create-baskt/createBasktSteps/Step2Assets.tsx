@@ -50,8 +50,10 @@ export function Step2Assets({
           <Button
             className="w-full bg-primary text-white hover:bg-primary/80"
             onClick={handleAddAsset}
+            disabled={formData.assets.length >= 10}
           >
-            <Plus className="mr-2 h-4 w-4" /> Add Assets
+            <Plus className="mr-2 h-4 w-4" />
+            {formData.assets.length >= 10 ? 'Max Assets Reached' : 'Add Assets'}
           </Button>
         </div>
       ) : (
@@ -62,7 +64,7 @@ export function Step2Assets({
             <div>
               <h3 className="text-base sm:text-lg font-semibold">Selected Assets</h3>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                {formData.assets.length} asset{formData.assets.length !== 1 ? 's' : ''} selected
+                {formData.assets.length}/10 asset{formData.assets.length !== 1 ? 's' : ''} selected
               </p>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
@@ -78,11 +80,16 @@ export function Step2Assets({
                 onClick={handleAddAsset}
                 variant="outline"
                 size="sm"
-                className="w-full sm:w-auto bg-primary/10 border-primary/30 hover:bg-primary/20 hover:border-primary/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10"
+                disabled={formData.assets.length >= 10}
+                className="w-full sm:w-auto bg-primary/10 border-primary/30 hover:bg-primary/20 hover:border-primary/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">Add Assets</span>
-                <span className="sm:hidden">Add Assets</span>
+                <span className="hidden sm:inline">
+                  {formData.assets.length >= 10 ? 'Max Assets Reached' : 'Add Assets'}
+                </span>
+                <span className="sm:hidden">
+                  {formData.assets.length >= 10 ? 'Max Assets' : 'Add Assets'}
+                </span>
               </Button>
             </div>
           </div>
@@ -106,6 +113,17 @@ export function Step2Assets({
                 <span className="text-xs sm:text-sm text-orange-500 font-medium">
                   Each asset must have at least 5% weight. Please increase weights for assets with
                   less than 5%.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* asset limit reached */}
+          {formData.assets.length >= 10 && (
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm text-blue-500 font-medium">
+                  Maximum of 10 assets reached. Remove an asset to add a new one.
                 </span>
               </div>
             </div>

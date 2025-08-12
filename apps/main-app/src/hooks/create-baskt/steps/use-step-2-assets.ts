@@ -78,10 +78,15 @@ export function useStep2Assets(
 
   const handleRemoveAsset = (index: number) => {
     setAssetDetails((prev) => prev.filter((_, i) => i !== index));
+    setSelectedAssets((prev) => prev.filter((_, i) => i !== index));
     setFormData((prev) => ({
       ...prev,
       assets: prev.assets.filter((_, i) => i !== index),
     }));
+
+    const newAssetDetails = assetDetails.filter((_, i) => i !== index);
+    const newSelectedAssets = selectedAssets.filter((_, i) => i !== index);
+    onAssetsChange(newSelectedAssets, newAssetDetails);
   };
 
   const totalWeight = calculateTotalWeight(assetDetails);

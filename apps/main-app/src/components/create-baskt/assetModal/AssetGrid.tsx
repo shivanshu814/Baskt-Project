@@ -13,6 +13,7 @@ export const AssetGrid = ({
   onAssetToggle,
   onRetry,
 }: AssetGridProps) => {
+  const isLimitReached = selectedAssetIds.size >= 10;
   // loading state
   if (isLoading) {
     return (
@@ -38,6 +39,7 @@ export const AssetGrid = ({
           asset={asset}
           isSelected={selectedAssetIds.has(asset._id!)}
           onToggle={onAssetToggle}
+          isLimitReached={isLimitReached}
         />
       ))}
     </div>

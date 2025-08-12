@@ -28,11 +28,12 @@ export function AssetSelectionModal({
     handleClearClick,
     handleDone,
     handleClose,
+    handleOpenChange,
     onRetry,
   } = useAssetSelection(selectedAssets, open, onAssetSelect, onOpenChange);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[1300px] max-w-[98vw] w-full p-0 rounded-2xl overflow-hidden shadow-2xl border-0 bg-background/95 backdrop-blur-sm">
         <div className="flex flex-col h-full max-h-[90vh]">
           {/* header */}

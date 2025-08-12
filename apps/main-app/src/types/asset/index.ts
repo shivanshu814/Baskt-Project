@@ -56,6 +56,7 @@ export interface AssetCardProps {
   asset: Asset;
   isSelected: boolean;
   onToggle: (id: string) => void;
+  isLimitReached?: boolean;
 }
 
 /**

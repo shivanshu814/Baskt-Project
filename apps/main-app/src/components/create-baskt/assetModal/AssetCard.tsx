@@ -6,17 +6,23 @@ import { useCallback } from 'react';
 import { AssetCardProps } from '../../../types/asset';
 import { AssetLogo } from './AssetLogo';
 
-export const AssetCard = ({ asset, isSelected, onToggle }: AssetCardProps) => {
-  const handleClick = useCallback(() => onToggle(asset._id!), [asset._id, onToggle]);
+export const AssetCard = ({ asset, isSelected, onToggle, isLimitReached }: AssetCardProps) => {
+  const handleClick = useCallback(() => {
+    if (!isLimitReached || isSelected) {
+      onToggle(asset._id!);
+    }
+  }, [asset._id, onToggle, isLimitReached, isSelected]);
 
   return (
     // asset card
     <div
       onClick={handleClick}
-      className={`relative border border-border/30 rounded-lg p-3 cursor-pointer transition-all duration-200 min-h-[100px] ${
+      className={`relative border border-border/30 rounded-lg p-3 transition-all duration-200 min-h-[100px] ${
         isSelected
-          ? 'border-primary bg-primary/10 ring-1 ring-primary/20'
-          : 'bg-card/30 hover:border-border/50 hover:bg-card/50'
+          ? 'border-primary bg-primary/10 ring-1 ring-primary/20 cursor-pointer'
+          : isLimitReached && !isSelected
+          ? 'bg-card/20 opacity-50 cursor-not-allowed'
+          : 'bg-card/30 hover:border-border/50 hover:bg-card/50 cursor-pointer'
       }`}
     >
       {/* selection check */}

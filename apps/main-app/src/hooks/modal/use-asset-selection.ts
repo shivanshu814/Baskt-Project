@@ -33,9 +33,9 @@ export function useAssetSelection(
   );
 
   useEffect(() => {
-    if (open && initialAssetIds.length > 0) {
+    if (open) {
       setSelectedAssetIds(new Set(initialAssetIds));
-    } else if (!open) {
+    } else {
       setSelectedAssetIds(new Set());
       setSearchQuery('');
     }
@@ -67,6 +67,9 @@ export function useAssetSelection(
       if (newSelected.has(assetId)) {
         newSelected.delete(assetId);
       } else {
+        if (newSelected.size >= 10) {
+          return prev;
+        }
         newSelected.add(assetId);
       }
       return newSelected;
@@ -75,7 +78,8 @@ export function useAssetSelection(
 
   const handleSelectAll = useCallback((filteredAssets: Asset[]) => {
     const allIds = new Set(filteredAssets.map((asset) => asset._id!).filter(Boolean));
-    setSelectedAssetIds(allIds);
+    const limitedIds = new Set(Array.from(allIds).slice(0, 10));
+    setSelectedAssetIds(limitedIds);
   }, []);
 
   const handleClearSelection = useCallback(() => {
@@ -108,6 +112,16 @@ export function useAssetSelection(
     onOpenChange?.(false);
   }, [resetSelection, onOpenChange]);
 
+  const handleOpenChange = useCallback(
+    (newOpen: boolean) => {
+      if (!newOpen) {
+        resetSelection();
+      }
+      onOpenChange?.(newOpen);
+    },
+    [resetSelection, onOpenChange],
+  );
+
   const handleSelectAllClick = useCallback(() => {
     handleSelectAll(filteredAssets);
   }, [handleSelectAll, filteredAssets]);
@@ -138,6 +152,7 @@ export function useAssetSelection(
     handleClearClick,
     handleDone,
     handleClose,
+    handleOpenChange,
     onRetry: refetch,
   };
 }
