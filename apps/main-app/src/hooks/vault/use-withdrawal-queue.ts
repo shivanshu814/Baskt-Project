@@ -1,13 +1,8 @@
-import { trpc } from '../../../lib/api/trpc';
-import { UseWithdrawQueueProps, WithdrawQueueItem, WithdrawQueueStats } from '../../../types/vault';
+import { useEffect } from 'react';
+import { trpc } from '../../lib/api/trpc';
+import { UseWithdrawQueueProps, WithdrawQueueItem, WithdrawQueueStats } from '../../types/vault';
 
-/**
- * Hook to fetch withdraw queue items and stats
- * @param userAddress - The user's address
- * @param poolId - The pool's ID
- * @returns The withdraw queue items and stats
- */
-
+// fetch withdrawal queue items and stats
 export const useWithdrawQueue = ({ userAddress, poolId }: UseWithdrawQueueProps) => {
   const {
     data: userQueueItems,
@@ -15,7 +10,11 @@ export const useWithdrawQueue = ({ userAddress, poolId }: UseWithdrawQueueProps)
     isLoading: isLoadingItems,
   } = trpc.pool.getUserWithdrawQueueItems.useQuery(
     { userAddress: userAddress || '', poolId: poolId || '' },
-    { enabled: !!userAddress && !!poolId },
+    {
+      enabled: !!userAddress && !!poolId,
+      refetchInterval: 5000,
+      refetchIntervalInBackground: true,
+    },
   );
 
   const {
@@ -24,8 +23,19 @@ export const useWithdrawQueue = ({ userAddress, poolId }: UseWithdrawQueueProps)
     isLoading: isLoadingStats,
   } = trpc.pool.getWithdrawQueueStats.useQuery(
     { poolId: poolId || '', userAddress },
-    { enabled: !!userAddress && !!poolId },
+    {
+      enabled: !!userAddress && !!poolId,
+      refetchInterval: 5000,
+      refetchIntervalInBackground: true,
+    },
   );
+
+  useEffect(() => {
+    if (userAddress && poolId) {
+      refetchUserQueueItems();
+      refetchQueueStats();
+    }
+  }, [userAddress, poolId, refetchUserQueueItems, refetchQueueStats]);
 
   const getData = <T>(response: any): T | undefined => {
     return response?.success && 'data' in response ? response.data : undefined;
@@ -40,5 +50,9 @@ export const useWithdrawQueue = ({ userAddress, poolId }: UseWithdrawQueueProps)
     isLoading: isLoadingItems || isLoadingStats,
     refetchUserQueueItems,
     refetchQueueStats,
+    refetch: () => {
+      refetchUserQueueItems();
+      refetchQueueStats();
+    },
   };
 };

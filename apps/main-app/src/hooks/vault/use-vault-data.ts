@@ -1,12 +1,19 @@
 import { useBasktClient } from '@baskt/ui';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { trpc } from '../../lib/api/trpc';
-import { VaultData } from '../../types/vault';
+import { OpenInterestData, VaultData } from '../../types/vault';
+import {
+  REFETCH_INTERVAL,
+  STALE_TIME,
+  aggregateAssetExposures,
+  calculateExposurePercentages,
+  calculateTotalTVL,
+  getAssetImageUrl,
+  processAssetData,
+  processVaultData,
+} from '../../utils/vault-data-utils';
 
-/**
- * Hook to fetch vault data and liquidity pool
- * @returns The vault data, liquidity pool, loading state, error, and refresh function
- */
+// fetch vault data and liquidity pool
 export function useVaultData() {
   const { client } = useBasktClient();
   const [vaultData, setVaultData] = useState<VaultData | null>(null);
@@ -14,22 +21,18 @@ export function useVaultData() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Use refs to track the latest values without causing re-renders
   const clientRef = useRef(client);
 
-  // Update refs when values change
   useEffect(() => {
     clientRef.current = client;
   }, [client]);
 
-  // fetch vault data
   const { data: vaultDataResponse, isLoading: isVaultDataLoading } =
     trpc.pool.getLiquidityPool.useQuery(undefined, {
-      refetchInterval: 30 * 1000,
+      refetchInterval: REFETCH_INTERVAL,
       enabled: true,
     });
 
-  // fetch liquidity pool
   const fetchVaultData = useCallback(async () => {
     if (!clientRef.current) {
       setVaultData(null);
@@ -48,46 +51,24 @@ export function useVaultData() {
     } finally {
       setLoading(false);
     }
-  }, []); // No dependencies since we use refs
+  }, []);
 
-  // process vault data
   useEffect(() => {
     if (vaultDataResponse?.success && 'data' in vaultDataResponse) {
-      const data = vaultDataResponse.data;
-
-      const processedVaultData: VaultData = {
-        totalLiquidity: data.totalLiquidity || '0',
-        totalShares: data.totalShares || '0',
-        depositFeeBps: data.depositFeeBps || 0,
-        withdrawalFeeBps: data.withdrawalFeeBps || 0,
-        minDeposit: data.minDeposit || '0',
-        lastUpdateTimestamp:
-          typeof data.lastUpdateTimestamp === 'number'
-            ? new Date(data.lastUpdateTimestamp).toISOString()
-            : data.lastUpdateTimestamp || new Date().toISOString(),
-        lpMint: data.lpMint || '',
-        tokenVault: data.tokenVault || '',
-        apr: data.apr || '0.00',
-        totalFeesEarned: data.totalFeesEarned || '0.00',
-        recentFeeData: data.recentFeeData,
-        feeStats: data.feeStats,
-      };
-
-      setVaultData(processedVaultData);
+      const processedData = processVaultData(vaultDataResponse.data);
+      setVaultData(processedData);
     } else if (vaultDataResponse && !vaultDataResponse.success) {
       setError('Failed to fetch vault data');
       setVaultData(null);
     }
   }, [vaultDataResponse]);
 
-  // fetch vault data only when client is available
   useEffect(() => {
     if (client) {
       fetchVaultData();
     }
   }, [client, fetchVaultData]);
 
-  // refresh all
   const refreshAll = useCallback(() => {
     fetchVaultData();
   }, [fetchVaultData]);
@@ -98,5 +79,54 @@ export function useVaultData() {
     loading: loading || isVaultDataLoading,
     error,
     refreshAll,
+  };
+}
+
+// fetch vault exposure data from baskts with open positions
+export function useVaultExposure() {
+  const {
+    data: exposureData,
+    isLoading,
+    error,
+    refetch,
+  } = trpc.metrics.getOpenInterestForBasktsWithPositions.useQuery(undefined, {
+    refetchInterval: REFETCH_INTERVAL,
+    staleTime: STALE_TIME,
+  });
+
+  const processedExposureData = useMemo(() => {
+    return exposureData?.success && 'data' in exposureData
+      ? (exposureData.data as OpenInterestData[])
+      : [];
+  }, [exposureData]);
+
+  return {
+    exposureData: processedExposureData,
+    isLoading,
+    error,
+    refetch,
+  };
+}
+
+// calculate vault exposure metrics and asset exposure data
+export function useVaultExposureCalculations() {
+  const { exposureData, isLoading, error } = useVaultExposure();
+
+  const calculatedTvl = useMemo(() => {
+    return calculateTotalTVL(exposureData);
+  }, [exposureData]);
+
+  const assetExposureData = useMemo(() => {
+    return aggregateAssetExposures(exposureData);
+  }, [exposureData]);
+
+  return {
+    calculatedTvl,
+    assetExposureData,
+    calculateExposurePercentages,
+    getAssetImage: getAssetImageUrl,
+    getProcessedAssetData: processAssetData,
+    isLoading,
+    error,
   };
 }

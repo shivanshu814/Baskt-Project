@@ -1,18 +1,18 @@
-import { metadataManager } from '../models/metadata-manager';
-import { OnchainBasktAccount, PositionStatus } from '@baskt/types';
-import { AssetQuerier } from './asset.querier';
-import { BN } from 'bn.js';
-import {
-  VolumeResult,
-  BasktOpenInterestParams,
-  AssetOpenInterestParams,
-  BasktVolumeParams,
-  AssetVolumeParams,
-  OpenInterestData,
-} from '../types/metrics';
 import { BaseClient } from '@baskt/sdk';
-import { CombinedAsset } from '../types';
+import { OnchainBasktAccount, PositionStatus } from '@baskt/types';
+import { BN } from 'bn.js';
+import { metadataManager } from '../models/metadata-manager';
 import { QueryResult } from '../models/types';
+import { CombinedAsset } from '../types';
+import {
+  AssetOpenInterestParams,
+  AssetVolumeParams,
+  BasktOpenInterestParams,
+  BasktVolumeParams,
+  OpenInterestData,
+  VolumeResult,
+} from '../types/metrics';
+import { AssetQuerier } from './asset.querier';
 
 /**
  * MetricsQuerier
@@ -24,10 +24,12 @@ import { QueryResult } from '../models/types';
 export class MetricsQuerier {
   private assetQuerier: AssetQuerier;
   private basktClient: BaseClient;
+  private basktQuerier: any;
 
-  constructor(assetQuerier: AssetQuerier) {
+  constructor(assetQuerier: AssetQuerier, basktQuerier?: any) {
     this.assetQuerier = assetQuerier;
     this.basktClient = assetQuerier.basktClient;
+    this.basktQuerier = basktQuerier;
   }
 
   // get open interest for a baskt
@@ -291,40 +293,131 @@ export class MetricsQuerier {
     }
   }
 
+  async getOpenInterestForBasktsWithPositions(): Promise<QueryResult<OpenInterestData[]>> {
+    try {
+      const positions = await metadataManager.getAllPositions();
+      const openPositions = positions.filter((p: any) => p.status === PositionStatus.OPEN);
+
+      const basktIdsWithPositions = [...new Set(openPositions.map((p: any) => p.basktId))];
+
+      if (basktIdsWithPositions.length === 0) {
+        return {
+          success: true,
+          data: [],
+        };
+      }
+
+      const openInterestData: OpenInterestData[] = [];
+
+      for (const basktId of basktIdsWithPositions) {
+        try {
+          const basktResult = await this.basktQuerier.getBasktById(basktId);
+          if (!basktResult.success || !basktResult.data) {
+            continue;
+          }
+
+          const baskt = basktResult.data;
+          const basktPositions = openPositions.filter((p: any) => p.basktId === basktId);
+
+          const assetExposures: any[] = [];
+
+          let basktConfig: any = null;
+          try {
+            basktConfig = await this.basktClient.program.account.baskt.fetch(basktId);
+          } catch (error) {
+            console.warn(`Could not fetch baskt config for ${basktId}:`, error);
+          }
+
+          if (basktConfig && baskt.assets) {
+            for (const asset of baskt.assets) {
+              const assetConfig = basktConfig.currentAssetConfigs.find(
+                (config: any) => config.assetId.toString() === asset.assetAddress,
+              );
+
+              if (assetConfig) {
+                let longExposure = 0;
+                let shortExposure = 0;
+
+                for (const pos of basktPositions) {
+                  const positionSize = Number(pos.size);
+                  const weight = assetConfig.weight.toNumber() / 10000;
+                  const exposure = positionSize * weight;
+
+                  if (pos.isLong) {
+                    longExposure += exposure;
+                  } else {
+                    shortExposure += exposure;
+                  }
+                }
+
+                const netExposure = longExposure - shortExposure;
+
+                assetExposures.push({
+                  assetId: asset.assetAddress,
+                  ticker: asset.ticker,
+                  name: asset.name,
+                  logo: asset.logo,
+                  longExposure,
+                  shortExposure,
+                  netExposure,
+                  weight: asset.weight,
+                  direction: asset.direction,
+                });
+              }
+            }
+          }
+
+          const result = await this.getOpenInterestForBaskt({ basktId });
+          if (result.success && result.data) {
+            const basktData = {
+              ...result.data,
+              basktId,
+              basktName: baskt.name,
+              basktCreator: baskt.creator,
+              assetExposures,
+            };
+            openInterestData.push(basktData);
+          }
+        } catch (error) {
+          console.error(`Error fetching open interest for baskt ${basktId}:`, error);
+        }
+      }
+
+      return {
+        success: true,
+        data: openInterestData,
+      };
+    } catch (error) {
+      console.error('Error fetching open interest for baskts with positions:', error);
+      return {
+        success: false,
+        error: 'Failed to fetch open interest for baskts with positions',
+      };
+    }
+  }
+
   private async getOIForAssetInternal(assetMetadata: CombinedAsset, positions: any[]) {
     const { longPositions, shortPositions } = await this.getPositionsForAsset(
       assetMetadata,
       positions,
     );
 
-    if (!longPositions || !shortPositions) {
-      return {
-        success: true,
-        data: {
-          assetMetadata,
-          totalOpenInterest: 0,
-          totalPositions: 0,
-          longOpenInterest: 0,
-          shortOpenInterest: 0,
-          longPositions: [],
-          shortPositions: [],
-        },
-      };
-    }
+    const safeLongPositions = longPositions || [];
+    const safeShortPositions = shortPositions || [];
 
-    const longOpenInterest = longPositions.reduce((sum: any, pos: any) => sum + pos.size, 0);
-    const shortOpenInterest = shortPositions.reduce((sum: any, pos: any) => sum + pos.size, 0);
+    const longOpenInterest = safeLongPositions.reduce((sum: any, pos: any) => sum + pos.size, 0);
+    const shortOpenInterest = safeShortPositions.reduce((sum: any, pos: any) => sum + pos.size, 0);
 
     return {
       success: true,
       data: {
         assetMetadata,
         totalOpenInterest: longOpenInterest + shortOpenInterest,
-        totalPositions: longPositions.length + shortPositions.length,
+        totalPositions: safeLongPositions.length + safeShortPositions.length,
         longOpenInterest,
         shortOpenInterest,
-        longPositions,
-        shortPositions,
+        longPositions: safeLongPositions,
+        shortPositions: safeShortPositions,
       },
     };
   }
@@ -332,16 +425,28 @@ export class MetricsQuerier {
   async getPositionsForAsset(assetMetadata: CombinedAsset, positions: any[]) {
     const basktIds = assetMetadata.basktIds || [];
     if (basktIds.length === 0) {
-      return {};
+      return {
+        longPositions: [],
+        shortPositions: [],
+      };
     }
 
     const filteredPositions = positions.filter(
       (p: any) => basktIds.includes(p.basktId) && p.status === PositionStatus.OPEN,
     );
 
-    const baskts = (await this.basktClient.program.account.baskt.fetchMultiple(basktIds)).filter(
-      (baskt: any) => baskt !== null,
-    );
+    let baskts: any[] = [];
+    try {
+      const fetchedBaskts = await this.basktClient.program.account.baskt.fetchMultiple(basktIds);
+      baskts = fetchedBaskts.filter((baskt: any) => baskt !== null);
+    } catch (error) {
+      console.error('Error fetching baskts from blockchain:', error);
+      return {
+        longPositions: [],
+        shortPositions: [],
+      };
+    }
+
     const basktMap = new Map<string, OnchainBasktAccount>();
     baskts.forEach((baskt: any) => {
       basktMap.set(baskt.basktId.toString(), baskt);
@@ -354,23 +459,27 @@ export class MetricsQuerier {
       try {
         const baskt = basktMap.get(pos.basktId);
         if (!baskt) {
-          throw new Error('Baskt not found');
+          console.warn(`Baskt not found for position ${pos.basktId}`);
+          continue;
         }
 
-        const { weight, direction } = baskt.currentAssetConfigs.find(
+        const assetConfig = baskt.currentAssetConfigs.find(
           (assetConfig: any) => assetConfig.assetId.toString() === assetMetadata.assetAddress,
-        ) || {  };
+        );
 
-        if (!weight || !direction) {
-          throw new Error('Asset not found in baskt');
+        if (!assetConfig || !assetConfig.weight || assetConfig.direction === undefined) {
+          console.warn(
+            `Asset config not found for asset ${assetMetadata.assetAddress} in baskt ${pos.basktId}`,
+          );
+          continue;
         }
 
+        const { weight, direction } = assetConfig;
         const positionIsLong = pos.isLong;
         const isAssetLong = direction;
 
-        // XOR logic: Long when both values are the same, Short when different
         let isLong = positionIsLong === isAssetLong;
-        
+
         if (isLong) {
           longPositions.push({
             position: pos,

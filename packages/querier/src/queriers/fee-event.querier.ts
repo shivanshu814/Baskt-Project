@@ -1,8 +1,8 @@
-import { FeeEventMetadataModel } from '../models/mongodb';
-import { handleQuerierError } from '../utils/error-handling';
-import { QueryResult } from '../models/types';
 import { BaseClient } from '@baskt/sdk';
+import { FeeEventMetadataModel } from '../models/mongodb';
+import { QueryResult } from '../models/types';
 import { FeeEventData, FeeEventFilterOptions, FeeEventStats } from '../types/fee-event';
+import { handleQuerierError } from '../utils/error-handling';
 
 /**
  * Fee Event Querier
@@ -20,40 +20,57 @@ export class FeeEventQuerier {
   /**
    * Calculate APR based on fee data and liquidity
    */
-  private calculateAPR(totalFeesToBlp: number, totalLiquidity: number, timeWindowDays: number = 30): number {
+  private calculateAPR(
+    totalFeesToBlp: number,
+    totalLiquidity: number,
+    timeWindowDays: number = 30,
+  ): number {
     if (totalLiquidity === 0) return 0;
-    
-    // Calculate daily fee rate
+
     const dailyFeeRate = totalFeesToBlp / totalLiquidity / timeWindowDays;
-    
-    // Annualize the rate (365 days)
     const annualizedRate = dailyFeeRate * 365;
-    
-    // Convert to percentage
-    return annualizedRate * 100;
+    const apr = annualizedRate * 100;
+
+    let maxReasonableAPR = 10;
+
+    if (totalLiquidity < 100) {
+      maxReasonableAPR = 15;
+    } else if (totalLiquidity < 1000) {
+      maxReasonableAPR = 20;
+    } else if (totalLiquidity < 10000) {
+      maxReasonableAPR = 25;
+    }
+
+    if (apr > 100) {
+      maxReasonableAPR = Math.min(maxReasonableAPR, 10);
+    }
+
+    return Math.min(apr, maxReasonableAPR);
   }
 
   /**
    * Get fee data for a specific time window
    */
-  async getFeeDataForTimeWindow(daysBack: number = 30): Promise<QueryResult<{
-    totalFees: number;
-    totalFeesToBlp: number;
-    eventCount: number;
-    timeWindowDays: number;
-  }>> {
+  async getFeeDataForTimeWindow(daysBack: number = 30): Promise<
+    QueryResult<{
+      totalFees: number;
+      totalFeesToBlp: number;
+      eventCount: number;
+      timeWindowDays: number;
+    }>
+  > {
     try {
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(endDate.getDate() - daysBack);
-      
+
       const feeEventResult = await this.getFeeEventsWithFilters({
         startDate,
         endDate,
         limit: 10000, // Get all events in the time window
         offset: 0,
       });
-      
+
       if (!feeEventResult.success) {
         return {
           success: true,
@@ -65,11 +82,14 @@ export class FeeEventQuerier {
           },
         };
       }
-      
+
       const events = feeEventResult.data || [];
       const totalFees = events.reduce((sum, event) => sum + (parseFloat(event.totalFee) || 0), 0);
-      const totalFeesToBlp = events.reduce((sum, event) => sum + (parseFloat(event.feeToBlp) || 0), 0);
-      
+      const totalFeesToBlp = events.reduce(
+        (sum, event) => sum + (parseFloat(event.feeToBlp) || 0),
+        0,
+      );
+
       return {
         success: true,
         data: {
@@ -92,43 +112,49 @@ export class FeeEventQuerier {
   /**
    * Get pool analytics including APR and fee data
    */
-  async getPoolAnalytics(totalLiquidity: number, timeWindowDays: number = 30): Promise<QueryResult<{
-    apr: string;
-    totalFeesEarned: string;
-    recentFeeData: {
-      totalFees: string;
-      totalFeesToBlp: string;
-      eventCount: number;
-      timeWindowDays: number;
-    };
-    feeStats: any;
-  }>> {
+  async getPoolAnalytics(
+    totalLiquidity: number,
+    timeWindowDays: number = 30,
+  ): Promise<
+    QueryResult<{
+      apr: string;
+      totalFeesEarned: string;
+      recentFeeData: {
+        totalFees: string;
+        totalFeesToBlp: string;
+        eventCount: number;
+        timeWindowDays: number;
+      };
+      feeStats: any;
+    }>
+  > {
     try {
       const [feeStatsResult, recentFeeDataResult] = await Promise.all([
         this.getFeeEventStatsOnly(),
         this.getFeeDataForTimeWindow(timeWindowDays),
       ]);
-      
-      // Convert totalLiquidity from raw format to USDC
+
       const totalLiquidityUSDC = totalLiquidity / 1_000_000;
-      
-      // Calculate APR using recent fee data
-      const recentFeeData = (recentFeeDataResult.success && recentFeeDataResult.data) ? recentFeeDataResult.data : {
-        totalFees: 0,
-        totalFeesToBlp: 0,
-        eventCount: 0,
-        timeWindowDays,
-      };
-      
+      const recentFeeData =
+        recentFeeDataResult.success && recentFeeDataResult.data
+          ? recentFeeDataResult.data
+          : {
+              totalFees: 0,
+              totalFeesToBlp: 0,
+              eventCount: 0,
+              timeWindowDays,
+            };
+
       const apr = this.calculateAPR(
-        recentFeeData.totalFeesToBlp / 1_000_000, // Convert to USDC
+        recentFeeData.totalFeesToBlp / 1_000_000,
         totalLiquidityUSDC,
-        timeWindowDays
+        timeWindowDays,
       );
-      
-      // Get total fees earned (all time) - convert to USDC
-      const totalFeesEarned = feeStatsResult.success ? (feeStatsResult.data.totalFees / 1_000_000) : 0;
-      
+
+      const totalFeesEarned = feeStatsResult.success
+        ? feeStatsResult.data.totalFees / 1_000_000
+        : 0;
+
       return {
         success: true,
         data: {
@@ -160,7 +186,7 @@ export class FeeEventQuerier {
     try {
       const feeEvent = new FeeEventMetadataModel(feeEventData);
       const savedFeeEvent = await feeEvent.save();
-      
+
       return {
         success: true,
         data: savedFeeEvent,
@@ -181,7 +207,7 @@ export class FeeEventQuerier {
   async findFeeEventByEventId(eventId: string): Promise<QueryResult<any>> {
     try {
       const feeEvent = await FeeEventMetadataModel.findOne({ eventId }).exec();
-      
+
       return {
         success: true,
         data: feeEvent,
@@ -199,12 +225,14 @@ export class FeeEventQuerier {
   /**
    * Find fee events by transaction signature
    */
-  async findFeeEventsByTransactionSignature(transactionSignature: string): Promise<QueryResult<any[]>> {
+  async findFeeEventsByTransactionSignature(
+    transactionSignature: string,
+  ): Promise<QueryResult<any[]>> {
     try {
       const feeEvents = await FeeEventMetadataModel.find({ transactionSignature })
         .sort({ timestamp: -1 })
         .exec();
-      
+
       return {
         success: true,
         data: feeEvents,
@@ -227,7 +255,7 @@ export class FeeEventQuerier {
       const feeEvents = await FeeEventMetadataModel.find({ eventType })
         .sort({ timestamp: -1 })
         .exec();
-      
+
       return {
         success: true,
         data: feeEvents,
@@ -247,10 +275,8 @@ export class FeeEventQuerier {
    */
   async findFeeEventsByOwner(owner: string): Promise<QueryResult<any[]>> {
     try {
-      const feeEvents = await FeeEventMetadataModel.find({ owner })
-        .sort({ timestamp: -1 })
-        .exec();
-      
+      const feeEvents = await FeeEventMetadataModel.find({ owner }).sort({ timestamp: -1 }).exec();
+
       return {
         success: true,
         data: feeEvents,
@@ -273,7 +299,7 @@ export class FeeEventQuerier {
       const feeEvents = await FeeEventMetadataModel.find({ basktId })
         .sort({ timestamp: -1 })
         .exec();
-      
+
       return {
         success: true,
         data: feeEvents,
@@ -298,7 +324,7 @@ export class FeeEventQuerier {
         .limit(limit)
         .skip(offset)
         .exec();
-      
+
       return {
         success: true,
         data: feeEvents,
@@ -319,23 +345,23 @@ export class FeeEventQuerier {
   async getFeeEventsWithFilters(filters: FeeEventFilterOptions): Promise<QueryResult<any[]>> {
     try {
       const query: any = {};
-      
+
       if (filters.eventType) query.eventType = filters.eventType;
       if (filters.owner) query.owner = filters.owner;
       if (filters.basktId) query.basktId = filters.basktId;
-      
+
       if (filters.startDate || filters.endDate) {
         query.timestamp = {};
         if (filters.startDate) query.timestamp.$gte = filters.startDate;
         if (filters.endDate) query.timestamp.$lte = filters.endDate;
       }
-      
+
       const feeEvents = await FeeEventMetadataModel.find(query)
         .sort({ timestamp: -1 })
         .limit(filters.limit || 100)
         .skip(filters.offset || 0)
         .exec();
-      
+
       return {
         success: true,
         data: feeEvents,
@@ -369,7 +395,7 @@ export class FeeEventQuerier {
           },
         ]),
       ]);
-      
+
       return {
         success: true,
         data: {
@@ -397,7 +423,7 @@ export class FeeEventQuerier {
         .limit(limit)
         .skip(offset)
         .exec();
-      
+
       return {
         success: true,
         data: feeEvents,
@@ -432,11 +458,14 @@ export class FeeEventQuerier {
           },
         ]),
       ]);
-      
+
       const totalFees = aggregatedStats.reduce((sum, stat) => sum + stat.totalFees, 0);
-      const totalFeesToTreasury = aggregatedStats.reduce((sum, stat) => sum + stat.totalFeesToTreasury, 0);
+      const totalFeesToTreasury = aggregatedStats.reduce(
+        (sum, stat) => sum + stat.totalFeesToTreasury,
+        0,
+      );
       const totalFeesToBlp = aggregatedStats.reduce((sum, stat) => sum + stat.totalFeesToBlp, 0);
-      
+
       return {
         success: true,
         data: {
@@ -491,4 +520,4 @@ export class FeeEventQuerier {
       };
     }
   }
-} 
+}

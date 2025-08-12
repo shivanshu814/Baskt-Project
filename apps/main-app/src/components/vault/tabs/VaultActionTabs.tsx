@@ -10,10 +10,8 @@ import {
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { useTokenBalance } from '../../../hooks/pool/use-token-balance';
 import { useUSDCBalance } from '../../../hooks/pool/use-usdc-balance';
-import { useVaultCalculations } from '../../../hooks/vault/calculation/use-vault-calculations';
-import { useDeposit } from '../../../hooks/vault/deposit/use-deposit';
-import { useVaultTabs } from '../../../hooks/vault/tabs/use-vault-tabs';
-import { useWithdraw } from '../../../hooks/vault/withdraw/use-withdraw';
+import { useVaultCalculations } from '../../../hooks/vault/use-vault-calculations';
+import { useDeposit, useVaultTabs, useWithdraw } from '../../../hooks/vault/use-vault-operations';
 import { VaultActionTabsProps } from '../../../types/vault';
 import { ActionCard } from './ActionCard';
 

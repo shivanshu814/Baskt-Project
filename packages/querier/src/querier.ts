@@ -1,29 +1,29 @@
+import { Connection } from '@solana/web3.js';
 import mongoose from 'mongoose';
 import { Sequelize } from 'sequelize';
-import { Connection } from '@solana/web3.js';
 
 // Import configurations
 import { connectMongoDB, disconnectMongoDB } from './config/mongodb';
-import { connectTimescaleDB, disconnectTimescaleDB, sequelizeConnection } from './config/timescale';
 import { connectOnchain, getOnchainConfig } from './config/onchain';
+import { connectTimescaleDB, disconnectTimescaleDB, sequelizeConnection } from './config/timescale';
 
 // Import queriers
+import { AccessQuerier } from './queriers/access.querier';
 import { AssetQuerier } from './queriers/asset.querier';
 import { BasktQuerier } from './queriers/baskt.querier';
-import { PriceQuerier } from './queriers/price.querier';
-import { OrderQuerier } from './queriers/order.querier';
-import { PositionQuerier } from './queriers/position.querier';
+import { FaucetQuerier } from './queriers/faucet.querier';
+import { FeeEventQuerier } from './queriers/fee-event.querier';
 import { HistoryQuerier } from './queriers/history.querier';
 import { MetricsQuerier } from './queriers/metrics.querier';
-import { AccessQuerier } from './queriers/access.querier';
-import { FaucetQuerier } from './queriers/faucet.querier';
+import { OrderQuerier } from './queriers/order.querier';
 import { PoolQuerier } from './queriers/pool.querier';
-import { FeeEventQuerier } from './queriers/fee-event.querier';
+import { PositionQuerier } from './queriers/position.querier';
+import { PriceQuerier } from './queriers/price.querier';
 import { WithdrawQueueQuerier } from './queriers/withdraw-queue.querier';
 
 // Import metadata manager
-import { metadataManager } from './models/metadata-manager';
 import { BaseClient } from '@baskt/sdk';
+import { metadataManager } from './models/metadata-manager';
 
 /**
  * Querier
@@ -66,7 +66,7 @@ export class Querier {
     this.order = new OrderQuerier(basktClient);
     this.position = new PositionQuerier(basktClient);
     this.history = new HistoryQuerier();
-    this.metrics = new MetricsQuerier(this.asset);
+    this.metrics = new MetricsQuerier(this.asset, this.baskt);
     this.access = new AccessQuerier();
     this.faucet = new FaucetQuerier(basktClient);
     this.pool = new PoolQuerier(basktClient);

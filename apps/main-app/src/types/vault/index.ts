@@ -213,6 +213,24 @@ export interface AssetExposure {
   logo?: string;
   longExposure?: number;
   shortExposure?: number;
+  netExposure?: number;
+  weight?: number;
+  direction?: boolean;
+  assetId?: string;
+}
+
+// open interest data from API
+export interface OpenInterestData {
+  totalOpenInterest: number;
+  totalPositions: number;
+  longOpenInterest: number;
+  shortOpenInterest: number;
+  longPositions: any[];
+  shortPositions: any[];
+  basktId: string;
+  basktName: string;
+  basktCreator: string;
+  assetExposures: AssetExposure[];
 }
 // vault action tabs props
 export interface VaultActionTabsProps {
@@ -222,14 +240,6 @@ export interface VaultActionTabsProps {
 // asset exposure row props
 export interface AssetExposureRowProps {
   asset: AssetExposure;
-}
-// exposure table props
-export interface ExposureTableProps {
-  assetExposureData: AssetExposure[];
-}
-// tvl display props
-export interface TvlDisplayProps {
-  actualTvl: string;
 }
 // use vault tabs return
 export interface UseVaultTabsReturn {

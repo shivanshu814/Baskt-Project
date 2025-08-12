@@ -1,7 +1,7 @@
 import { Button, Card, CardContent, CardTitle, NumberFormat } from '@baskt/ui';
 import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useWithdrawQueue } from '../../../hooks/vault/withdrawal-queue/use-withdraw-queue';
+import { useWithdrawQueue } from '../../../hooks/vault/use-withdrawal-queue';
 import { WithdrawQueueProps } from '../../../types/vault';
 
 export const WithdrawQueue: React.FC<WithdrawQueueProps> = ({ poolId, userAddress }) => {
@@ -38,19 +38,23 @@ export const WithdrawQueue: React.FC<WithdrawQueueProps> = ({ poolId, userAddres
     <Card className="border border-primary/10">
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Withdrawals</h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1"
-          >
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold">Withdrawals</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-1"
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-6 mb-4 text-sm">

@@ -1,8 +1,5 @@
 import { QueryResult } from '../models/types';
-import {
-  WithdrawQueueItem,
-  WithdrawQueueStats,
-} from '../types/withdraw-queue';
+import { WithdrawQueueItem, WithdrawQueueStats } from '../types/withdraw-queue';
 
 export class WithdrawQueueQuerier {
   constructor(private sdkClient: any) {}
@@ -29,6 +26,7 @@ export class WithdrawQueueQuerier {
       }
 
       const queueItems: WithdrawQueueItem[] = [];
+
       let actualTail = queueTail;
 
       if (queueHead === 2 && queueTail === 0) {
@@ -36,7 +34,7 @@ export class WithdrawQueueQuerier {
       } else {
         for (let i = queueTail; i <= queueHead; i++) {
           try {
-            const withdrawRequestPDA = await this.sdkClient.findWithdrawRequestPDA(i);
+            const withdrawRequestPDA = this.sdkClient.getWithdrawRequestPDA(i);
             const withdrawRequest = await this.sdkClient.program.account.withdrawRequest.fetch(
               withdrawRequestPDA,
             );
@@ -53,8 +51,7 @@ export class WithdrawQueueQuerier {
 
       for (let i = actualTail; i <= queueHead; i++) {
         try {
-          const withdrawRequestPDA = await this.sdkClient.findWithdrawRequestPDA(i);
-
+          const withdrawRequestPDA = this.sdkClient.getWithdrawRequestPDA(i);
           const withdrawRequest = await this.sdkClient.program.account.withdrawRequest.fetch(
             withdrawRequestPDA,
           );
@@ -66,7 +63,7 @@ export class WithdrawQueueQuerier {
               providerAddress: withdrawRequest.provider.toString(),
               lpAmount: withdrawRequest.remainingLp.toString(),
               remainingLp: withdrawRequest.remainingLp.toString(),
-              providerTokenAccount: withdrawRequest.providerTokenAccount?.toString() || '',
+              providerTokenAccount: withdrawRequest.providerUsdcAccount?.toString() || '',
               queuePosition: i - actualTail + 1,
               status: 'pending',
               requestedAt: new Date(withdrawRequest.requestedTs * 1000).toISOString(),
@@ -96,11 +93,27 @@ export class WithdrawQueueQuerier {
     try {
       const poolData = await this.sdkClient.getLiquidityPool();
 
+      if (!poolData.withdrawQueueHead || !poolData.withdrawQueueTail) {
+        return {
+          success: true,
+          data: {
+            totalQueueItems: 0,
+            averageProcessingTime: 0,
+            queueProcessingRate: 0,
+            estimatedWaitTime: undefined,
+            userQueuePosition: undefined,
+            isProcessingNow: false,
+            nextProcessingTime: undefined,
+            processingInterval: 0,
+          },
+        };
+      }
+
       const queueHead = poolData.withdrawQueueHead.toNumber();
       const queueTail = poolData.withdrawQueueTail.toNumber();
-      const totalQueueItems = queueHead - queueTail;
-      const rateLimitPeriodSecs = poolData.rateLimitPeriodSecs;
 
+      const totalQueueItems = queueHead - queueTail;
+      const rateLimitPeriodSecs = poolData.rateLimitPeriodSecs || 0;
       const processingRate = rateLimitPeriodSecs > 0 ? (1 / rateLimitPeriodSecs) * 3600 : 0;
       const averageProcessingTime = rateLimitPeriodSecs > 0 ? rateLimitPeriodSecs / 3600 : 0;
 
@@ -110,7 +123,7 @@ export class WithdrawQueueQuerier {
       if (userAddress) {
         try {
           for (let i = queueTail; i < queueHead; i++) {
-            const withdrawRequestPDA = await this.sdkClient.findWithdrawRequestPDA(i);
+            const withdrawRequestPDA = this.sdkClient.getWithdrawRequestPDA(i);
             const withdrawRequest = await this.sdkClient.program.account.withdrawRequest.fetch(
               withdrawRequestPDA,
             );
@@ -128,9 +141,8 @@ export class WithdrawQueueQuerier {
       }
 
       const now = Math.floor(Date.now() / 1000);
-      const lastReset = poolData.lastRateLimitReset.toNumber();
+      const lastReset = poolData.lastRateLimitReset?.toNumber() || now;
       const isProcessingNow = now - lastReset < rateLimitPeriodSecs;
-
       const nextProcessingTime = new Date((lastReset + rateLimitPeriodSecs) * 1000).toISOString();
 
       const realStats: WithdrawQueueStats = {
@@ -171,7 +183,7 @@ export class WithdrawQueueQuerier {
       }
 
       const userItems = allItems.data.filter((item) => item.providerAddress === userAddress);
-      console.log('User items:', userItems);
+
       return {
         success: true,
         data: userItems,
