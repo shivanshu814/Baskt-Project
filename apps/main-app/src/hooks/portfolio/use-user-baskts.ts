@@ -20,6 +20,7 @@ export function useUserBaskts() {
 
     return baskts.filter(
       (baskt: any) =>
+        baskt &&
         baskt.creator &&
         baskt.creator.toLowerCase() === userAddress.toLowerCase() &&
         baskt.name &&

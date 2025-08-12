@@ -38,12 +38,14 @@ export const AssetBreakdown = ({
     );
   }
 
-  // Calculate real asset positions across all baskts
   const assetPositions = useMemo(() => {
     const assetMap = new Map();
+    const validBaskts = baskts.filter((b: any) => b && b.basktId);
 
     positions.forEach((position: any) => {
-      const baskt = baskts.find((b: any) => b.basktId === position.basktId);
+      if (!position || !position.basktId) return;
+
+      const baskt = validBaskts.find((b: any) => b.basktId === position.basktId);
       if (!baskt || !baskt.assets) return;
 
       baskt.assets.forEach((asset: any) => {
@@ -62,8 +64,6 @@ export const AssetBreakdown = ({
         const assetData = assetMap.get(asset.ticker);
         const positionIsLong = position.isLong;
         const isAssetLong = asset.direction;
-
-        // XOR logic: Long when both values are the same, Short when different
         const isLong = positionIsLong === isAssetLong;
 
         if (isLong) {

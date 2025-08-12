@@ -66,9 +66,15 @@ export function usePortfolioOrders(userAddress?: string) {
       (order: any) => order.status === OnchainOrderStatus.PENDING,
     );
 
+    const validBaskts = baskts.filter((b: any) => b && b.basktId);
+
     return pendingOrders
       .map((order: any) => {
-        const baskt = baskts.find((b: any) => b.basktId === order.basktId);
+        if (!order || !order.basktId) {
+          return null;
+        }
+
+        const baskt = validBaskts.find((b: any) => b.basktId === order.basktId);
 
         if (baskt && baskt.name && baskt.name.trim() !== '') {
           const processedOrder = processDashboardOrder(order, baskt);

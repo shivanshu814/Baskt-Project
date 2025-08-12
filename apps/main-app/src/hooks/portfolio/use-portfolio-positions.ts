@@ -85,7 +85,12 @@ export function usePortfolioPositions() {
 
     return positions
       .map((position: any) => {
-        const baskt = baskts.find((b: any) => b.basktId === position.basktId);
+        if (!position || !position.basktId) {
+          return null;
+        }
+
+        const validBaskts = baskts.filter((b: any) => b && b.basktId);
+        const baskt = validBaskts.find((b: any) => b.basktId === position.basktId);
 
         if (baskt && baskt.name && baskt.name.trim() !== '') {
           const processedPosition = processDashboardPosition(position, baskt);

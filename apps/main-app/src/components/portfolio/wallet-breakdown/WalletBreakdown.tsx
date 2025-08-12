@@ -27,9 +27,11 @@ export const WalletBreakdown = () => {
 
     const basketMap = new Map();
 
+    const validBaskts = userBaskts.filter((b: any) => b && b.basktId);
+
     positions.forEach((position: any) => {
-      if (!position.basktId) return;
-      const basket = userBaskts.find((b: any) => b.basktId === position.basktId);
+      if (!position || !position.basktId) return;
+      const basket = validBaskts.find((b: any) => b.basktId === position.basktId);
       if (!basket || !basket.basktId) return;
       const basketName = basket.name || basket.basktId || 'Unknown Basket';
       const positionValue = position.usdcSize ? Number(position.usdcSize) / 1e6 : 0;
