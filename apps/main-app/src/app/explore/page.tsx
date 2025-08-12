@@ -1,5 +1,7 @@
 'use client';
 
+// import { useUser } from '@baskt/ui';
+// import { useEffect } from 'react';
 import { memo, useState } from 'react';
 import { FilterControls } from '../../components/baskt/controls/FilterControls';
 import { TabControls } from '../../components/baskt/controls/TabControls';
@@ -11,6 +13,7 @@ import { SearchBar } from '../../components/shared/SearchBar';
 import { useBasktList } from '../../hooks/baskt/use-baskt-list';
 
 const ExplorePage = () => {
+  // const { getJwtToken, isAuthenticated } = useUser();
   const [activeTab, setActiveTab] = useState<'all' | 'trending' | 'your'>('all');
   const {
     searchQuery,
@@ -23,6 +26,18 @@ const ExplorePage = () => {
     userAddress,
     isLoading,
   } = useBasktList();
+
+  // get JWT token when user is authenticated
+  // useEffect(() => {
+  //   const getToken = async () => {
+  //     if (isAuthenticated) {
+  //       const token = await getJwtToken();
+  //       console.log('JWT token', token);
+  //     }
+  //   };
+
+  //   getToken();
+  // }, [isAuthenticated, getJwtToken]);
 
   if (isLoading) {
     return <BasktListSkeleton />;
