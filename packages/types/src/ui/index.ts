@@ -78,6 +78,7 @@ export interface BasktInfo  {
   price: number;
   totalAssets: number;
   isActive: boolean;
+  isPublic: boolean;
   performance: {
     day: number;
     week: number;

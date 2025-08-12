@@ -42,6 +42,7 @@ export interface RawBasktData {
   txSignature?: string;
   categories?: string[];
   creator?: string;
+  isPublic?: boolean;
 }
 
 /**

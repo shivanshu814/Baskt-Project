@@ -183,6 +183,7 @@ export const processBasktData = (
         aum: baskt.aum ?? 0,
         totalAssets: baskt.totalAssets ?? 0,
         isActive: baskt.account?.isActive ?? false,
+        isPublic: baskt.account?.isPublic ?? false,
         creationDate: baskt.creationDate ? new Date(baskt.creationDate) : new Date(),
         performance: {
           day: (baskt.performance as any)?.day || baskt.performance?.daily || 0,

@@ -24,9 +24,18 @@ export const useBasktList = () => {
   const { filteredBaskts, popularBaskts, myBaskts } = useMemo(() => {
     const processedBaskts = processBasktData(basktsData) as BasktInfo[];
     if (!processedBaskts.length) return { filteredBaskts: [], popularBaskts: [], myBaskts: [] };
+    const visibleBaskts = processedBaskts.filter((baskt) => {
+      if (baskt.account?.isPublic) {
+        return true;
+      }
+      if (userAddress && baskt.creator) {
+        return baskt.creator.toLowerCase() === userAddress.toLowerCase();
+      }
+      return false;
+    });
 
     const filtered = searchQuery
-      ? processedBaskts.filter(
+      ? visibleBaskts.filter(
           (baskt) =>
             baskt.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             baskt.assets?.some(
@@ -35,10 +44,10 @@ export const useBasktList = () => {
                 asset.ticker?.toLowerCase().includes(searchQuery.toLowerCase()),
             ),
         )
-      : processedBaskts;
+      : visibleBaskts;
 
     const myBaskts = userAddress
-      ? processedBaskts.filter(
+      ? visibleBaskts.filter(
           (baskt) => baskt.creator && baskt.creator.toLowerCase() === userAddress.toLowerCase(),
         )
       : [];
@@ -46,7 +55,7 @@ export const useBasktList = () => {
     const tenDaysAgo = new Date();
     tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
-    const trendingBaskts = processedBaskts.filter((baskt) => {
+    const trendingBaskts = visibleBaskts.filter((baskt) => {
       const isProfitable = (baskt.performance?.day || 0) >= 0;
 
       const isNew = baskt.creationDate && baskt.creationDate > tenDaysAgo;
