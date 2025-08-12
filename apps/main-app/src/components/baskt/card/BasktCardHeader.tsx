@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -87,10 +88,21 @@ export const BasktCardHeader = React.memo(
               </span>
             )}
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              handlers.handleTradeClick(e);
+            }}
+            className="ml-4 mt-1 mr-2 bg-primary/10 border-primary/30 hover:bg-primary/20 hover:border-primary/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10"
+          >
+            Trade
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="p-1 ml-2 hover:bg-transparent border-none dropdown-button inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-50"
+                className="p-1 hover:bg-transparent border-none dropdown-button inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-50"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreVertical className="h-4 w-4" />
