@@ -138,7 +138,12 @@ export function TradingTabs({ baskt }: TradingTabsProps) {
         </TabsContent>
 
         <TabsContent value="rebalance" className="flex-1 overflow-y-auto p-4">
-          <RebalanceTab baskt={baskt} isRebalancing={isRebalancing} onRebalance={handleRebalance} />
+          <RebalanceTab
+            baskt={baskt}
+            userAddress={userAddress}
+            isRebalancing={isRebalancing}
+            onRebalance={handleRebalance}
+          />
         </TabsContent>
 
         <TabsContent value="metrics" className="flex-1 overflow-y-auto p-4">

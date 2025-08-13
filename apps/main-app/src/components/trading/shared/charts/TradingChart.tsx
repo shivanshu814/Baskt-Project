@@ -449,7 +449,7 @@ export function TradingChart({ baskt }: TradingChartProps) {
 
   return (
     <>
-      <div className="sm:hidden flex gap-1 mt-1 mx-1 -ml-0.5 mb-1">
+      <div className="sm:hidden flex gap-1">
         <button
           onClick={() => {
             setMobileTab('markets');

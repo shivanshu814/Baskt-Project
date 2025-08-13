@@ -165,6 +165,9 @@ export const useCollateral = (position?: any) => {
       toast.dismiss(toastId);
       toast.success(`Successfully added ${amount} USDC collateral to position`);
 
+      window.dispatchEvent(new Event('collateral-added'));
+      window.dispatchEvent(new Event('balance-updated'));
+
       clearData();
       handleClose();
     } catch (error) {

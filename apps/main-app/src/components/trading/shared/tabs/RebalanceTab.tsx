@@ -1,5 +1,5 @@
-import { Button } from '@baskt/ui';
-import { RefreshCw } from 'lucide-react';
+import { Button, PublicKeyText } from '@baskt/ui';
+import { Activity, Clock, RefreshCw, Settings } from 'lucide-react';
 import { RebalanceTabProps } from '../../../../types/trading/orders';
 
 export function RebalanceTab({
@@ -8,51 +8,79 @@ export function RebalanceTab({
   isRebalancing,
   onRebalance,
 }: RebalanceTabProps) {
-  const isCreator = userAddress && userAddress === baskt?.creator;
+  const isCreator = userAddress && userAddress === baskt?.account?.creator.toString();
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 -mt-4 -ml-2">
       <div className="bg-muted/20 rounded-lg p-4 border border-border">
-        {isCreator && (
-          <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 mb-2">
-            <p className="text-sm text-green-500 font-medium">You are the baskt creator</p>
-          </div>
-        )}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="text-lg font-semibold text-foreground">Rebalance Baskt</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Restore target weights and keep the baskt aligned with its strategy.
+            </p>
+            {isCreator && (
+              <span className="inline-flex items-center gap-1 mt-2 text-xs px-2 py-0.5 rounded-full border border-green-500/20 bg-green-500/10 text-green-500">
+                <Activity className="w-3 h-3" /> Creator
+              </span>
+            )}
           </div>
-          <Button
-            onClick={onRebalance}
-            disabled={!baskt?.isActive || isRebalancing}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRebalancing ? 'animate-spin' : ''}`} />
-            {isRebalancing ? 'Rebalancing...' : 'Rebalance'}
-          </Button>
+          {isCreator && (
+            <Button
+              onClick={onRebalance}
+              disabled={!baskt?.isActive || isRebalancing}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRebalancing ? 'animate-spin' : ''}`} />
+              {isRebalancing ? 'Rebalancing...' : 'Rebalance'}
+            </Button>
+          )}
         </div>
 
-        <div className="space-y-4">
-          <div className="text-sm text-muted-foreground">
-            <p>
-              <strong>Rebalance Mode:</strong> Manual
-            </p>
-            <p>
-              <strong>Last Rebalance:</strong>{' '}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+          <div className="relative border border-border rounded-md p-3 bg-background/40">
+            <Settings className="absolute right-3 top-3 w-3.5 h-3.5 text-muted-foreground/60" />
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Mode</div>
+            <div className="mt-1 text-sm text-foreground">Manual</div>
+          </div>
+          <div className="relative border border-border rounded-md p-3 bg-background/40">
+            <Activity className="absolute right-3 top-3 w-3.5 h-3.5 text-muted-foreground/60" />
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</div>
+            <div
+              className={`mt-1 text-sm ${baskt?.isActive ? 'text-green-500' : 'text-yellow-500'}`}
+            >
+              {baskt?.isActive ? 'Active' : 'Inactive'}
+            </div>
+          </div>
+          <div className="relative border border-border rounded-md p-3 bg-background/40">
+            <Clock className="absolute right-3 top-3 w-3.5 h-3.5 text-muted-foreground/60" />
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Last Rebalance
+            </div>
+            <div className="mt-1 text-sm text-foreground">
               {baskt?.account?.lastRebalanceTime
                 ? new Date(Number(baskt.account.lastRebalanceTime) * 1000).toLocaleString()
                 : 'Never'}
-            </p>
-          </div>
-
-          {!isCreator && (
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-              <p className="text-sm text-yellow-500 font-medium">Creator Only</p>
-              <p className="text-xs text-yellow-400 mt-1">
-                Only the baskt creator can trigger rebalances
-              </p>
             </div>
-          )}
+          </div>
+          <div className="relative border border-border rounded-md p-3 bg-background/40">
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Creator</div>
+            <div className="mt-1 text-xs text-foreground">
+              {baskt?.account?.creator ? (
+                <PublicKeyText publicKey={baskt.account.creator.toString()} isCopy={true} />
+              ) : (
+                '-'
+              )}
+            </div>
+          </div>
         </div>
+
+        {(!baskt?.isActive || isRebalancing) && (
+          <div className="mt-3 text-xs text-muted-foreground">
+            {!baskt?.isActive
+              ? 'This baskt is inactive. Rebalance is disabled.'
+              : 'Rebalancing in progress. This may take a few moments.'}
+          </div>
+        )}
       </div>
     </div>
   );

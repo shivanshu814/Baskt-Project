@@ -9,10 +9,8 @@ export function PositionInfoCard({
   onMaxClick,
   isLoading,
 }: PositionInfoCardProps) {
-  const { positionType, positionTypeColor, formattedCloseAmount, positionSize } = usePositionInfo(
-    position,
-    closeAmount,
-  );
+  const { positionType, positionTypeColor, formattedCloseAmount, positionValue, positionSize } =
+    usePositionInfo(position, closeAmount);
 
   return (
     <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
@@ -22,9 +20,9 @@ export function PositionInfoCard({
           <span className={positionTypeColor}>{positionType}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Position Size</span>
+          <span className="text-sm text-muted-foreground">Position Value</span>
           <span className="font-semibold text-foreground">
-            <NumberFormat value={positionSize} isPrice={true} />
+            <NumberFormat value={Math.round(positionValue * 100) / 100} isPrice={true} />
           </span>
         </div>
         <div className="flex justify-between items-center">
@@ -41,7 +39,7 @@ export function PositionInfoCard({
               required
               min="0.01"
               step="0.01"
-              max={positionSize}
+              max={positionValue}
               aria-label="Amount to close"
               autoFocus
               disabled={isLoading}
