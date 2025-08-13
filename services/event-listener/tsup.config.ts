@@ -1,11 +1,11 @@
 import { createStandaloneConfig } from '../../tsup.base.config';
 
 export default createStandaloneConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/listener.ts'],
   platform: 'node',
   external: [
-    // Keep Redis and queue packages external
+    // Keep Redis-related packages external as they're native/complex
     'ioredis',
     'bullmq'
   ]
-});
+}) 

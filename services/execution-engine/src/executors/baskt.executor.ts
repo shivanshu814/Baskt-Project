@@ -2,7 +2,7 @@ import { BasktCreatedMessage, logger } from '@baskt/data-bus';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { basktClient, querierClient } from '../config/client';
-import { OnchainAssetConfig, OnchainBasktAccount, BasktCreatedEvent } from '@baskt/types';
+import { OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
 import { CombinedAsset } from '@baskt/querier';
 
 export class BasktExecutor {
@@ -18,7 +18,7 @@ export class BasktExecutor {
       // Fetch the on-chain baskt account
       const onchainBaskt = await basktClient.readWithRetry(
         async () => await basktClient.getBasktRaw(new PublicKey(basktId), 'confirmed'),
-        5,   // max attempts
+        3,   // max attempts
         1500 // 1.5s between attempts
       ) as OnchainBasktAccount;
 
@@ -72,43 +72,6 @@ export class BasktExecutor {
       throw error;
     }
   }
-
-  /**
-   * Rebalance a baskt with new asset configurations and NAV
-   */
-  // async rebalanceBaskt(
-  //   basktId: string, 
-  //   assetConfigs: OnchainAssetConfig[], 
-  //   newNav: BN, 
-  //   rebalanceFeePerUnit?: BN
-  // ): Promise<string> {
-  //   try {
-  //     logger.info('Rebalancing baskt', { 
-  //       basktId, 
-  //       assetConfigCount: assetConfigs.length,
-  //       newNav: newNav.toString(),
-  //       rebalanceFeePerUnit: rebalanceFeePerUnit?.toString()
-  //     });
-
-  //     // Execute baskt rebalance on-chain
-  //     const tx = await basktClient.rebalanceBaskt(
-  //       new PublicKey(basktId),
-  //       assetConfigs,
-  //       newNav,
-  //       rebalanceFeePerUnit
-  //     );
-
-  //     logger.info('Baskt rebalanced successfully', { basktId, tx });
-  //     return tx;
-  //   } catch (error) {
-  //     logger.error('Failed to rebalance baskt', {
-  //       basktId,
-  //       error: error instanceof Error ? error.message : String(error),
-  //       stack: error instanceof Error ? error.stack : undefined
-  //     });
-  //     throw error;
-  //   }
-  // }
 
   /**
    * Private helper to create baskt metadata

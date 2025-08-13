@@ -4,14 +4,11 @@ export default createStandaloneConfig({
   entry: ['src/index.ts'],
   platform: 'node',
   external: [
-    // Keep database drivers external
+    // Keep heavy/native packages external
+    'bullmq',
+    'ioredis', 
     'mongoose',
-    'pg', 
     'sequelize',
-    'redis'
-  ],
-  additionalOptions: {
-    // Generate types for this package as it's a library
-    dts: true
-  }
+    'ws' // WebSocket native dependency
+  ]
 });

@@ -47,9 +47,6 @@ export class OrderWorker {
 
           logger.info('Processing order execution', { orderId: order.request.order.orderId, action: order.request.order.action });
 
-          // Publish tx.submitted
-          await this.publisher.publishSubmitted(order.request.order.orderId.toString(), '', order.request.order.action);
-
           // Execute based on action
           let txSignature: string;
           switch (order.request.order.action) {
@@ -67,23 +64,13 @@ export class OrderWorker {
           await IdempotencyTracker.recordTransaction(order.request.order.orderId.toString(), order.request.order.action, txSignature);
 
           // Update order metadata
-          const [orderPDA] = PublicKey.findProgramAddressSync(
-            [
-              Buffer.from('order'),
-              new PublicKey(order.request.order.owner).toBuffer(),
-              new BN(order.request.order.orderId).toArrayLike(Buffer, 'le', 8)
-            ],
-            basktClient.program.programId
-          );
+          const orderPDA = basktClient.getOrderPDA(order.request.order.orderId, order.request.order.owner);
 
           await querierClient.metadata.updateOrderByPDA(orderPDA.toString(), {
             orderStatus: 'FILLED',
             orderFullFillTx: txSignature,
             orderFullfillTs: Date.now().toString(),
           });
-
-          // Publish tx.confirmed
-          await this.publisher.publishConfirmed(order.request.order.orderId.toString(), txSignature, order.request.order.action, 0);
 
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
@@ -95,14 +82,6 @@ export class OrderWorker {
             orderId: order.request.order.orderId,
             action: order.request.order.action
           });
-
-          // Publish tx.failed
-          await this.publisher.publishFailed(
-            order.request.order.orderId.toString(),
-            '',
-            order.request.order.action,
-            errorMessage
-          );
 
           throw error; // Trigger BullMQ retry
         }

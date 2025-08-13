@@ -1,16 +1,14 @@
-import { defineConfig } from 'tsup';
+import { createStandaloneConfig } from '../../tsup.base.config';
 
-export default defineConfig({
+export default createStandaloneConfig({
   entry: ['src/index.ts'],
-  format: ['esm'],
-  dts: true,
-  splitting: false,
-  sourcemap: true,
-  clean: true,
-  outDir: 'dist',
-  target: 'node18',
   platform: 'node',
   external: [
-    '@baskt/types'
-  ]
+    // Keep Redis external as it's a native dependency
+    'ioredis'
+  ],
+  additionalOptions: {
+    // Generate types for this package as it's a library
+    dts: true
+  }
 });

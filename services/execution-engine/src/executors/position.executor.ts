@@ -23,7 +23,7 @@ export class PositionExecutor {
       try {
         orderAccount = await basktClient.readWithRetry(
           () => basktClient.program.account.order.fetch(orderPDA, 'confirmed'),
-          5,   // max attempts
+          3,   // max attempts
           1500 // 1.5s between attempts
         );
         logger.info('Order account found on-chain', {

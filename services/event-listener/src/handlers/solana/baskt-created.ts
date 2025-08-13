@@ -55,7 +55,7 @@ export default {
 
     const onchainBaskt = (await basktClient.readWithRetry(
       async () => await basktClient.getBasktRaw(new PublicKey(basktId), 'confirmed'),
-      2,
+      3,
       100,
     )) as OnchainBasktAccount;
 

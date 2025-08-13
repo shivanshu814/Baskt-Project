@@ -10,7 +10,7 @@ import BasktIdl from '../target/idl/baskt.json';
 import { AccessControlRole } from '@baskt/types';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from '../../../services/backend/src/router';
-import { AssetPrice } from '../../../services/oracle/src/config/sequelize';
+import { AssetPrice } from '../../../services/cron-jobs/src/config/sequelize';
 
 import assetConfig from './assets.json';
 import { getMint, getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';

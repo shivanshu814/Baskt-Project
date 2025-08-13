@@ -12,7 +12,7 @@ export type CollateralAddedEvent = {
   timestamp: BN;
 };
 
-async function collateralAddedHandler(event: ObserverEvent) {
+async function collateralAddedHandler(event: ObserverEvent) { 
   const collateralAddedData = event.payload.event as CollateralAddedEvent;
 
   try {
@@ -23,7 +23,7 @@ async function collateralAddedHandler(event: ObserverEvent) {
 
     const positionPDA = await basktClient.getPositionPDA(
       collateralAddedData.owner,
-      collateralAddedData.positionId,
+      collateralAddedData.positionId.toNumber(),
     );
 
     try {

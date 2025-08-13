@@ -117,7 +117,7 @@ async function orderCreatedHandler(event: ObserverEvent) {
 
     const onchainOrder: OnchainOrder = await basktClient.readWithRetry(
       async () => await basktClient.getOrderById(orderCreatedData.orderId, orderCreatedData.owner, 'confirmed'),
-      2,
+      3,
       100,
     );
 

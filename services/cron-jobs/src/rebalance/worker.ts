@@ -140,7 +140,7 @@ const rebalanceWorker = new Worker(
       try {
         baskt = await basktClient.readWithRetry(
           async () => await basktClient.getBasktRaw(new PublicKey(basktConfig.basktId), 'confirmed'),
-          2,
+          3,
           100,
         );
       } catch (error) {

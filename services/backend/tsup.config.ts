@@ -1,31 +1,14 @@
-import { defineConfig } from 'tsup'
+import { createStandaloneConfig } from '../../tsup.base.config';
 
-export default defineConfig({
+export default createStandaloneConfig({
   entry: ['src/server/index.ts'],
-  format: ['esm'],
-  dts: true,
-  splitting: false,
-  sourcemap: true,
-  clean: true,
-  outDir: 'dist',
-  target: 'node18',
   platform: 'node',
   external: [
-    // External dependencies that should not be bundled
-    '@baskt/sdk',
-    '@baskt/types',
-    '@coral-xyz/anchor',
-    '@solana/web3.js',
-    '@solana/spl-token',
-    '@trpc/server',
-    '@vercel/blob',
-    'bn.js',
-    'cors',
-    'dotenv',
-    'express',
-    'mongoose',
+    // Keep heavy database drivers external - install in container
     'pg',
+    'mongoose', 
     'sequelize',
-    'zod'
+    // Keep these external as they're often environment-specific
+    '@vercel/blob'
   ]
 }) 

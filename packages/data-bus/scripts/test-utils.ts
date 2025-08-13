@@ -219,7 +219,7 @@ export const FIXTURE_BUILDERS: Record<StreamName, () => any> = {
   }),
 
   'service.heartbeat': () => ({
-    service: ['oracle', 'event-engine', 'data-bus'][Math.floor(Math.random() * 3)],
+    service: ['oracle', 'event-listener', 'data-bus'][Math.floor(Math.random() * 3)],
     timestamp: Date.now(),
     lastUpdate: Date.now() - Math.floor(Math.random() * 60000),
     health: ['healthy', 'warning', 'critical'][Math.floor(Math.random() * 3)],

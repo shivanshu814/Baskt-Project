@@ -1,14 +1,6 @@
 import dotenv from 'dotenv';
 import { Connection, PublicKey } from '@solana/web3.js';
 
-// import basktCreatedHandler from '../handlers/solana/baskt-created';
-// import orderCreatedHandler from '../handlers/solana/order-created';
-// import orderCancelledHandler from '../handlers/solana/order-cancelled';
-// import positionOpenedHandler from '../handlers/solana/position-opened';
-// import collateralAddedHandler from '../handlers/solana/collateral-added';
-// import positionClosedHandler from '../handlers/solana/position-closed';
-// import positionLiquidatedHandler from '../handlers/solana/position-liquidated';
-
 dotenv.config();
 
 export const EVENT_ENGINE_QUEUE_NAME = 'events';

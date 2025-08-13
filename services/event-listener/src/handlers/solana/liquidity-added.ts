@@ -1,5 +1,4 @@
 import { EventSource, ObserverEvent } from '../../types';
-import { querierClient } from '../../utils/config';
 import BN from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
 import { 

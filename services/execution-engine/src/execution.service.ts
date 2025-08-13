@@ -2,18 +2,16 @@ import { DataBus, STREAMS, MessageEnvelope, OrderAccepted, logger, serializeMess
 import { executionQueue } from './config/queue';
 import { OrderWorker } from './workers/order.worker';
 import { ExecutionConfig } from './types';
-import { BasktExecutor } from './executors';
+import { BasktWorker } from './workers';
 
 export class ExecutionService {
   private dataBus: DataBus;
   private isRunning = false;
 
-  private executors: {
-    baskt: BasktExecutor;
-  };
-
+ 
   private asyncWorkers: {
     order: OrderWorker;
+    baskt: BasktWorker;
   }
 
   constructor(private config: ExecutionConfig) {
@@ -23,12 +21,9 @@ export class ExecutionService {
       autoConnect: false
     });
 
-    this.executors = {
-      baskt: new BasktExecutor()
-    };
-
     this.asyncWorkers = {
-      order: new OrderWorker(this.dataBus)
+      order: new OrderWorker(this.dataBus),
+      baskt: new BasktWorker(this.dataBus)
     };
   }
 
@@ -56,14 +51,28 @@ export class ExecutionService {
 
     // Start worker
     await this.asyncWorkers.order.start();
-
+    await this.asyncWorkers.baskt.start();
     this.isRunning = true;
     logger.info('Execution service started');
   }
 
 
   private async handleBasktCreated(envelope: MessageEnvelope<BasktCreatedMessage>): Promise<void> {
-    await this.executors.baskt.activateBaskt(envelope.payload);
+    const jobId = `${envelope.payload.basktId}-ACTIVATE`;
+
+    await executionQueue.add(
+      'baskt-activation',
+      serializeMessage(envelope.payload),
+      {
+        jobId,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: true,
+        removeOnFail: false
+      }
+    );
+
+    logger.info('Baskt queued for activation', { basktId: envelope.payload.basktId, jobId });
   }
 
   private async handleOrderAccepted(envelope: MessageEnvelope<OrderAccepted>): Promise<void> {

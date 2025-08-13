@@ -45,6 +45,9 @@ importers:
       postcss:
         specifier: ^8.5.3
         version: 8.5.6
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.0(jiti@1.21.7)(postcss@8.5.6)(tsx@4.20.3)(typescript@5.8.3)(yaml@2.8.0)
       turbo:
         specifier: ^2.5.0
         version: 2.5.4
@@ -739,7 +742,65 @@ importers:
         specifier: ^7.2.0
         version: 7.18.0(eslint@8.57.1)(typescript@5.8.3)
 
-  services/event-engine:
+  services/cron-jobs:
+    dependencies:
+      '@baskt/querier':
+        specifier: workspace:*
+        version: link:../../packages/querier
+      '@baskt/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@baskt/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@coral-xyz/anchor':
+        specifier: 0.31.0
+        version: 0.31.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
+      '@solana/web3.js':
+        specifier: 1.98.0
+        version: 1.98.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
+      axios:
+        specifier: ^1.8.4
+        version: 1.10.0
+      bn.js:
+        specifier: ^5.2.1
+        version: 5.2.2
+      bullmq:
+        specifier: ^5.49.1
+        version: 5.56.4
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
+      ioredis:
+        specifier: ^5.6.1
+        version: 5.6.1
+      mongoose:
+        specifier: ^8.13.2
+        version: 8.16.3
+      sequelize:
+        specifier: ^6.37.7
+        version: 6.37.7(pg@8.16.3)
+      uuid:
+        specifier: ^11.1.0
+        version: 11.1.0
+      ws:
+        specifier: ^8.18.2
+        version: 8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10)
+    devDependencies:
+      '@types/bn.js':
+        specifier: ^5.1.6
+        version: 5.2.0
+      tsup:
+        specifier: ^8.0.2
+        version: 8.5.0(jiti@1.21.7)(postcss@8.5.6)(tsx@4.20.3)(typescript@5.8.3)(yaml@2.8.0)
+      tsx:
+        specifier: ^4.10.1
+        version: 4.20.3
+      typescript:
+        specifier: ^5.3.3
+        version: 5.8.3
+
+  services/event-listener:
     dependencies:
       '@baskt/data-bus':
         specifier: workspace:*
@@ -882,6 +943,9 @@ importers:
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@22.16.4)(typescript@5.8.3)
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.0(jiti@1.21.7)(postcss@8.5.6)(tsx@4.20.3)(typescript@5.8.3)(yaml@2.8.0)
       tsx:
         specifier: ^4.19.4
         version: 4.20.3
@@ -5664,6 +5728,7 @@ packages:
   source-map@0.8.0-beta.0:
     resolution: {integrity: sha512-2ymg6oRBpebeZi9UUNsgQ89bhx01TcTkmNTGnNO88imTmbSgy4nfujrgVEFKWpMTEGA11EDkTt7mqObTPdigIA==}
     engines: {node: '>= 8'}
+    deprecated: The work that was done in this beta branch won't be included in future versions
 
   sparse-bitfield@3.0.3:
     resolution: {integrity: sha512-kvzhi7vqKTfkh0PZU+2D2PIllw2ymqJKujUcyPMd9Y75Nv4nPbGJZXNhxsgdQab2BmlDct1YnfQCguEvHr7VsQ==}

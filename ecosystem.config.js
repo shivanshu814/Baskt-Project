@@ -1,33 +1,33 @@
 module.exports = {
   apps: [
-    {
-      name: 'oracle:manager',
-      cwd: './services/oracle',
-      script: 'bash',
-      args: "-c 'node dist/manager.js'",
-      interpreter: 'none',
-      exec_mode: 'fork',
-      autorestart: true,
-      watch: false,
-      env_file: '.env', // Absolute path to root .env
-      env: {
-        NODE_ENV: 'production',
-      },
-    },
-    {
-      name: 'oracle:worker',
-      cwd: './services/oracle',
-      script: 'bash',
-      args: "-c 'node dist/oracle-worker.js'",
-      interpreter: 'none',
-      exec_mode: 'fork',
-      autorestart: true,
-      watch: false,
-      env_file: '.env', // Absolute path to root .env
-      env: {
-        NODE_ENV: 'production',
-      },
-    },
+    // {
+    //   name: 'oracle:manager',
+    //   cwd: './services/oracle',
+    //   script: 'bash',
+    //   args: "-c 'node dist/manager.js'",
+    //   interpreter: 'none',
+    //   exec_mode: 'fork',
+    //   autorestart: true,
+    //   watch: false,
+    //   env_file: '.env', // Absolute path to root .env
+    //   env: {
+    //     NODE_ENV: 'production',
+    //   },
+    // },
+    // {
+    //   name: 'oracle:worker',
+    //   cwd: './services/oracle',
+    //   script: 'bash',
+    //   args: "-c 'node dist/oracle-worker.js'",
+    //   interpreter: 'none',
+    //   exec_mode: 'fork',
+    //   autorestart: true,
+    //   watch: false,
+    //   env_file: '.env', // Absolute path to root .env
+    //   env: {
+    //     NODE_ENV: 'production',
+    //   },
+    // },
     // {
     //   name: 'oracle:rebalance-manager',
     //   cwd: './services/oracle',
@@ -72,7 +72,7 @@ module.exports = {
     },
     {
       name: 'event-listener',
-      cwd: './services/event-engine',
+      cwd: './services/event-listener',
       script: 'bash',
       args: "-c 'node dist/listener.js'",
       interpreter: 'none',
@@ -85,10 +85,10 @@ module.exports = {
       },
     },
     {
-      name: 'oracle:nav-tracker',
-      cwd: './services/oracle',
+      name: 'cron-jobs',
+      cwd: './services/cron-jobs',
       script: 'bash',
-      args: "-c 'node dist/nav-tracker.js'",
+      args: "-c 'node dist/index.js'",
       interpreter: 'none',
       exec_mode: 'fork',
       autorestart: true,

@@ -57,9 +57,7 @@ export const AssetMetadataSchema = new mongoose.Schema({
   },
   priceMetrics: {
     type: {
-      price: { type: Number, required: true },
-      change24h: { type: Number, required: true },
-      timestamp: { type: Number, required: true },
+      price24hAgo: { type: Number, required: true },
     },
   },
   logo: {
