@@ -14,12 +14,8 @@ export class PositionExecutor {
       const price = new BN(order.executionPrice);
       logger.info('Using fill price from Guardian', { price: price.toString(), basktId: order.request.order.basktId });
 
-      console.log('order.request.order.owner', typeof order.request.order.owner, order.request.order.owner);
-      console.log('order.request.order.basktId', typeof order.request.order.basktId, order.request.order.basktId);
-      console.log('order.request.order.orderId', typeof order.request.order.orderId, order.request.order.orderId);
-      console.log('order.executionPrice', typeof order.executionPrice, order.executionPrice);
       // Calculate PDA for order account
-      const orderPDA = await basktClient.getOrderPDA(Number(order.request.order.orderId), new PublicKey(order.request.order.owner.toString()));
+      const orderPDA = await basktClient.getOrderPDA(Number(order.request.order.orderId), order.request.order.owner);
       logger.info('Calculated order PDA', { orderPDA: orderPDA.toString(), orderId: order.request.order.orderId, owner: order.request.order.owner });
 
       // Fetch the order account on-chain

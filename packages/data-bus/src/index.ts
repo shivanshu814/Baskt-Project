@@ -32,6 +32,7 @@ import { MessageEnvelope, DataBusConfig, ConsumerConfig, RedisClusterConfig } fr
 import { STREAMS, StreamName } from './types/streams';
 import { getStreamConfig } from './stream-config';
 import SuperJSON from 'superjson';
+import { PublicKey } from '@solana/web3.js';
 
 export class DataBus extends EventEmitter {
   private redis: Redis | Cluster;
@@ -536,6 +537,15 @@ SuperJSON.registerCustom<BN, string>(
     deserialize: v => new BN(v, 16),
   },
   'bn.js'
+);
+
+SuperJSON.registerCustom<PublicKey, string>(
+  {
+    isApplicable: (v): v is PublicKey => v instanceof PublicKey,
+    serialize: v => v.toString(),
+    deserialize: v => new PublicKey(v),
+  },
+  'solana/web3.js'
 );
 
 
