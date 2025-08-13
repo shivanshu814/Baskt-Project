@@ -63,12 +63,15 @@ export async function routePrice(
     return await callBinanceAPI(id);
   } else if (priceProvider.toLowerCase() === 'coingecko') {
     return await callCoinGeckoAPI(id);
-  } else if (priceProvider.toLowerCase() === 'usdc') {
+  } else if (priceProvider.toLowerCase() === 'dexscreener') {
+    return await callDexscreenerAPI(id, chain);
+  }
+  else if (priceProvider.toLowerCase() === 'usdc') {
     return {
       priceUSD: new BN(1e6),
     };
   } else {
-    console.log(`Falling back to Dexscreener for provider: ${priceProvider}`);
+    console.log(`Falling back to Dexscreener for provider: ${priceProvider} ${id} ${chain}`);
     return await callDexscreenerAPI(id, chain);
   }
 }

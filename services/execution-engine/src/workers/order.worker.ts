@@ -7,7 +7,7 @@ import { PositionExecutor } from '../executors/position.executor';
 import { TransactionPublisher } from '../publishers/transaction.publisher';
 import { IdempotencyTracker } from '../utils/idempotency';
 import { DataBus, deserializeMessage, logger, OrderAccepted, serializeMessage } from '@baskt/data-bus';
-import { BaseWorker } from './base.worker';
+import { BaseWorker, JobInfo } from './base.worker';
 
 export class OrderWorker extends BaseWorker {
   private executor: PositionExecutor;
@@ -30,8 +30,8 @@ export class OrderWorker extends BaseWorker {
     this.publisher = new TransactionPublisher(dataBus);
   }
 
-  protected async processJob(job: Job): Promise<void> {
-    const order = deserializeMessage(job.data) as OrderAccepted;
+  protected async processJob(jobInfo: JobInfo, job: Job): Promise<void> {
+    const order = deserializeMessage(jobInfo.data) as OrderAccepted;
 
     try {
       // Check idempotency
@@ -90,18 +90,14 @@ export class OrderWorker extends BaseWorker {
     }
   }
 
-  async addJob(data: OrderAccepted, jobType: string, jobId: string): Promise<void> {
-    const jobInfo = {
-      data,
-      jobType, 
-      jobId
-    }
+  async addJob(jobInfo: JobInfo): Promise<void> {
+
 
     await this.addJobInternal(
       OrderWorker.EXECUTION_JOB_NAME,
-      serializeMessage(jobInfo),
+      jobInfo,
       {
-        jobId,
+        jobId: jobInfo.jobId,
         attempts: 3,
         backoff: { type: 'exponential', delay: 2000 },
         removeOnComplete: true,

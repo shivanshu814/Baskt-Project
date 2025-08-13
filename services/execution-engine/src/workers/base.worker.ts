@@ -1,6 +1,6 @@
 import { Worker, Job, Queue } from 'bullmq';
 import { redis } from '../config';
-import { logger } from '@baskt/data-bus';
+import { deserializeMessage, logger, serializeMessage } from '@baskt/data-bus';
 
 export interface QueueStats {
   waiting: number;
@@ -16,6 +16,12 @@ export interface WorkerConfig {
     max: number;
     duration: number;
   };
+}
+
+export interface JobInfo {
+  data: any;
+  jobType: string;
+  jobId: string;
 }
 
 export abstract class BaseWorker {
@@ -40,7 +46,8 @@ export abstract class BaseWorker {
     this.worker = new Worker(
       this.config.queueName,
       async (job: Job) => {
-        await this.processJob(job);
+        const jobInfo = deserializeMessage(job.data) as JobInfo;
+        await this.processJob(jobInfo, job);
       },
       {
         connection: redis,
@@ -64,7 +71,7 @@ export abstract class BaseWorker {
     logger.info(`${this.constructor.name} stopped`, { queue: this.config.queueName });
   }
 
-  async addJobInternal(jobName: string, jobData: any, options?: {
+  async addJobInternal(jobName: string, jobData: JobInfo, options?: {
     jobId?: string;
     attempts?: number;
     backoff?: { type: string; delay: number };
@@ -79,7 +86,9 @@ export abstract class BaseWorker {
       ...options
     };
 
-    await this.queue.add(jobName, jobData, defaultOptions);
+    const serializedJobData = serializeMessage(jobData);
+
+    await this.queue.add(jobName, serializedJobData, defaultOptions);
     
     logger.info(`Job queued`, { 
       worker: this.constructor.name,
@@ -106,9 +115,7 @@ export abstract class BaseWorker {
   }
 
   // Abstract method that each worker must implement
-  protected abstract processJob(job: Job): Promise<void>;
+  protected abstract processJob(jobInfo: JobInfo, job: Job): Promise<void>;
 
-  async addJob(data: any, jobType: string, jobId: string): Promise<void> {
-    
-  }
+  abstract addJob(jobInfo: JobInfo): Promise<void>;
 }

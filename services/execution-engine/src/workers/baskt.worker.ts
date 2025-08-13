@@ -3,7 +3,7 @@ import { BasktCreatedMessage, logger, DataBus, deserializeMessage, serializeMess
 import { BasktExecutor } from '../executors/baskt.executor';
 import { TransactionPublisher } from '../publishers/transaction.publisher';
 import { IdempotencyTracker } from '../utils/idempotency';
-import { BaseWorker } from './base.worker';
+import { BaseWorker, JobInfo } from './base.worker';
 
 export class BasktWorker extends BaseWorker {
   private executor: BasktExecutor;
@@ -26,8 +26,8 @@ export class BasktWorker extends BaseWorker {
     this.publisher = new TransactionPublisher(dataBus);
   }
 
-  protected async processJob(job: Job): Promise<void> {
-    const basktMessage = deserializeMessage(job.data) as BasktCreatedMessage;
+  protected async processJob(jobInfo: JobInfo, job: Job): Promise<void> {
+    const basktMessage = deserializeMessage(jobInfo.data) as BasktCreatedMessage;
 
     try {
       // Check idempotency
@@ -66,18 +66,12 @@ export class BasktWorker extends BaseWorker {
     }
   }
 
-  async addJob(data: any, jobType: string, jobId: string): Promise<void> {
-    const jobInfo = {
-      data,
-      jobType, 
-      jobId
-    }
-
+  async addJob(jobInfo: JobInfo): Promise<void> {
     await this.addJobInternal(
       BasktWorker.ACTIVATION_JOB_NAME,
-      serializeMessage(jobInfo),
+      jobInfo,
       {
-        jobId,
+        jobId: jobInfo.jobId,
         attempts: 3,
         backoff: { type: 'exponential', delay: 2000 },
         removeOnComplete: true,

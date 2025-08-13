@@ -56,11 +56,19 @@ export class ExecutionService {
 
 
   private async handleBasktCreated(envelope: MessageEnvelope<BasktCreatedMessage>): Promise<void> {
-    await this.asyncWorkers.baskt.addJob(envelope.payload, STREAMS.baskt.created, envelope.id);
+    await this.asyncWorkers.baskt.addJob({
+      data: envelope.payload,
+      jobType: STREAMS.baskt.created,
+      jobId: envelope.id
+    });
   }
 
   private async handleOrderAccepted(envelope: MessageEnvelope<OrderAccepted>): Promise<void> {
-    await this.asyncWorkers.order.addJob(envelope.payload, STREAMS.order.accepted, envelope.id);
+    await this.asyncWorkers.order.addJob({
+      data: envelope.payload,
+      jobType: STREAMS.order.accepted,
+      jobId: envelope.id
+    });
   }
 
   async stop(): Promise<void> {

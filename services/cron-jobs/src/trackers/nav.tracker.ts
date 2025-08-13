@@ -28,7 +28,7 @@ export class NavTracker extends BaseJob {
     try {
       if (!navData.length) return;
       await AssetPrice.bulkCreate(navData.map(n => ({
-        assetId: n.assetId,
+        asset_id: n.assetId,
         price: n.price,
         time: n.time
       })));
