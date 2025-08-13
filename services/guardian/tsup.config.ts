@@ -1,4 +1,4 @@
-import { createStandaloneConfig } from '../../tsup.base.config';pn
+import { createStandaloneConfig } from '../../tsup.base.config';
 
 export default createStandaloneConfig({
   entry: ['src/index.ts'],
@@ -6,5 +6,5 @@ export default createStandaloneConfig({
   external: [
     // Guardian service has minimal external dependencies
     // All workspace packages will be bundled for standalone execution
-  ]
+  ],
 });
