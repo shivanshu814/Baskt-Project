@@ -1,6 +1,5 @@
 import { OrderAccepted } from '@baskt/data-bus';
 import { logger } from '@baskt/data-bus';
-import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { basktClient } from '../config/client';
 
@@ -44,8 +43,8 @@ export class PositionExecutor {
         order: orderPDA,
         positionId,
         entryPrice: price,
-        baskt: new PublicKey(order.request.order.basktId),
-        orderOwner: new PublicKey(order.request.order.owner),
+        baskt: order.request.order.basktId,
+        orderOwner: order.request.order.owner,
       });
 
       logger.info('Position opened', { positionId: positionId.toString(), tx });
@@ -67,7 +66,7 @@ export class PositionExecutor {
     }
 
     const position = await basktClient.readWithRetry(
-      () => basktClient.getPosition(new PublicKey(order.request.order.closeParams!.targetPosition!)),
+      () => basktClient.getPosition(order.request.order.closeParams!.targetPosition!),
       3,
       1000
     );
@@ -78,21 +77,21 @@ export class PositionExecutor {
 
     // Get account details
     const protocolAccount = await basktClient.getProtocolAccount();
-    const ownerTokenAccount = await basktClient.getUSDCAccount(new PublicKey(order.request.order.owner));
+    const ownerTokenAccount = await basktClient.getUSDCAccount(order.request.order.owner);
     const treasuryTokenAccount = await basktClient.getUSDCAccount(protocolAccount.treasury);
 
-    const orderPDA = await basktClient.getOrderPDA(Number(order.request.order.orderId), new PublicKey(order.request.order.owner));
+    const orderPDA = await basktClient.getOrderPDA(Number(order.request.order.orderId), order.request.order.owner);
 
     // Execute on-chain
     const tx = await basktClient.closePosition({
       orderPDA,
       position: position.positionPDA,
       exitPrice,
-      baskt: new PublicKey(order.request.order.basktId),
+      baskt: order.request.order.basktId,
       ownerTokenAccount: ownerTokenAccount.address,
       treasury: protocolAccount.treasury,
       treasuryTokenAccount: treasuryTokenAccount.address,   
-      orderOwner: new PublicKey(order.request.order.owner),
+      orderOwner: order.request.order.owner,
       sizeToClose: order.request.order.closeParams!.sizeAsContracts ? new BN(order.request.order.closeParams!.sizeAsContracts ) : undefined,
     });
 
