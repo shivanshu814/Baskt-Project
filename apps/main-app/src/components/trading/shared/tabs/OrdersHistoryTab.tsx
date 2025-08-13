@@ -43,7 +43,9 @@ export function OrdersHistoryTab({ baskt, orders }: OrdersHistoryTabProps) {
                     </div>
                   </td>
                   <td className="py-2 px-2">
-                    <span className="text-blue-500">{order.orderType}</span>
+                    <span className="text-blue-500">
+                      {order.orderType === 'Market' ? 'Limit' : 'Market'}
+                    </span>
                   </td>
                   <td className="py-2 px-2">
                     <span className={order.isLong ? 'text-green-500' : 'text-red-500'}>
