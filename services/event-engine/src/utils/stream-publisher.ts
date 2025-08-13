@@ -1,20 +1,5 @@
-import { DataBus, STREAMS, type StreamName } from '@baskt/data-bus';
-import { PublicKey } from '@solana/web3.js';
-import { BN } from 'bn.js';
-import { OrderAction, OrderType } from '@baskt/types';
-import type {
-  OrderRequest,
-  OrderAccepted,
-  OrderRejected,
-  PositionOpened,
-  PositionClosed,
-  PositionLiquidated,
-  TransactionSubmitted,
-  TransactionConfirmed,
-  TransactionFailed,
-  FundingUpdate,
-  BasketNav
-} from '@baskt/shared';
+import { BasktCreatedMessage, DataBus, OrderRequest, STREAMS, type StreamName } from '@baskt/data-bus';
+
 
 /**
  * StreamPublisher handles publishing blockchain events to Redis streams
@@ -65,7 +50,6 @@ export class StreamPublisher {
     if (this.reconnectTimer) {
       return; // Already scheduled
     }
-
     console.log(`[StreamPublisher] Scheduling reconnect in ${this.RECONNECT_DELAY}ms`);
     this.reconnectTimer = setTimeout(async () => {
       this.reconnectTimer = undefined;
@@ -91,17 +75,6 @@ export class StreamPublisher {
     }
   }
 
-  private formatPublicKey(key: PublicKey | string): string {
-    return typeof key === 'string' ? key : key.toString();
-  }
-
-  private formatBN(value: InstanceType<typeof BN> | string | number): string {
-    if (value instanceof BN) {
-      return value.toString();
-    }
-    return value.toString();
-  }
-
   /**
    * Safely publish to DataBus with error handling and contextual logging
    * Prevents unhandled promise rejections and provides rich error context
@@ -116,10 +89,7 @@ export class StreamPublisher {
       await this.dataBus.publish(stream, payload);
       console.log(`[StreamPublisher] Published ${stream}`, context);
     } catch (error) {
-      console.error(`[StreamPublisher] Failed to publish ${stream}:`, {
-        ...context,
-        error: error instanceof Error ? error.message : String(error)
-      });
+      console.error(`[StreamPublisher] Failed to publish ${stream}:`, error, context);
       // Note: Not re-throwing to prevent unhandled promise rejections
       // DataBus circuit breaker already handles backoff/retry logic
     }
@@ -128,93 +98,14 @@ export class StreamPublisher {
   /**
    * Publish order creation event - matches OrderRequest interface exactly
    */
-  async publishOrderCreated(data: {
-    orderId: InstanceType<typeof BN> | string;
-    owner: PublicKey | string;
-    basktId: PublicKey | string;
-    size: InstanceType<typeof BN> | string;
-    collateral: InstanceType<typeof BN> | string;
-    isLong: boolean;
-    action: OrderAction;
-    targetPosition?: PublicKey | null;
-    orderType: OrderType;
-    limitPrice: InstanceType<typeof BN> | string;
-    maxSlippageBps: InstanceType<typeof BN> | string;
-    leverageBps: InstanceType<typeof BN> | string;
-    timestamp: InstanceType<typeof BN> | string;
-    signature: string;
-  }): Promise<void> {
-    const payload: OrderRequest = {
-      orderId: this.formatBN(data.orderId),
-      owner: this.formatPublicKey(data.owner),
-      basktId: this.formatPublicKey(data.basktId),
-      size: this.formatBN(data.size),
-      collateral: this.formatBN(data.collateral),
-      isLong: data.isLong,
-      action: data.action,
-      targetPosition: data.targetPosition ? this.formatPublicKey(data.targetPosition) : null,
-      orderType: data.orderType,
-      limitPrice: this.formatBN(data.limitPrice),
-      maxSlippageBps: this.formatBN(data.maxSlippageBps),
-      leverageBps: this.formatBN(data.leverageBps),
-      timestamp: this.formatBN(data.timestamp),
-      txSignature: data.signature,
-    };
-    
-    await this.safePublish(STREAMS.order.request, payload, { orderId: payload.orderId });
+  async publishOrderCreated(payload: OrderRequest): Promise<void> {  
+    await this.safePublish(STREAMS.order.request, payload, { orderId: payload.order.orderId });
   }
 
-  /**
-   * Publish order acceptance (filled) event - matches OrderAccepted interface exactly
-   */
-  async publishOrderAccepted(data: {
-    orderId: string;
-    owner: string;
-    basktId: string;
-    action: OrderAction;
-    size: string;
-    fillPrice: string;
-    positionId: string | null;
-    targetPosition: string | null;
-    timestamp: string;
-    txSignature: string;
-  }): Promise<void> {
-    const payload: OrderAccepted = {
-      orderId: data.orderId,
-      owner: data.owner,
-      basktId: data.basktId,
-      action: data.action,
-      size: data.size,
-      fillPrice: data.fillPrice,
-      positionId: data.positionId,
-      targetPosition: data.targetPosition,
-      timestamp: data.timestamp,
-      txSignature: data.txSignature,
-    };
-    
-    await this.safePublish(STREAMS.order.accepted, payload, { orderId: data.orderId });
+  async publishBasktCreated(payload: BasktCreatedMessage): Promise<void> {
+    await this.safePublish(STREAMS.baskt.created, payload, { basktId: payload.basktId });
   }
 
-  /**
-   * Publish order rejection/cancellation event - matches OrderRejected interface exactly
-   */
-  async publishOrderRejected(data: {
-    orderId: string;
-    owner: string;
-    basktId: string;
-    reason: string;
-    timestamp: string;
-  }): Promise<void> {
-    const payload: OrderRejected = {
-      orderId: data.orderId,
-      owner: data.owner,
-      basktId: data.basktId,
-      reason: data.reason,
-      timestamp: data.timestamp,
-    };
-    
-    await this.safePublish(STREAMS.order.rejected, payload, { orderId: data.orderId });
-  }
 
   /**
    * Publish position opened event - matches PositionOpened interface exactly

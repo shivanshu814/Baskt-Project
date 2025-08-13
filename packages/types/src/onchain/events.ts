@@ -8,9 +8,9 @@ import { OrderAction, OrderType } from './order';
 
 export interface OrderCreatedEvent {
   owner: PublicKey;
-  orderId: BN;
+  orderId: number;
   basktId: PublicKey;
-  size: BN;
+  notionalValue: BN;
   collateral: BN;
   isLong: boolean;
   action: OrderAction;
@@ -21,6 +21,7 @@ export interface OrderCreatedEvent {
   leverageBps: BN;
   timestamp: BN;
 }
+
 
 export interface OrderCancelledEvent {
   owner: PublicKey;

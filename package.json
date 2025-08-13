@@ -7,9 +7,9 @@
     "pnpm": ">=8.0.0"
   },
   "scripts": {
-    "dev:lib": "turbo run dev --filter=@baskt/sdk --filter=@baskt/types --filter=@baskt/querier --filter=@baskt/ui",
+    "dev:lib": "turbo run dev --filter=@baskt/sdk --filter=@baskt/types --filter=@baskt/querier --filter=@baskt/ui  --filter=@baskt/data-bus",
     "build": "turbo run build",
-    "build:lib": "turbo run build --filter=@baskt/sdk --filter=@baskt/types",
+    "build:lib": "turbo run build --filter=@baskt/sdk --filter=@baskt/types --filter=@baskt/data-bus",
     "build:server": "turbo run build --filter=@baskt/backend --filter=@baskt/oracle --filter=@baskt/event-engine",
     "dev:all": "turbo run dev",
     "dev:admin": "turbo run dev --filter=@baskt/admin-app --filter=@baskt/backend",
@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^15.3.5",
+    "@types/bn.js": "^5.2.0",
     "@types/js-cookie": "^3.0.6",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
@@ -34,7 +35,11 @@
     "postcss": "^8.5.3",
     "turbo": "^2.5.0"
   },
-  "workspaces": ["apps/*", "packages/*", "services/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*"
+  ],
   "packageManager": "pnpm@9.0.0",
   "dependencies": {
     "@trpc/client": "^10.45.1",

@@ -27,6 +27,9 @@ importers:
       '@next/eslint-plugin-next':
         specifier: ^15.3.5
         version: 15.4.1
+      '@types/bn.js':
+        specifier: ^5.2.0
+        version: 5.2.0
       '@types/js-cookie':
         specifier: ^3.0.6
         version: 3.0.6
@@ -239,6 +242,73 @@ importers:
       tailwindcss:
         specifier: ^3.3.0
         version: 3.4.17(ts-node@10.9.2(@types/node@22.16.4)(typescript@5.8.3))
+
+  packages/data-bus:
+    dependencies:
+      '@baskt/types':
+        specifier: workspace:*
+        version: link:../types
+      bn.js:
+        specifier: ^5.2.1
+        version: 5.2.2
+      chalk:
+        specifier: ^5.3.0
+        version: 5.4.1
+      cli-table3:
+        specifier: ^0.6.5
+        version: 0.6.5
+      commander:
+        specifier: ^14.0.0
+        version: 14.0.0
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
+      ioredis:
+        specifier: ^5.6.1
+        version: 5.6.1
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.1.0
+      json-stable-stringify:
+        specifier: ^1.3.0
+        version: 1.3.0
+      prom-client:
+        specifier: ^15.1.0
+        version: 15.1.3
+      superjson:
+        specifier: ^2.2.2
+        version: 2.2.2
+      ulid:
+        specifier: ^2.3.0
+        version: 2.4.0
+      winston:
+        specifier: ^3.11.0
+        version: 3.17.0
+      zod:
+        specifier: ^4.0.8
+        version: 4.0.10
+    devDependencies:
+      '@types/bn.js':
+        specifier: ^5.2.0
+        version: 5.2.0
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
+      '@types/node':
+        specifier: ^20.10.0
+        version: 20.19.9
+      tsup:
+        specifier: ^8.0.2
+        version: 8.5.0(jiti@1.21.7)(postcss@8.5.6)(tsx@4.20.3)(typescript@5.8.3)(yaml@2.8.0)
+      tsx:
+        specifier: ^4.19.4
+        version: 4.20.3
+      typescript:
+        specifier: ^5.3.3
+        version: 5.8.3
+      vitest:
+        specifier: ^1.0.0
+        version: 1.6.1(@types/node@20.19.9)
 
   packages/program:
     dependencies:
@@ -669,81 +739,17 @@ importers:
         specifier: ^7.2.0
         version: 7.18.0(eslint@8.57.1)(typescript@5.8.3)
 
-  services/data-bus:
-    dependencies:
-      '@baskt/shared':
-        specifier: workspace:*
-        version: link:../shared
-      '@baskt/types':
-        specifier: workspace:*
-        version: link:../../packages/types
-      bn.js:
-        specifier: ^5.2.1
-        version: 5.2.2
-      chalk:
-        specifier: ^5.3.0
-        version: 5.4.1
-      cli-table3:
-        specifier: ^0.6.5
-        version: 0.6.5
-      commander:
-        specifier: ^14.0.0
-        version: 14.0.0
-      date-fns:
-        specifier: ^4.1.0
-        version: 4.1.0
-      ioredis:
-        specifier: ^5.6.1
-        version: 5.6.1
-      js-yaml:
-        specifier: ^4.1.0
-        version: 4.1.0
-      json-stable-stringify:
-        specifier: ^1.3.0
-        version: 1.3.0
-      ulid:
-        specifier: ^2.3.0
-        version: 2.4.0
-      zod:
-        specifier: ^4.0.8
-        version: 4.0.10
-    devDependencies:
-      '@types/bn.js':
-        specifier: ^5.2.0
-        version: 5.2.0
-      '@types/js-yaml':
-        specifier: ^4.0.9
-        version: 4.0.9
-      '@types/node':
-        specifier: ^20.10.0
-        version: 20.19.9
-      tsup:
-        specifier: ^8.0.2
-        version: 8.5.0(jiti@1.21.7)(postcss@8.5.6)(tsx@4.20.3)(typescript@5.8.3)(yaml@2.8.0)
-      tsx:
-        specifier: ^4.19.4
-        version: 4.20.3
-      typescript:
-        specifier: ^5.3.3
-        version: 5.8.3
-      vitest:
-        specifier: ^1.0.0
-        version: 1.6.1(@types/node@20.19.9)
-
   services/event-engine:
     dependencies:
       '@baskt/data-bus':
         specifier: workspace:*
-        version: link:../data-bus
+        version: link:../../packages/data-bus
       '@baskt/querier':
         specifier: workspace:*
         version: link:../../packages/querier
       '@baskt/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
-      '@baskt/shared':
-        specifier: workspace:*
-        version: link:../shared
       '@baskt/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -777,6 +783,110 @@ importers:
         version: 4.20.3
       typescript:
         specifier: ^5.3.3
+        version: 5.8.3
+
+  services/execution-engine:
+    dependencies:
+      '@baskt/data-bus':
+        specifier: workspace:*
+        version: link:../../packages/data-bus
+      '@baskt/querier':
+        specifier: workspace:*
+        version: link:../../packages/querier
+      '@baskt/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@baskt/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@coral-xyz/anchor':
+        specifier: ^0.31.0
+        version: 0.31.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
+      '@solana/web3.js':
+        specifier: ^1.95.5
+        version: 1.98.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
+      bn.js:
+        specifier: ^5.2.2
+        version: 5.2.2
+      bullmq:
+        specifier: ^5.0.0
+        version: 5.56.4
+      dotenv:
+        specifier: ^16.3.1
+        version: 16.6.1
+      express:
+        specifier: ^4.19.2
+        version: 4.21.2
+      ioredis:
+        specifier: ^5.3.2
+        version: 5.6.1
+    devDependencies:
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.23
+      '@types/node':
+        specifier: ^20.10.0
+        version: 20.19.9
+      eslint:
+        specifier: ^8.54.0
+        version: 8.57.1
+      tsup:
+        specifier: ^8.0.1
+        version: 8.5.0(jiti@1.21.7)(postcss@8.5.6)(tsx@4.20.3)(typescript@5.8.3)(yaml@2.8.0)
+      tsx:
+        specifier: ^4.6.2
+        version: 4.20.3
+      typescript:
+        specifier: ^5.3.2
+        version: 5.8.3
+
+  services/guardian:
+    dependencies:
+      '@baskt/data-bus':
+        specifier: workspace:*
+        version: link:../../packages/data-bus
+      '@baskt/querier':
+        specifier: workspace:*
+        version: link:../../packages/querier
+      '@baskt/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@baskt/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@coral-xyz/anchor':
+        specifier: ^0.31.0
+        version: 0.31.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
+      '@solana/web3.js':
+        specifier: ^1.95.4
+        version: 1.98.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
+      bn.js:
+        specifier: ^5.2.1
+        version: 5.2.2
+      dotenv:
+        specifier: ^17.2.1
+        version: 17.2.1
+      express:
+        specifier: ^4.21.2
+        version: 4.21.2
+    devDependencies:
+      '@types/bn.js':
+        specifier: ^5.1.6
+        version: 5.2.0
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.3
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.16.4
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@22.16.4)(typescript@5.8.3)
+      tsx:
+        specifier: ^4.19.4
+        version: 4.20.3
+      typescript:
+        specifier: ^5.7.2
         version: 5.8.3
 
   services/oracle:
@@ -833,37 +943,6 @@ importers:
       tsx:
         specifier: ^4.10.1
         version: 4.20.3
-      typescript:
-        specifier: ^5.3.3
-        version: 5.8.3
-
-  services/shared:
-    dependencies:
-      '@baskt/types':
-        specifier: workspace:*
-        version: link:../../packages/types
-      bn.js:
-        specifier: ^5.2.1
-        version: 5.2.2
-      prom-client:
-        specifier: ^15.1.0
-        version: 15.1.3
-      winston:
-        specifier: ^3.11.0
-        version: 3.17.0
-      zod:
-        specifier: ^3.22.4
-        version: 3.25.76
-    devDependencies:
-      '@types/bn.js':
-        specifier: ^5.2.0
-        version: 5.2.0
-      '@types/node':
-        specifier: ^20.10.0
-        version: 20.19.9
-      tsup:
-        specifier: ^8.0.2
-        version: 8.5.0(jiti@1.21.7)(postcss@8.5.6)(tsx@4.20.3)(typescript@5.8.3)(yaml@2.8.0)
       typescript:
         specifier: ^5.3.3
         version: 5.8.3
@@ -2868,8 +2947,14 @@ packages:
   '@types/express-serve-static-core@4.19.6':
     resolution: {integrity: sha512-N4LZ2xG7DatVqhCZzOGb1Yi5lMbXSZcmdLDe9EzSndPV2HpWYWzRbaerl2n27irrm94EPpprqa8KpskPT085+A==}
 
+  '@types/express-serve-static-core@5.0.7':
+    resolution: {integrity: sha512-R+33OsgWw7rOhD1emjU7dzCDHucJrgJXMA5PYCzJxVil0dsyx5iBEPHqpPfiKNJQb7lZ1vxwoLR4Z87bBUpeGQ==}
+
   '@types/express@4.17.23':
     resolution: {integrity: sha512-Crp6WY9aTYP3qPi2wGDo9iUe/rceX01UMhnF1jmwDcKCFM6cx7YhGP/Mpr3y9AASpfHixIG0E6azCcL5OcDHsQ==}
+
+  '@types/express@5.0.3':
+    resolution: {integrity: sha512-wGA0NX93b19/dZC1J18tKWVIYWyyF2ZjT9vin/NRu0qzzvfVzWjs04iq2rQ3H65vCTQYlRqs3YHfY7zjdV+9Kw==}
 
   '@types/http-errors@2.0.5':
     resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
@@ -3577,6 +3662,10 @@ packages:
     resolution: {integrity: sha512-6DnInpx7SJ2AK3+CTUE/ZM0vWTUboZCegxhC2xiIydHR9jNuTAASBrfEpHhiGOZw/nX51bHt6YQl8jsGo4y/0w==}
     engines: {node: '>= 0.6'}
 
+  copy-anything@3.0.5:
+    resolution: {integrity: sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w==}
+    engines: {node: '>=12.13'}
+
   cors@2.8.5:
     resolution: {integrity: sha512-KIHbLJqu73RGr/hnbrO9uBeixNGuvSQjul/jdFvS/KFSIH1hWVd1ng7zOHx+YrEfInLG7q4n6GHQ9cDtxv/P6g==}
     engines: {node: '>= 0.10'}
@@ -3791,6 +3880,10 @@ packages:
 
   dotenv@16.6.1:
     resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+    engines: {node: '>=12'}
+
+  dotenv@17.2.1:
+    resolution: {integrity: sha512-kQhDYKZecqnM0fCnzI5eIv5L4cAe/iRI+HqMbO/hbRdTAeXDG+M9FjipUxNfbARuEg4iHIbhnhs78BCHNbSxEQ==}
     engines: {node: '>=12'}
 
   dottie@2.0.6:
@@ -4378,6 +4471,10 @@ packages:
   is-unicode-supported@0.1.0:
     resolution: {integrity: sha512-knxG2q4UC3u8stRGyAVJCOdxFmv5DZiRcdlIaAQXAbSfJya+OhopNotLQrstBhququ4ZpuKbDc/8S6mgXgPFPw==}
     engines: {node: '>=10'}
+
+  is-what@4.1.16:
+    resolution: {integrity: sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A==}
+    engines: {node: '>=12.13'}
 
   isarray@2.0.5:
     resolution: {integrity: sha512-xHjhDr3cNBK0BzdUJSPXZntQUx/mwMS5Rw4A7lPJ90XGAO6ISP/ePDNuo0vhqOZU+UD5JoodwCAAoZQd3FeAKw==}
@@ -5677,6 +5774,10 @@ packages:
     engines: {node: '>=16 || 14 >=14.17'}
     hasBin: true
 
+  superjson@2.2.2:
+    resolution: {integrity: sha512-5JRxVqC8I8NuOUjzBbvVJAKNM8qoVuH0O77h4WInc/qC2q5IreqKxYwgkga3PfA22OayK2ikceb/B26dztPl+Q==}
+    engines: {node: '>=16'}
+
   superstruct@0.15.5:
     resolution: {integrity: sha512-4AOeU+P5UuE/4nOUkmcQdW5y7i9ndt1cQd/3iUe+LTz3RxESf/W/5lg4B74HbDMMv8PHnPnGCQFH45kBcrQYoQ==}
 
@@ -6469,7 +6570,6 @@ snapshots:
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
-    optional: true
 
   '@dabh/diagnostics@2.0.3':
     dependencies:
@@ -7040,7 +7140,6 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.4
-    optional: true
 
   '@lit-labs/ssr-dom-shim@1.4.0': {}
 
@@ -8695,17 +8794,13 @@ snapshots:
 
   '@trpc/server@10.45.2': {}
 
-  '@tsconfig/node10@1.0.11':
-    optional: true
+  '@tsconfig/node10@1.0.11': {}
 
-  '@tsconfig/node12@1.0.11':
-    optional: true
+  '@tsconfig/node12@1.0.11': {}
 
-  '@tsconfig/node14@1.0.3':
-    optional: true
+  '@tsconfig/node14@1.0.3': {}
 
-  '@tsconfig/node16@1.0.4':
-    optional: true
+  '@tsconfig/node16@1.0.4': {}
 
   '@types/axios@0.14.4':
     dependencies:
@@ -8779,11 +8874,24 @@ snapshots:
       '@types/range-parser': 1.2.7
       '@types/send': 0.17.5
 
+  '@types/express-serve-static-core@5.0.7':
+    dependencies:
+      '@types/node': 22.16.4
+      '@types/qs': 6.14.0
+      '@types/range-parser': 1.2.7
+      '@types/send': 0.17.5
+
   '@types/express@4.17.23':
     dependencies:
       '@types/body-parser': 1.19.6
       '@types/express-serve-static-core': 4.19.6
       '@types/qs': 6.14.0
+      '@types/serve-static': 1.15.8
+
+  '@types/express@5.0.3':
+    dependencies:
+      '@types/body-parser': 1.19.6
+      '@types/express-serve-static-core': 5.0.7
       '@types/serve-static': 1.15.8
 
   '@types/http-errors@2.0.5': {}
@@ -9628,8 +9736,7 @@ snapshots:
       normalize-path: 3.0.0
       picomatch: 2.3.1
 
-  arg@4.1.3:
-    optional: true
+  arg@4.1.3: {}
 
   arg@5.0.2: {}
 
@@ -9986,6 +10093,10 @@ snapshots:
 
   cookie@0.7.1: {}
 
+  copy-anything@3.0.5:
+    dependencies:
+      is-what: 4.1.16
+
   cors@2.8.5:
     dependencies:
       object-assign: 4.1.1
@@ -9993,8 +10104,7 @@ snapshots:
 
   crc-32@1.2.2: {}
 
-  create-require@1.1.1:
-    optional: true
+  create-require@1.1.1: {}
 
   cron-parser@4.9.0:
     dependencies:
@@ -10131,8 +10241,7 @@ snapshots:
 
   diff@3.5.0: {}
 
-  diff@4.0.2:
-    optional: true
+  diff@4.0.2: {}
 
   diff@5.2.0: {}
 
@@ -10154,6 +10263,8 @@ snapshots:
       csstype: 3.1.3
 
   dotenv@16.6.1: {}
+
+  dotenv@17.2.1: {}
 
   dottie@2.0.6: {}
 
@@ -10833,6 +10944,8 @@ snapshots:
 
   is-unicode-supported@0.1.0: {}
 
+  is-what@4.1.16: {}
+
   isarray@2.0.5: {}
 
   isexe@2.0.0: {}
@@ -11334,8 +11447,8 @@ snapshots:
   ox@0.6.7(typescript@5.8.3)(zod@3.25.76):
     dependencies:
       '@adraffy/ens-normalize': 1.11.0
-      '@noble/curves': 1.8.1
-      '@noble/hashes': 1.7.1
+      '@noble/curves': 1.9.2
+      '@noble/hashes': 1.8.0
       '@scure/bip32': 1.6.2
       '@scure/bip39': 1.5.4
       abitype: 1.0.8(typescript@5.8.3)(zod@3.25.76)
@@ -12207,6 +12320,10 @@ snapshots:
       pirates: 4.0.7
       ts-interface-checker: 0.1.13
 
+  superjson@2.2.2:
+    dependencies:
+      copy-anything: 3.0.5
+
   superstruct@0.15.5: {}
 
   superstruct@1.0.4: {}
@@ -12356,7 +12473,6 @@ snapshots:
       typescript: 5.8.3
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
-    optional: true
 
   ts-node@7.0.1:
     dependencies:
@@ -12562,8 +12678,7 @@ snapshots:
 
   uuid@9.0.1: {}
 
-  v8-compile-cache-lib@3.0.1:
-    optional: true
+  v8-compile-cache-lib@3.0.1: {}
 
   validator@13.15.15: {}
 
@@ -12890,8 +13005,7 @@ snapshots:
 
   yn@2.0.0: {}
 
-  yn@3.1.1:
-    optional: true
+  yn@3.1.1: {}
 
   yocto-queue@0.1.0: {}
 

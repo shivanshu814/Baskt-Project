@@ -1,0 +1,51 @@
+{
+  "name": "@baskt/data-bus",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dashboard": "tsx scripts/stream-health-dashboard.ts",
+    "emitter": "tsx scripts/event-emitter.ts",
+    "producer": "tsx scripts/event-producer.ts"
+  },
+  "dependencies": {
+    "@baskt/types": "workspace:*",
+    "bn.js": "^5.2.1",
+    "chalk": "^5.3.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^14.0.0",
+    "date-fns": "^4.1.0",
+    "ioredis": "^5.6.1",
+    "js-yaml": "^4.1.0",
+    "json-stable-stringify": "^1.3.0",
+    "prom-client": "^15.1.0",
+    "superjson": "^2.2.2",
+    "ulid": "^2.3.0",
+    "winston": "^3.11.0",
+    "zod": "^4.0.8"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.2.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.2",
+    "tsx": "^4.19.4",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.0"
+  }
+}

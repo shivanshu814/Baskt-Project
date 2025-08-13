@@ -21,7 +21,7 @@ export const createOrder = publicProcedure
     try {
       const basktClient = querier.getBasktClient();
       const onchainOrder = await basktClient.getOrderById(
-        new BN(input.orderId), 
+        Number(input.orderId),  
         new PublicKey(input.owner)
       );
 

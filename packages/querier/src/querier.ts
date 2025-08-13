@@ -166,7 +166,7 @@ export class Querier {
   /**
    * Get BasktClient
    */
-  public getBasktClient(): any {
+  public getBasktClient(): BaseClient {
     return this.basktClient;
   }
 

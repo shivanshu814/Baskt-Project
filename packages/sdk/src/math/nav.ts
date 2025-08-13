@@ -1,9 +1,6 @@
 import { OnchainAssetConfig } from '@baskt/types';
 import BN from 'bn.js';
-
-export const PRICE_PRECISION = new BN(10 ** 6);
-export const NAV_PRECISION = PRICE_PRECISION.mul(new BN(100)); // 10^8 = 100 * 10^6 to account for BASE_NAV of 100
-export const WEIGHT_PRECISION = new BN(10 ** 4);
+import { BPS_DIVISOR } from './const';
 
 // TODO: What happens if there is an asset with one huge loss and making the price zero or negative
 export function calculateNav(
@@ -27,7 +24,7 @@ export function calculateNav(
       navChange = navChange.add(netChange);
     }
     // in weightPriceChange we multiply by weight which is WEIGHT_PRECISION so we need to remove it from the nav here
-    newNav = newNav.add(navChange.div(WEIGHT_PRECISION));
+    newNav = newNav.add(navChange.div(BPS_DIVISOR));
     return newNav.lte(new BN(0)) ? new BN(0) : newNav;
   } catch (error) {
     console.error('❌ calculateNav - Error:', {

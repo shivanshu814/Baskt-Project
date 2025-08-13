@@ -1,19 +1,14 @@
 import { PublicKey } from '@solana/web3.js';
 import { basktClient, querierClient } from '../../utils/config';
-import { OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
+import { BasktCreatedEvent, OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
 import { BN } from 'bn.js';
 import { ObserverEvent } from '../../types';
 import { EventSource } from '../../types';
 import { CombinedAsset } from '@baskt/querier';
+import { FLAG_MIGRATE_TO_DATABUS } from 'src/utils/const';
+import { STREAMS } from '@baskt/data-bus/dist';
+import { getStreamPublisher } from 'src/utils/stream-publisher';
 
-export interface BasktCreatedEvent {
-  basktId: string;
-  basktName: string;
-  creator: string;
-  is_public: boolean;
-  asset_count: number;
-  timestamp: number;
-}
 
 async function createBasktMutation(
   basktId: string,
@@ -23,7 +18,7 @@ async function createBasktMutation(
   try {
     const result = await querierClient.metadata.createBaskt({
       basktId: basktId,
-      name: basktCreatedData.uid.toString(),
+      name: basktCreatedData.uid,
       creator: basktCreatedData.creator,
       assets: onchainBaskt.currentAssetConfigs.map((config: OnchainAssetConfig) =>
         config.assetId.toString(),
@@ -43,6 +38,18 @@ export default {
   source: EventSource.SOLANA,
   type: 'basktCreatedEvent',
   handler: async (event: ObserverEvent) => {
+
+    if(FLAG_MIGRATE_TO_DATABUS) {
+      (await getStreamPublisher()).publishBasktCreated({
+        basktId: event.payload.event.basktId.toString(),
+        timestamp: Date.now().toString(),
+        txSignature: event.payload.signature.toString(),
+      });
+      return;
+    }
+
+
+
     const basktEventCreatedData = event.payload.event as BasktCreatedEvent;
     const basktId = basktEventCreatedData.basktId;
 
@@ -89,7 +96,7 @@ export default {
     try {
       let tx = await basktClient.activateBaskt(new PublicKey(basktId), baselinePrices);
       console.log('Baskt activated successfully with tx:', tx);
-      await createBasktMutation(basktId, onchainBaskt, basktEventCreatedData);
+      await createBasktMutation(basktId.toString(), onchainBaskt, basktEventCreatedData);
       return tx;
     } catch (error) {
       console.error('Error in baskt activation process:', error);

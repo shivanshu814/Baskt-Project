@@ -1,5 +1,5 @@
 import BN from 'bn.js';
-import { PRICE_PRECISION_BN, COLLATERAL_MULTIPLIER, COLLATERAL_DENOMINATOR, BPS_DIVISOR } from './const';
+import {  COLLATERAL_MULTIPLIER, COLLATERAL_DENOMINATOR, BPS_DIVISOR, PRICE_PRECISION } from './const';
 
 export interface CalculateSharesParams {
   collateral: number;
@@ -54,9 +54,9 @@ export const calculateCollateralAmount = (notionalValue: BN, openingFeeBps: BN =
  * @returns The number of contracts
  */
 export const calculateNumContracts = (usdcSize: number, price: number): BN => {
-  return new BN(usdcSize).mul(PRICE_PRECISION_BN).div(new BN(price)).mul(PRICE_PRECISION_BN);
+  return new BN(usdcSize).mul(PRICE_PRECISION).div(new BN(price)).mul(PRICE_PRECISION);
 }; 
 
 export const calculateUsdcSize = (numContracts: BN, price: number): BN => {
-  return numContracts.mul(new BN(price)).div(PRICE_PRECISION_BN);
+  return numContracts.mul(new BN(price)).div(PRICE_PRECISION);
 };

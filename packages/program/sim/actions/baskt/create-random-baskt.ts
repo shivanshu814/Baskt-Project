@@ -4,19 +4,11 @@ import { PublicKey } from '@solana/web3.js';
 import { client } from '../../client';
 
 dotenv.config();
-function randomAlphanumeric(length: number) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
+
 
 const createRandomBasket = async (
   args: string[],
 ): Promise<{
-  name: string;
   basktId: PublicKey;
   assets: {
     assetId: PublicKey;
@@ -67,8 +59,7 @@ const createRandomBasket = async (
     baselinePrice: new BN(0),
   }));
 
-  const basketName = randomAlphanumeric(12);
-  const { basktId } = await client.createBaskt(basketName, assets, true);
+  const { basktId } = await client.createBaskt(assets, true);
   console.log('Basket created with ID:', basktId.toString());
   console.log(
     'Basket assets:',
@@ -78,7 +69,7 @@ const createRandomBasket = async (
       weight: a.weight.toString(),
     })),
   );
-  return { name: basketName, basktId, assets };
+  return {basktId, assets };
 };
 
 createRandomBasket.description =

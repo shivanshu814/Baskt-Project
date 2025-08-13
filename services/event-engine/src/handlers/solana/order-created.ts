@@ -1,22 +1,12 @@
 //OrderCreatedEvent
 
 import { PublicKey } from '@solana/web3.js';
-import { OnchainOrder, OrderAction, OnchainOrderStatus, OrderType } from '@baskt/types';
+import { OnchainOrder, OrderAction, OnchainOrderStatus, OrderType, OrderCreatedEvent } from '@baskt/types';
 import { basktClient, querierClient } from '../../utils/config';
 import { BN } from 'bn.js';
 import { EventSource, ObserverEvent } from '../../types';
-
-export interface OrderCreatedEvent {
-  owner: PublicKey;
-  orderId: InstanceType<typeof BN> | number | string;
-  basktId: PublicKey;
-  size: InstanceType<typeof BN>;
-  collateral: InstanceType<typeof BN>;
-  isLong: boolean;
-  action: OrderAction;
-  targetPosition: PublicKey | null;
-  timestamp: InstanceType<typeof BN>;
-}
+import { FLAG_MIGRATE_TO_DATABUS } from 'src/utils/const';
+import { getStreamPublisher } from 'src/utils/stream-publisher';
 
 async function getCurrentNavForBaskt(basktId: PublicKey) {
   const baskt = await querierClient.baskt.getBasktNAV(basktId.toString());
@@ -125,13 +115,8 @@ async function orderCreatedHandler(event: ObserverEvent) {
       throw new Error('orderId is undefined in the event data');
     }
 
-    const orderId =
-      orderCreatedData.orderId instanceof BN
-        ? orderCreatedData.orderId
-        : new BN(orderCreatedData.orderId.toString());
-
     const onchainOrder: OnchainOrder = await basktClient.readWithRetry(
-      async () => await basktClient.getOrderById(orderId, orderCreatedData.owner, 'confirmed'),
+      async () => await basktClient.getOrderById(orderCreatedData.orderId, orderCreatedData.owner, 'confirmed'),
       2,
       100,
     );
@@ -142,9 +127,6 @@ async function orderCreatedHandler(event: ObserverEvent) {
       throw new Error('Baskt metadata not found or invalid response');
     }
 
-    console.log('Baskt metadata found');
-
-    // Create the order
     try {
       const orderData: any = {
         orderPDA: onchainOrder.address.toString(),
@@ -199,18 +181,29 @@ async function orderCreatedHandler(event: ObserverEvent) {
         throw new Error('Failed to create order');
       }
 
-      try {
-        if (onchainOrder.action === OrderAction.Open) {
-          await handleOpenOrder(orderCreatedData, onchainOrder);
-        } else {
-          await handleCloseOrder(orderCreatedData, onchainOrder);
-        }
-      } catch (error) {
-        console.error('Error handling order:', error);
-        await querierClient.metadata.updateOrderByPDA(onchainOrder.address.toString(), {
-          orderStatus: 'FAILED',
+      if (FLAG_MIGRATE_TO_DATABUS) {
+        console.log('Publishing order to DataBus', onchainOrder.address.toString(), onchainOrder.openParams!.notionalValue.toString());
+        // Publish OrderRequest to DataBus for Guardian validation and execution-engine processing
+        const streamPublisher = await getStreamPublisher();
+        await streamPublisher.publishOrderCreated({
+          order: onchainOrder,
+          timestamp: onchainOrder.timestamp.toString(),
+          txSignature: signature,
         });
-        throw error;
+      } else {
+        try {
+          if (onchainOrder.action === OrderAction.Open) {
+            await handleOpenOrder(orderCreatedData, onchainOrder);
+          } else {
+            await handleCloseOrder(orderCreatedData, onchainOrder);
+          }
+        } catch (error) {
+          console.error('Error handling order:', error);
+          await querierClient.metadata.updateOrderByPDA(onchainOrder.address.toString(), {
+            orderStatus: 'FAILED',
+          });
+          throw error;
+        }
       }
     } catch (error) {
       console.error('Error in order creation process:', error);

@@ -18,12 +18,4 @@ export const PROGRAM_ID = new PublicKey(
 );
 export const solanaConnection = new Connection(SOLANA_RPC_URL, 'confirmed');
 
-// export const EVENT_MAPPINGS_HANDLER: Record<string, any> = {
-//   basktCreatedEvent: basktCreatedHandler,
-//   orderCreatedEvent: orderCreatedHandler,
-//   orderCancelledEvent: orderCancelledHandler,
-//   positionOpenedEvent: positionOpenedHandler,
-//   collateralAddedEvent: collateralAddedHandler,
-//   positionClosedEvent: positionClosedHandler,
-//   positionLiquidatedEvent: positionLiquidatedHandler,
-// };
+export const FLAG_MIGRATE_TO_DATABUS = process.env.FLAG_MIGRATE_TO_DATABUS === 'true' || true;

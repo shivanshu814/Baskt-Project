@@ -1,8 +1,6 @@
 import BN from 'bn.js';
-import { PRICE_PRECISION } from './nav';        // e.g., 1e6
-import { BPS_DIVISOR } from './const';          // e.g., 10_000
+import { BPS_DIVISOR, PRICE_PRECISION } from './const';          // e.g., 10_000
 
-export const LIQUIDATION_PRECISION = new BN(10_000); // keep for clarity
 
 /**
  * Solve for liquidation price including optional closing fee (bps of current notional).
@@ -30,7 +28,7 @@ export function calculateLiquidationPriceInternal(
   totalFeeBps: BN = new BN(0)         // closing fee bps on current notional; 0 if none
 ): BN {
   const dir = isLong ? new BN(1) : new BN(-1);
-  const bps = LIQUIDATION_PRECISION; // 10_000
+  const bps = BPS_DIVISOR; // 10_000
 
   // numerator = entry*size*dir - (collateral+funding)*PP
   const entryTimesSize = entryPrice.mul(size);              // (PP * size)
@@ -66,7 +64,7 @@ export function calculateMaxLossBeforeLiquidation(
   const maintPlusFee = size
     .mul(currentPrice)
     .mul(ltPlusFee)
-    .div(LIQUIDATION_PRECISION)
+    .div(BPS_DIVISOR)
     .div(PRICE_PRECISION);
 
   // equity available to absorb loss
@@ -98,7 +96,7 @@ export function isPositionLiquidatable(
   const minCollateral = size
     .mul(currentPrice)
     .mul(ltPlusFee)
-    .div(LIQUIDATION_PRECISION)
+    .div(BPS_DIVISOR)
     .div(PRICE_PRECISION);
 
   return totalEquity.lt(minCollateral);

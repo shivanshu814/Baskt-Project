@@ -11,7 +11,6 @@ export interface BasktMetadataModel {
   name: string;
   creator: string;
   creationDate: Date;
-  assets: string[];
   txSignature: string;
   _id?: ObjectId;
   createdAt?: Date;
@@ -34,15 +33,6 @@ export const BasktMetadataSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-    },
-    creator: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    creationDate: {
-      type: Date,
-      default: Date.now,
     },
     txSignature: {
       type: String,

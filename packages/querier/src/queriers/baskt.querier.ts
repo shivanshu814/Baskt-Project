@@ -4,7 +4,7 @@ import { QueryResult } from '../models/types';
 import { AssetQuerier } from './asset.querier';
 import { PriceQuerier } from './price.querier';
 import { BN } from 'bn.js';
-import { BaseClient, calculateNav, WEIGHT_PRECISION, calculateLiveNav } from '@baskt/sdk';
+import { BaseClient, calculateNav,  calculateLiveNav } from '@baskt/sdk';
 import { BasktStatus, OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
 import { PublicKey } from '@solana/web3.js';
 import { CombinedBaskt,  BasktNAV, BasktQueryOptions, BasktPerformance } from '../types/baskt';
