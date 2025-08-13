@@ -61,9 +61,19 @@ export const AssetPrice = sequelizeConnection.define(
       primaryKey: true,
       type: DataTypes.DATE,
     },
+    createdAt: {
+      allowNull: false,
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    updatedAt: {
+      allowNull: false,
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
   },
   {
-    timestamps: false,
+    timestamps: true, // Enable automatic timestamp handling
   },
 );
 
