@@ -16,7 +16,10 @@ export function MobilePriceInfoSection({
   const mobilePriceInfoRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="w-1/2 border border-border bg-zinc-900/80 rounded-sm" ref={mobilePriceInfoRef}>
+    <div
+      className="w-1/2 border border-border bg-zinc-900/80 mb-1 rounded-sm"
+      ref={mobilePriceInfoRef}
+    >
       <button
         onClick={() => setIsPriceInfoExpanded(!isPriceInfoExpanded)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-zinc-800/50 transition-colors"

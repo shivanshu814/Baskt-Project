@@ -1,9 +1,10 @@
 import { ChevronDown, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useBasktOI } from '../../../../hooks/baskt/details/use-baskt-oi';
 import { useBasktVolume } from '../../../../hooks/baskt/details/use-baskt-volume';
 import { useBasktList } from '../../../../hooks/baskt/use-baskt-list';
+import { trpc } from '../../../../lib/api/trpc';
 import { ROUTES } from '../../../../routes/route';
 import { DesktopHeaderProps } from '../../../../types/trading/components/desktop';
 import {
@@ -27,7 +28,34 @@ export function DesktopHeader({ baskt }: DesktopHeaderProps) {
   const { filteredBaskts, isLoading: isLoadingBaskts } = useBasktList();
   const { totalOpenInterest, isLoading: oiLoading } = useBasktOI(baskt?.basktId || '');
   const { totalVolume, isLoading: volumeLoading } = useBasktVolume(baskt?.basktId || '');
-  const filteredBasktsList = filterBasktsBySearch(filteredBaskts, searchQuery);
+  const { data: allOiResp } = trpc.metrics.getOpenInterestForBasktsWithPositions.useQuery(
+    undefined,
+    {
+      refetchInterval: 30 * 1000,
+      staleTime: 30 * 1000,
+    },
+  );
+
+  const oiByBasktId = useMemo(() => {
+    const map = new Map<string, number>();
+    if (allOiResp && allOiResp.success && 'data' in allOiResp) {
+      for (const item of allOiResp.data as any[]) {
+        if (item?.basktId) {
+          map.set(item.basktId, item.totalOpenInterest || 0);
+        }
+      }
+    }
+    return map;
+  }, [allOiResp]);
+
+  const filteredBasktsList = useMemo(() => {
+    const list = filterBasktsBySearch(filteredBaskts, searchQuery);
+    return [...list].sort((a, b) => {
+      const oiB = oiByBasktId.get(b.basktId) || 0;
+      const oiA = oiByBasktId.get(a.basktId) || 0;
+      return oiB - oiA;
+    });
+  }, [filteredBaskts, searchQuery, oiByBasktId]);
 
   const handleBasktClick = (basktName: string) => {
     router.push(`${ROUTES.TRADE}/${encodeURIComponent(basktName)}`);

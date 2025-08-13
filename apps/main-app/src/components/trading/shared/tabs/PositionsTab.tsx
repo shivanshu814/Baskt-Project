@@ -13,7 +13,7 @@ export function PositionsTab({
   const { processedPositions, hasPositions } = usePositionsTab(positions, baskt?.price || 0);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto -mt-4 -ml-2">
       <table className="w-full text-sm min-w-[800px]">
         <thead className="sticky top-0 bg-zinc-900/95 z-10 border-b border-border">
           <tr>

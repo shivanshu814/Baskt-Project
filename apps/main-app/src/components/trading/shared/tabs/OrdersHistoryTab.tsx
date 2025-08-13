@@ -8,7 +8,7 @@ export function OrdersHistoryTab({ baskt, orders }: OrdersHistoryTabProps) {
   const { processedOrders, hasOrders } = useOrdersHistory(orders, baskt);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto -mt-4 -ml-2">
       <table className="w-full text-sm min-w-[800px]">
         <thead className="sticky top-0 bg-zinc-900/95 z-10 border-b border-border">
           <tr>
@@ -43,7 +43,9 @@ export function OrdersHistoryTab({ baskt, orders }: OrdersHistoryTabProps) {
                     </div>
                   </td>
                   <td className="py-2 px-2">
-                    <span className="text-blue-500">{order.orderType}</span>
+                    <span className="text-blue-500">
+                      {order.orderType === 'Market' ? 'Limit' : 'Market'}
+                    </span>
                   </td>
                   <td className="py-2 px-2">
                     <span className={order.isLong ? 'text-green-500' : 'text-red-500'}>
@@ -68,7 +70,7 @@ export function OrdersHistoryTab({ baskt, orders }: OrdersHistoryTabProps) {
                   </td>
                   <td className="py-2 px-2">
                     <NumberFormat
-                      value={order.isLong ? order.filledAmount : order.filledAmount / 1e6}
+                      value={order.isLong ? order.filledAmount * 1e2 : order.filledAmount / 1e4}
                       isPrice={true}
                       showCurrency={true}
                     />

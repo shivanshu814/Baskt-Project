@@ -1,10 +1,10 @@
-import { AssetPrice } from '../config/timescale';
-import { handleQuerierError } from '../utils/error-handling';
-import { PriceOptions, QueryResult } from '../models/types';
-import { Op } from 'sequelize';
 import { BaseClient } from '@baskt/sdk';
+import { PublicKey } from '@solana/web3.js';
+import { Op, QueryTypes } from 'sequelize';
+import { AssetPrice } from '../config/timescale';
+import { PriceOptions, QueryResult } from '../models/types';
 import { FormattedAssetPrice, PriceRange, PriceStats } from '../types/price';
-import { Sequelize, QueryTypes } from 'sequelize';
+import { handleQuerierError } from '../utils/error-handling';
 
 /**
  * Price Querier
@@ -235,14 +235,13 @@ export class PriceQuerier {
     return this.getAssetHistory(basktId);
   }
 
-
   async getAssetHistory(assetId: string): Promise<QueryResult<FormattedAssetPrice[]>> {
     try {
       const assetPriceRows = await AssetPrice.findAll({
         where: {
           asset_id: assetId,
         },
-        order: [['time', 'DESC']],  
+        order: [['time', 'DESC']],
       });
 
       const formattedPrices = assetPriceRows.map((row: any) => {
@@ -264,7 +263,7 @@ export class PriceQuerier {
         error: querierError.message,
       };
     }
-  } 
+  }
 
   /**
    * Calculate performance metrics using TimescaleDB-optimized query (single asset)
@@ -275,7 +274,6 @@ export class PriceQuerier {
     monthly: number;
     year: number;
   }> {
-    assetId = "7vTC3d36FeKwFgZY8GrCAaUsYhqSWewweQJCXCMikacG"
     try {
       // Use the batch method for consistency and efficiency
       const batchResult = await this.getBatchAssetPerformanceOptimized([assetId]);
@@ -292,29 +290,161 @@ export class PriceQuerier {
   }
 
   /**
-   * Batch calculate performance metrics using TimescaleDB-optimized query (ultra fast)
+   * Calculate baskt performance metrics from NAV history
    */
-  public async getBatchAssetPerformanceOptimized(assetIds: string[]): Promise<Map<string, {
+  public async getBasktPerformanceOptimized(basktId: string): Promise<{
     daily: number;
     weekly: number;
     monthly: number;
     year: number;
-  }>> {
-    console.time('getBatchAssetPerformanceOptimized');
-    assetIds = ["7vTC3d36FeKwFgZY8GrCAaUsYhqSWewweQJCXCMikacG", "7qBfMvYpifG9R2ajCqKU2CfvPAZbL1Bc5M95vewsE3mS", 
-      "4XvV5mrhKhReGfx5LqGTdHT1fkvWQ4WbTRAFvJRrgUbU",
-      "4gDjhkYZQyXN59P4p7i41LoE1XRGp92a3yL9fJHgMtzp",
-      "4ri8Gv1L8WmxxSKRwFtYE9qVr3iWkfGxDgWF3mnFW3Qv",
-      "44tAFMYPan5pPVxvBaxhcdGB6pXUzjdH29o4eMumZuhZ",
-      "c4BupvAaQBDfpn5SFFLN4xXQQ3Mcodzop4jVr1uvWeS",
-      "B1PrwYr6vM76QJDeAmn55MbjbmAeDkStr3KpWCEUM6VX",
-      "AyVK6YejuMY9oUysNiw6Fur5S8nx5V1JCm9Bkj7u48Zv",
-      "2ojApR4EyWjPPwVpsUp88T5Y6rA8bD3CCTP1sk4d6uTC",
-      "2rMuQNvSpbLhpfnjjhAvMDdAUgkW43KdtqJCHMEPVW9m",
-      "7vTC3d36FeKwFgZY8GrCAaUsYhqSWewweQJCXCMikacG",
-      "i4Z2irv1Me2JWiSAkaufVno7CofN5V8ho92VQYu4dLD",
-      "J34q3deypSJEbigVGCNfB3d22ZNTXv8tzA8c2K236dpr"
-   ]
+  }> {
+    try {
+      const now = Math.floor(Date.now() / 1000);
+      const oneDayAgo = now - 24 * 60 * 60;
+      const oneWeekAgo = now - 7 * 24 * 60 * 60;
+      const oneMonthAgo = now - 30 * 24 * 60 * 60;
+      const oneYearAgo = now - 365 * 24 * 60 * 60;
+
+      const navHistoryResult = await this.getBasktNavHistory(basktId);
+
+      if (
+        !navHistoryResult.success ||
+        !navHistoryResult.data ||
+        navHistoryResult.data.length === 0
+      ) {
+        try {
+          const basktResult = await this.basktClient.getBasktRaw(
+            new PublicKey(basktId),
+            'confirmed',
+          );
+
+          if (basktResult && basktResult.baselineNav) {
+            const baselineNav = basktResult.baselineNav.toNumber();
+            const currentNav = baselineNav;
+
+            const calculateChange = (oldNav: number, newNav: number): number => {
+              if (!oldNav || oldNav === 0) return 0;
+              return ((newNav - oldNav) / oldNav) * 100;
+            };
+
+            const performanceChange = calculateChange(baselineNav, currentNav);
+
+            return {
+              daily: performanceChange,
+              weekly: performanceChange,
+              monthly: performanceChange,
+              year: performanceChange,
+            };
+          }
+        } catch (fallbackError) {}
+        return { daily: 0, weekly: 0, monthly: 0, year: 0 };
+      }
+
+      const navHistory = navHistoryResult.data;
+      const currentNav = navHistory[0]?.price || 0;
+
+      const dayAgoNav = this.findNavAtTime(navHistory, oneDayAgo);
+      const weekAgoNav = this.findNavAtTime(navHistory, oneWeekAgo);
+      const monthAgoNav = this.findNavAtTime(navHistory, oneMonthAgo);
+      const yearAgoNav = this.findNavAtTime(navHistory, oneYearAgo);
+
+      const oldestNav = navHistory[navHistory.length - 1]?.price || null;
+      const oldestNavTime = navHistory[navHistory.length - 1]?.time || null;
+
+      const calculateChange = (oldNav: number | null, newNav: number): number => {
+        if (!oldNav || oldNav === 0) return 0;
+        return ((newNav - oldNav) / oldNav) * 100;
+      };
+
+      const performance = {
+        daily: dayAgoNav ? calculateChange(dayAgoNav, currentNav) : 0,
+        weekly: weekAgoNav
+          ? calculateChange(weekAgoNav, currentNav)
+          : oldestNav && oldestNavTime
+          ? calculateChange(oldestNav, currentNav)
+          : 0,
+        monthly: monthAgoNav
+          ? calculateChange(monthAgoNav, currentNav)
+          : oldestNav && oldestNavTime
+          ? calculateChange(oldestNav, currentNav)
+          : 0,
+        year: yearAgoNav
+          ? calculateChange(yearAgoNav, currentNav)
+          : oldestNav && oldestNavTime
+          ? calculateChange(oldestNav, currentNav)
+          : 0,
+      };
+
+      return performance;
+    } catch (error) {
+      console.error('Error calculating baskt performance metrics:', error);
+      return { daily: 0, weekly: 0, monthly: 0, year: 0 };
+    }
+  }
+
+  /**
+   * Find NAV value at a specific timestamp from NAV history
+   */
+  private findNavAtTime(navHistory: any[], targetTime: number): number | null {
+    const sortedHistory = navHistory
+      .filter((item) => item.time && item.price)
+      .sort((a, b) => b.time - a.time);
+    const entry = sortedHistory.find((item) => item.time <= targetTime);
+
+    return entry?.price || null;
+  }
+
+  /**
+   * Batch calculate baskt performance metrics from NAV history
+   */
+  public async getBatchBasktPerformanceOptimized(basktIds: string[]): Promise<
+    Map<
+      string,
+      {
+        daily: number;
+        weekly: number;
+        monthly: number;
+        year: number;
+      }
+    >
+  > {
+    try {
+      if (!basktIds.length) return new Map();
+
+      const performanceMap = new Map();
+
+      const performancePromises = basktIds.map(async (basktId) => {
+        const performance = await this.getBasktPerformanceOptimized(basktId);
+        return { basktId, performance };
+      });
+
+      const results = await Promise.all(performancePromises);
+
+      results.forEach(({ basktId, performance }) => {
+        performanceMap.set(basktId, performance);
+      });
+
+      return performanceMap;
+    } catch (error) {
+      console.error('Error calculating batch baskt performance metrics:', error);
+      return new Map();
+    }
+  }
+
+  /**
+   * Batch calculate performance metrics using TimescaleDB-optimized query (ultra fast)
+   */
+  public async getBatchAssetPerformanceOptimized(assetIds: string[]): Promise<
+    Map<
+      string,
+      {
+        daily: number;
+        weekly: number;
+        monthly: number;
+        year: number;
+      }
+    >
+  > {
     try {
       if (!assetIds.length) return new Map();
 
@@ -324,11 +454,9 @@ export class PriceQuerier {
       const oneMonthAgo = now - 30 * 24 * 60 * 60;
       const oneYearAgo = now - 365 * 24 * 60 * 60;
 
-      // Create placeholders for the IN clause
       const placeholders = assetIds.map((_, index) => `$${index + 6}`).join(',');
-
-      // TimescaleDB-optimized query using time_bucket and LATERAL joins
-      const results = await AssetPrice.sequelize?.query(`
+      const results = await AssetPrice.sequelize?.query(
+        `
         WITH time_ranges AS (
           SELECT 
             asset_id,
@@ -374,17 +502,19 @@ export class PriceQuerier {
           FROM time_ranges tr
         )
         SELECT * FROM precise_prices;
-      `, {
-        bind: [
-          new Date(now * 1000),           // $1 - now
-          new Date(oneDayAgo * 1000),     // $2 - 1 day ago
-          new Date(oneWeekAgo * 1000),    // $3 - 1 week ago  
-          new Date(oneMonthAgo * 1000),   // $4 - 1 month ago
-          new Date(oneYearAgo * 1000),    // $5 - 1 year ago
-          ...assetIds                     // $6+ - asset IDs
-        ],
-        type: QueryTypes.SELECT,
-      });
+      `,
+        {
+          bind: [
+            new Date(now * 1000),
+            new Date(oneDayAgo * 1000),
+            new Date(oneWeekAgo * 1000),
+            new Date(oneMonthAgo * 1000),
+            new Date(oneYearAgo * 1000),
+            ...assetIds,
+          ],
+          type: QueryTypes.SELECT,
+        },
+      );
 
       if (!results || !Array.isArray(results)) {
         return new Map();
@@ -392,7 +522,7 @@ export class PriceQuerier {
 
       // Process results into performance map
       const performanceMap = new Map();
-      
+
       for (const result of results as any[]) {
         const currentPrice = result.current_price ? Number(result.current_price) / 1e6 : 0;
         const dayAgoPrice = result.day_ago_price ? Number(result.day_ago_price) / 1e6 : null;
@@ -422,8 +552,6 @@ export class PriceQuerier {
       return new Map();
     }
   }
-
-
 
   /**
    * Format asset price data

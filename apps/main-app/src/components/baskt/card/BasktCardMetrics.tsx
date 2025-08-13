@@ -46,6 +46,14 @@ export const BasktCardMetrics = React.memo(({ metricCards }: BasktCardMetricsPro
                     isPrice={true}
                     showCurrency={true}
                   />
+                ) : typeof card.value === 'number' ? (
+                  card.value > 0 ? (
+                    `+${card.value.toFixed(2)}`
+                  ) : card.value < 0 ? (
+                    `${card.value.toFixed(2)}`
+                  ) : (
+                    card.value.toFixed(2)
+                  )
                 ) : (
                   card.value
                 )}

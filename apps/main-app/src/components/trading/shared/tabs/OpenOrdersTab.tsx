@@ -9,7 +9,7 @@ export function OpenOrdersTab({ baskt, orders, onCancelOrder }: OpenOrdersTabPro
   const { processedOrders, hasOrders } = useOpenOrders(orders, baskt);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto -mt-4 -ml-2">
       <table className="w-full text-sm min-w-[800px]">
         <thead className="sticky top-0 bg-zinc-900/95 z-10 border-b border-border">
           <tr>
@@ -35,7 +35,9 @@ export function OpenOrdersTab({ baskt, orders, onCancelOrder }: OpenOrdersTabPro
               <tr key={index} className="border-b border-border/50">
                 <td className="py-2 px-2">{formatOrderTime(order.orderTime)}</td>
                 <td className="py-2 px-2">
-                  <span className="text-blue-500">{order.orderType}</span>
+                  <span className="text-blue-500">
+                    {order.orderType === 'Market' ? 'Limit' : 'Market'}
+                  </span>
                 </td>
                 <td className="py-2 px-2">
                   <span className={order.isLong ? 'text-green-500' : 'text-red-500'}>
@@ -46,11 +48,7 @@ export function OpenOrdersTab({ baskt, orders, onCancelOrder }: OpenOrdersTabPro
                   <NumberFormat value={order.orderSize / 1e6} isPrice={true} />
                 </td>
                 <td className="py-2 px-2">
-                  {order.orderType === 'Market' ? (
-                    <span className="text-blue-500">Market</span>
-                  ) : (
-                    <NumberFormat value={order.orderPrice} isPrice={true} showCurrency={true} />
-                  )}
+                  <NumberFormat value={order.orderPrice} isPrice={true} showCurrency={true} />
                 </td>
                 <td className="py-2 px-2">
                   <NumberFormat value={order.limitPrice} isPrice={true} showCurrency={true} />

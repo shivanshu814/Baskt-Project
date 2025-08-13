@@ -12,7 +12,7 @@ export function FavoritesSection() {
 
   return (
     <div
-      className="lg:hidden border border-border bg-zinc-900/80 mt-2 mx-2 rounded-sm"
+      className="lg:hidden border border-border bg-zinc-900/80 rounded-sm"
       ref={mobileFavoritesRef}
     >
       <button

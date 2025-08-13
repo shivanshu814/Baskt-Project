@@ -18,12 +18,12 @@ export function MobileBasktInfoSection({
 
   return (
     <div
-      className="w-1/2 border border-border bg-zinc-900/80 rounded-sm relative"
+      className="w-1/2 border border-border bg-zinc-900/80 mb-1 rounded-sm relative"
       ref={mobileBasktInfoRef}
     >
       <button
         onClick={() => setIsBasktInfoExpanded(!isBasktInfoExpanded)}
-        className="w-full px-4 py-6 flex items-center justify-between hover:bg-zinc-800/50 transition-colors"
+        className="w-full px-2 py-3 flex items-center justify-between hover:bg-zinc-800/50 transition-colors"
       >
         <div className="flex items-center gap-2">
           <MobileAssetDisplay assets={baskt.assets} />

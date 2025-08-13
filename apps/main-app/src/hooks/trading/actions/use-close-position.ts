@@ -8,30 +8,40 @@ import { validateCloseAmount } from '../../../utils/validation/validation';
 
 export const useClosePosition = (position: any, onClose: () => void) => {
   const { client } = useBasktClient();
+  // closeAmount is in USDC (decimal, not micro), as string for input
   const [closeAmount, setCloseAmount] = useState('');
   const [closePercentage, setClosePercentage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const positionSize = position?.size || 0;
+  // Compute position notional value (micro) and decimal (USDC)
+  const positionSize = Number(position?.size || 0);
+  const positionEntryPrice = Number(position?.entryPrice || 0);
+  const positionUsdcSizeMicro =
+    position?.usdcSize !== undefined && position?.usdcSize !== null
+      ? Number(position.usdcSize)
+      : positionSize > 0 && positionEntryPrice > 0
+      ? positionSize * positionEntryPrice // already micro
+      : 0;
+  const positionValue = positionUsdcSizeMicro / 1e6; // decimal USDC
 
   useEffect(() => {
     if (position) {
-      setCloseAmount(positionSize.toString());
+      setCloseAmount(positionValue.toFixed(2));
       setClosePercentage('100.0');
       setError(null);
     }
-  }, [position, positionSize]);
+  }, [position, positionValue]);
 
   const handleAmountChange = (value: string) => {
-    const validationError = validateCloseAmount(value, positionSize);
+    const validationError = validateCloseAmount(value, positionValue);
     setError(validationError);
     setCloseAmount(value);
 
     if (!validationError) {
       const numValue = parseFloat(value);
       if (numValue > 0) {
-        const percentage = calculatePercentage(numValue, positionSize);
+        const percentage = calculatePercentage(numValue, positionValue);
         setClosePercentage(percentage);
       } else {
         setClosePercentage('');
@@ -40,8 +50,8 @@ export const useClosePosition = (position: any, onClose: () => void) => {
   };
 
   const handleSliderChange = (percentage: number) => {
-    const amount = calculateAmount(percentage, positionSize);
-    setCloseAmount(amount);
+    const amount = calculateAmount(percentage, positionValue);
+    setCloseAmount(parseFloat(amount).toFixed(2));
     setClosePercentage(percentage.toFixed(1));
     setError(null);
   };
@@ -55,21 +65,21 @@ export const useClosePosition = (position: any, onClose: () => void) => {
       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
         const percentage = numValue.toString();
         setClosePercentage(percentage);
-        const amount = calculateAmount(numValue, positionSize);
-        setCloseAmount(amount);
+        const amount = calculateAmount(numValue, positionValue);
+        setCloseAmount(parseFloat(amount).toFixed(2));
         setError(null);
       }
     }
   };
 
   const handleMaxClick = () => {
-    setCloseAmount(positionSize.toString());
+    setCloseAmount(positionValue.toFixed(2));
     setClosePercentage('100.0');
     setError(null);
   };
 
   const handleSubmit = async () => {
-    const validationError = validateCloseAmount(closeAmount, positionSize);
+    const validationError = validateCloseAmount(closeAmount, positionValue);
     if (validationError) {
       setError(validationError);
       return;
@@ -92,8 +102,16 @@ export const useClosePosition = (position: any, onClose: () => void) => {
     try {
       const toastId = toast.loading(`Closing position...`);
 
-      const closeAmountBN =
-        closeType === 'full' ? new BN(position.size) : new BN(parseFloat(closeAmount) * 1e6);
+      // Convert value (USDC) to contracts proportionally: sizeToClose = fraction * totalSize
+      let closeAmountBN: BN;
+      if (closeType === 'full') {
+        closeAmountBN = new BN(position.size);
+      } else {
+        const closeValue = parseFloat(closeAmount); // decimal USDC
+        const fraction = positionValue > 0 ? closeValue / positionValue : 0;
+        const sizeToClose = fraction * positionSize; // contracts (decimal)
+        closeAmountBN = new BN(Math.floor(sizeToClose * 1e6)); // convert to micro-contracts
+      }
 
       const orderId = client.newUID();
 
@@ -116,6 +134,7 @@ export const useClosePosition = (position: any, onClose: () => void) => {
 
       toast.dismiss(toastId);
       toast.success(`Position closed successfully!`);
+      window.dispatchEvent(new Event('order-created'));
       onClose();
     } catch (error: any) {
       console.error('Error closing position:', error);

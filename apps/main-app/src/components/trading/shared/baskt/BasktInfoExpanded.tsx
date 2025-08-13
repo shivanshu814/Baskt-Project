@@ -13,8 +13,8 @@ export function BasktInfoExpanded({
   onClose,
 }: BasktInfoExpandedProps) {
   return (
-    <div className="absolute top-full left-0 z-50 mt-1 bg-zinc-900/95 w-[26rem] border border-border rounded-lg shadow-lg backdrop-blur-sm w-screen max-w-md">
-      <div className="p-4 w-full pr-10">
+    <div className="absolute top-full  left-0 z-50 mt-1 bg-zinc-900/95 w-[26.3rem] border border-border rounded-lg shadow-lg backdrop-blur-sm w-screen max-w-md">
+      <div className="p-4 w-full pr-3">
         <div className="pb-2 w-full">
           <BasketSearchBar
             value={searchQuery}

@@ -410,14 +410,6 @@ export function TradingChart({ baskt }: TradingChartProps) {
                           year: 'numeric',
                         });
 
-                        // Debug: Log tooltip time
-                        console.log('🕐 Tooltip Time Debug:', {
-                          timestamp: tooltipData.time,
-                          utcDate: date.toISOString(),
-                          formattedDate: formattedDate,
-                          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        });
-
                         return formattedDate;
                       })()
                     : ''}
@@ -449,7 +441,7 @@ export function TradingChart({ baskt }: TradingChartProps) {
 
   return (
     <>
-      <div className="sm:hidden flex gap-1 mt-1 mx-1 -ml-0.5 mb-1">
+      <div className="sm:hidden flex gap-1">
         <button
           onClick={() => {
             setMobileTab('markets');

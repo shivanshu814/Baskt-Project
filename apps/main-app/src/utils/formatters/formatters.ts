@@ -72,7 +72,7 @@ export function getPnlColor(pnl: number): string {
 
 export function formatCloseAmount(closeAmount: string | number): string {
   const amount = Number(closeAmount);
-  return (amount / 1e6).toFixed(3);
+  return amount.toFixed(2);
 }
 
 // Composition formatters

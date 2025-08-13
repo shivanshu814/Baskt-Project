@@ -16,7 +16,7 @@ export function MobileHeader({ baskt }: MobileHeaderProps) {
   const [selectedFilter, setSelectedFilter] = useState('all');
 
   return (
-    <div className="sm:hidden flex gap-2 mt-2 mr-1">
+    <div className="sm:hidden flex gap-1 mt-1">
       <MobileBasktInfoSection
         baskt={baskt}
         searchQuery={searchQuery}

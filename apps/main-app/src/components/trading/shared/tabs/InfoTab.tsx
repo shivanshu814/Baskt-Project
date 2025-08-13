@@ -10,7 +10,7 @@ export function InfoTab({ baskt }: InfoTabProps) {
   const infoItems = getInfoItems(baskt);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 -mt-4 -ml-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">Baskt Status</span>
         <span className={`text-sm ${getBasktStatusColor(baskt?.isActive)}`}>
