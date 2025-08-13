@@ -18,4 +18,4 @@ export const PROGRAM_ID = new PublicKey(
 );
 export const solanaConnection = new Connection(SOLANA_RPC_URL, 'confirmed');
 
-export const FLAG_MIGRATE_TO_DATABUS = process.env.FLAG_MIGRATE_TO_DATABUS === 'true' || true;
+export const FLAG_MIGRATE_TO_DATABUS = process.env.FLAG_MIGRATE_TO_DATABUS === 'true' ;
