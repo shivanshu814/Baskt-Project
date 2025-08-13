@@ -34,7 +34,7 @@ export const UserBaskts = () => {
   if (!userBaskts || userBaskts.length === 0) {
     return (
       <div className="text-center py-2">
-        <div className="bg-card border border-border rounded-lg p-8">
+        <div className="p-8">
           <h3 className="text-lg font-semibold text-card-foreground mb-2">No Baskts Created</h3>
           <p className="text-muted-foreground">
             You haven't created any baskts yet. Start creating your first basket to see it here.
