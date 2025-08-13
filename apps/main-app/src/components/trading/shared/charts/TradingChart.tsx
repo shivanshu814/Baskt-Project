@@ -410,14 +410,6 @@ export function TradingChart({ baskt }: TradingChartProps) {
                           year: 'numeric',
                         });
 
-                        // Debug: Log tooltip time
-                        console.log('🕐 Tooltip Time Debug:', {
-                          timestamp: tooltipData.time,
-                          utcDate: date.toISOString(),
-                          formattedDate: formattedDate,
-                          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        });
-
                         return formattedDate;
                       })()
                     : ''}

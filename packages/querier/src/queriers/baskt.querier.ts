@@ -39,7 +39,7 @@ export class BasktQuerier {
         this.getBasktsFromOnchain(),
         this.assetQuerier.getAllAssets({ withConfig: true }),
       ]);
-      const performanceMap = options.withPerformance ? await this.priceQuerier.getBatchAssetPerformanceOptimized(onchainBaskts.map(baskt => baskt.basktId?.toString() || '')) : null;
+      const performanceMap = options.withPerformance ? await this.priceQuerier.getBatchBasktPerformanceOptimized(onchainBaskts.map(baskt => baskt.basktId?.toString() || '')) : null;
 
       if (!basktConfigs || basktConfigs.length === 0) {
         return {
@@ -110,7 +110,7 @@ export class BasktQuerier {
         this.assetQuerier.getAllAssets({
           withConfig: true,
         }),
-        options.withPerformance ? this.priceQuerier.getAssetPerformanceOptimized(basktId) : null,
+        options.withPerformance ? this.priceQuerier.getBasktPerformanceOptimized(basktId) : null,
       ]);
 
 
@@ -167,7 +167,7 @@ export class BasktQuerier {
     try {
       // TODO we will change this later on
       const basktId = await this.basktClient.getBasktPDA(parseInt(basktName));
-      return this.getBasktById(basktId.toString());
+      return this.getBasktById(basktId.toString(), options);
     } catch (error) {
       const querierError = handleQuerierError(error);
       return {
