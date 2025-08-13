@@ -2,19 +2,24 @@ import { OrderAccepted } from '@baskt/data-bus';
 import { logger } from '@baskt/data-bus';
 import BN from 'bn.js';
 import { basktClient } from '../config/client';
+import { PublicKey } from '@solana/web3.js';
 
 export class PositionExecutor {
   async openPosition(order: OrderAccepted): Promise<string> {
     try {
       const positionId = basktClient.newUID();
-      logger.info('Opening position', { orderId: order.request.order.orderId, positionId: positionId.toString(), executionPrice: order.executionPrice, basktId: order.request.order.basktId });
+      logger.info('Opening position', order);
 
       // Use the fill price provided by Guardian
       const price = new BN(order.executionPrice);
       logger.info('Using fill price from Guardian', { price: price.toString(), basktId: order.request.order.basktId });
 
+      console.log('order.request.order.owner', typeof order.request.order.owner, order.request.order.owner);
+      console.log('order.request.order.basktId', typeof order.request.order.basktId, order.request.order.basktId);
+      console.log('order.request.order.orderId', typeof order.request.order.orderId, order.request.order.orderId);
+      console.log('order.executionPrice', typeof order.executionPrice, order.executionPrice);
       // Calculate PDA for order account
-      const orderPDA = await basktClient.getOrderPDA(Number(order.request.order.orderId), order.request.order.owner);
+      const orderPDA = await basktClient.getOrderPDA(Number(order.request.order.orderId), new PublicKey(order.request.order.owner.toString()));
       logger.info('Calculated order PDA', { orderPDA: orderPDA.toString(), orderId: order.request.order.orderId, owner: order.request.order.owner });
 
       // Fetch the order account on-chain
