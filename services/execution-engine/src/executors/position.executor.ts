@@ -15,7 +15,7 @@ export class PositionExecutor {
       logger.info('Using fill price from Guardian', { price: price.toString(), basktId: order.request.order.basktId });
 
       // Calculate PDA for order account
-      const orderPDA = await basktClient.getOrderPDA(Number(order.request.order.orderId), new PublicKey(order.request.order.owner));
+      const orderPDA = await basktClient.getOrderPDA(Number(order.request.order.orderId), order.request.order.owner);
       logger.info('Calculated order PDA', { orderPDA: orderPDA.toString(), orderId: order.request.order.orderId, owner: order.request.order.owner });
 
       // Fetch the order account on-chain
