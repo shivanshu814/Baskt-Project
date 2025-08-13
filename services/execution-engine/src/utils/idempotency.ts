@@ -1,4 +1,4 @@
-import { redis } from '../config/queue';
+import { redis } from '../config';
 
 export class IdempotencyTracker {
   private static readonly TTL = 86400; // 24 hours
