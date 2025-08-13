@@ -60,7 +60,7 @@ export class ExecutionService {
     const jobId = `${envelope.payload.basktId}-ACTIVATE`;
 
     await executionQueue.add(
-      'baskt-activation',
+      BasktWorker.ACTIVATION_JOB_NAME,
       serializeMessage(envelope.payload),
       {
         jobId,
@@ -80,7 +80,7 @@ export class ExecutionService {
     const jobId = `${order.request.order.orderId}-${order.request.order.action}`;
 
     await executionQueue.add(
-      'order-execution',
+      OrderWorker.EXECUTION_JOB_NAME,
       serializeMessage(order),
       {
         jobId,

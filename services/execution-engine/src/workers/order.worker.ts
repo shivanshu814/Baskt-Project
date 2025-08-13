@@ -14,6 +14,8 @@ export class OrderWorker {
   private executor: PositionExecutor;
   private publisher: TransactionPublisher;
 
+  public static readonly EXECUTION_JOB_NAME = 'order-execution';
+
   constructor(dataBus: DataBus) {
     this.executor = new PositionExecutor();
     this.publisher = new TransactionPublisher(dataBus);
@@ -23,7 +25,7 @@ export class OrderWorker {
     this.worker = new Worker(
       'execution',
       async (job: Job) => {
-        if (job.name !== 'order-execution') {
+        if (job.name !== OrderWorker.EXECUTION_JOB_NAME) {
           logger.warn('Ignoring job type', { jobName: job.name });
           return;
         }

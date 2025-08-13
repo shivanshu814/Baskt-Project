@@ -10,6 +10,8 @@ export class BasktWorker {
   private executor: BasktExecutor;
   private publisher: TransactionPublisher;
 
+  public static readonly ACTIVATION_JOB_NAME = 'baskt-activation';
+
   constructor(dataBus: DataBus) {
     this.executor = new BasktExecutor();
     this.publisher = new TransactionPublisher(dataBus);
@@ -19,7 +21,7 @@ export class BasktWorker {
     this.worker = new Worker(
       'baskt-execution',
       async (job: Job) => {
-        if (job.name !== 'baskt-activation') {
+        if (job.name !== BasktWorker.ACTIVATION_JOB_NAME) {
           logger.warn('Ignoring job type', { jobName: job.name });
           return;
         }
