@@ -83,9 +83,9 @@ export class BasktExecutor {
   ): Promise<void> {
     try {
       const result = await querierClient.metadata.createBaskt({
-        basktId: basktId,
-        name: basktId,
-        txSignature: txSignature,
+        basktId,
+        name,
+        txSignature,
       });
 
       if (!result) {
