@@ -8,7 +8,7 @@ interface LogLevel {
 class SimpleLogger {
   private logLevel: string;
 
-  constructor(level: string = process.env.LOG_LEVEL || 'info') {
+  constructor(level: string = 'info') {
     this.logLevel = level;
   }
 

@@ -41,7 +41,6 @@ class EventProducer {
     this.options = options;
     const config = {
       redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-      signingKey: process.env.SIGNING_KEY || 'test-signing-key',
       autoConnect: false,  // We'll connect manually
       exitOnStartupFailure: false
     };

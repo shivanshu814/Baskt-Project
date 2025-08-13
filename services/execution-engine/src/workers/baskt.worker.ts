@@ -64,7 +64,7 @@ export class BasktWorker {
       },
       {
         connection: redis,
-        concurrency: parseInt(process.env.BASKT_EXECUTION_CONCURRENCY || '5'),
+        concurrency: parseInt(process.env.EXECUTION_CONCURRENCY || '1'),
         limiter: {
           max: 10,
           duration: 1000

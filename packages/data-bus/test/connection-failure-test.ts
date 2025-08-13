@@ -6,7 +6,6 @@ async function testSilentFailure() {
   
   const dataBus = new DataBus({
     redisUrl: 'redis://badhost:6379',
-    signingKey: 'test-key',
     autoConnect: false  // Disable auto-connect to control timing
   });
   
@@ -40,7 +39,6 @@ async function testOfflineQueueDisabled() {
   
   const dataBus = new DataBus({
     redisUrl: 'redis://badhost:6379',
-    signingKey: 'test-key',
     autoConnect: true,  // Let it auto-connect
     exitOnStartupFailure: false  // Prevent process.exit in tests
   });
@@ -84,7 +82,6 @@ async function testExplicitConnectFailure() {
   
   const dataBus = new DataBus({
     redisUrl: 'redis://badhost:6379',
-    signingKey: 'test-key',
     autoConnect: false
   });
   
@@ -114,7 +111,6 @@ async function testDelayedFirstCommand() {
   
   const dataBus = new DataBus({
     redisUrl: 'redis://localhost:6379',  // Assume Redis is running
-    signingKey: 'test-key',
     autoConnect: false
   });
   
@@ -139,7 +135,6 @@ async function testHealthMonitoring() {
   // Test with bad connection
   const badDataBus = new DataBus({
     redisUrl: 'redis://badhost:6379',
-    signingKey: 'test-key',
     autoConnect: false,
     exitOnStartupFailure: false
   });
@@ -154,7 +149,6 @@ async function testHealthMonitoring() {
   // Test with good connection (if Redis is running)
   const goodDataBus = new DataBus({
     redisUrl: 'redis://localhost:6379',
-    signingKey: 'test-key',
     autoConnect: true,
     exitOnStartupFailure: false
   });

@@ -2,13 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Redis from 'ioredis';
 import { DataBus, STREAMS, getAllStreamValues } from '../src/index';
 import type { MessageEnvelope } from '../src/index';
-import type { OrderRequest } from '@baskt/shared';
+import type { OrderRequest } from '@baskt/types';
 import type { StreamName } from '../src/types/streams';
 
 describe('DataBus', () => {
   let dataBus: DataBus;
   let redis: Redis;
-  const testSigningKey = 'test-signing-key-12345';
   
   // Create test-specific stream names by adding a test prefix
   const TEST_PREFIX = 'test:';
@@ -28,7 +27,6 @@ describe('DataBus', () => {
     // Create DataBus without auto-connect to avoid double connection
     dataBus = new DataBus({
       redisUrl: 'redis://localhost:6379',
-      signingKey: testSigningKey,
       autoConnect: false
     });
     

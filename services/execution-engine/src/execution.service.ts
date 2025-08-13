@@ -17,7 +17,6 @@ export class ExecutionService {
   constructor(private config: ExecutionConfig) {
     this.dataBus = new DataBus({
       redisUrl: config.redis.url,
-      signingKey: config.dataBus.signingKey,
       autoConnect: false
     });
 

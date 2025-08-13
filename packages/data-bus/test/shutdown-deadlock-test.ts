@@ -7,7 +7,6 @@ async function testShutdownDeadlock() {
   
   const dataBus = new DataBus({
     redisUrl: 'redis://localhost:6379',
-    signingKey: 'test-key',
     autoConnect: false
   });
 
@@ -57,8 +56,7 @@ async function testBlockingOperationDuringShutdown() {
   console.log('\n=== Testing Blocking Operation During Shutdown ===');
   
   const dataBus = new DataBus({
-    redisUrl: 'redis://localhost:6379',
-    signingKey: 'test-key',
+    redisUrl: 'redis://localhost:6379', 
     autoConnect: false
   });
 

@@ -34,7 +34,6 @@ class EventEmitter {
   constructor(options: TestOptions = {}) {
     const config = {
       redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-      signingKey: process.env.SIGNING_KEY || 'test-signing-key'
     };
     
     this.dataBus = new DataBus(config);
@@ -42,7 +41,6 @@ class EventEmitter {
     // Create second DataBus instance with wrong signing key for signature validation tests
     this.wrongKeyDataBus = new DataBus({
       ...config,
-      signingKey: 'wrong-test-signing-key'
     });
     
     this.options = options;

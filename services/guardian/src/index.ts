@@ -20,13 +20,13 @@ async function main() {
     await guardian.start();
 
     // Setup health endpoints
-    const app = express();
-    app.use(createHealthRouter(guardian));
+    // const app = express();
+    // app.use(createHealthRouter(guardian));
 
-    const port = process.env.HEALTH_PORT || 8080;
-    app.listen(port, () => {
-      logger.info({ port }, 'Health server started');
-    });
+    // const port = process.env.HEALTH_PORT || 8080;
+    // app.listen(port, () => {
+    //   logger.info({ port }, 'Health server started');
+    // });
 
     // Graceful shutdown
     const shutdown = async (signal: string) => {

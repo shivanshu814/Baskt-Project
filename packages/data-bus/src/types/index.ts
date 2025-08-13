@@ -3,7 +3,6 @@ export interface MessageEnvelope<T = any> {
   type: string;        // Stream name
   ts: number;          // Timestamp
   payload: T;          // Actual message payload
-  sig: string;         // HMAC signature of entire envelope
   v: number;           // Version (1)
   producer?: string;   // Optional producer identifier
 }
@@ -40,7 +39,6 @@ export interface RedisClusterConfig {
 export interface DataBusConfig {
   redisUrl?: string;
   redisCluster?: RedisClusterConfig;
-  signingKey: string;
   maxRetriesPerRequest?: number;
   retryDelayMs?: number;
   maxPayloadSize?: number;  // Maximum payload size in bytes (default: 1MB)

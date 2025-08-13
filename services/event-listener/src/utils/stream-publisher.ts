@@ -18,10 +18,8 @@ export class StreamPublisher {
 
   constructor() {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-    const signingKey = process.env.DATABUS_SIGNING_KEY || 'dev-signing-key';
     this.dataBus = new DataBus({
       redisUrl,
-      signingKey,
       autoConnect: false // We'll connect manually in init()
     });
   }

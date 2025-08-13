@@ -30,24 +30,24 @@ async function main() {
   app.use(express.json());
 
   // Health endpoints
-  const healthHandler = new HealthHandler(executionService);
-  app.get('/health', (req, res) => healthHandler.getHealth(req, res));
-  app.get('/ready', (req, res) => healthHandler.getReadiness(req, res));
-  app.get('/live', (req, res) => healthHandler.getLiveness(req, res));
+  // const healthHandler = new HealthHandler(executionService);
+  // app.get('/health', (req, res) => healthHandler.getHealth(req, res));
+  // app.get('/ready', (req, res) => healthHandler.getReadiness(req, res));
+  // app.get('/live', (req, res) => healthHandler.getLiveness(req, res));
 
-  // Start HTTP server
-  const server = app.listen(config.service.port, () => {
-    logger.info(`Execution Engine running on port ${config.service.port}`);
-  });
+  // // Start HTTP server
+  // const server = app.listen(config.service.port, () => {
+  //   logger.info(`Execution Engine running on port ${config.service.port}`);
+  // });
 
   // Graceful shutdown
   const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}, shutting down...`);
     
-    server.close(async () => {
-      await executionService.stop();
-      process.exit(0);
-    });
+    // server.close(async () => {
+    //   await executionService.stop();
+    //   process.exit(0);
+    // });
 
     // Force exit after 30 seconds
     setTimeout(() => {

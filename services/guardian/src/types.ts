@@ -38,8 +38,4 @@ export interface GuardianConfig {
     ttl: number;
     maxSize: number;
   };
-  features: {
-    enableCascadeCheck: boolean;
-    enableLiquidityCheck: boolean;
-  };
 }

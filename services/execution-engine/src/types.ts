@@ -2,9 +2,6 @@ export interface ExecutionConfig {
   redis: {
     url: string;
   };
-  dataBus: {
-    signingKey: string;
-  };
   solana: {
     rpcUrl: string;
     walletPath?: string;

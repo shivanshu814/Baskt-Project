@@ -22,7 +22,6 @@ export class GuardianService {
   constructor(private config: GuardianConfig) {
     this.dataBus = new DataBus({
       redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-      signingKey: process.env.DATABUS_SIGNING_KEY || 'guardian-signing-key',
       autoConnect: false
     });
 
@@ -47,11 +46,9 @@ export class GuardianService {
     );
 
     // Feature-flagged checks
-    if (features.enableLiquidityCheck) {
       this.riskChecks.push(
         new LiquidityCheck(riskLimits.minLiquidityBuffer || 0.1)
       );
-    }
 
 
 

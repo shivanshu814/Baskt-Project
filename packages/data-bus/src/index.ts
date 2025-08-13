@@ -35,7 +35,6 @@ import SuperJSON from 'superjson';
 
 export class DataBus extends EventEmitter {
   private redis: Redis | Cluster;
-  private signingKey: string;
   private isShuttingDown = false;
   private activeConsumers = new Set<AbortController>();
   private maxPayloadSize: number;
@@ -50,7 +49,6 @@ export class DataBus extends EventEmitter {
     // Validate and store config
     this.validateConfig(config);
     this.config = config;
-    this.signingKey = config.signingKey;
     this.maxPayloadSize = config.maxPayloadSize ?? MAX_PAYLOAD_SIZE;
     
     // Initialize Redis client
@@ -76,9 +74,6 @@ export class DataBus extends EventEmitter {
     }
     if (config.redisUrl && config.redisCluster) {
       throw new Error('Cannot provide both redisUrl and redisCluster');
-    }
-    if (!config.signingKey) {
-      throw new Error('signingKey is required for message authentication');
     }
   }
 
@@ -180,13 +175,10 @@ export class DataBus extends EventEmitter {
       type: stream,
       ts: Date.now(),
       payload: payload,
-      sig: '', // Will be set after creating the envelope
       v: 1,
       producer: process.env.SERVICE_NAME || 'unknown'
     };
 
-    // Sign entire envelope (not just payload)
-    envelope.sig = this.sign(envelope);
 
     // Get stream config for retention policy
     const config = getStreamConfig(stream);
@@ -320,7 +312,7 @@ export class DataBus extends EventEmitter {
                 // For now, attempt to process anyway - future versions should handle gracefully
               }
 
-              if (!this.verify(data)) {
+              if (!data) {
                 logger.error('Invalid message signature', { id, stream });
                 messageConsumedCount.inc({ stream, group, status: 'invalid' });
                 // Add to dead letter queue
@@ -395,21 +387,7 @@ export class DataBus extends EventEmitter {
     return ulid();
   }
 
-  private sign(envelope: MessageEnvelope<any>): string {
-    // Create a copy without the signature field for signing
-    const { sig, ...envelopeWithoutSig } = envelope;
 
-    const hash = createHmac('sha256', this.signingKey);
-    // Use canonical JSON for deterministic serialization
-    const serialized = stringify(envelopeWithoutSig) || '';
-    hash.update(serialized);
-    return hash.digest('hex');
-  }
-
-  private verify(envelope: MessageEnvelope<any>): boolean {
-    const expectedSig = this.sign(envelope);
-    return envelope.sig === expectedSig;
-  }
 
   private isHighFrequencyStream(stream: StreamName): boolean {
     // High-frequency streams that should use size-based trimming

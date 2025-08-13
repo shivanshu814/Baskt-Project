@@ -12,28 +12,16 @@ export function loadConfig(): GuardianConfig {
       bootstrapThresholdRatio: 0.1, // 10% of BLP liquidity
     },
     cache: {
-      ttl: parseInt(process.env.CACHE_TTL || '5000', 10),
-      maxSize: parseInt(process.env.CACHE_MAX_SIZE || '1000', 10),
+      ttl: 5000,
+      maxSize: 1000,
     },
-    features: {
-      enableCascadeCheck: process.env.ENABLE_CASCADE_CHECK === 'true',
-      enableLiquidityCheck: process.env.ENABLE_LIQUIDITY_CHECK === 'true',
-    }
   };
 
   // Override with environment variables if needed here
-  if (process.env.MAX_LEVERAGE) {
-    baseConfig.riskLimits.maxLeverage = parseFloat(process.env.MAX_LEVERAGE);
-  }
-  if (process.env.MAX_USER_EXPOSURE) {
-    baseConfig.riskLimits.maxUserExposure = process.env.MAX_USER_EXPOSURE;
-  }
-  if (process.env.MAX_POSITIONS_PER_USER) {
-    baseConfig.riskLimits.maxPositionsPerUser = parseInt(process.env.MAX_POSITIONS_PER_USER, 10);
-  }
-  if (process.env.BOOTSTRAP_THRESHOLD_RATIO) {
-    baseConfig.riskLimits.bootstrapThresholdRatio = parseFloat(process.env.BOOTSTRAP_THRESHOLD_RATIO);
-  }
+  baseConfig.riskLimits.maxLeverage = 10000;
+  baseConfig.riskLimits.maxUserExposure = Number(100_000 * 1e6).toString();
+  baseConfig.riskLimits.maxPositionsPerUser = 20;
+  baseConfig.riskLimits.bootstrapThresholdRatio = 0.1;
 
   return baseConfig;
 }

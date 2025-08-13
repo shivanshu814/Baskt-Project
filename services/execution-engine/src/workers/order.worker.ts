@@ -88,7 +88,7 @@ export class OrderWorker {
       },
       {
         connection: redis,
-        concurrency: parseInt(process.env.EXECUTION_CONCURRENCY || '10'),
+        concurrency: parseInt(process.env.EXECUTION_CONCURRENCY || '1'),
         limiter: {
           max: 50,
           duration: 1000

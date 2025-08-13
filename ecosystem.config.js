@@ -97,6 +97,34 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
       },
-    }
+    },
+    {
+      name: 'execution-engine',
+      cwd: './services/execution-engine',
+      script: 'bash',
+      args: "-c 'node dist/index.js'",
+      interpreter: 'none',
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      env_file: '.env', // Absolute path to root .env
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
+    {
+      name: 'guardian',
+      cwd: './services/guardian',
+      script: 'bash',
+      args: "-c 'node dist/index.js'",
+      interpreter: 'none',
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      env_file: '.env', // Absolute path to root .env
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
   ],
 };
