@@ -31,7 +31,7 @@ export class OrderWorker extends BaseWorker {
   }
 
   protected async processJob(jobInfo: JobInfo, job: Job): Promise<void> {
-    const order = deserializeMessage(jobInfo.data) as OrderAccepted;
+    const order = jobInfo.data as OrderAccepted;
 
     try {
       // Check idempotency

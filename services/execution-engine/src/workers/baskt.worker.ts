@@ -27,7 +27,7 @@ export class BasktWorker extends BaseWorker {
   }
 
   protected async processJob(jobInfo: JobInfo, job: Job): Promise<void> {
-    const basktMessage = deserializeMessage(jobInfo.data) as BasktCreatedMessage;
+    const basktMessage = jobInfo.data as BasktCreatedMessage;
 
     try {
       // Check idempotency
