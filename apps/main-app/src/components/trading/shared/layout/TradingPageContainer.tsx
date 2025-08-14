@@ -1,3 +1,4 @@
+import Loading from '../../../../app/loading';
 import { TradingPageContainerProps } from '../../../../types/trading/orders';
 import { StatusBanner } from '../../../shared/StatusBanner';
 import { DesktopHeader } from '../../desktop/header/DesktopHeader';
@@ -5,7 +6,6 @@ import { MobileHeader } from '../../mobile/header/MobileHeader';
 import { MobileTradingOverlay } from '../../mobile/layout/MobileTradingOverlay';
 import { FavoritesSection } from '../baskt/FavoritesSection';
 import { ErrorState } from '../helper/ErrorState';
-import { LoadingSpinner } from '../helper/LoadingSpinner';
 import { TradingModals } from '../modals/TradingModals';
 import { TradingLayout } from './TradingLayout';
 import { TradingPanel } from './TradingPanel';
@@ -16,7 +16,7 @@ export function TradingPageContainer({
   baskt,
 }: TradingPageContainerProps) {
   if (isLoading) {
-    return <LoadingSpinner />;
+    return <Loading />;
   }
 
   if (isBasktDataError || !baskt) {
