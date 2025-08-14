@@ -136,16 +136,20 @@ export function TradingChart({ baskt }: TradingChartProps) {
     },
   ) as { data: TradingDataResponse | undefined; isLoading: boolean; error: any };
 
-  const formatDate = useCallback((time: Time) => {
+  const formatTime = useCallback((time: Time) => {
     const date = new Date(Number(time) * 1000);
-    return date.toLocaleDateString([], { day: '2-digit', month: 'short' });
+    return date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
   }, []);
 
   const timeScaleOptions = useMemo(
     () => ({
       borderColor: 'hsl(var(--border))',
       textColor: '#FFFFFF',
-      tickMarkFormatter: (time: Time) => formatDate(time),
+      tickMarkFormatter: (time: Time) => formatTime(time),
       timeVisible: true,
       secondsVisible: false,
       rightOffset: 8,
@@ -155,7 +159,7 @@ export function TradingChart({ baskt }: TradingChartProps) {
       fixRightEdge: true,
       lockVisibleTimeRangeOnResize: true,
     }),
-    [formatDate],
+    [formatTime],
   );
 
   const handleCrosshairMove = useCallback(
