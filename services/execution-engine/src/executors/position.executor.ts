@@ -14,10 +14,6 @@ export class PositionExecutor {
       const price = new BN(order.executionPrice);
       logger.info('Using fill price from Guardian', { price: price.toString(), basktId: order.request.order.basktId });
 
-      logger.info('Order.request.order', { order: order.request.order, type: typeof order.request.order });
-      logger.info('Order.request.order.owner', { owner: order.request.order.owner, type: typeof order.request.order.owner });
-      logger.info('Order.request.order.basktId', { basktId: order.request.order.basktId, type: typeof order.request.order.basktId });
-
       // Calculate PDA for order account
       const orderPDA = await basktClient.getOrderPDA(Number(order.request.order.orderId), order.request.order.owner);
       logger.info('Calculated order PDA', { orderPDA: orderPDA.toString(), orderId: order.request.order.orderId, owner: order.request.order.owner });

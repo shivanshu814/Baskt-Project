@@ -24,7 +24,7 @@ const depositBlp = async (args: string[]) => {
 
     const userTokenAccount = await client.getUSDCAccount(client.getPublicKey());
 
-    const liquidityPool = await client.findLiquidityPoolPDA();
+    const liquidityPool = await client.liquidityPoolPDA;
     const poolData = await client.getLiquidityPool();
     if (!poolData) {
       throw new Error('Pool data not found');
@@ -61,7 +61,7 @@ const depositBlp = async (args: string[]) => {
       depositAmount,
       minSharesOut,
       userTokenAccount.address,
-      new PublicKey(poolData.tokenVault),
+      new PublicKey(poolData.usdcVault),
       userLPAta,
       new PublicKey(poolData.lpMint),
       treasuryTokenAccount,

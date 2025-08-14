@@ -1,5 +1,5 @@
 import { Job } from 'bullmq';
-import { BasktCreatedMessage, logger, DataBus, deserializeMessage, serializeMessage } from '@baskt/data-bus';
+import { BasktCreatedMessage, logger, DataBus } from '@baskt/data-bus';
 import { BasktExecutor } from '../executors/baskt.executor';
 import { TransactionPublisher } from '../publishers/transaction.publisher';
 import { IdempotencyTracker } from '../utils/idempotency';

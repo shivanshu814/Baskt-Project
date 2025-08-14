@@ -48,7 +48,6 @@ export abstract class BaseWorker {
       async (job: Job) => {
         logger.info('Processing job', { jobId: job.id, jobName: job.name, jobData: job.data });
         const jobInfo = deserializeMessage(job.data) as JobInfo;
-        logger.info('Job info', { jobInfo });
         await this.processJob(jobInfo, job);
       },
       {

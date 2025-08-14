@@ -545,7 +545,7 @@ SuperJSON.registerCustom<PublicKey, string>(
     serialize: v => v.toString(),
     deserialize: v => new PublicKey(v),
   },
-  'solana/public-key'
+  'public-key'
 );
 
 
