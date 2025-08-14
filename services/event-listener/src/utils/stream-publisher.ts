@@ -28,7 +28,6 @@ export class StreamPublisher {
   async init(): Promise<void> {
     if (!this.isConnected) {
       try {
-        await this.dataBus.connect();
         this.isConnected = true;
         console.log('[StreamPublisher] Connected to Data Bus');
         
