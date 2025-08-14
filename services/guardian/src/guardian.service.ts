@@ -64,8 +64,6 @@ export class GuardianService {
     try {
       logger.info('Starting Guardian service...');
 
-      await this.dataBus.connect();
-
       // Subscribe to order requests using consume
       await this.dataBus.consume<OrderRequest>(
         STREAMS.order.request,

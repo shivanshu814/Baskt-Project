@@ -26,8 +26,6 @@ export class ExecutionService {
   }
 
   async start(): Promise<void> {
-    await this.dataBus.connect();
-
     // Consume order.accepted events (runs in background)
     this.dataBus.consume(
       STREAMS.order.accepted,
