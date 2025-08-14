@@ -84,13 +84,13 @@ export class DataBus extends EventEmitter {
       retryStrategy: createRetryStrategy(
         config.redisUrl || `cluster-${config.redisCluster?.nodes[0].host}`
       ),
-      lazyConnect: config.autoConnect === false
+      lazyConnect: config.autoConnect === false, 
     };
 
     if (config.redisCluster) {
       return this.createClusterClient(config.redisCluster, baseOptions);
     } else {
-      return new Redis(config.redisUrl!, baseOptions);
+      return new Redis(config.redisUrl!);
     }
   }
 

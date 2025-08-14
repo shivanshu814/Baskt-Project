@@ -11,12 +11,10 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=4000
-      # Override the wallet path to point to the mounted location
       - ANCHOR_WALLET=/app/wallet/id.json
     env_file:
       - ./.env
     volumes:
-      # Mount the Solana wallet file from host to container
       - "${WALLET_PATH:-/root/.config/solana/id.json}:/app/wallet/id.json:ro"
     restart: unless-stopped
     healthcheck:
