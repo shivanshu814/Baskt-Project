@@ -39,8 +39,8 @@ async function main() {
     process.on('SIGTERM', () => shutdown('SIGTERM'));
     process.on('SIGINT', () => shutdown('SIGINT'));
 
-  } catch (error) {
-    logger.error({ error }, 'Failed to start Guardian');
+  } catch (error: any) {
+    logger.error({ error: error.toString() }, 'Failed to start Guardian');
     process.exit(1);
   }
 }

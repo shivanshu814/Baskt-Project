@@ -31,7 +31,7 @@ export class GuardianService {
   }
 
   private initializeRiskChecks(): void {
-    const { riskLimits, features } = this.config;
+    const { riskLimits } = this.config;
 
     // Always enabled checks
     this.riskChecks.push(
@@ -80,8 +80,8 @@ export class GuardianService {
       this.startTime = Date.now();
 
       logger.info('Guardian service started successfully');
-    } catch (error) {
-      logger.error({ error }, 'Failed to start Guardian service');
+    } catch (error: any) {
+      logger.error({ error: error.toString() }, 'Failed to start Guardian service');
       throw error;
     }
   }

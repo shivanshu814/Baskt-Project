@@ -62,6 +62,6 @@ async function main() {
 
 // Start the service
 main().catch((err) => {
-  logger.error('Failed to start execution engine', { error: err });
+  logger.error('Failed to start execution engine', { error: err.toString() });
   process.exit(1);
 });
