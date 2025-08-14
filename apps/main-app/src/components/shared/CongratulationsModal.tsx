@@ -5,7 +5,7 @@ import { Copy, ExternalLink, Share2, Sparkles, X } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import { ROUTES } from '../../routes/route';
-import { CongratulationsModalProps } from '../../types/trading/modals';
+import { CongratulationsModalProps } from '../../types/baskt/trading/modals';
 
 export function CongratulationsModal({
   open,

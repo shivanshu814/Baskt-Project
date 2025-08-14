@@ -1,13 +1,17 @@
 'use client';
 
 import { NumberFormat } from '@baskt/ui';
-import React from 'react';
-import { useAssetRow } from '../../../hooks/asset/asset-row';
+import React, { useCallback, useMemo } from 'react';
 import { AssetRowProps } from '../../../types/baskt';
+import { generateAssetUrl, handleAssetClick } from '../../../utils/asset/asset';
 import { AssetLogo } from '../../create-baskt/assetModal/AssetLogo';
 
 export const AssetRow = React.memo(({ asset, currentWeight }: AssetRowProps) => {
-  const { assetUrl, handleClick } = useAssetRow(asset);
+  const assetUrl = useMemo(() => generateAssetUrl(asset), [asset]);
+
+  const handleClick = useCallback(() => {
+    handleAssetClick(asset);
+  }, [asset]);
 
   return (
     <div className="flex items-center px-2 sm:px-3 py-2 border-t border-border bg-background/80 text-xs sm:text-sm">

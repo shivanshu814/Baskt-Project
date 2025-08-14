@@ -7,7 +7,6 @@ import Link from 'next/link';
 export default function NotFound() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 relative overflow-hidden">
-      {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-20 w-32 h-32 bg-primary/10 rounded-full blur-xl animate-pulse"></div>
         <div
@@ -38,7 +37,6 @@ export default function NotFound() {
           <div className="absolute inset-0 flex items-center justify-center">
             <AlertTriangle className="h-24 w-24 text-primary animate-bounce group-hover:scale-110 transition-transform duration-300" />
           </div>
-          {/* Floating particles around the icon */}
           <div className="absolute inset-0">
             <div
               className="absolute top-4 left-4 w-2 h-2 bg-primary/60 rounded-full animate-ping"
@@ -107,8 +105,6 @@ export default function NotFound() {
           </div>
         </div>
       </div>
-
-      {/* Additional floating elements */}
       <div
         className="absolute top-1/4 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary/40 rounded-full animate-ping"
         style={{ animationDelay: '3s' }}

@@ -2,10 +2,10 @@
 
 import { Button, Input, NumberFormat } from '@baskt/ui';
 import { HandCoins, X } from 'lucide-react';
-import { useCollateral } from '../../../../hooks/trading/actions/use-collateral';
-import { formatSliderValue, preventNegativeInput } from '../../../../lib/trading/collateral';
-import { AddCollateralModalProps } from '../../../../types/trading/modals';
-import { generateSliderGradient } from '../../../../utils/ui/ui';
+import { useCollateral } from '../../../../hooks/trade/action/use-collateral';
+import { preventNegativeInput } from '../../../../lib/trading/helper';
+import { AddCollateralModalProps } from '../../../../types/baskt/trading/components/tabs';
+import { PercentageSlider } from '../percentage/PercentageSlider';
 
 export function AddCollateralModal({ isOpen, position }: AddCollateralModalProps) {
   const {
@@ -96,54 +96,13 @@ export function AddCollateralModal({ isOpen, position }: AddCollateralModalProps
               </div>
 
               <div className="w-full mt-4">
-                <div className="relative flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        step={1}
-                        value={Math.round(parseFloat(amountPercentage || '0'))}
-                        onChange={(e) => handleSliderChange(parseFloat(e.target.value))}
-                        className="w-full h-1 bg-gray-600 rounded-full appearance-none cursor-pointer slider [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-purple-500 [&::-moz-range-thumb]:cursor-pointer"
-                        style={{
-                          background: generateSliderGradient(parseFloat(amountPercentage || '0')),
-                        }}
-                        disabled={isLoading}
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground mt-2 relative">
-                        <span className="absolute left-0 text-xs text-muted-foreground">0%</span>
-                        <span className="absolute ml-2 left-1/4 transform -translate-x-1/2 text-xs text-muted-foreground">
-                          25%
-                        </span>
-                        <span className="absolute ml-1 left-1/2 transform -translate-x-1/2 text-xs text-muted-foreground">
-                          50%
-                        </span>
-                        <span className="absolute ml-1 left-3/4 transform -translate-x-1/2 text-xs text-muted-foreground">
-                          75%
-                        </span>
-                        <span className="absolute right-0 text-xs text-muted-foreground">100%</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="border border-border rounded-lg px-2 py-1 w-16 hover:border-purple-500">
-                    <div className="flex items-center justify-center gap-1">
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        className="w-12 text-center border-none bg-transparent p-0 text-sm font-medium text-white focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        value={formatSliderValue(amountPercentage)}
-                        onChange={(e) => handlePercentageChange(e.target.value)}
-                        min={0}
-                        max={100}
-                        step={1}
-                        disabled={isLoading}
-                      />
-                      <span className="text-sm font-medium text-white">%</span>
-                    </div>
-                  </div>
-                </div>
+                <PercentageSlider
+                  percentage={amountPercentage || '0'}
+                  onSliderChange={handleSliderChange}
+                  onPercentageChange={handlePercentageChange}
+                  isLoading={isLoading}
+                  positionSize={position?.collateral || 0}
+                />
               </div>
             </div>
 

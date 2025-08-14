@@ -1,6 +1,6 @@
 import { NumberFormat, PublicKeyText } from '@baskt/ui';
-import { useOrdersHistory } from '../../../../hooks/trading/tabs/use-orders-history';
-import { OrdersHistoryTabProps } from '../../../../types/trading/components/tabs';
+import { useOrdersHistory } from '../../../../hooks/trade/action/use-orders-history';
+import { OrdersHistoryTabProps } from '../../../../types/baskt/trading/components/tabs';
 import { formatOrderHistoryTime } from '../../../../utils/formatters/formatters';
 import { getStatusColor } from '../../../../utils/validation/validation';
 

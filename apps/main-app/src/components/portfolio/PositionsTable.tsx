@@ -4,13 +4,13 @@ import { NumberFormat, useBasktClient } from '@baskt/ui';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { usePortfolioPositions } from '../../hooks/portfolio/use-portfolio-positions';
-import { SortDirection, SortField } from '../../types/components/ui/ui';
+import { SortDirection, SortField } from '../../types/baskt/ui/ui';
 
 export const PositionsTable = () => {
   const { client } = useBasktClient();
   const userAddress = client?.wallet?.address?.toString();
   const { positions, isLoading, isError } = usePortfolioPositions();
-  const [sortField, setSortField] = useState<SortField>('basket');
+  const [sortField, setSortField] = useState<SortField>('baskt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   if (!userAddress) {
@@ -51,7 +51,7 @@ export const PositionsTable = () => {
       let aValue: any, bValue: any;
 
       switch (sortField) {
-        case 'basket':
+        case 'baskt':
           aValue = a.basktName;
           bValue = b.basktName;
           break;
@@ -116,11 +116,11 @@ export const PositionsTable = () => {
             <tr>
               <th className="text-left py-2 px-2">
                 <button
-                  onClick={() => handleSort('basket')}
+                  onClick={() => handleSort('baskt')}
                   className="flex items-center gap-1 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                 >
                   Baskt
-                  <SortIcon field="basket" />
+                  <SortIcon field="baskt" />
                 </button>
               </th>
               <th className="text-left py-2 px-2">
@@ -189,11 +189,11 @@ export const PositionsTable = () => {
           <tr>
             <th className="text-left py-2 px-2">
               <button
-                onClick={() => handleSort('basket')}
+                onClick={() => handleSort('baskt')}
                 className="flex items-center gap-1 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               >
                 Baskt
-                <SortIcon field="basket" />
+                <SortIcon field="baskt" />
               </button>
             </th>
             <th className="text-left py-2 px-2">

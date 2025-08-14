@@ -1,5 +1,5 @@
 import { NumberFormat } from '@baskt/ui';
-import { MetricItemProps } from '../../../../types/trading/components/tabs';
+import { MetricItemProps } from '../../../../types/baskt/trading/components/tabs';
 import {
   calculatePerformanceColor,
   formatPriceChange,

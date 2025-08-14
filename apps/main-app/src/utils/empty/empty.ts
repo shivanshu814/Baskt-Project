@@ -1,9 +1,6 @@
-import { createStandardEmptyState } from '../../lib/ui/empty-state';
+import { createStandardEmptyState } from '../../lib/empty/empty-state';
 import { EmptyStateBaseProps } from '../../types/baskt';
 
-/**
- * Creates the common empty state configuration
- */
 export const createEmptyStateConfig = (
   title: string,
   description: string,
@@ -13,9 +10,6 @@ export const createEmptyStateConfig = (
 ): EmptyStateBaseProps =>
   createStandardEmptyState(title, description, buttonText, icon, onButtonClick);
 
-/**
- * Common empty state configurations
- */
 export const EMPTY_STATE_CONFIGS = {
   noBasktsFound: (onCreateClick: () => void) =>
     createEmptyStateConfig(

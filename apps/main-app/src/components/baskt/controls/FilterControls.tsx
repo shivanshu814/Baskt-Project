@@ -3,7 +3,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@baskt/ui';
 import { BarChart3, Filter, TrendingDown, TrendingUp } from 'lucide-react';
 import { memo } from 'react';
-import { useFilterControls } from '../../../hooks/common/use-filter-controls';
+import { useFilterControls } from '../../../hooks/baskt/filter/use-filter-controls';
 import { FilterControlsProps } from '../../../types/baskt';
 
 export const FilterControls = memo(({ sortBy, setSortBy }: FilterControlsProps) => {

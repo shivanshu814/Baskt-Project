@@ -1,10 +1,10 @@
-import { InfoTabProps } from '../../../../types/trading/components/tabs';
+import { PublicKeyText } from '@baskt/ui';
+import { InfoTabProps } from '../../../../types/baskt/trading/components/tabs';
 import {
   getBasktStatusColor,
   getBasktStatusText,
   getInfoItems,
 } from '../../../../utils/formatters/formatters';
-import { InfoItem } from '../cards/InfoItem';
 
 export function InfoTab({ baskt }: InfoTabProps) {
   const infoItems = getInfoItems(baskt);
@@ -19,13 +19,14 @@ export function InfoTab({ baskt }: InfoTabProps) {
       </div>
       <div className="space-y-2">
         {infoItems.map((item, index) => (
-          <InfoItem
-            key={index}
-            label={item.label}
-            value={item.value}
-            isPublicKey={item.isPublicKey}
-            isDate={item.isDate}
-          />
+          <div key={index} className="flex justify-between text-sm">
+            <span className="text-muted-foreground">{item.label}</span>
+            {item.isPublicKey ? (
+              <PublicKeyText publicKey={item.value as string} isCopy={true} />
+            ) : (
+              <span>{item.value}</span>
+            )}
+          </div>
         ))}
       </div>
     </div>

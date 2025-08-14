@@ -1,13 +1,12 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger, useBasktClient } from '@baskt/ui';
 import { useState } from 'react';
-import { useOpenOrders } from '../../../../hooks/baskt/trade/use-open-orders';
-import { useOpenPositions } from '../../../../hooks/baskt/trade/use-open-positions';
-import { useOrderHistory } from '../../../../hooks/baskt/trade/use-order-history';
-import { useBasktRebalance } from '../../../../hooks/baskt/use-baskt-rebalance';
-import { useUSDCBalance } from '../../../../hooks/pool/use-usdc-balance';
-import { useLiquidationPrice } from '../../../../hooks/trading/actions/use-liquidation-price';
-import { useModalState } from '../../../../hooks/trading/modals/use-modal-state';
-import { TradingTabsProps } from '../../../../types/trading/orders';
+import { useBasktRebalance } from '../../../../hooks/trade/action/use-baskt-rebalance';
+import { useOpenOrders } from '../../../../hooks/trade/action/use-open-orders';
+import { useOpenPositions } from '../../../../hooks/trade/action/use-open-positions';
+import { useOrderHistory } from '../../../../hooks/trade/action/use-order-history';
+import { useModalState } from '../../../../hooks/trade/modals/use-modal-state';
+import { OrderDetails } from '../../../../types/baskt/trading/components/tabs';
+import { TradingTabsProps } from '../../../../types/baskt/trading/orders';
 import { CompositionTab } from './CompositionTab';
 import { InfoTab } from './InfoTab';
 import { MetricsTab } from './MetricsTab';
@@ -15,24 +14,16 @@ import { OpenOrdersTab } from './OpenOrdersTab';
 import { OrdersHistoryTab } from './OrdersHistoryTab';
 import { PositionsTab } from './PositionsTab';
 import { RebalanceTab } from './RebalanceTab';
-import { TradeOrdersTab } from './TradeOrdersTab';
 
 export function TradingTabs({ baskt }: TradingTabsProps) {
   const [activeTab, setActiveTab] = useState('composition');
   const [mobileTab] = useState<'markets' | 'trade'>('markets');
-  const [priceColor] = useState('text-foreground');
   const { client: basktClient } = useBasktClient();
   const userAddress = basktClient?.wallet?.address?.toString();
-  const { balance: usdcBalance } = useUSDCBalance(userAddress);
   const modalState = useModalState();
 
-  const { getLiquidationPriceFromBaskt } = useLiquidationPrice();
-  const getLiquidationPrice = (collateral: number, position: 'long' | 'short') => {
-    return getLiquidationPriceFromBaskt(collateral, position, baskt);
-  };
-
   const { positions = [] } = useOpenPositions(baskt?.basktId, userAddress);
-  const { orders = [] } = useOpenOrders(baskt?.basktId, userAddress);
+  const { orders = [], processedOrders = [] } = useOpenOrders(baskt?.basktId, userAddress, baskt);
   const { orders: orderHistory = [] } = useOrderHistory(baskt?.basktId, userAddress);
   const { isRebalancing, rebalanceBaskt } = useBasktRebalance();
 
@@ -40,11 +31,6 @@ export function TradingTabs({ baskt }: TradingTabsProps) {
     if (baskt) {
       rebalanceBaskt(baskt);
     }
-  };
-
-  const calculateTotalPositions = (positions: any[]) => {
-    const total = positions.reduce((total, pos) => total + (pos.value || 0), 0);
-    return { long: total, short: total };
   };
 
   const onAddCollateral = (position: any) => {
@@ -55,7 +41,7 @@ export function TradingTabs({ baskt }: TradingTabsProps) {
     modalState.openClosePositionModal(position);
   };
 
-  const onCancelOrder = (order: any) => {
+  const onCancelOrder = (order: OrderDetails) => {
     modalState.openCancelOrderModal(order);
   };
 
@@ -126,7 +112,7 @@ export function TradingTabs({ baskt }: TradingTabsProps) {
         </TabsContent>
 
         <TabsContent value="open-orders" className="flex-1 overflow-y-auto p-4">
-          <OpenOrdersTab baskt={baskt} orders={orders} onCancelOrder={onCancelOrder} />
+          <OpenOrdersTab baskt={baskt} orders={processedOrders} onCancelOrder={onCancelOrder} />
         </TabsContent>
 
         <TabsContent value="orders-history" className="flex-1 overflow-y-auto p-4">
@@ -148,17 +134,6 @@ export function TradingTabs({ baskt }: TradingTabsProps) {
 
         <TabsContent value="metrics" className="flex-1 overflow-y-auto p-4">
           <MetricsTab baskt={baskt} />
-        </TabsContent>
-
-        <TabsContent value="trade-orders" className="flex-1 p-4">
-          <TradeOrdersTab
-            baskt={baskt}
-            usdcBalance={usdcBalance}
-            positions={positions}
-            priceColor={priceColor}
-            getLiquidationPrice={getLiquidationPrice}
-            calculateTotalPositions={calculateTotalPositions}
-          />
         </TabsContent>
       </Tabs>
     </div>

@@ -11,7 +11,7 @@ import {
   getAssetImageUrl,
   processAssetData,
   processVaultData,
-} from '../../utils/vault-data-utils';
+} from '../../utils/vault/vault-data-utils';
 
 // fetch vault data and liquidity pool
 export function useVaultData() {

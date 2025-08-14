@@ -2,11 +2,10 @@
 
 import { BasktInfo } from '@baskt/types';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
-import { TradingPageContainer } from '../../../components/trading/shared/layout/TradingPageContainer';
-import { ModalProvider } from '../../../hooks/trading/modals/use-modal-state';
-import { useBasktData } from '../../../hooks/trading/trade/use-baskt-data';
-import { useNavUpdates } from '../../../hooks/trading/trade/use-nav-updates';
+import { useEffect, useState } from 'react';
+import { TradingContainer } from '../../../components/trading/shared/layout/TradingContainer';
+import { ModalProvider } from '../../../hooks/trade/modals/use-modal-state';
+import { useBasktData } from '../../../hooks/trade/trading-data/use-baskt-data';
 
 export default function BasktTradingPage() {
   const name = useParams().name;
@@ -25,15 +24,24 @@ export default function BasktTradingPage() {
     setRetryCount,
   );
 
-  useNavUpdates(baskt, setBaskt, isBasktNavDataLoaded, basktNavData);
+  useEffect(() => {
+    if (!isBasktNavDataLoaded) return;
+    if (!baskt) return;
+    if (!basktNavData?.data?.nav) return;
+
+    const basktCopy = baskt;
+    if (!basktCopy) return;
+    if (basktNavData?.data?.nav === basktCopy.price) return;
+
+    setBaskt({
+      ...basktCopy,
+      price: basktNavData?.data?.nav,
+    });
+  }, [baskt, isBasktNavDataLoaded, basktNavData, setBaskt]);
 
   return (
     <ModalProvider>
-      <TradingPageContainer
-        isLoading={isLoading}
-        isBasktDataError={isBasktDataError}
-        baskt={baskt}
-      />
+      <TradingContainer isLoading={isLoading} isBasktDataError={isBasktDataError} baskt={baskt} />
     </ModalProvider>
   );
 }

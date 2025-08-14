@@ -1,4 +1,4 @@
-import { ModalBackdropProps } from '../../../../types/trading/modals';
+import { ModalBackdropProps } from '../../../../types/baskt/trading/modals';
 
 export function ModalBackdrop({ children, onClose }: ModalBackdropProps) {
   return (

@@ -5,9 +5,9 @@ import { BN } from '@coral-xyz/anchor';
 import { Share2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { useOpenPositions } from '../../../../hooks/baskt/trade/use-open-positions';
 import { useShareLink } from '../../../../hooks/shared/use-share-link';
-import { TradingPanelProps } from '../../../../types/trading/orders';
+import { useOpenPositions } from '../../../../hooks/trade/action/use-open-positions';
+import { TradingPanelProps } from '../../../../types/baskt/trading/orders';
 
 export function TradingPanel({ baskt }: TradingPanelProps) {
   const [selectedPosition, setSelectedPosition] = useState<'long' | 'short'>('long');
@@ -34,7 +34,6 @@ export function TradingPanel({ baskt }: TradingPanelProps) {
   };
 
   const {
-    positions = [],
     isLoading,
     openPosition,
     collateral,

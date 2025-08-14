@@ -2,20 +2,12 @@ import { calculateCollateralAmount } from '@baskt/sdk';
 import { BasktInfo } from '@baskt/types';
 import BN from 'bn.js';
 import {
-  Asset,
   AssetCompositionData,
   OrderDetails,
   OrderHistoryDetails,
-} from '../../types/trading/components/tabs';
+} from '../../types/baskt/trading/components/tabs';
 
-// Trade formatters
 export const formatOrderTime = (date: Date): string => date.toLocaleString();
-
-export const formatOrderType = (orderType: any): string => {
-  if (orderType.market) return 'Market';
-  if (orderType.limit) return `Limit (${orderType.limit.price})`;
-  return 'Unknown';
-};
 
 export const formatPositionType = (isLong: boolean): string => (isLong ? 'Long' : 'Short');
 
@@ -30,7 +22,6 @@ export const formatPriceChange = (change: number, showSign: boolean = true): str
 export const calculatePerformanceColor = (performance: number): string =>
   performance >= 0 ? 'text-green-500' : 'text-red-500';
 
-// Tab formatters
 export function getBasktStatusColor(isActive: boolean): string {
   return isActive ? 'text-green-500' : 'text-yellow-500';
 }
@@ -61,7 +52,6 @@ export function formatChangePercentage(changePercentage: number): string {
   return `${sign}${changePercentage.toFixed(2)}%`;
 }
 
-// Position formatters
 export function getPositionTypeLabel(isLong: boolean): string {
   return isLong ? 'Long' : 'Short';
 }
@@ -81,14 +71,12 @@ export function calculateAssetCompositionData(baskt: BasktInfo): AssetCompositio
     return [];
   }
 
-  // Calculate current weights using the same logic as the portfolio page
   const calculateCurrentWeights = (assets: any[]) => {
-    // Convert weights from percentages to decimals (e.g., 50 -> 0.5)
     const weights = assets.map((asset) => asset.weight / 100);
 
-    // Calculate returns for each asset based on direction
     const returns = assets.map((asset) => {
       const baselinePrice = asset.baselinePrice || asset.price;
+
       if (!baselinePrice || baselinePrice === 0) {
         return 0;
       }
@@ -96,19 +84,13 @@ export function calculateAssetCompositionData(baskt: BasktInfo): AssetCompositio
       const priceDiff = asset.price - baselinePrice;
       const returnValue = priceDiff / baselinePrice;
 
-      // Apply direction: positive for long, inverse for short
       return asset.direction ? returnValue : -returnValue;
     });
 
-    // Calculate weighted returns: w_i * (1 + r_i)
     const weightedReturns = weights.map((weight, index) => weight * (1 + returns[index]));
-
-    // Calculate sum of weighted returns: ∑ w_j * (1 + r_j)
     const sumWeightedReturns = weightedReturns.reduce((sum, value) => sum + value, 0);
 
-    // Calculate current weights as percentages
     if (sumWeightedReturns === 0) {
-      // If sum is zero, return original weights as percentages
       return assets.map((asset) => asset.weight);
     }
 
@@ -126,8 +108,8 @@ export function calculateAssetCompositionData(baskt: BasktInfo): AssetCompositio
       ticker: (asset.ticker || 'Asset') as string,
       logo: asset.logo || '',
       direction: asset.direction,
-      weight: asset.weight, // Target weight
-      currentWeight: currentWeights[index] || asset.weight, // Current weight
+      weight: asset.weight,
+      currentWeight: currentWeights[index] || asset.weight,
       baselinePrice,
       currentPrice: asset.price,
       change,
@@ -136,60 +118,6 @@ export function calculateAssetCompositionData(baskt: BasktInfo): AssetCompositio
   });
 }
 
-export function calculateAssetTableData(assets: Asset[]): AssetCompositionData[] {
-  if (!assets || assets.length === 0) {
-    return [];
-  }
-
-  // Calculate current weights using the same logic
-  const calculateCurrentWeights = (assets: any[]) => {
-    const weights = assets.map((asset) => (asset.weight || 0) / 100);
-
-    const returns = assets.map((asset) => {
-      const baselinePrice = asset.baselinePrice || asset.price || 0;
-      if (!baselinePrice || baselinePrice === 0) {
-        return 0;
-      }
-
-      const priceDiff = (asset.price || 0) - baselinePrice;
-      const returnValue = priceDiff / baselinePrice;
-
-      return asset.direction || false ? returnValue : -returnValue;
-    });
-
-    const weightedReturns = weights.map((weight, index) => weight * (1 + returns[index]));
-    const sumWeightedReturns = weightedReturns.reduce((sum, value) => sum + value, 0);
-
-    if (sumWeightedReturns === 0) {
-      return assets.map((asset) => asset.weight || 0);
-    }
-
-    return weightedReturns.map((value) => (value / sumWeightedReturns) * 100);
-  };
-
-  const currentWeights = calculateCurrentWeights(assets);
-
-  return assets.map((asset, index) => {
-    const baselinePrice = asset.baselinePrice || asset.price || 0;
-    const currentPrice = asset.price || 0;
-    const change = currentPrice - baselinePrice;
-    const changePercentage = baselinePrice ? (change / baselinePrice) * 100 : 0;
-
-    return {
-      ticker: asset.ticker || 'Asset',
-      logo: asset.logo || '',
-      direction: asset.direction || false,
-      weight: asset.weight || 0,
-      currentWeight: currentWeights[index] || asset.weight || 0,
-      baselinePrice,
-      currentPrice,
-      change,
-      changePercentage,
-    };
-  });
-}
-
-// Metrics formatters
 export function formatPerformanceValue(
   value: number | undefined,
   showSign: boolean = true,
@@ -242,7 +170,6 @@ export function getMetricsData(baskt: BasktInfo) {
   ];
 }
 
-// Info tab formatters
 export function getInfoItems(baskt: BasktInfo) {
   return [
     {
@@ -267,7 +194,6 @@ export function getInfoItems(baskt: BasktInfo) {
   ];
 }
 
-// Order formatters
 export function processOrderDetails(order: any, baskt: BasktInfo): OrderDetails {
   const orderTime = order.createdAt ? new Date(order.createdAt) : new Date();
   const orderType = order.orderType?.market ? 'Market' : 'Limit';
@@ -284,13 +210,11 @@ export function processOrderDetails(order: any, baskt: BasktInfo): OrderDetails 
   }
 
   const orderPrice = order.price || baskt?.price || 0;
-
-  // Calculate collateral using the same logic as positions
   let orderCollateral = 0;
+
   if (order.collateral) {
     orderCollateral = parseFloat(order.collateral);
   } else if (orderSize > 0) {
-    // If no collateral is provided, calculate it from the order size
     orderCollateral = calculateCollateralAmount(new BN(orderSize)).toNumber();
   }
 
@@ -305,6 +229,8 @@ export function processOrderDetails(order: any, baskt: BasktInfo): OrderDetails 
     orderCollateral,
     limitPrice,
     isLong,
+    orderPDA: order.orderPDA,
+    orderId: order.orderId,
   };
 }
 
@@ -340,6 +266,8 @@ export function processOrderHistoryDetails(order: any, baskt: BasktInfo): OrderH
     status,
     transactionHash,
     isLong,
+    orderPDA: order.orderPDA,
+    orderId: order.orderId,
   };
 }
 

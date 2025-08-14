@@ -4,7 +4,7 @@ import { Button } from '@baskt/ui';
 import { AlertTriangle, Check, Copy, Home, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ErrorProps } from '../types/components/ui/ui';
+import { ErrorProps } from '../types/baskt/ui/ui';
 
 export default function Error({ error, reset }: ErrorProps) {
   const [copied, setCopied] = useState(false);

@@ -1,7 +1,7 @@
 'use client';
 
 import { Dialog, DialogContent } from '@baskt/ui';
-import { useAssetSelection } from '../../hooks/modal/use-asset-selection';
+import { useAssetSelection } from '../../hooks/asset/use-asset-selection';
 import { AssetSelectionModalProps } from '../../types/asset';
 import { AssetGrid } from './assetModal/AssetGrid';
 import { AssetModalFooter } from './assetModal/AssetModalFooter';

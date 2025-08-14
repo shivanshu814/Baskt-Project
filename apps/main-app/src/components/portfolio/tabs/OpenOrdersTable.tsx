@@ -2,7 +2,7 @@
 
 import { NumberFormat, useBasktClient } from '@baskt/ui';
 import { usePortfolioOrders } from '../../../hooks/portfolio/use-portfolio-orders';
-import { ProcessedOrder } from '../../../types/components/ui/ui';
+import { ProcessedOrder } from '../../../types/baskt/ui/ui';
 import { formatOrderTime } from '../../../utils/formatters/formatters';
 
 export function OpenOrdersTable() {

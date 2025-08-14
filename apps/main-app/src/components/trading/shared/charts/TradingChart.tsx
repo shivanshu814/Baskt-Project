@@ -17,10 +17,8 @@ import {
   TradingDataPoint,
   TradingDataResponse,
 } from '../../../../types/baskt';
-import { TradingChartProps } from '../../../../types/trading/orders';
+import { TradingChartProps } from '../../../../types/baskt/trading/orders';
 import { TradingPanel } from '../layout/TradingPanel';
-
-const NAV_TRACKING_INTERVAL_MINUTES = 5;
 
 const CHART_OPTIONS = {
   layout: {
