@@ -114,7 +114,6 @@ export class BasktQuerier {
       ]);
 
 
-
       if (!basktMetadata && !onchainBaskt) {
         return {
           success: false,

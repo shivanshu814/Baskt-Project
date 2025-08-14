@@ -30,10 +30,6 @@ export function DesktopHeader({ baskt }: DesktopHeaderProps) {
   const { totalVolume, isLoading: volumeLoading } = useBasktVolume(baskt?.basktId || '');
   const { data: allOiResp } = trpc.metrics.getOpenInterestForBasktsWithPositions.useQuery(
     undefined,
-    {
-      refetchInterval: 30 * 1000,
-      staleTime: 30 * 1000,
-    },
   );
 
   const oiByBasktId = useMemo(() => {
