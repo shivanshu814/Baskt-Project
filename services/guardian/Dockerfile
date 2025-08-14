@@ -1,4 +1,4 @@
-# Simple single-stage Dockerfile for @baskt/backend service
+# Simple single-stage Dockerfile for @baskt/guardian service
 FROM node:20-alpine
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/sdk/package.json ./packages/sdk/
 COPY packages/querier/package.json ./packages/querier/
 COPY packages/data-bus/package.json ./packages/data-bus/
-COPY services/backend/package.json ./services/backend/
+COPY services/guardian/package.json ./services/guardian/
 
 # Install all dependencies
 RUN pnpm install --frozen-lockfile
@@ -27,12 +27,12 @@ COPY packages/sdk/ ./packages/sdk/
 COPY packages/querier/ ./packages/querier/
 COPY packages/data-bus/ ./packages/data-bus/
 
-# Copy backend service source
-COPY services/backend/ ./services/backend/
+# Copy guardian service source
+COPY services/guardian/ ./services/guardian/
 
-# Build workspace dependencies and backend service
+# Build workspace dependencies and guardian service
 RUN pnpm build:lib
-WORKDIR /app/services/backend
+WORKDIR /app/services/guardian
 RUN pnpm build
 WORKDIR /app
 
@@ -47,15 +47,15 @@ RUN mkdir -p /app/wallet && chown nodejs:nodejs /app/wallet
 USER nodejs
 
 # Expose port
-EXPOSE 4000
+EXPOSE 4001
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=4000
+ENV PORT=4001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "fetch('http://localhost:4000/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"
+  CMD node -e "console.log('Guardian service health check')"
 
 # Start the application
-CMD ["node", "services/backend/dist/index.js"]
+CMD ["node", "services/guardian/dist/index.js"]

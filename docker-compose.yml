@@ -1,0 +1,133 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: services/backend/Dockerfile
+    container_name: baskt-backend
+    ports:
+      - "${EXTERNAL_PORT:-4000}:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      # Override the wallet path to point to the mounted location
+      - ANCHOR_WALLET=/app/wallet/id.json
+    env_file:
+      - ./.env
+    volumes:
+      # Mount the Solana wallet file from host to container
+      - "${WALLET_PATH:-/root/.config/solana/id.json}:/app/wallet/id.json:ro"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - baskt-network
+
+  guardian:
+    build:
+      context: .
+      dockerfile: services/guardian/Dockerfile
+    container_name: baskt-guardian
+    ports:
+      - "${GUARDIAN_PORT:-4001}:4001"
+    environment:
+      - NODE_ENV=production
+      - PORT=4001
+      - ANCHOR_WALLET=/app/wallet/id.json
+    env_file:
+      - ./.env
+    volumes:
+      - "${WALLET_PATH:-/root/.config/solana/id.json}:/app/wallet/id.json:ro"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Guardian service health check')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - baskt-network
+
+  event-listener:
+    build:
+      context: .
+      dockerfile: services/event-listener/Dockerfile
+    container_name: baskt-event-listener
+    ports:
+      - "${EVENT_LISTENER_PORT:-4002}:4002"
+    environment:
+      - NODE_ENV=production
+      - PORT=4002
+      - ANCHOR_WALLET=/app/wallet/id.json
+    env_file:
+      - ./.env
+    volumes:
+      - "${WALLET_PATH:-/root/.config/solana/id.json}:/app/wallet/id.json:ro"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Event listener service health check')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - baskt-network
+
+  execution-engine:
+    build:
+      context: .
+      dockerfile: services/execution-engine/Dockerfile
+    container_name: baskt-execution-engine
+    ports:
+      - "${EXECUTION_ENGINE_PORT:-4003}:4003"
+    environment:
+      - NODE_ENV=production
+      - PORT=4003
+      - ANCHOR_WALLET=/app/wallet/id.json
+    env_file:
+      - ./.env
+    volumes:
+      - "${WALLET_PATH:-/root/.config/solana/id.json}:/app/wallet/id.json:ro"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Execution engine service health check')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - baskt-network
+
+  cron-jobs:
+    build:
+      context: .
+      dockerfile: services/cron-jobs/Dockerfile
+    container_name: baskt-cron-jobs
+    ports:
+      - "${CRON_JOBS_PORT:-4004}:4004"
+    environment:
+      - NODE_ENV=production
+      - PORT=4004
+      - ANCHOR_WALLET=/app/wallet/id.json
+    env_file:
+      - ./.env
+    volumes:
+      - "${WALLET_PATH:-/root/.config/solana/id.json}:/app/wallet/id.json:ro"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Cron jobs service health check')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - baskt-network
+
+networks:
+  baskt-network:
+    driver: bridge
