@@ -1,9 +1,12 @@
 import axios from 'axios';
+import { agent, timeout } from './agent';
 
 export default async function getOxFunData(coinId: string) {
   const url = `https://api.ox.fun/v3/markets?marketCode=${coinId}`;
   const options = {
     method: 'GET',
+    agent: agent, 
+    timeout: timeout,
   };
 
   try {

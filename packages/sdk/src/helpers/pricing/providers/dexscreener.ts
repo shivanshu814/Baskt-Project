@@ -1,9 +1,13 @@
 import axios from 'axios';
+import { agent, timeout } from './agent';
+
 
 export default async function getDexScreenerData(pairId: string, chain: string) {
   const url = `https://api.dexscreener.com/latest/dex/pairs/${chain}/${pairId}`;
   const options = {
     method: 'GET',
+    agent: agent,
+    timeout: timeout,
   };
 
   try {

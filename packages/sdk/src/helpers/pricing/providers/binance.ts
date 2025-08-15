@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { agent, timeout } from './agent';
+
 
 /**
  * Fetches ticker price data from Binance API
@@ -10,6 +12,8 @@ export default async function getBinanceData(symbol: string) {
   const options = {
     method: 'GET',
     params: { symbol },
+    agent: agent,
+    timeout: timeout,
   };
 
   try {
