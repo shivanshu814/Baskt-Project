@@ -40,10 +40,9 @@ const getAllBaskts = publicProcedure
 
 // get baskt nav
 const getBasktNAV = publicProcedure
-  .input(z.object({ basktId: z.string() }))
+  .input(z.object({ basktId: z.string() }).required())
   .query(async ({ input }) => {
     try {
-      console.log('🔍 Fetching baskt NAV for:', input.basktId);
       const result = await querier.baskt.getBasktNAV(input.basktId);
       return result;
     } catch (error) {

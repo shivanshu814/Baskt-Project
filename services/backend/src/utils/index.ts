@@ -14,7 +14,9 @@ export class SDKClient extends BaseClient {
     const keypair = Keypair.fromSecretKey(new Uint8Array(walletKeypair));
 
     const anchorProvider = new anchor.AnchorProvider(
-      new Connection(process.env.SOLANA_RPC_URL || 'http://localhost:8899'),
+      new Connection(process.env.SOLANA_RPC_URL || 'http://localhost:8899', {
+        disableRetryOnRateLimit: true
+      }),
       new anchor.Wallet(keypair),
     );
     super(

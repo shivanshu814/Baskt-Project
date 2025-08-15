@@ -184,4 +184,4 @@ export class Querier {
 }
 
 // Export a factory function instead of a singleton instance
-export const createQuerier = (basktClient: any) => Querier.getInstance(basktClient);
+export const createQuerier = (basktClient: BaseClient) => Querier.getInstance(basktClient);
