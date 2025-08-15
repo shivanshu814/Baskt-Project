@@ -42,6 +42,7 @@ const getBasktNAV = publicProcedure
   .input(z.object({ basktId: z.string() }))
   .query(async ({ input }) => {
     try {
+      console.log('🔍 Fetching baskt NAV for:', input.basktId);
       const result = await querier.baskt.getBasktNAV(input.basktId);
       return result;
     } catch (error) {
@@ -151,17 +152,6 @@ const getTradingData = publicProcedure
           };
 
           finalData = [...allData, latestPoint];
-
-          console.log('📈 Backend: Appended Latest NAV Point:', {
-            basktId,
-            latestPoint,
-            existingDataPoints: allData.length,
-            totalDataPoints: finalData.length,
-            latestNavValue,
-            currentTime: new Date(currentTime * 1000).toISOString(),
-          });
-        } else {
-          console.log('📈 Backend: Latest NAV point already exists in data, skipping append');
         }
       }
 
