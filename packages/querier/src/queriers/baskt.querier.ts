@@ -4,7 +4,7 @@ import { QueryResult } from '../models/types';
 import { AssetQuerier } from './asset.querier';
 import { PriceQuerier } from './price.querier';
 import { BN } from 'bn.js';
-import { BaseClient, calculateNav,  calculateLiveNav } from '@baskt/sdk';
+import { BaseClient, calculateNav } from '@baskt/sdk';
 import { BasktStatus, OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
 import { PublicKey } from '@solana/web3.js';
 import { CombinedBaskt,  BasktNAV, BasktQueryOptions, BasktPerformance } from '../types/baskt';
@@ -33,10 +33,11 @@ export class BasktQuerier {
    */
   async getAllBaskts(options: BasktQueryOptions = {}): Promise<QueryResult<CombinedBaskt[]>> {
     try {
+      const hidePrivateBaskts = options.hidePrivateBaskts || true;
       // Fetch data from multiple sources
       const [basktConfigs, onchainBaskts, allAssetsResult] = await Promise.all([
         this.getBasktConfigsFromMongoDB(),
-        this.getBasktsFromOnchain(),
+        this.getBasktsFromOnchain(hidePrivateBaskts),
         this.assetQuerier.getAllAssets({ withConfig: true }),
       ]);
       const performanceMap = options.withPerformance ? await this.priceQuerier.getBatchBasktPerformanceOptimized(onchainBaskts.map(baskt => baskt.basktId?.toString() || '')) : null;
@@ -82,7 +83,7 @@ export class BasktQuerier {
 
       const result: QueryResult<CombinedBaskt[]> = {
         success: true,
-        data: combinedBaskts.filter((baskt): baskt is CombinedBaskt => baskt !== undefined),
+        data: combinedBaskts.filter((baskt): baskt is CombinedBaskt => baskt !== null && baskt !== undefined),
       };
 
       return result;
@@ -281,10 +282,10 @@ export class BasktQuerier {
   }
 
   // Onchain data fetching methods
-  private async getBasktsFromOnchain(): Promise<any[]> {
+  private async getBasktsFromOnchain(hidePrivateBaskts: boolean): Promise<any[]> {
     try {
       const onchainBaskts = await this.basktClient.getAllBaskts();
-      return onchainBaskts;
+      return onchainBaskts.filter((baskt) => !hidePrivateBaskts || baskt.isPublic);
     } catch (error) {
       throw createQuerierError('Failed to fetch baskts from onchain', 'ONCHAIN_ERROR', 500, error);
     }

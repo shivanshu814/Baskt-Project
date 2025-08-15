@@ -11,7 +11,8 @@ export function useBaskts() {
   const [activatingBasktId, setActivatingBasktId] = useState<string | null>(null);
   const [selectedBaskt, setSelectedBaskt] = useState<BasktData | null>(null);
   const { data: trpcResponse, isLoading, error } = trpc.baskt.getAllBaskts.useQuery({
-    withPerformance: false
+    withPerformance: false, 
+    hidePrivateBaskts: true
   });
   const { client } = useBasktClient();
   const router = useRouter();

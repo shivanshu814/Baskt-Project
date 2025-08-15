@@ -1,5 +1,3 @@
-// getBinanceData.ts
-import axios from "axios";
 import https from "https";
 import dns from "dns";
 

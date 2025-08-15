@@ -88,6 +88,8 @@ export interface BasktNAV {
  * Options for baskt queries
  */
 export interface BasktQueryOptions {
+  /** Hide private baskts */
+  hidePrivateBaskts?: boolean;
   /** Include asset configuration data */
   withConfig?: boolean;
   /** Include performance metrics */

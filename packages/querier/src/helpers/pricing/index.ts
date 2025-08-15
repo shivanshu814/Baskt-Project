@@ -2,7 +2,7 @@ import { routePrice } from './providers';
 import BN from 'bn.js';
 import { AssetPriceProviderConfig, AssetPrice } from '@baskt/types';
 import { PublicKey } from '@solana/web3.js';
-import { calculateNav } from '../../math/nav';
+import { calculateNav } from '@baskt/sdk';
 
 export async function fetchTokenPrice(
   name: string,

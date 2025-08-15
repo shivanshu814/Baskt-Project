@@ -2,13 +2,14 @@ import { AssetMetadataModel } from '../models/mongodb';
 import { createQuerierError, handleQuerierError } from '../utils/error-handling';
 import { QueryResult } from '../models/types';
 import { PublicKey } from '@solana/web3.js';
-import { BaseClient, fetchAssetPrices } from '@baskt/sdk';
+import { BaseClient } from '@baskt/sdk';
 import {
   CombinedAsset,
   AssetCacheStats,
   AssetQueryOptions,
 } from '../types/asset';
 import {   AssetPrice, AssetPriceProviderConfig, OnchainAsset } from '@baskt/types';
+import { fetchAssetPrices } from '../helpers/pricing';
 
 /**
  * Asset Querier

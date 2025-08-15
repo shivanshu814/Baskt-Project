@@ -23,12 +23,13 @@ const getBasktMetadataById = publicProcedure
 
 // get all baskts
 const getAllBaskts = publicProcedure
-  .input(z.object({ withPerformance: z.boolean().default(false) }))
+  .input(z.object({ withPerformance: z.boolean().default(false), hidePrivateBaskts: z.boolean().default(false) }))
   .query(async ({ input }) => {
     try {
       const result = await querier.baskt.getAllBaskts({
         withConfig: true,
         withPerformance: input.withPerformance,
+        hidePrivateBaskts: input.hidePrivateBaskts,
       });
       return result;
     } catch (error) {
