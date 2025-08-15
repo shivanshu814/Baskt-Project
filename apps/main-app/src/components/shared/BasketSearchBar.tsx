@@ -1,7 +1,7 @@
 import { Button, Input } from '@baskt/ui';
 import { Search } from 'lucide-react';
 import { forwardRef } from 'react';
-import { BasketSearchBarProps } from '../../types/components/ui/ui';
+import { BasketSearchBarProps } from '../../types/baskt/ui/ui';
 import { createSearchBarProps } from '../../utils/search/search';
 
 export const BasketSearchBar = forwardRef<HTMLDivElement, BasketSearchBarProps>((props, ref) => {

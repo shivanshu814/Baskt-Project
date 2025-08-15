@@ -1,6 +1,5 @@
-import { StatusType } from '../../types/components/shared/status';
+import { StatusType } from '../../types/baskt/status/status';
 
-// Form validation
 export const validateCloseAmount = (amount: string, positionSize: number): string | null => {
   const numValue = parseFloat(amount);
 
@@ -19,17 +18,8 @@ export const validateCloseAmount = (amount: string, positionSize: number): strin
   return null;
 };
 
-export const validateSize = (size: string): boolean => {
-  const sizeNum = Number(size);
-  return !isNaN(sizeNum) && sizeNum > 0;
-};
-
 export const validatePercentage = (percentage: number): boolean => {
   return percentage >= 0 && percentage <= 100;
-};
-
-export const validateTradeForm = (formData: any): boolean => {
-  return validateSize(formData.size) && validatePercentage(formData.sizePercentage);
 };
 
 export const validateAmount = (value: string, maxAmount: number): boolean => {
@@ -37,7 +27,6 @@ export const validateAmount = (value: string, maxAmount: number): boolean => {
   return !isNaN(numValue) && numValue >= 0 && numValue <= maxAmount;
 };
 
-// Status validation
 export const getStatusColor = (status: StatusType): string => {
   switch (status) {
     case 'operational':

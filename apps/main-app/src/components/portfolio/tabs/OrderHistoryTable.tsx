@@ -1,15 +1,17 @@
 'use client';
 
 import { NumberFormat, PublicKeyText, useBasktClient } from '@baskt/ui';
-import { usePortfolioOrderHistory } from '../../../hooks/portfolio/use-portfolio-order-history';
-import { ProcessedOrderHistory } from '../../../types/components/ui/ui';
+import { useOrderHistory } from '../../../hooks/trade/action/use-order-history';
+import { ProcessedOrderHistory } from '../../../types/baskt/ui/ui';
 import { formatOrderHistoryTime } from '../../../utils/formatters/formatters';
 import { getStatusColor } from '../../../utils/validation/validation';
 
 export function OrderHistoryTable() {
   const { client } = useBasktClient();
   const userAddress = client?.wallet?.address?.toString();
-  const { orders, isLoading, isError } = usePortfolioOrderHistory(userAddress);
+  const { orders, isLoading, isError } = useOrderHistory(undefined, userAddress, {
+    isPortfolio: true,
+  });
 
   if (!userAddress) {
     return (

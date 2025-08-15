@@ -4,7 +4,7 @@ import { Button } from '@baskt/ui';
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { Component, ErrorInfo } from 'react';
-import { Props, State } from '../../types/components/ui/ui';
+import { Props, State } from '../../types/baskt/ui/ui';
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {

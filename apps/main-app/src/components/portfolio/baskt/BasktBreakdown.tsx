@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ROUTES } from '../../../routes/route';
-import { BasktBreakdownProps } from '../../../types/components/ui/ui';
+import { BasktBreakdownProps } from '../../../types/baskt/ui/ui';
 import { BasktModal } from './baskt-modal/BasktModal';
 
 export const BasktBreakdown = ({ tradedBaskts, isLoading, error }: BasktBreakdownProps) => {

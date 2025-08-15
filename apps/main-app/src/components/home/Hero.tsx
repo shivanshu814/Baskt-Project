@@ -11,7 +11,7 @@ export function Hero() {
           Create & Trade Your Own <span className="text-primary">Baskts</span>
         </h1>
         <p className="text-xl md:text-2xl text-muted-foreground max-w-4xl mx-auto mb-8">
-          Build custom baskets with multiple assets and trade them on our platform. AI-powered
+          Build custom baskts with multiple assets and trade them on our platform. AI-powered
           rebalancing minimizes losses while maximizing returns. Deposit funds, get BLP tokens, and
           start trading with intelligent portfolio management.
         </p>

@@ -1,7 +1,7 @@
 'use client';
 
 import { memo } from 'react';
-import { useEmptyState } from '../../../hooks/common/empty-state';
+import { useEmptyState } from '../../../hooks/baskt/empty/empty-state';
 import { EmptyStateProps } from '../../../types/baskt';
 import { EmptyStateContainer } from './EmptyStateContainer';
 import { EmptyStateContent } from './EmptyStateContent';

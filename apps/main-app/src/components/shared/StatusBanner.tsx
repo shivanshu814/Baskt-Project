@@ -1,14 +1,25 @@
 import { Github, Send, Twitter } from 'lucide-react';
 import Link from 'next/link';
-import { useStatus } from '../../hooks/shared/use-status';
-import { StatusBannerProps } from '../../types/components/shared/status';
+import { useMemo } from 'react';
+import { StatusBannerProps } from '../../types/baskt/status/status';
+import {
+  getStatusColor,
+  getStatusDotColor,
+  getStatusPulseColor,
+} from '../../utils/validation/validation';
 
 export function StatusBanner({
   status = 'operational',
   statusText = 'All systems operational',
   showSocialLinks = true,
 }: StatusBannerProps) {
-  const { textColor, dotColor, pulseColor } = useStatus(status);
+  const { textColor, dotColor, pulseColor } = useMemo(() => {
+    return {
+      textColor: getStatusColor(status),
+      dotColor: getStatusDotColor(status),
+      pulseColor: getStatusPulseColor(status),
+    };
+  }, [status]);
 
   return (
     <div className="bg-zinc-900/90 border-t border-border px-4 py-2 rounded-sm ml-1">

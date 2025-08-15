@@ -24,6 +24,7 @@ export const useBasktList = () => {
   const { filteredBaskts, popularBaskts, myBaskts } = useMemo(() => {
     const processedBaskts = processBasktData(basktsData) as BasktInfo[];
     if (!processedBaskts.length) return { filteredBaskts: [], popularBaskts: [], myBaskts: [] };
+
     const visibleBaskts = processedBaskts.filter((baskt) => {
       if (baskt.account?.isPublic) {
         return true;
@@ -47,9 +48,9 @@ export const useBasktList = () => {
       : visibleBaskts;
 
     const myBaskts = userAddress
-      ? visibleBaskts.filter(
-          (baskt) => baskt.creator && baskt.creator.toLowerCase() === userAddress.toLowerCase(),
-        )
+      ? visibleBaskts.filter((baskt) => {
+          return baskt.creator && baskt.creator.toLowerCase() === userAddress.toLowerCase();
+        })
       : [];
 
     const tenDaysAgo = new Date();
@@ -57,7 +58,6 @@ export const useBasktList = () => {
 
     const trendingBaskts = visibleBaskts.filter((baskt) => {
       const isProfitable = (baskt.performance?.day || 0) >= 0;
-
       const isNew = baskt.creationDate && baskt.creationDate > tenDaysAgo;
 
       return isProfitable && isNew;
@@ -89,7 +89,7 @@ export const useBasktList = () => {
       popularBaskts: trendingBaskts.slice(0, 4),
       myBaskts,
     };
-  }, [basktsData, searchQuery, sortBy, userAddress]);
+  }, [basktsData, userAddress, searchQuery, sortBy]);
 
   return {
     searchQuery,

@@ -1,6 +1,6 @@
 import { Input } from '@baskt/ui';
 import { Search } from 'lucide-react';
-import { SearchBarProps } from '../../types/components/ui/ui';
+import { SearchBarProps } from '../../types/baskt/ui/ui';
 
 export const SearchBar = ({ value, onChange, placeholder = 'Search...' }: SearchBarProps) => {
   return (

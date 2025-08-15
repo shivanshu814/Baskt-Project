@@ -3,7 +3,7 @@
 import { NumberFormat } from '@baskt/ui';
 import { X } from 'lucide-react';
 import Image from 'next/image';
-import { BasktModalProps } from '../../../../types/components/ui/ui';
+import { BasktModalProps } from '../../../../types/baskt/ui/ui';
 
 export const BasktModal = ({ isOpen, onClose, tradedBaskts }: BasktModalProps) => {
   if (!isOpen) return null;

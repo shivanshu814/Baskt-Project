@@ -21,7 +21,7 @@ export function Footer({ className }: { className?: string }) {
             </div>
             <p className="text-muted-foreground mb-6 max-w-md leading-relaxed">
               Baskt revolutionizes crypto investing with AI-powered index products. Create custom
-              baskets, trade with intelligent rebalancing, and maximize returns with our advanced
+              baskts, trade with intelligent rebalancing, and maximize returns with our advanced
               DeFi platform.
             </p>
             <div className="flex space-x-4">

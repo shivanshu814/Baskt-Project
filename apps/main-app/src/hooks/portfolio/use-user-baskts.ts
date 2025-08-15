@@ -16,16 +16,17 @@ export function useUserBaskts() {
   const userBaskts = useMemo(() => {
     const baskts = (basktsQuery.data as any)?.data || [];
 
-    if (!userAddress) return [];
+    if (!userAddress) {
+      return [];
+    }
 
-    return baskts.filter(
-      (baskt: any) =>
-        baskt &&
-        baskt.creator &&
-        baskt.creator.toLowerCase() === userAddress.toLowerCase() &&
-        baskt.name &&
-        baskt.name.trim() !== '',
-    );
+    const filteredBaskts = baskts.filter((baskt: any) => {
+      const creator = baskt?.creator || baskt?.account?.creator || baskt?.owner || baskt?.authority;
+
+      return baskt && creator && creator === userAddress && baskt.name && baskt.name.trim() !== '';
+    });
+
+    return filteredBaskts;
   }, [basktsQuery.data, userAddress]);
 
   return {

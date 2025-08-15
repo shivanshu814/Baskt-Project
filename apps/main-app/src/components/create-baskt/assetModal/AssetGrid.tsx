@@ -1,7 +1,6 @@
 'use client';
 
 import { AssetGridProps } from '../../../types/asset';
-import { ErrorState } from '../errorState/ErrorState';
 import { AssetCard } from './AssetCard';
 import { AssetSkeleton } from './AssetSkeleton';
 
@@ -27,7 +26,17 @@ export const AssetGrid = ({
 
   // error state
   if (error) {
-    return <ErrorState error={error} onRetry={onRetry} />;
+    return (
+      <div className="text-center py-8">
+        <div className="text-red-500 mb-4">Error loading assets</div>
+        <button
+          onClick={onRetry}
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   // asset grid

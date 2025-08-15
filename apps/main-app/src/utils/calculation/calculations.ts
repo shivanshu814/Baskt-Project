@@ -1,29 +1,4 @@
-import { calculateCollateralAmount, calculateLiquidationPrice } from '@baskt/sdk';
-import { BN } from '@coral-xyz/anchor';
-import {
-  Position,
-  PositionCalculation,
-  PositionTotals,
-  TradeCalculation,
-} from '../../types/trading/orders';
-
-// Trade calculations
-export const calculateTotalPositions = (positions: Position[]): PositionTotals => {
-  const totals: PositionTotals = {
-    long: 0,
-    short: 0,
-  };
-
-  positions.forEach((position) => {
-    if (position.isLong) {
-      totals.long += Number(position.size || 0);
-    } else {
-      totals.short += Number(position.size || 0);
-    }
-  });
-
-  return totals;
-};
+import { Position, PositionCalculation } from '../../types/baskt/trading/orders';
 
 export const calculatePositionDetails = (
   position: Position,
@@ -71,69 +46,6 @@ export const calculatePositionDetails = (
   };
 };
 
-export const calculateLiquidationPriceForPosition = (
-  collateral: number,
-  position: 'long' | 'short',
-  currentPrice: number,
-): number | null => {
-  if (!currentPrice || collateral <= 0) return null;
-
-  try {
-    return calculateLiquidationPrice({
-      collateral,
-      price: currentPrice,
-      leverage: 1,
-      position,
-    });
-  } catch (error) {
-    console.error('Error calculating liquidation price:', error);
-    return null;
-  }
-};
-
-export const calculateTradeDetails = (
-  size: string,
-  currentPrice: number,
-  selectedPosition: 'long' | 'short',
-): TradeCalculation => {
-  const sizeNum = Number(size) || 0;
-  const positionSize = sizeNum > 0 && currentPrice ? (sizeNum / currentPrice) * 1e6 : 0;
-  const collateral = calculateCollateralAmount(new BN(sizeNum)).toNumber();
-  const liquidationPrice = calculateLiquidationPriceForPosition(
-    sizeNum,
-    selectedPosition,
-    currentPrice,
-  );
-  const fees = sizeNum * 0.002; // 0.2% fee
-
-  return {
-    positionSize,
-    collateral,
-    liquidationPrice: liquidationPrice || undefined,
-    fees,
-  };
-};
-
-export const calculateSizeFromPercentage = (percentage: number, usdcBalance: string): string => {
-  const usdcBalanceNum = Number(usdcBalance) || 0;
-  if (usdcBalanceNum > 0) {
-    const newSize = (percentage / 100) * usdcBalanceNum;
-    return newSize.toFixed(2);
-  }
-  return '0';
-};
-
-export const calculatePercentageFromSize = (size: string, usdcBalance: string): number => {
-  const usdcBalanceNum = Number(usdcBalance) || 0;
-  if (usdcBalanceNum > 0 && size) {
-    const sizeNum = Number(size) || 0;
-    const percentage = Math.min((sizeNum / usdcBalanceNum) * 100, 100);
-    return Math.round(percentage);
-  }
-  return 0;
-};
-
-// Form calculations
 export const calculateAmount = (percentage: number, positionSize: number): string => {
   return ((percentage / 100) * positionSize).toFixed(2);
 };
@@ -152,7 +64,6 @@ export function calculateCurrentPercentage(percentage: string | number): number 
   return Math.round(parseFloat(percentage?.toString() || '0'));
 }
 
-// Position calculations
 export const getLiquidationPrice = (
   collateral: number,
   position: 'long' | 'short',

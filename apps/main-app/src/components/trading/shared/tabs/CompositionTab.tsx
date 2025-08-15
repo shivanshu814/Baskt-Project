@@ -1,7 +1,7 @@
 'use client';
 
 import { NumberFormat } from '@baskt/ui';
-import { CompositionTabProps } from '../../../../types/trading/components/tabs';
+import { CompositionTabProps } from '../../../../types/baskt/trading/components/tabs';
 import {
   calculateAssetCompositionData,
   formatChangePercentage,

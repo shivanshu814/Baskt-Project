@@ -1,12 +1,11 @@
 'use client';
 
 import { NumberFormat } from '@baskt/ui';
-import { useOpenOrders } from '../../../../hooks/trading/tabs/use-open-orders';
-import { OpenOrdersTabProps } from '../../../../types/trading/components/tabs';
+import { OpenOrdersTabProps } from '../../../../types/baskt/trading/components/tabs';
 import { formatOrderTime } from '../../../../utils/formatters/formatters';
 
 export function OpenOrdersTab({ baskt, orders, onCancelOrder }: OpenOrdersTabProps) {
-  const { processedOrders, hasOrders } = useOpenOrders(orders, baskt);
+  const hasOrders = orders.length > 0;
 
   return (
     <div className="overflow-x-auto -mt-4 -ml-2">
@@ -31,7 +30,7 @@ export function OpenOrdersTab({ baskt, orders, onCancelOrder }: OpenOrdersTabPro
               </td>
             </tr>
           ) : (
-            processedOrders.map((order, index) => (
+            orders.map((order, index) => (
               <tr key={index} className="border-b border-border/50">
                 <td className="py-2 px-2">{formatOrderTime(order.orderTime)}</td>
                 <td className="py-2 px-2">
@@ -62,7 +61,7 @@ export function OpenOrdersTab({ baskt, orders, onCancelOrder }: OpenOrdersTabPro
                 </td>
                 <td className="py-2 px-2">
                   <button
-                    onClick={() => onCancelOrder(processedOrders[index])}
+                    onClick={() => onCancelOrder(orders[index])}
                     className="text-xs px-2 py-1 bg-red-500/20 text-red-500 rounded hover:bg-red-500/30 transition-colors"
                   >
                     Cancel

@@ -6,42 +6,11 @@ import { Asset } from '../../types/asset';
 import { BasktCardHandlers, RawBasktData } from '../../types/baskt';
 import { AssetWithPosition } from '../../types/baskt/creation';
 
-// Create baskt utilities
 export function sanitizeBasktName(value: string): string {
   let sanitizedValue = value.replace(/[^a-zA-Z0-9_-]/g, '');
   sanitizedValue = sanitizedValue.replace(/_{2,}/g, '_');
   sanitizedValue = sanitizedValue.replace(/-{2,}/g, '-');
   return sanitizedValue.slice(0, 10);
-}
-
-export function validateBasktName(name: string): { isValid: boolean; error?: string } {
-  if (!name.trim()) {
-    return { isValid: false, error: 'Baskt name is required' };
-  }
-
-  if (name.length < 1) {
-    return {
-      isValid: false,
-      error: `Baskt name must be at least 1 character`,
-    };
-  }
-
-  if (name.length > 10) {
-    return {
-      isValid: false,
-      error: `Baskt name must be 10 characters or less`,
-    };
-  }
-
-  const validNameRegex = /^[a-zA-Z0-9\s\-_]+$/;
-  if (!validNameRegex.test(name)) {
-    return {
-      isValid: false,
-      error: 'Baskt name can only contain letters, numbers, spaces, hyphens, and underscores',
-    };
-  }
-
-  return { isValid: true };
 }
 
 export const createBasktAssetConfigs = (
@@ -125,7 +94,6 @@ export function formatRebalancingDisplay(
   return 'Manual';
 }
 
-// Baskt card handlers
 export const createBasktCardHandlers = (
   setOpen: (value: string | undefined) => void,
   router: any,
@@ -161,7 +129,6 @@ export const createBasktCardHandlers = (
   };
 };
 
-// Process baskt utilities
 export const processBasktData = (
   data: { success: boolean; data?: (RawBasktData | null)[]; message?: string } | undefined,
 ): BasktInfo[] => {
@@ -240,7 +207,7 @@ export const processBasktData = (
         sparkline: baskt.sparkline || [],
         txSignature: baskt.txSignature || '',
         categories: baskt.categories || [],
-        creator: baskt.creator || '',
+        creator: baskt.creator || baskt.account?.creator || '',
         account: baskt.account || null,
       };
 

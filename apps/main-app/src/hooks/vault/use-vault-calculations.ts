@@ -14,7 +14,7 @@ import {
   MONTHS_IN_YEAR,
   parseSafeFloat,
   WEEKS_IN_YEAR,
-} from '../../utils/vault-calculations';
+} from '../../utils/vault/vault-calculations';
 
 // calculate apy
 export function useVaultAPY(vaultData: VaultData | null) {

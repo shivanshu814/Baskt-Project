@@ -1,6 +1,6 @@
 import { Button, PublicKeyText } from '@baskt/ui';
 import { Activity, Clock, RefreshCw, Settings } from 'lucide-react';
-import { RebalanceTabProps } from '../../../../types/trading/orders';
+import { RebalanceTabProps } from '../../../../types/baskt/trading/orders';
 
 export function RebalanceTab({
   baskt,

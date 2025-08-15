@@ -19,7 +19,7 @@ const STEPS = [
     step: '03',
     title: 'Trade & Rebalance',
     description:
-      'Trade existing baskets or your own creations. AI automatically rebalances to minimize losses.',
+      'Trade existing baskts or your own creations. AI automatically rebalances to minimize losses.',
     features: ['AI-powered rebalancing', 'Loss minimization', 'Return optimization'],
   },
 ] as const;
