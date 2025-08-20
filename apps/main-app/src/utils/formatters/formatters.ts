@@ -7,7 +7,15 @@ import {
   OrderHistoryDetails,
 } from '../../types/baskt/trading/components/tabs';
 
-export const formatOrderTime = (date: Date): string => date.toLocaleString();
+export const formatOrderTime = (date: Date | string | number): string => {
+  if (typeof date === 'string' || typeof date === 'number') {
+    const timestamp = typeof date === 'string' ? parseInt(date) : date;
+    const dateObj = new Date(timestamp * 1000);
+    return dateObj.toLocaleString();
+  }
+
+  return date.toLocaleString();
+};
 
 export const formatPositionType = (isLong: boolean): string => (isLong ? 'Long' : 'Short');
 

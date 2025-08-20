@@ -1,7 +1,8 @@
 import { BaseClient } from '@baskt/sdk';
 import { FeeEventMetadataModel } from '../models/mongodb';
 import { QueryResult } from '../models/types';
-import { FeeEventData, FeeEventFilterOptions, FeeEventStats } from '../types/fee-event';
+import { FeeEventFilterOptions, FeeEventStats } from '../types/fee-event';
+import { FeeEventMetadata } from '../types/models';
 import { handleQuerierError } from '../utils/error-handling';
 
 /**
@@ -11,12 +12,16 @@ import { handleQuerierError } from '../utils/error-handling';
  * It handles all fee-related events from the Baskt protocol including position and liquidity events.
  */
 export class FeeEventQuerier {
-  private basktClient: BaseClient;
 
-  constructor(basktClient: BaseClient) {
-    this.basktClient = basktClient;
+  private static instance: FeeEventQuerier;
+
+  public static getInstance(): FeeEventQuerier {
+    if (!FeeEventQuerier.instance) {
+      FeeEventQuerier.instance = new FeeEventQuerier();
+    }
+    return FeeEventQuerier.instance;
   }
-
+  
   /**
    * Calculate APR based on fee data and liquidity
    */
@@ -182,7 +187,7 @@ export class FeeEventQuerier {
   /**
    * Create a new fee event
    */
-  async createFeeEvent(feeEventData: FeeEventData): Promise<QueryResult<any>> {
+  async createFeeEvent(feeEventData: FeeEventMetadata): Promise<QueryResult<any>> {
     try {
       const feeEvent = new FeeEventMetadataModel(feeEventData);
       const savedFeeEvent = await feeEvent.save();

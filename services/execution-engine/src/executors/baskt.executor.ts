@@ -2,8 +2,11 @@ import { BasktCreatedMessage, logger } from '@baskt/data-bus';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { basktClient, querierClient } from '../config/client';
-import { OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
+import { BasktStatus, OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
 import { CombinedAsset } from '@baskt/querier';
+import { NAV_PRECISION } from '@baskt/sdk';
+
+
 
 export class BasktExecutor {
   /**
@@ -17,14 +20,13 @@ export class BasktExecutor {
 
       // Fetch the on-chain baskt account
       const onchainBaskt = await basktClient.readWithRetry(
-        async () => await basktClient.getBasktRaw(new PublicKey(basktId), 'confirmed'),
+        async () => await basktClient.getBasktAccount(new PublicKey(basktId), 'confirmed'),
         3,   // max attempts
         1500 // 1.5s between attempts
       ) as OnchainBasktAccount;
 
       // Get asset configurations from the baskt
       const onchainAssetList = onchainBaskt.currentAssetConfigs;
-      
       // Fetch asset data from querier
       const assetsResult = await querierClient.asset.getAssetsByAddress(
         onchainAssetList.map((assetConfig: OnchainAssetConfig) => assetConfig.assetId.toString()),
@@ -37,7 +39,7 @@ export class BasktExecutor {
 
       const assets = assetsResult.data;
       const activeAssets = assets.filter(
-        (asset: CombinedAsset) => asset.price > 0 && asset.account?.isActive
+        (asset: CombinedAsset) => asset.price > 0 && asset.isActive
       );
 
       if (activeAssets.length !== onchainAssetList.length) {
@@ -45,13 +47,16 @@ export class BasktExecutor {
           `Asset count mismatch: expected ${onchainAssetList.length}, found ${activeAssets.length} active assets`
         );
       }
+      
+      const assetLookup = new Map<string, CombinedAsset>();
+      activeAssets.forEach((asset: CombinedAsset) => {
+        assetLookup.set(asset.assetAddress.toLowerCase(), asset);
+      });
 
       // Sort and map baseline prices according to asset config
       const baselinePrices = onchainAssetList.map((asset: OnchainAssetConfig) => {
-        const mappedAsset: any = activeAssets.find(
-          (a: any) => a.assetAddress.toLowerCase() === asset.assetId.toString().toLowerCase()
-        );
-        return new BN(Math.floor(mappedAsset.price));
+        const mappedAsset = assetLookup.get(asset.assetId.toString().toLowerCase());
+        return new BN(Math.floor(mappedAsset?.price || 0));
       });
 
       // Execute baskt activation on-chain
@@ -60,7 +65,7 @@ export class BasktExecutor {
       logger.info('Baskt activated successfully', { basktId, tx, txSignature: basktCreatedMessage.txSignature, uid: onchainBaskt.uid.toString() });
 
       // Create baskt metadata
-      await this.createBasktMetadata(basktId, onchainBaskt.uid.toString(), basktCreatedMessage.txSignature);
+      await this.createBasktMetadata(onchainBaskt, onchainAssetList, assetLookup, basktId, onchainBaskt.uid.toString(), basktCreatedMessage.txSignature);
 
       return tx;
     } catch (error) {
@@ -77,27 +82,55 @@ export class BasktExecutor {
    * Private helper to create baskt metadata
    */
   private async createBasktMetadata(
+    basktAccount: OnchainBasktAccount,
+    currentAssetConfigs: OnchainAssetConfig[],
+    assetLookup: Map<string, CombinedAsset>,
     basktId: string,
     name: string,
     txSignature: string
-  ): Promise<void> {
+  ){
     try {
-      const result = await querierClient.metadata.createBaskt({
-        basktId,
-        name,
-        txSignature,
+      const result = await querierClient.metadata.createBaskt({ 
+        basktId: basktId.toString(),
+        name: name,
+        uid: Number(basktAccount.uid.toString()),
+        creator: basktAccount.creator.toString(),
+        creationTxSignature: txSignature,
+        currentAssetConfigs: currentAssetConfigs.map((asset: OnchainAssetConfig) => ({
+          assetObjectId: assetLookup.get(asset.assetId.toString().toLowerCase())?._id!.toString() || '',
+          assetId: asset.assetId.toString(),
+          direction: asset.direction,
+          weight: asset.weight.toNumber(),
+          baselinePrice: assetLookup.get(asset.assetId.toString().toLowerCase())?.price.toString() || '0',
+        })),
+        isPublic: basktAccount.isPublic,
+        status: BasktStatus.Active,
+        openPositions: 0,
+        lastRebalanceTime: Number(basktAccount.lastRebalanceTime.toString()),
+        baselineNav: NAV_PRECISION.toString(),
+        rebalancePeriod: Number(basktAccount.rebalancePeriod.toString()),
+        config: {
+          openingFeeBps: basktAccount.config.openingFeeBps ? Number(basktAccount.config.openingFeeBps.toString()) : undefined,
+          closingFeeBps: basktAccount.config.closingFeeBps ? Number(basktAccount.config.closingFeeBps.toString()) : undefined,
+          liquidationFeeBps: basktAccount.config.liquidationFeeBps ? Number(basktAccount.config.liquidationFeeBps.toString()) : undefined,
+          minCollateralRatioBps: basktAccount.config.minCollateralRatioBps ? Number(basktAccount.config.minCollateralRatioBps.toString()) : undefined,
+          liquidationThresholdBps: basktAccount.config.liquidationThresholdBps ? Number(basktAccount.config.liquidationThresholdBps.toString()) : undefined,
+        },
+        fundingIndex: {
+          cumulativeIndex: basktAccount.fundingIndex.cumulativeIndex.toString(),
+          lastUpdateTimestamp: Number(basktAccount.fundingIndex.lastUpdateTimestamp.toString()),
+          currentRate: basktAccount.fundingIndex.currentRate.toString(),
+        },
+        rebalanceFeeIndex: {
+          cumulativeIndex: basktAccount.rebalanceFeeIndex.cumulativeIndex.toString(),
+          lastUpdateTimestamp: Number(basktAccount.rebalanceFeeIndex.lastUpdateTimestamp.toString()),
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
-
-      if (!result) {
-        throw new Error('Failed to create baskt metadata');
-      }
-
-      logger.info('Baskt metadata created successfully', { basktId });
+      return result;
     } catch (error) {
-      logger.error('Failed to create baskt metadata', {
-        basktId,
-        error: error instanceof Error ? error.message : String(error)
-      });
+      console.error('Error creating baskt metadata:', error);
       throw error;
     }
   }

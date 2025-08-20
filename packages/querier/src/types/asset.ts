@@ -1,5 +1,4 @@
-import {  OnchainAsset } from '@baskt/types';
-import { AssetMetadataModel } from './models';
+import { AssetMetadata } from './models';
 
 /**
  * Price information for an asset
@@ -11,41 +10,11 @@ export interface AssetPriceData {
 }
 
 /**
- * Configuration data for an asset (optional fields from AssetMetadata)
- */
-export interface AssetConfig {
-  priceConfig: AssetMetadataModel['priceConfig'];
-  coingeckoId?: string;
-}
-
-/**
  * Combined asset data structure that merges metadata, onchain data, and price information
  */
-export interface CombinedAsset {
-  /** MongoDB document ID */
-  _id?: string;
-  /** Asset ticker symbol */
-  ticker: string;
-  /** Asset blockchain address */
-  assetAddress: string;
-  /** Asset logo URL */
-  logo: string;
-  /** Asset display name */
-  name: string;
-  /** Current price in USD */
+export interface CombinedAsset extends AssetMetadata {
   price: number;
-  /** Raw price value */
-  priceRaw: number;
-  /** 24-hour price change percentage */
   change24h: number;
-  /** Onchain asset account data */
-  account?: OnchainAsset;
-  /** Asset weight in baskt (default 0) */
-  weight: number;
-  /** Asset configuration (optional) */
-  config?: AssetConfig;
-  /** Array of baskt IDs this asset belongs to */
-  basktIds: string[];
 }
 
 /**

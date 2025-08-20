@@ -97,7 +97,7 @@ export function formatRebalancingDisplay(
 export const createBasktCardHandlers = (
   setOpen: (value: string | undefined) => void,
   router: any,
-  safeBasktName: string,
+  basktId: string,
   open: string | undefined,
 ): BasktCardHandlers => {
   const handleCardClick = (e: React.MouseEvent) => {
@@ -114,7 +114,7 @@ export const createBasktCardHandlers = (
 
   const handleTradeClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    router.push(`${ROUTES.TRADE}/${encodeURIComponent(safeBasktName)}`);
+    router.push(`${ROUTES.TRADE}/${encodeURIComponent(basktId)}`);
   };
 
   const handleExternalLinkClick = (e: React.MouseEvent) => {
@@ -130,16 +130,13 @@ export const createBasktCardHandlers = (
 };
 
 export const processBasktData = (
-  data: { success: boolean; data?: (RawBasktData | null)[]; message?: string } | undefined,
+ rawBasktData: RawBasktData[],
 ): BasktInfo[] => {
-  if (!data?.success || !data.data) {
+  if (!rawBasktData) {
     return [];
   }
-
-  const processedBaskts = data.data
-    .filter(
-      (baskt): baskt is RawBasktData => baskt !== null && 'basktId' in baskt && 'account' in baskt,
-    )
+  const processedBaskts = rawBasktData
+    .filter((baskt): baskt is RawBasktData => baskt !== null && 'basktId' in baskt)
     .map((baskt) => {
       const processedBaskt = {
         ...baskt,
@@ -149,8 +146,8 @@ export const processBasktData = (
         change24h: baskt.change24h ?? 0,
         aum: baskt.aum ?? 0,
         totalAssets: baskt.totalAssets ?? 0,
-        isActive: baskt.account?.isActive ?? false,
-        isPublic: baskt.account?.isPublic ?? false,
+        isActive: (baskt as any)?.status === 'Active',
+        isPublic: (baskt as any)?.isPublic ?? false,
         creationDate: baskt.creationDate ? new Date(baskt.creationDate) : new Date(),
         performance: {
           day: (baskt.performance as any)?.day || baskt.performance?.daily || 0,
@@ -178,41 +175,87 @@ export const processBasktData = (
 
             return processedAsset;
           }) || [],
-        priceHistory: {
-          daily:
-            baskt.priceHistory?.daily?.map((entry) => ({
-              ...entry,
-              volume: 0,
-              price: Number(entry.price),
-            })) || [],
-          weekly:
-            baskt.priceHistory?.weekly?.map((entry) => ({
-              ...entry,
-              volume: 0,
-              price: Number(entry.price),
-            })) || [],
-          monthly:
-            baskt.priceHistory?.monthly?.map((entry) => ({
-              ...entry,
-              volume: 0,
-              price: Number(entry.price),
-            })) || [],
-          yearly:
-            baskt.priceHistory?.yearly?.map((entry) => ({
-              ...entry,
-              volume: 0,
-              price: Number(entry.price),
-            })) || [],
-        },
         sparkline: baskt.sparkline || [],
         txSignature: baskt.txSignature || '',
         categories: baskt.categories || [],
-        creator: baskt.creator || baskt.account?.creator || '',
-        account: baskt.account || null,
+        creator: baskt.creator || '',
+        account: {
+          uid: (baskt as any)?.uid || 0,
+          basktId: baskt.basktId as any,
+          currentAssetConfigs: [],
+          isPublic: (baskt as any)?.isPublic ?? false,
+          creator: baskt.creator as any,
+          status: (baskt as any)?.status || 'pending',
+          lastRebalanceTime: (baskt as any)?.lastRebalanceTime || '0',
+          baselineNav: (baskt as any)?.baselineNav || '0',
+          bump: 0,
+          isActive: (baskt as any)?.status === 'Active',
+          rebalancePeriod: (baskt as any)?.rebalancePeriod || '0',
+          fundingIndex: {
+            cumulativeIndex: '0',
+            lastUpdateTimestamp: '0',
+            currentRate: '0',
+          },
+          rebalanceFeeIndex: {
+            cumulativeIndex: '0',
+            lastUpdateTimestamp: '0',
+            currentFeePerUnit: '0',
+          },
+          config: {
+            openingFeeBps: null,
+            closingFeeBps: null,
+            liquidationFeeBps: null,
+            minCollateralRatioBps: null,
+            liquidationThresholdBps: null,
+          },
+          openPositions: (baskt as any)?.openPositions || '0',
+        },
       };
+
+      console.log('[processBasktData] processed baskt:', {
+        basktId: processedBaskt.basktId,
+        name: processedBaskt.name,
+        isActive: processedBaskt.isActive,
+        isPublic: processedBaskt.isPublic,
+        assetCount: processedBaskt.assets?.length,
+      });
 
       return processedBaskt;
     });
 
   return processedBaskts;
+};
+
+export const cleanBasktData = (baskt: any) => {
+  const assets = (baskt?.assets || []).map((asset: any) => {
+    const matchedConfig = (baskt?.currentAssetConfigs || []).find(
+      (config: any) => config.assetId === asset.assetAddress,
+    );
+    return {
+      id: asset?.id,
+      assetAddress: asset?.assetAddress,
+      logo: asset?.logo,
+      name: asset?.name,
+      ticker: asset?.ticker,
+      priceProvider: asset?.priceConfig?.provider || {},
+      baselinePrice: matchedConfig?.baselinePrice || '',
+      direction: matchedConfig?.direction || false,
+      weight: matchedConfig?.weight || 0,
+    };
+  });
+
+  return {
+    name: baskt?.name || '',
+    performance: baskt?.performance || { daily: 0, weekly: 0, monthly: 0, year: 0 },
+    rebalancePeriod: baskt?.rebalancePeriod || 0,
+    isPublic: baskt?.isPublic || false,
+    baselineNav: baskt?.baselineNav || '0',
+    basktId: baskt?.basktId || '',
+    openPositions: baskt?.openPositions || 0,
+    lastRebalanceTime: baskt?.lastRebalanceTime || 0,
+    status: baskt?.status || '',
+    creator: baskt?.creator || '',
+    assets,
+    totalAssets: assets.length,
+  };
 };

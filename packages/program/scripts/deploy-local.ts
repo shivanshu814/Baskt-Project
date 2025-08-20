@@ -235,14 +235,7 @@ async function main() {
 
   // Lets also just create a baskt
   const basket = await client.createBaskt(assetsConfig, true);
-  trpc.baskt.createBasktMetadata.mutate({
-    basktId: basket.basktId.toString(),
-    name: basket.uid.toString(),
-    creator: wallet.publicKey.toString(),
-    assets: assetsConfig.map((asset) => asset.assetId.toString()),
-    txSignature: basket.txSignature,
-  });
-
+  console.log('Basket created', basket);
   console.log('Deployment complete! Info saved to deployment-localnet.json');
 }
 

@@ -2,6 +2,12 @@ import { PublicKey } from '@solana/web3.js';
 import { getAccount, getMint } from '@solana/spl-token';
 import { QueryResult } from '../models/types';
 import { LiquidityPool, PoolDeposit } from '../types/pool';
+import { LiquidityPoolModel, LiquidityDepositModel, WithdrawalRequestModel } from '../models/mongodb';
+import { WithdrawRequestStatus } from '@baskt/types';
+import { BaseClient } from '@baskt/sdk';
+import { LiquidityPoolMetadata } from '../types/models/LiquidityPool';
+import { ProtocolQuerier } from './protocol.querier';
+import { WithdrawalRequest } from '../types';
 
 /**
  * PoolQuerier
@@ -11,39 +17,42 @@ import { LiquidityPool, PoolDeposit } from '../types/pool';
  */
 
 export class PoolQuerier {
-  constructor(private sdkClient: any) {}
+
+  private sdkClient: BaseClient;
+  private static instance: PoolQuerier;
+
+  constructor(sdkClient: BaseClient) {
+    this.sdkClient = sdkClient;
+  }
+
+  public static getInstance(sdkClient: BaseClient): PoolQuerier {
+    if (!PoolQuerier.instance) {
+      PoolQuerier.instance = new PoolQuerier(sdkClient);
+    }
+    return PoolQuerier.instance;
+  }
 
   // get liquidity pool data
   async getLiquidityPool(): Promise<QueryResult<LiquidityPool>> {
     try {
 
-      const poolData = await this.sdkClient.getLiquidityPool();
-
-      const lpMintAccount = await getMint(
-        this.sdkClient.connection,
-        new PublicKey(poolData.lpMint),
-      );
-      const lpMint = lpMintAccount?.supply?.toString() || '0';
-
-      return {
+      const liquidityPoolPDA = await this.sdkClient.liquidityPoolPDA;
+      const data =  await LiquidityPoolModel.findOne({ poolAddress: liquidityPoolPDA.toString() }).lean<LiquidityPoolMetadata>();
+      const protocolMetadata = await ProtocolQuerier.getInstance(this.sdkClient).getProtocolMetadata();
+      const minDeposit = protocolMetadata?.config.minLiquidity;
+      const [tokenVault] = await this.sdkClient.getUsdcVaultPda();
+      if (!data) {
+        return {  
+          success: false,
+          error: 'Liquidity pool not found',
+        };
+      }
+      return {  
         success: true,
         data: {
-          totalLiquidity: poolData.totalLiquidity?.toString() || '0',
-          totalShares: lpMint || '0',
-          depositFeeBps: poolData.depositFeeBps || 0,
-          withdrawalFeeBps: poolData.withdrawalFeeBps || 0,
-          minDeposit: poolData.minDeposit?.toString() || '0',
-          lastUpdateTimestamp: poolData.lastUpdateTimestamp?.toNumber() || 0,
-          lpMint: poolData.lpMint?.toString() || '',
-          tokenVault: poolData.usdcVault?.toString() || '',
-          bump: poolData.bump || 0,
-          withdrawQueueHead: poolData.withdrawQueueHead?.toNumber() || 0,
-          withdrawQueueTail: poolData.withdrawQueueTail?.toNumber() || 0,
-          pendingLpTokens: poolData.pendingLpTokens?.toString() || '0',
-          withdrawRateLimitBps: poolData.withdrawRateLimitBps || 0,
-          rateLimitPeriodSecs: poolData.rateLimitPeriodSecs || 0,
-          lastRateLimitReset: poolData.lastRateLimitReset?.toNumber() || 0,
-          withdrawnInWindow: poolData.withdrawnInWindow?.toString() || '0',
+          tokenVault: tokenVault.toString(),
+          minDeposit: minDeposit?.toString() || '0',
+          ...data,
         },
       };
     } catch (error) {
@@ -57,68 +66,149 @@ export class PoolQuerier {
 
   // get pool deposits
   async getPoolDeposits(): Promise<QueryResult<PoolDeposit[]>> {
+    return {
+      success: true,
+      data: [],
+    };
+  }
+
+  async resyncLiquidityPool(): Promise<void> {
     try {
-
       const poolData = await this.sdkClient.getLiquidityPool();
-      const lpMint = new PublicKey(poolData.lpMint);
+      const poolAddress = this.sdkClient.liquidityPoolPDA.toString();
+      
+      await LiquidityPoolModel.findOneAndUpdate(
+        { poolAddress },
+        {
+          totalLiquidity: poolData.totalLiquidity?.toString() || '0',
+          lpMint: poolData.lpMint?.toString() || '',
+          totalShares: poolData.totalShares?.toString() || '0',
+          lastUpdateTimestamp: poolData.lastUpdateTimestamp?.toNumber() || 0,
+          depositFeeBps: poolData.depositFeeBps || 0,
+          withdrawalFeeBps: poolData.withdrawalFeeBps || 0,
+          bump: poolData.bump || 0,
+          poolAuthorityBump: poolData.poolAuthorityBump || 0,
+          pendingLpTokens: poolData.pendingLpTokens?.toString() || '0',
+          withdrawQueueHead: poolData.withdrawQueueHead?.toNumber() || 0,
+          withdrawQueueTail: poolData.withdrawQueueTail?.toNumber() || 0,
+          poolAddress,
+        },
+        { upsert: true, new: true }
+      );
+    } catch (error) {
+      console.error('Error resyncing liquidity pool:', error);
+      throw error;
+    }
+  }
 
-      // Try to get token accounts, but handle the case where getProgramAccounts is not supported
-      let tokenAccounts: any[] = [];
-      try {
-        tokenAccounts = await this.sdkClient.connection.getProgramAccounts(
-          new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-          {
-            filters: [
-              {
-                memcmp: {
-                  offset: 0,
-                  bytes: lpMint.toBase58(),
-                },
-              },
-            ],
-          },
-        );
-      } catch (getAccountsError: any) {
-        // If getProgramAccounts is not supported, return empty deposits with a message
-        if (getAccountsError.code === -32010) {
-          return {
-            success: true,
-            data: [],
-          };
-        }
-        throw getAccountsError;
+  async createLiquidityDeposit(depositData: {
+    provider: string;
+    liquidityPool: string;
+    depositAmount: string;
+    feeAmount: string;
+    sharesMinted: string;
+    timestamp: number;
+    transactionSignature: string;
+    netDeposit: string;
+  }): Promise<void> {
+    try {
+      await LiquidityDepositModel.create(depositData);
+    } catch (error) {
+      console.error('Error creating liquidity deposit:', error);
+      throw error;
+    }
+  }
+
+  async createWithdrawalRequest(withdrawalRequest: WithdrawalRequest): Promise<void> {
+    try {
+      console.log('withdrawalRequest', withdrawalRequest);
+      await WithdrawalRequestModel.create(withdrawalRequest);
+    } catch (error) {
+      console.error('Error creating withdrawal request:', error);
+      throw error;
+    }
+  }
+
+  async updateWithdrawalRequestStatus(
+    requestId: number,
+    status: WithdrawRequestStatus,
+    processingData?: {
+      processedTs: number;
+      processingTxSignature: string;
+      amountProcessed: string;
+      lpTokensBurned: string;
+    }
+  ): Promise<void> {
+    try {
+      const updateData: any = { status };
+      
+      if (processingData) {
+        updateData['processedAt.processedTs'] = processingData.processedTs;
+        updateData['processedAt.tx'] = processingData.processingTxSignature;
+        
+        // Add to processing history
+        const processingEntry = {
+          ts: processingData.processedTs,
+          tx: processingData.processingTxSignature,
+          amountProcessed: processingData.amountProcessed,
+          lpTokensBurned: processingData.lpTokensBurned,
+        };
+        
+        updateData.$push = {
+          processingHistory: processingEntry
+        };
       }
 
-      const deposits = await Promise.all(
-        tokenAccounts.map(async (account: any) => {
-          const tokenAccount = await getAccount(this.sdkClient.connection, account.pubkey);
-          if (tokenAccount.amount?.toString() === '0') return null;
-          const sharePercentage =
-            (Number(tokenAccount.amount?.toString() || '0') /
-              Number(poolData.totalShares?.toString() || '0')) *
-            100;
-          const usdcValue = Number(tokenAccount.amount?.toString() || '0') / 1_000_000;
-          return {
-            address: tokenAccount.owner?.toString() || '',
-            usdcDeposit: usdcValue,
-            sharePercentage: sharePercentage.toFixed(2),
-            lpTokens: Number(tokenAccount.amount?.toString() || '0') / 1_000_000,
-          };
-        }),
+      await WithdrawalRequestModel.findOneAndUpdate(
+        { requestId },
+        updateData,
+        { new: true }
       );
-      const validDeposits = deposits
-        .filter((deposit): deposit is NonNullable<typeof deposit> => deposit !== null)
-        .sort((a, b) => b.usdcDeposit - a.usdcDeposit);
-      return {
-        success: true,
-        data: validDeposits,
-      };
+      
+      // Check if the withdrawal request is completely processed
+      await this.checkAndUpdateWithdrawalRequestStatus(requestId);
     } catch (error) {
-      console.error('Error fetching pool deposits:', error);
-      return {
-        success: false,
-        error: 'Failed to fetch pool deposits',
-      };
+      console.error('Error updating withdrawal request status:', error);
+      throw error;
+    }
+  }
+
+  async checkAndUpdateWithdrawalRequestStatus(requestId: number): Promise<void> {
+    try {
+      const withdrawalRequest = await WithdrawalRequestModel.findOne({ requestId });
+      
+      if (!withdrawalRequest) {
+        console.error(`Withdrawal request ${requestId} not found`);
+        return;
+      }
+      
+      // Calculate total LP tokens processed
+      const totalLpProcessed = withdrawalRequest.processingHistory?.reduce((total, entry) => {
+        return total + parseFloat(entry.lpTokensBurned);
+      }, 0) || 0;
+      
+      const requestedLpAmount = parseFloat(withdrawalRequest.requestedLpAmount);
+      
+      // If all LP tokens have been processed, mark as COMPLETED
+      if (totalLpProcessed >= requestedLpAmount) {
+        await WithdrawalRequestModel.findOneAndUpdate(
+          { requestId },
+          { status: WithdrawRequestStatus.COMPLETED },
+          { new: true }
+        );
+        console.log(`Withdrawal request ${requestId} marked as COMPLETED`);
+      } else {
+        // Otherwise, keep as PROCESSING
+        await WithdrawalRequestModel.findOneAndUpdate(
+          { requestId },
+          { status: WithdrawRequestStatus.PROCESSING },
+          { new: true }
+        );
+        console.log(`Withdrawal request ${requestId} marked as PROCESSING (${totalLpProcessed}/${requestedLpAmount} LP tokens processed)`);
+      }
+    } catch (error) {
+      console.error(`Error checking withdrawal request status for ${requestId}:`, error);
+      throw error;
     }
   }
 }

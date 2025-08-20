@@ -1,5 +1,5 @@
 import { publicProcedure } from '../../trpc/trpc';
-import { querier } from '../../utils/querier';
+import { querier } from '../../utils/';
 import { z } from 'zod';
 
 export const getAllFeeEventData = publicProcedure

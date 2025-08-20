@@ -26,6 +26,8 @@ export async function initEventEngine(): Promise<void> {
     // Initialize all adapters
     await Promise.all([initSolanaAdapter(router)]);
 
+
+
     console.log('Event engine initialized successfully');
   } catch (error) {
     console.error('Failed to initialize event engine:', error);

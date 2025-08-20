@@ -1,66 +1,105 @@
 'use client';
 
-import { NumberFormat } from '@baskt/ui';
+import {
+  NumberFormat,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@baskt/ui';
 import React from 'react';
-import { BasktCardMetricsProps, MetricCardType } from '../../../types/baskt';
+import { BasktCardMetricsProps } from '../../../types/baskt';
 
-export const BasktCardMetrics = React.memo(({ metricCards }: BasktCardMetricsProps) => {
+export const BasktCardMetrics = React.memo(({ metrics }: BasktCardMetricsProps) => {
+  const performance = metrics?.performance || {};
+  const openInterest = metrics?.openInterest || 0;
+
   return (
     <div className="mb-4">
       <div className="mb-2">
         <h3 className="text-sm font-semibold text-tertiary">Metrics</h3>
       </div>
       <div className="rounded-sm border border-border bg-muted/10 overflow-x-auto">
-        <div className="min-w-[600px]">
-          <div className="flex items-center px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold text-muted-foreground">
-            {metricCards.map((card: MetricCardType, index: number) => (
-              <span
-                key={card.label}
-                className={`flex-1 ${
-                  index === 0
-                    ? 'text-left'
-                    : index === metricCards.length - 1
-                    ? 'text-right'
-                    : 'text-center'
+        <Table>
+          <TableHeader className="bg-muted">
+            <TableRow className="border-border">
+              <TableHead className="text-xs sm:text-sm font-semibold text-muted-foreground text-left">
+                OI
+              </TableHead>
+              <TableHead className="text-xs sm:text-sm font-semibold text-muted-foreground text-center">
+                Daily
+              </TableHead>
+              <TableHead className="text-xs sm:text-sm font-semibold text-muted-foreground text-center">
+                Weekly
+              </TableHead>
+              <TableHead className="text-xs sm:text-sm font-semibold text-muted-foreground text-center">
+                Monthly
+              </TableHead>
+              <TableHead className="text-xs sm:text-sm font-semibold text-right">
+                Sharpe Ratio
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow className="border-border bg-background/80">
+              <TableCell className="text-xs sm:text-sm font-semibold text-left">
+                <NumberFormat
+                  value={openInterest !== undefined ? openInterest : 0}
+                  isPrice={true}
+                  showCurrency={true}
+                />
+              </TableCell>
+              <TableCell
+                className={`text-xs sm:text-sm font-semibold text-center ${
+                  performance.daily === 0
+                    ? 'text-text'
+                    : performance.daily > 0
+                    ? 'text-green-500'
+                    : 'text-red-500'
                 }`}
               >
-                {card.label}
-              </span>
-            ))}
-          </div>
-          <div className="flex items-center px-2 sm:px-3 py-2 border-t border-border bg-background/80 text-xs sm:text-sm">
-            {metricCards.map((card: MetricCardType, index: number) => (
-              <span
-                key={card.label}
-                className={`flex-1 font-semibold ${card.color || ''} ${
-                  index === 0
-                    ? 'text-left'
-                    : index === metricCards.length - 1
-                    ? 'text-right'
-                    : 'text-center'
+                {performance.daily !== undefined
+                  ? `${performance.daily > 0 ? '+' : performance.daily < 0 ? '-' : ''}${Math.abs(
+                      performance.daily,
+                    ).toFixed(2)}%`
+                  : '--'}
+              </TableCell>
+              <TableCell
+                className={`text-xs sm:text-sm font-semibold text-center ${
+                  performance.weekly === 0
+                    ? 'text-text'
+                    : performance.weekly > 0
+                    ? 'text-green-500'
+                    : 'text-red-500'
                 }`}
               >
-                {card.label === 'OI' ? (
-                  <NumberFormat
-                    value={card.value ? Number(card.value) * 1e6 : 0}
-                    isPrice={true}
-                    showCurrency={true}
-                  />
-                ) : typeof card.value === 'number' ? (
-                  card.value > 0 ? (
-                    `+${card.value.toFixed(2)}`
-                  ) : card.value < 0 ? (
-                    `${card.value.toFixed(2)}`
-                  ) : (
-                    card.value.toFixed(2)
-                  )
-                ) : (
-                  card.value
-                )}
-              </span>
-            ))}
-          </div>
-        </div>
+                {performance.weekly !== undefined
+                  ? `${performance.weekly > 0 ? '+' : performance.weekly < 0 ? '-' : ''}${Math.abs(
+                      performance.weekly,
+                    ).toFixed(2)}%`
+                  : '--'}
+              </TableCell>
+              <TableCell
+                className={`text-xs sm:text-sm font-semibold text-center ${
+                  performance.monthly === 0
+                    ? 'text-text'
+                    : performance.monthly > 0
+                    ? 'text-green-500'
+                    : 'text-red-500'
+                }`}
+              >
+                {performance.monthly !== undefined
+                  ? `${
+                      performance.monthly > 0 ? '+' : performance.monthly < 0 ? '-' : ''
+                    }${Math.abs(performance.monthly).toFixed(2)}%`
+                  : '--'}
+              </TableCell>
+              <TableCell className="text-xs sm:text-sm font-semibold text-right">1.2</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

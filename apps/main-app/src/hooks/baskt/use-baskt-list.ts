@@ -1,19 +1,14 @@
-import { BasktInfo } from '@baskt/types';
-import { SortOption, useBasktClient } from '@baskt/ui';
-import { useMemo, useState } from 'react';
+import { useBasktClient } from '@baskt/ui';
+import { useMemo } from 'react';
 import { trpc } from '../../lib/api/trpc';
-import { processBasktData } from '../../utils/baskt/baskt';
+import { cleanBasktData } from '../../utils/baskt/baskt';
 
 export const useBasktList = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('no_filter');
   const { client } = useBasktClient();
   const userAddress = client?.wallet?.address?.toString();
 
   const { data: basktsData, isLoading } = trpc.baskt.getAllBaskts.useQuery(
-    {
-      withPerformance: true,
-    },
+    { withPerformance: true },
     {
       staleTime: 5 * 60 * 1000,
       cacheTime: 30 * 60 * 1000,
@@ -21,85 +16,52 @@ export const useBasktList = () => {
     },
   );
 
-  const { filteredBaskts, popularBaskts, myBaskts } = useMemo(() => {
-    const processedBaskts = processBasktData(basktsData) as BasktInfo[];
-    if (!processedBaskts.length) return { filteredBaskts: [], popularBaskts: [], myBaskts: [] };
+  const rawBaskts = Array.isArray(basktsData?.data) ? basktsData.data : [];
+  const baskts = rawBaskts.map(cleanBasktData);
+  const basktIds = baskts.map((b) => b.basktId);
 
-    const visibleBaskts = processedBaskts.filter((baskt) => {
-      if (baskt.account?.isPublic) {
-        return true;
+  const { data: batchNavData, isLoading: isNavLoading } = trpc.baskt.getBatchBasktNAV.useQuery(
+    { basktIds },
+    {
+      staleTime: 5 * 60 * 1000,
+      cacheTime: 30 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      enabled: basktIds.length > 0,
+    },
+  );
+
+  const basktsWithNav = useMemo(() => {
+    return baskts.map((baskt) => {
+      let currentNav = parseFloat(baskt.baselineNav) || 0;
+
+      if (batchNavData?.success && 'data' in batchNavData && batchNavData.data) {
+        const navData = batchNavData.data.find((nav: any) => nav.basktId === baskt.basktId);
+        if (navData?.success && navData.nav) {
+          currentNav = navData.nav;
+        }
       }
-      if (userAddress && baskt.creator) {
-        return baskt.creator.toLowerCase() === userAddress.toLowerCase();
-      }
-      return false;
+
+      return {
+        ...baskt,
+        currentNav,
+      };
     });
+  }, [baskts, batchNavData]);
 
-    const filtered = searchQuery
-      ? visibleBaskts.filter(
-          (baskt) =>
-            baskt.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            baskt.assets?.some(
-              (asset) =>
-                asset.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                asset.ticker?.toLowerCase().includes(searchQuery.toLowerCase()),
-            ),
-        )
-      : visibleBaskts;
-
-    const myBaskts = userAddress
-      ? visibleBaskts.filter((baskt) => {
-          return baskt.creator && baskt.creator.toLowerCase() === userAddress.toLowerCase();
-        })
-      : [];
-
-    const tenDaysAgo = new Date();
-    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
-
-    const trendingBaskts = visibleBaskts.filter((baskt) => {
-      const isProfitable = (baskt.performance?.day || 0) >= 0;
-      const isNew = baskt.creationDate && baskt.creationDate > tenDaysAgo;
-
-      return isProfitable && isNew;
-    });
-
-    const sorted = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case 'no_filter':
-          return 0;
-        case 'highest_24h_profit':
-          const aProfit = a.performance?.day || 0;
-          const bProfit = b.performance?.day || 0;
-          return bProfit - aProfit;
-        case 'lowest_24h_profit':
-          const aLeastProfit = a.performance?.day || 0;
-          const bLeastProfit = b.performance?.day || 0;
-          return aLeastProfit - bLeastProfit;
-        case 'highest_volume':
-          const aVolume = a.aum || 0;
-          const bVolume = b.aum || 0;
-          return bVolume - aVolume;
-        default:
-          return 0;
-      }
-    });
-
-    return {
-      filteredBaskts: sorted,
-      popularBaskts: trendingBaskts.slice(0, 4),
-      myBaskts,
-    };
-  }, [basktsData, userAddress, searchQuery, sortBy]);
+  const publicBaskts = basktsWithNav.filter((b) => b.isPublic);
+  const yourBaskts = userAddress ? basktsWithNav.filter((b) => b.creator === userAddress) : [];
+  const combinedBaskts = userAddress
+    ? Array.from(
+        new Map([...publicBaskts, ...yourBaskts].map((baskt) => [baskt.basktId, baskt])).values(),
+      )
+    : publicBaskts;
 
   return {
-    searchQuery,
-    setSearchQuery,
-    sortBy,
-    setSortBy,
-    filteredBaskts,
-    popularBaskts,
-    myBaskts,
+    baskts: basktsWithNav,
+    publicBaskts,
+    yourBaskts,
+    combinedBaskts,
     userAddress,
-    isLoading,
+    isLoading: isLoading || isNavLoading,
   };
 };

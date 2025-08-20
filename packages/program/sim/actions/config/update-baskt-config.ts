@@ -9,11 +9,14 @@ const updateBasktConfig = async (args: string[]) => {
     }
 
     const basktId = new PublicKey(args[0]);
-    const openingFeeBps = args[1] !== 'null' ? parseInt(args[1]) : null;
-    const closingFeeBps = args[2] !== 'null' ? parseInt(args[2]) : null;
-    const liquidationFeeBps = args[3] !== 'null' ? parseInt(args[3]) : null;
-    const minCollateralRatioBps = args[4] !== 'null' ? parseInt(args[4]) : null;
-    const liquidationThresholdBps = args[5] !== 'null' ? parseInt(args[5]) : null;
+
+    const currentConfig = (await client.getBaskt(basktId)).config;
+
+    const openingFeeBps = args[1] !== 'null' ? parseInt(args[1]) : Number(currentConfig.openingFeeBps);
+    const closingFeeBps = args[2] !== 'null' ? parseInt(args[2]) : Number(currentConfig.closingFeeBps);
+    const liquidationFeeBps = args[3] !== 'null' ? parseInt(args[3]) : Number(currentConfig.liquidationFeeBps);
+    const minCollateralRatioBps = args[4] !== 'null' ? parseInt(args[4]) : Number(currentConfig.minCollateralRatioBps);
+    const liquidationThresholdBps = args[5] !== 'null' ? parseInt(args[5]) : Number(currentConfig.liquidationThresholdBps);
 
     // Validate fee parameters
     if (openingFeeBps !== null && (openingFeeBps < 0 || openingFeeBps > 500)) {

@@ -130,6 +130,7 @@ pub struct FundingIndexInitializedEvent {
 #[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct BasktCreatedEvent {
+    pub baskt_creation_fee: u64,
     pub uid: u32,
     pub baskt_id: Pubkey,
     pub creator: Pubkey,
@@ -162,6 +163,7 @@ pub struct BasktRebalancedEvent {
 #[derive(Copy, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct RebalanceRequestEvent {
+    pub rebalance_request_fee: u64,
     pub baskt_id: Pubkey,
     pub creator: Pubkey,
     pub timestamp: i64,
@@ -250,202 +252,15 @@ pub struct LiquidityRemovedEvent {
     pub timestamp: i64,
 }
 
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct OpeningFeeUpdatedEvent {
-    pub protocol: Pubkey,
-    pub old_opening_fee_bps: u64,
-    pub new_opening_fee_bps: u64,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
 
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ClosingFeeUpdatedEvent {
-    pub protocol: Pubkey,
-    pub old_closing_fee_bps: u64,
-    pub new_closing_fee_bps: u64,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct LiquidationFeeUpdatedEvent {
-    pub protocol: Pubkey,
-    pub old_liquidation_fee_bps: u64,
-    pub new_liquidation_fee_bps: u64,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct MinCollateralRatioUpdatedEvent {
-    pub protocol: Pubkey,
-    pub old_min_collateral_ratio_bps: u64,
-    pub new_min_collateral_ratio_bps: u64,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct LiquidationThresholdUpdatedEvent {
-    pub protocol: Pubkey,
-    pub old_liquidation_threshold_bps: u64,
-    pub new_liquidation_threshold_bps: u64,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TreasuryUpdatedEvent {
-    pub protocol: Pubkey,
-    pub old_treasury: Pubkey,
-    pub new_treasury: Pubkey,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct MinLiquidityUpdatedEvent {
-    pub protocol: Pubkey,
-    pub old_min_liquidity: u64,
-    pub new_min_liquidity: u64,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TreasuryCutUpdatedEvent {
-    pub protocol: Pubkey,
-    pub old_treasury_cut_bps: u64,
-    pub new_treasury_cut_bps: u64,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct FundingCutUpdatedEvent {
-    pub protocol: Pubkey,
-    pub old_funding_cut_bps: u64,
-    pub new_funding_cut_bps: u64,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct DecommissionGracePeriodUpdatedEvent {
-    pub protocol: Pubkey,
-    pub old_grace_period: i64,
-    pub new_grace_period: i64,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct RebalanceRequestFeeUpdatedEvent {
-    pub protocol: Pubkey,
-    pub old_fee_lamports: u64,
-    pub new_fee_lamports: u64,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct BasktCreationFeeUpdatedEvent {
-    pub protocol: Pubkey,
-    pub old_fee_lamports: u64,
-    pub new_fee_lamports: u64,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
 
 // Baskt Config Events
 
 #[event]
 #[derive(Copy, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct BasktOpeningFeeUpdatedEvent {
-    pub baskt: Pubkey,
-    pub old_opening_fee_bps: Option<u64>,
-    pub new_opening_fee_bps: Option<u64>,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct BasktClosingFeeUpdatedEvent {
-    pub baskt: Pubkey,
-    pub old_closing_fee_bps: Option<u64>,
-    pub new_closing_fee_bps: Option<u64>,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct BasktLiquidationFeeUpdatedEvent {
-    pub baskt: Pubkey,
-    pub old_liquidation_fee_bps: Option<u64>,
-    pub new_liquidation_fee_bps: Option<u64>,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct BasktMinCollateralRatioUpdatedEvent {
-    pub baskt: Pubkey,
-    pub old_min_collateral_ratio_bps: Option<u64>,
-    pub new_min_collateral_ratio_bps: Option<u64>,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct BasktLiquidationThresholdUpdatedEvent {
-    pub baskt: Pubkey,
-    pub old_liquidation_threshold_bps: Option<u64>,
-    pub new_liquidation_threshold_bps: Option<u64>,
-    pub updated_by: Pubkey,
-    pub timestamp: i64,
-}
-
-#[event]
-#[derive(Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct BasktConfigUpdatedEvent {
     pub baskt: Pubkey,
-    pub old_config: BasktConfig,
-    pub new_config: BasktConfig,
     pub updated_by: Pubkey,
     pub timestamp: i64,
 }
@@ -466,11 +281,21 @@ pub struct WithdrawalQueuedEvent {
 #[derive(Copy, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WithdrawQueueProcessedEvent {
-    pub liquidity_pool: Pubkey,
-    pub keeper: Pubkey,
-    pub requests_processed: u8,
-    pub total_amount_processed: u64,
+    pub provider: Pubkey,
+    pub lp_tokens_burned: u64,
+    pub amount_paid_to_user: u64,
     pub fees_collected: u64,
     pub queue_tail_updated: u64,
+}
+
+
+// Protocol State Events
+
+#[event]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct ProtocolStateUpdatedEvent {
+    pub protocol: Pubkey,
+    pub updated_by: Pubkey,
     pub timestamp: i64,
 }

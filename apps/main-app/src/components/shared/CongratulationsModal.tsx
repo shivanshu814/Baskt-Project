@@ -19,7 +19,7 @@ export function CongratulationsModal({
 
   const handleCopyLink = async () => {
     if (basktId) {
-      const link = `${window.location.origin}/${ROUTES.TRADE}/${basktId}`;
+      const link = `${window.location.origin}${ROUTES.TRADE}/${basktId}`;
       try {
         await navigator.clipboard.writeText(link);
         setCopied(true);
@@ -44,7 +44,7 @@ export function CongratulationsModal({
 
   const handleShare = () => {
     if (basktId) {
-      const link = `${window.location.origin}/${ROUTES.TRADE}/${basktId}`;
+      const link = `${window.location.origin}${ROUTES.TRADE}/${basktId}`;
       if (navigator.share) {
         navigator.share({
           title: `Check out my ${basktName} baskt!`,

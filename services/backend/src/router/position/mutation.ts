@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { PositionStatus } from '@baskt/types';
 import { publicProcedure } from '../../trpc/trpc';
-import { querier } from '../../utils/querier';
+import { querier } from '../../utils/';
 import BN from 'bn.js';
 
 // create a position

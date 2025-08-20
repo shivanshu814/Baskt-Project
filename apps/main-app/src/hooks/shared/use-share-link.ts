@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { ROUTES } from '../../routes/route';
 
 export const useShareLink = () => {
   const shareLink = async (
@@ -19,10 +20,10 @@ export const useShareLink = () => {
   };
 
   const shareBasktLink = async (
-    basktName: string,
+    basktId: string,
     successMessage = 'Link copied! You can now share this baskt.',
   ) => {
-    const tradeUrl = `${window.location.origin}/trade/${encodeURIComponent(basktName)}`;
+    const tradeUrl = `${window.location.origin}${ROUTES.TRADE}/${encodeURIComponent(basktId)}`;
     await shareLink(tradeUrl, successMessage);
   };
 

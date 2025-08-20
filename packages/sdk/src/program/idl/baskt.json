@@ -4200,19 +4200,6 @@
       ]
     },
     {
-      "name": "BasktClosingFeeUpdatedEvent",
-      "discriminator": [
-        114,
-        102,
-        159,
-        151,
-        135,
-        177,
-        214,
-        51
-      ]
-    },
-    {
       "name": "BasktConfigUpdatedEvent",
       "discriminator": [
         161,
@@ -4239,19 +4226,6 @@
       ]
     },
     {
-      "name": "BasktCreationFeeUpdatedEvent",
-      "discriminator": [
-        72,
-        196,
-        77,
-        166,
-        236,
-        109,
-        148,
-        195
-      ]
-    },
-    {
       "name": "BasktDecommissioningInitiated",
       "discriminator": [
         41,
@@ -4262,58 +4236,6 @@
         88,
         141,
         100
-      ]
-    },
-    {
-      "name": "BasktLiquidationFeeUpdatedEvent",
-      "discriminator": [
-        61,
-        1,
-        179,
-        148,
-        201,
-        6,
-        16,
-        80
-      ]
-    },
-    {
-      "name": "BasktLiquidationThresholdUpdatedEvent",
-      "discriminator": [
-        68,
-        199,
-        154,
-        67,
-        138,
-        139,
-        99,
-        30
-      ]
-    },
-    {
-      "name": "BasktMinCollateralRatioUpdatedEvent",
-      "discriminator": [
-        66,
-        58,
-        119,
-        116,
-        251,
-        70,
-        197,
-        23
-      ]
-    },
-    {
-      "name": "BasktOpeningFeeUpdatedEvent",
-      "discriminator": [
-        232,
-        143,
-        250,
-        62,
-        74,
-        131,
-        26,
-        73
       ]
     },
     {
@@ -4330,19 +4252,6 @@
       ]
     },
     {
-      "name": "ClosingFeeUpdatedEvent",
-      "discriminator": [
-        246,
-        150,
-        60,
-        99,
-        221,
-        98,
-        172,
-        65
-      ]
-    },
-    {
       "name": "CollateralAddedEvent",
       "discriminator": [
         90,
@@ -4353,32 +4262,6 @@
         164,
         243,
         177
-      ]
-    },
-    {
-      "name": "DecommissionGracePeriodUpdatedEvent",
-      "discriminator": [
-        38,
-        24,
-        170,
-        112,
-        8,
-        51,
-        75,
-        37
-      ]
-    },
-    {
-      "name": "FundingCutUpdatedEvent",
-      "discriminator": [
-        179,
-        9,
-        120,
-        174,
-        151,
-        9,
-        14,
-        60
       ]
     },
     {
@@ -4405,32 +4288,6 @@
         209,
         84,
         145
-      ]
-    },
-    {
-      "name": "LiquidationFeeUpdatedEvent",
-      "discriminator": [
-        17,
-        142,
-        252,
-        220,
-        94,
-        31,
-        151,
-        239
-      ]
-    },
-    {
-      "name": "LiquidationThresholdUpdatedEvent",
-      "discriminator": [
-        122,
-        137,
-        207,
-        177,
-        4,
-        63,
-        56,
-        152
       ]
     },
     {
@@ -4470,45 +4327,6 @@
         1,
         106,
         215
-      ]
-    },
-    {
-      "name": "MinCollateralRatioUpdatedEvent",
-      "discriminator": [
-        190,
-        161,
-        213,
-        135,
-        149,
-        117,
-        21,
-        244
-      ]
-    },
-    {
-      "name": "MinLiquidityUpdatedEvent",
-      "discriminator": [
-        214,
-        221,
-        106,
-        19,
-        39,
-        63,
-        38,
-        8
-      ]
-    },
-    {
-      "name": "OpeningFeeUpdatedEvent",
-      "discriminator": [
-        188,
-        94,
-        113,
-        6,
-        201,
-        236,
-        142,
-        129
       ]
     },
     {
@@ -4590,6 +4408,19 @@
       ]
     },
     {
+      "name": "ProtocolStateUpdatedEvent",
+      "discriminator": [
+        191,
+        17,
+        185,
+        143,
+        32,
+        206,
+        61,
+        29
+      ]
+    },
+    {
       "name": "RebalanceRequestEvent",
       "discriminator": [
         14,
@@ -4600,45 +4431,6 @@
         243,
         186,
         161
-      ]
-    },
-    {
-      "name": "RebalanceRequestFeeUpdatedEvent",
-      "discriminator": [
-        70,
-        58,
-        235,
-        207,
-        171,
-        32,
-        54,
-        107
-      ]
-    },
-    {
-      "name": "TreasuryCutUpdatedEvent",
-      "discriminator": [
-        234,
-        249,
-        120,
-        21,
-        62,
-        228,
-        31,
-        79
-      ]
-    },
-    {
-      "name": "TreasuryUpdatedEvent",
-      "discriminator": [
-        140,
-        91,
-        97,
-        30,
-        246,
-        205,
-        211,
-        33
       ]
     },
     {
@@ -5263,38 +5055,6 @@
       }
     },
     {
-      "name": "BasktClosingFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "baskt",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_closing_fee_bps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "new_closing_fee_bps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "BasktConfig",
       "type": {
         "kind": "struct",
@@ -5336,22 +5096,6 @@
             "type": "pubkey"
           },
           {
-            "name": "old_config",
-            "type": {
-              "defined": {
-                "name": "BasktConfig"
-              }
-            }
-          },
-          {
-            "name": "new_config",
-            "type": {
-              "defined": {
-                "name": "BasktConfig"
-              }
-            }
-          },
-          {
             "name": "updated_by",
             "type": "pubkey"
           },
@@ -5367,6 +5111,10 @@
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "baskt_creation_fee",
+            "type": "u64"
+          },
           {
             "name": "uid",
             "type": "u32"
@@ -5399,34 +5147,6 @@
       }
     },
     {
-      "name": "BasktCreationFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_fee_lamports",
-            "type": "u64"
-          },
-          {
-            "name": "new_fee_lamports",
-            "type": "u64"
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "BasktDecommissioningInitiated",
       "type": {
         "kind": "struct",
@@ -5437,134 +5157,6 @@
           },
           {
             "name": "initiated_at",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "BasktLiquidationFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "baskt",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_liquidation_fee_bps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "new_liquidation_fee_bps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "BasktLiquidationThresholdUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "baskt",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_liquidation_threshold_bps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "new_liquidation_threshold_bps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "BasktMinCollateralRatioUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "baskt",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_min_collateral_ratio_bps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "new_min_collateral_ratio_bps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "BasktOpeningFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "baskt",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_opening_fee_bps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "new_opening_fee_bps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
             "type": "i64"
           }
         ]
@@ -5647,34 +5239,6 @@
             "type": {
               "option": "u64"
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "ClosingFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_closing_fee_bps",
-            "type": "u64"
-          },
-          {
-            "name": "new_closing_fee_bps",
-            "type": "u64"
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
           }
         ]
       }
@@ -5817,34 +5381,6 @@
                 "name": "OrderType"
               }
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "DecommissionGracePeriodUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_grace_period",
-            "type": "i64"
-          },
-          {
-            "name": "new_grace_period",
-            "type": "i64"
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
           }
         ]
       }
@@ -6012,34 +5548,6 @@
       }
     },
     {
-      "name": "FundingCutUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_funding_cut_bps",
-            "type": "u64"
-          },
-          {
-            "name": "new_funding_cut_bps",
-            "type": "u64"
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "FundingIndex",
       "type": {
         "kind": "struct",
@@ -6136,62 +5644,6 @@
             "type": {
               "option": "u64"
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "LiquidationFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_liquidation_fee_bps",
-            "type": "u64"
-          },
-          {
-            "name": "new_liquidation_fee_bps",
-            "type": "u64"
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "LiquidationThresholdUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_liquidation_threshold_bps",
-            "type": "u64"
-          },
-          {
-            "name": "new_liquidation_threshold_bps",
-            "type": "u64"
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
           }
         ]
       }
@@ -6411,62 +5863,6 @@
       }
     },
     {
-      "name": "MinCollateralRatioUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_min_collateral_ratio_bps",
-            "type": "u64"
-          },
-          {
-            "name": "new_min_collateral_ratio_bps",
-            "type": "u64"
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "MinLiquidityUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_min_liquidity",
-            "type": "u64"
-          },
-          {
-            "name": "new_min_liquidity",
-            "type": "u64"
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "OpenOrderParams",
       "type": {
         "kind": "struct",
@@ -6505,34 +5901,6 @@
           {
             "name": "entry_price",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "OpeningFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_opening_fee_bps",
-            "type": "u64"
-          },
-          {
-            "name": "new_opening_fee_bps",
-            "type": "u64"
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
           }
         ]
       }
@@ -7311,6 +6679,26 @@
       }
     },
     {
+      "name": "ProtocolStateUpdatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "protocol",
+            "type": "pubkey"
+          },
+          {
+            "name": "updated_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "RebalanceFeeIndex",
       "type": {
         "kind": "struct",
@@ -7340,39 +6728,15 @@
         "kind": "struct",
         "fields": [
           {
+            "name": "rebalance_request_fee",
+            "type": "u64"
+          },
+          {
             "name": "baskt_id",
             "type": "pubkey"
           },
           {
             "name": "creator",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "RebalanceRequestFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_fee_lamports",
-            "type": "u64"
-          },
-          {
-            "name": "new_fee_lamports",
-            "type": "u64"
-          },
-          {
-            "name": "updated_by",
             "type": "pubkey"
           },
           {
@@ -7459,62 +6823,6 @@
           {
             "name": "listing_time",
             "type": "u32"
-          }
-        ]
-      }
-    },
-    {
-      "name": "TreasuryCutUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_treasury_cut_bps",
-            "type": "u64"
-          },
-          {
-            "name": "new_treasury_cut_bps",
-            "type": "u64"
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "TreasuryUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "old_treasury",
-            "type": "pubkey"
-          },
-          {
-            "name": "new_treasury",
-            "type": "pubkey"
-          },
-          {
-            "name": "updated_by",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
           }
         ]
       }
@@ -7615,19 +6923,15 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "liquidity_pool",
+            "name": "provider",
             "type": "pubkey"
           },
           {
-            "name": "keeper",
-            "type": "pubkey"
+            "name": "lp_tokens_burned",
+            "type": "u64"
           },
           {
-            "name": "requests_processed",
-            "type": "u8"
-          },
-          {
-            "name": "total_amount_processed",
+            "name": "amount_paid_to_user",
             "type": "u64"
           },
           {
@@ -7637,10 +6941,6 @@
           {
             "name": "queue_tail_updated",
             "type": "u64"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
           }
         ]
       }

@@ -1,6 +1,6 @@
 import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
-import { querier } from '../../utils/querier';
+import { querier } from '../../utils/';
 
 export const getVolumeForBaskt = publicProcedure
   .input(

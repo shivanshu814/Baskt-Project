@@ -55,7 +55,6 @@ crate::impl_baskt_bps_setter!(
     SetBasktOpeningFeeBps<'info>,
     opening_fee_bps,
     validate_baskt_fee_bps,
-    BasktOpeningFeeUpdatedEvent,
     old_opening_fee_bps,
     new_opening_fee_bps
 );
@@ -92,7 +91,6 @@ crate::impl_baskt_bps_setter!(
     SetBasktClosingFeeBps<'info>,
     closing_fee_bps,
     validate_baskt_fee_bps,
-    BasktClosingFeeUpdatedEvent,
     old_closing_fee_bps,
     new_closing_fee_bps
 );
@@ -129,7 +127,6 @@ crate::impl_baskt_bps_setter!(
     SetBasktLiquidationFeeBps<'info>,
     liquidation_fee_bps,
     validate_baskt_fee_bps,
-    BasktLiquidationFeeUpdatedEvent,
     old_liquidation_fee_bps,
     new_liquidation_fee_bps
 );
@@ -181,10 +178,8 @@ pub fn set_baskt_min_collateral_ratio_bps(
     baskt.config.set_min_collateral_ratio_bps(new_min_collateral_ratio_bps);
 
     let clock = Clock::get()?;
-    emit!(BasktMinCollateralRatioUpdatedEvent {
+    emit!(BasktConfigUpdatedEvent {
         baskt: baskt.key(),
-        old_min_collateral_ratio_bps: old_min_collateral_ratio_bps,
-        new_min_collateral_ratio_bps,
         updated_by: ctx.accounts.authority.key(),
         timestamp: clock.unix_timestamp,
     });
@@ -239,10 +234,8 @@ pub fn set_baskt_liquidation_threshold_bps(
     baskt.config.set_liquidation_threshold_bps(new_liquidation_threshold_bps);
 
     let clock = Clock::get()?;
-    emit!(BasktLiquidationThresholdUpdatedEvent {
+    emit!(BasktConfigUpdatedEvent {
         baskt: baskt.key(),
-        old_liquidation_threshold_bps: old_liquidation_threshold_bps,
-        new_liquidation_threshold_bps,
         updated_by: ctx.accounts.authority.key(),
         timestamp: clock.unix_timestamp,
     });
@@ -317,8 +310,6 @@ pub fn update_baskt_config(
     // Emit event using the clock declared above
     emit!(BasktConfigUpdatedEvent {
         baskt: baskt.key(),
-        old_config,
-        new_config,
         updated_by: ctx.accounts.authority.key(),
         timestamp: clock.unix_timestamp,
     });
@@ -347,8 +338,6 @@ macro_rules! impl_baskt_bps_setter {
         $field:ident,
         // Validation function to call, e.g. `validate_baskt_fee_bps`
         $validation_fn:path,
-        // Event struct to emit, e.g. `BasktOpeningFeeUpdatedEvent`
-        $event:ident,
         // Identifier for the *old* field value captured for the event
         $old_ident:ident,
         // Identifier for the *new* field value passed in by the caller
@@ -384,10 +373,8 @@ macro_rules! impl_baskt_bps_setter {
 
             // --- Event ------------------------------------------------------
             let clock = anchor_lang::prelude::Clock::get()?;
-            anchor_lang::prelude::emit!($event {
+            anchor_lang::prelude::emit!($crate::events::BasktConfigUpdatedEvent {
                 baskt: baskt.key(),
-                $old_ident,
-                $new_ident,
                 updated_by: ctx.accounts.authority.key(),
                 timestamp: clock.unix_timestamp,
             });

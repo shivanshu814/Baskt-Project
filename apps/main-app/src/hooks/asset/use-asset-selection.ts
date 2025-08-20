@@ -42,9 +42,10 @@ export function useAssetSelection(
   }, [open, initialAssetIds]);
 
   const { assets, filteredAssets } = useMemo(() => {
-    const assets: Asset[] = (assetsData?.data || []).filter(
-      (asset: any): asset is Asset => asset._id !== undefined,
-    );
+    const assets: Asset[] = (assetsData?.data || []).map((asset: any) => ({
+      ...asset,
+      _id: asset.assetAddress,
+    }));
 
     const filtered = assets.filter(
       (asset) =>

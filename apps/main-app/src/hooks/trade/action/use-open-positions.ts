@@ -91,7 +91,7 @@ export function useOpenPositions(
       return;
     }
 
-    if (!baskt?.isActive) {
+    if (!baskt?.status) {
       toast.error('This baskt is not active yet. Please try again later.');
       return;
     }

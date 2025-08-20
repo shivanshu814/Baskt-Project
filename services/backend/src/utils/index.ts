@@ -1,9 +1,11 @@
+import { Querier } from '@baskt/querier';
 import { BaseClient } from '@baskt/sdk';
-import { Connection, Keypair } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
-import { join } from 'path';
-import { homedir } from 'os';
+import { Connection, Keypair } from '@solana/web3.js';
 import { readFileSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
+import logger from './logger';
 
 export class SDKClient extends BaseClient {
   public keypair: Keypair;
@@ -15,7 +17,7 @@ export class SDKClient extends BaseClient {
 
     const anchorProvider = new anchor.AnchorProvider(
       new Connection(process.env.SOLANA_RPC_URL || 'http://localhost:8899', {
-        disableRetryOnRateLimit: true
+        disableRetryOnRateLimit: true,
       }),
       new anchor.Wallet(keypair),
     );
@@ -23,11 +25,11 @@ export class SDKClient extends BaseClient {
       anchorProvider.connection,
       {
         sendAndConfirmLegacy: (tx) => {
-          console.error('sendAndConfirmLegacy not implemented');
+          logger.error('sendAndConfirmLegacy not implemented');
           return Promise.resolve('');
         },
         sendAndConfirmV0: (tx) => {
-          console.error('sendAndConfirmV0 not implemented');
+          logger.error('sendAndConfirmV0 not implemented');
           return Promise.resolve('');
         },
       },
@@ -49,4 +51,26 @@ export const sdkClient = () => {
     sdkClientInstance = new SDKClient();
   }
   return sdkClientInstance;
+};
+
+export const querier = Querier.getInstance(sdkClient());
+
+export const initializeQuerier = async () => {
+  try {
+    await querier.init();
+    logger.info('Backend Querier initialized successfully');
+  } catch (error) {
+    logger.error('Failed to initialize Backend Querier:', error);
+    throw error;
+  }
+};
+
+export const shutdownQuerier = async () => {
+  try {
+    await querier.shutdown();
+    logger.info('Backend Querier shutdown successfully');
+  } catch (error) {
+    logger.error('Error during Backend Querier shutdown:', error);
+    throw error;
+  }
 };

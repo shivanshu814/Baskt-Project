@@ -32,7 +32,6 @@ export function TradingPanel({ baskt }: TradingPanelProps) {
     const newSize = ((usdcBalanceNum * percentage) / 100).toString();
     setSize(newSize);
   };
-
   const {
     isLoading,
     openPosition,
@@ -61,7 +60,7 @@ export function TradingPanel({ baskt }: TradingPanelProps) {
       return;
     }
 
-    if (!baskt.isActive) {
+    if (!(baskt as any).status) {
       toast.error('This baskt is not active yet. Please try again later.');
       return;
     }
@@ -95,7 +94,7 @@ export function TradingPanel({ baskt }: TradingPanelProps) {
         </button>
       </div>
 
-      {!baskt.isActive ? (
+      {!(baskt as any).status ? (
         <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
           <p className="text-yellow-500 text-xs sm:text-sm">
             This baskt is not active yet. Please try again later.
@@ -257,11 +256,11 @@ export function TradingPanel({ baskt }: TradingPanelProps) {
                 : 'bg-[#EA3943]/10 text-[#EA3943] border-[#EA3943] hover:bg-[#EA3943]/30 hover:text-[#EA3943]'
             }`}
             onClick={() => handleTrade(selectedPosition)}
-            disabled={isLoading || !baskt?.isActive || Number(size) <= 0}
+            disabled={isLoading || !(baskt as any)?.status || Number(size) <= 0}
           >
             {isLoading
               ? 'Confirming...'
-              : !baskt?.isActive
+              : !(baskt as any)?.status
               ? 'Baskt Not Active'
               : Number(size) <= 0
               ? 'Enter Size'

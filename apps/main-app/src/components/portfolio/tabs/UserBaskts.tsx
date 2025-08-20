@@ -4,32 +4,29 @@ import { NumberFormat } from '@baskt/ui';
 import { ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useUserBaskts } from '../../../hooks/portfolio/use-user-baskts';
 import { ROUTES } from '../../../routes/route';
+import { UserBasktsProps } from '../../../types/portfolio';
 
-export const UserBaskts = () => {
+const renderDailyChange = (dailyChange: number) => {
+  const formattedChange = dailyChange.toFixed(2);
+
+  if (dailyChange === 0) {
+    return <span className="text-sm font-medium text-muted-foreground">0.00%</span>;
+  }
+
+  const color = dailyChange > 0 ? 'text-green-500' : 'text-red-500';
+  const sign = dailyChange > 0 ? '+' : '';
+
+  return (
+    <span className={`text-sm font-medium ${color}`}>
+      {sign}
+      {formattedChange}%
+    </span>
+  );
+};
+
+export const UserBaskts = ({ userBaskts }: UserBasktsProps) => {
   const router = useRouter();
-  const { userBaskts, isLoading, error } = useUserBaskts();
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-600 dark:text-red-400">Failed to load user baskts</p>
-      </div>
-    );
-  }
 
   if (!userBaskts || userBaskts.length === 0) {
     return (
@@ -56,12 +53,12 @@ export const UserBaskts = () => {
               <div className="flex items-center gap-2 flex-1 min-w-0 group">
                 <h4
                   className="font-medium text-card-foreground truncate hover:underline cursor-pointer group-hover:underline"
-                  onClick={() => router.push(`${ROUTES.TRADE}/${baskt.name}`)}
+                  onClick={() => router.push(`${ROUTES.TRADE}/${baskt.basktId}`)}
                 >
-                  {baskt.name}
+                  {baskt.baskt.name}
                 </h4>
                 <button
-                  onClick={() => router.push(`${ROUTES.TRADE}/${baskt.name}`)}
+                  onClick={() => router.push(`${ROUTES.TRADE}/${baskt.basktId}`)}
                   className="flex-shrink-0 p-1 hover:bg-primary/10 rounded-md transition-colors duration-200"
                   title="Trade this baskt"
                 >
@@ -69,7 +66,7 @@ export const UserBaskts = () => {
                 </button>
               </div>
               <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex-shrink-0">
-                {baskt.totalAssets || 0} assets
+                {baskt.assets.length || 0} assets
               </span>
             </div>
 
@@ -109,20 +106,17 @@ export const UserBaskts = () => {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Price:</span>
                 <span className="text-sm font-medium text-card-foreground">
-                  <NumberFormat value={baskt.price || 0} isPrice={true} showCurrency={true} />
+                  <NumberFormat
+                    value={baskt.metrics.currentNav || 0}
+                    isPrice={true}
+                    showCurrency={true}
+                  />
                 </span>
               </div>
 
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">24h Change:</span>
-                <span
-                  className={`text-sm font-medium ${
-                    (baskt.change24h || 0) >= 0 ? 'text-green-500' : 'text-red-500'
-                  }`}
-                >
-                  {(baskt.change24h || 0) >= 0 ? '+' : ''}
-                  {(baskt.change24h || 0).toFixed(2)}%
-                </span>
+                {renderDailyChange(baskt.metrics.performance.daily ?? 0)}
               </div>
             </div>
           </div>

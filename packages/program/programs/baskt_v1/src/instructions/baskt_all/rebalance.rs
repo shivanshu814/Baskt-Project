@@ -2,6 +2,7 @@ use crate::constants::{BPS_DIVISOR, PROTOCOL_SEED};
 use crate::error::PerpetualsError;
 use crate::state::baskt::{AssetConfig, Baskt};
 use crate::state::protocol::{Protocol, Role};
+use crate::events::BasktRebalancedEvent;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -87,6 +88,13 @@ pub fn rebalance(
 
     baskt.last_rebalance_time = current_timestamp as u32;
     baskt.baseline_nav = new_nav;
+
+    emit!(BasktRebalancedEvent {
+        baskt_id: baskt.key(),
+        rebalance_index: baskt.rebalance_fee_index.cumulative_index,
+        baseline_nav: new_nav,
+        timestamp: current_timestamp,
+    });
 
     Ok(())
 }

@@ -1,8 +1,7 @@
 'use client';
 
-// import { useUser } from '@baskt/ui';
-// import { useEffect } from 'react';
-import { memo, useState } from 'react';
+import { SortOption, useBasktClient } from '@baskt/ui';
+import { memo, useMemo, useState } from 'react';
 import { FilterControls } from '../../components/baskt/controls/FilterControls';
 import { TabControls } from '../../components/baskt/controls/TabControls';
 import { TrendingBanner } from '../../components/baskt/items/TrendingBanner';
@@ -10,44 +9,59 @@ import { ExploreHeader } from '../../components/baskt/layout/ExploreHeader';
 import { TabContent } from '../../components/baskt/layout/TabContent';
 import { BasktListSkeleton } from '../../components/baskt/skeleton/BasktListSkeleton';
 import { SearchBar } from '../../components/shared/SearchBar';
-import { useBasktList } from '../../hooks/baskt/use-baskt-list';
+import {
+  useCombinedBaskts,
+  usePublicBaskts,
+  useTrendingBaskts,
+  useYourBaskts,
+} from '../../hooks/baskt/use-explore-data';
 
 const ExplorePage = () => {
-  // const { getJwtToken, isAuthenticated } = useUser();
   const [activeTab, setActiveTab] = useState<'all' | 'trending' | 'your'>('all');
-  const {
-    searchQuery,
-    setSearchQuery,
-    sortBy,
-    setSortBy,
-    filteredBaskts,
-    popularBaskts,
-    myBaskts,
-    userAddress,
-    isLoading,
-  } = useBasktList();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('no_filter');
 
-  // get JWT token when user is authenticated
-  // useEffect(() => {
-  //   const getToken = async () => {
-  //     if (isAuthenticated) {
-  //       const token = await getJwtToken();
-  //       console.log('JWT token', token);
-  //     }
-  //   };
+  const { client } = useBasktClient();
+  const userAddress = client?.wallet?.address?.toString();
 
-  //   getToken();
-  // }, [isAuthenticated, getJwtToken]);
+  const { baskts: publicBaskts, isLoading: isPublicLoading } = usePublicBaskts();
+  const { baskts: trendingBaskts, isLoading: isTrendingLoading } = useTrendingBaskts();
+  const { baskts: yourBaskts, isLoading: isYourLoading } = useYourBaskts();
+  const { baskts: combinedBaskts, isLoading: isCombinedLoading } = useCombinedBaskts();
 
-  if (isLoading) {
-    return <BasktListSkeleton />;
-  }
+  const isLoading =
+    isPublicLoading ||
+    isTrendingLoading ||
+    (userAddress ? isYourLoading || isCombinedLoading : false);
 
-  return (
+  const filteredBaskts = useMemo(() => {
+    if (isLoading) return [];
+    const q = searchQuery.trim().toLowerCase();
+
+    let source;
+    if (!userAddress) {
+      source = publicBaskts;
+    } else {
+      source =
+        activeTab === 'all' ? combinedBaskts : activeTab === 'your' ? yourBaskts : combinedBaskts;
+    }
+
+    if (!q) return source;
+
+    return source.filter(
+      (b: any) =>
+        b.baskt.name?.toLowerCase().includes(q) ||
+        b.baskt.basktId?.toLowerCase().includes(q) ||
+        b.assets?.some((a: any) => a.ticker?.toLowerCase().includes(q)),
+    );
+  }, [activeTab, searchQuery, combinedBaskts, yourBaskts, publicBaskts, userAddress, isLoading]);
+
+  return isLoading ? (
+    <BasktListSkeleton />
+  ) : (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-primary/5">
       <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
         <TrendingBanner onReviewClick={() => setActiveTab('trending')} />
-
         <div className="flex flex-col gap-6 sm:gap-6">
           <ExploreHeader />
 
@@ -62,17 +76,16 @@ const ExplorePage = () => {
             <FilterControls sortBy={sortBy} setSortBy={setSortBy} />
           </div>
 
-          {/* tab controls */}
           <div className="w-full">
             <TabControls activeTab={activeTab} onTabChange={setActiveTab} />
-
-            {/* tab content */}
             <TabContent
               activeTab={activeTab}
               filteredBaskts={filteredBaskts}
-              popularBaskts={popularBaskts}
-              myBaskts={myBaskts}
+              trendingBaskts={trendingBaskts}
+              publicBaskts={publicBaskts}
+              yourBaskts={yourBaskts}
               userAddress={userAddress}
+              isLoading={isTrendingLoading}
             />
           </div>
         </div>

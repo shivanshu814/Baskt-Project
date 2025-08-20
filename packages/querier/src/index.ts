@@ -24,14 +24,15 @@ export {
   PositionMetadataModel,
   AccessCodeModel,
   AuthorizedWalletModel,
+  LiquidityPoolModel,
+  LiquidityDepositModel,
+  WithdrawalRequestModel,
 } from './models/mongodb';
 
 // Export types
 export * from './models/types';
 export type { QueryResult } from './models/types';
 export * from './types';
-export * from './types/fee-event';
-export * from './types/withdraw-queue';
 
 // Export individual queriers (will be added as we implement them)
 export * from './queriers/asset.querier';

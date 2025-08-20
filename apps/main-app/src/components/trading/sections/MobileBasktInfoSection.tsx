@@ -113,7 +113,7 @@ export function MobileBasktInfoSection({
                     className="flex items-center justify-between p-2 bg-zinc-800/50 rounded border border-border/50 hover:bg-zinc-700/50 cursor-pointer transition-colors"
                     onClick={() => {
                       setIsBasktInfoExpanded(false);
-                      onBasktSelect(basktItem.name);
+                      onBasktSelect(basktItem.basktId);
                     }}
                   >
                     <div className="flex items-center gap-2">
@@ -122,7 +122,9 @@ export function MobileBasktInfoSection({
                         <div className="font-medium text-xs">{basktItem.name}</div>
                         <div className="text-[10px] text-muted-foreground">
                           <NumberFormat
-                            value={basktItem.price || 0}
+                            value={
+                              (basktItem as any).currentNav || (basktItem as any).baselineNav || 0
+                            }
                             isPrice={true}
                             showCurrency={true}
                           />

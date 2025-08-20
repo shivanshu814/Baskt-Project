@@ -1,5 +1,5 @@
 import { querierClient } from './config';
-import { FeeEventData } from '@baskt/querier';
+import { FeeEventMetadata, FeeEvents } from '@baskt/querier';
 import BN from 'bn.js';
 
 /**
@@ -21,41 +21,10 @@ export function convertTimestampToDate(timestamp: BN): Date {
 }
 
 /**
- * Create base fee event data structure
- */
-export function createBaseFeeEventData(
-  eventId: string,
-  eventType: FeeEventData['eventType'],
-  transactionSignature: string,
-  timestamp: Date,
-  owner: string,
-  feeToTreasury: string,
-  feeToBlp: string,
-  totalFee: string,
-  basktId?: string,
-): Partial<FeeEventData> {
-  return {
-    eventId,
-    eventType,
-    transactionSignature,
-    timestamp,
-    owner,
-    feeToTreasury,
-    feeToBlp,
-    totalFee,
-    basktId,
-  };
-}
-
-/**
  * Create fee event for position-related events
  */
 export async function createPositionFeeEvent(
-  eventType:
-    | 'POSITION_OPENED'
-    | 'POSITION_CLOSED'
-    | 'POSITION_LIQUIDATED'
-    | 'POSITION_PARTIALLY_CLOSED',
+  eventType: FeeEvents.POSITION_OPENED | FeeEvents.POSITION_CLOSED | FeeEvents.POSITION_LIQUIDATED,
   transactionSignature: string,
   timestamp: Date,
   basktId: string,
@@ -70,26 +39,26 @@ export async function createPositionFeeEvent(
     entryPrice?: string;
     exitPrice?: string;
     isLong?: boolean;
+    fundingFeePaid?: string;
+    fundingFeeOwed?: string;
+    rebalanceFeePaid?: string;
   },
 ): Promise<void> {
-  const eventId = `${eventType.toLowerCase()}_${transactionSignature}_${positionId}`;
-
-  const feeEventData: FeeEventData = {
-    eventId,
+  const feeEventData: FeeEventMetadata = {
     eventType,
     transactionSignature,
-    timestamp,
-    basktId,
-    owner,
-    feeToTreasury,
-    feeToBlp,
-    totalFee,
-    positionId,
-    orderId: additionalData.orderId,
-    positionSize: additionalData.positionSize,
-    entryPrice: additionalData.entryPrice,
-    exitPrice: additionalData.exitPrice,
-    isLong: additionalData.isLong,
+    payer: owner,
+    feePaidIn: 'USDC',
+    positionFee: {
+      basktId,
+      positionId,
+      feeToTreasury,
+      feeToBlp,
+      totalFee,
+      fundingFeePaid: additionalData.fundingFeePaid || '0',
+      fundingFeeOwed: additionalData.fundingFeeOwed || '0',
+      rebalanceFeePaid: additionalData.rebalanceFeePaid || '0',
+    },
   };
 
   await querierClient.feeEvent.createFeeEvent(feeEventData);
@@ -99,35 +68,50 @@ export async function createPositionFeeEvent(
  * Create fee event for liquidity-related events
  */
 export async function createLiquidityFeeEvent(
-  eventType: 'LIQUIDITY_ADDED' | 'LIQUIDITY_REMOVED',
+  eventType: FeeEvents.LIQUIDITY_ADDED | FeeEvents.LIQUIDITY_REMOVED,
   transactionSignature: string,
   timestamp: Date,
   owner: string,
   feeAmount: string,
-  liquidityProvider: string,
-  liquidityPool: string,
-  liquidityAmount: string,
-  sharesAmount: string,
 ): Promise<void> {
-  const eventId = `${eventType.toLowerCase()}_${transactionSignature}_${liquidityProvider}`;
-
-  const feeEventData: FeeEventData = {
-    eventId,
+  const feeEventData: FeeEventMetadata = {
     eventType,
     transactionSignature,
-    timestamp,
-    owner,
-    feeToTreasury: feeAmount, // All LP fees go to treasury
-    feeToBlp: '0', // No BLP fees for liquidity events
-    totalFee: feeAmount,
-    liquidityProvider,
-    liquidityPool,
-    liquidityAmount,
-    sharesAmount,
+    payer: owner,
+    feePaidIn: 'USDC',
+    liquidityFee: {
+      feeToTreasury: feeAmount, // All LP fees go to treasury
+      feeToBlp: '0', // No BLP fees for liquidity events
+      totalFee: feeAmount,
+    },
   };
 
   await querierClient.feeEvent.createFeeEvent(feeEventData);
   console.log('Liquidity fee event created:', feeEventData);
+}
+
+/**
+ * Create fee event for withdraw queue processed
+ */
+export async function createWithdrawQueueFeeEvent(
+  transactionSignature: string,
+  owner: string,
+  feesCollected: string,
+): Promise<void> {
+  const feeEventData: FeeEventMetadata = {
+    eventType: FeeEvents.LIQUIDITY_REMOVED,
+    transactionSignature,
+    payer: owner,
+    feePaidIn: 'USDC',
+    liquidityFee: {
+      feeToTreasury: feesCollected,
+      feeToBlp: '0',
+      totalFee: feesCollected,
+    },
+  };
+
+  await querierClient.feeEvent.createFeeEvent(feeEventData);
+  console.log('Withdraw queue fee event created:', feeEventData);
 }
 
 /**

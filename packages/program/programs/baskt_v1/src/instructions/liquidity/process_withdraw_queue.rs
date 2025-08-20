@@ -114,9 +114,6 @@ pub fn process_withdraw_queue<'info>(
     let request = &ctx.accounts.withdraw_request;
     let provider_account = &ctx.accounts.provider_usdc_account;
 
-    // Process queue
-    let mut result = ProcessingResult::default();
-
     // Check if there are any requests to process
     if pool.withdraw_queue_tail >= pool.withdraw_queue_head {
         return Ok(()); // No requests to process
@@ -214,46 +211,15 @@ pub fn process_withdraw_queue<'info>(
 
     pool.withdraw_queue_tail = next_id;
 
-    // Accumulate results with overflow protection
-    result.requests_processed = result
-        .requests_processed
-        .checked_add(1)
-        .ok_or(PerpetualsError::MathOverflow)?; 
-    result.total_amount_processed = result
-        .total_amount_processed
-        .checked_add(fulfillable_amount)
-        .ok_or(PerpetualsError::MathOverflow)?;
-    result.fees_collected = result
-        .fees_collected
-        .checked_add(fee_amount)
-        .ok_or(PerpetualsError::MathOverflow)?;
-    result.new_tail_position = pool.withdraw_queue_tail;
-
     // Emit comprehensive processing event
     emit!(WithdrawQueueProcessedEvent {
-        liquidity_pool: ctx.accounts.liquidity_pool.key(),
-        keeper: ctx.accounts.keeper.key(),
-        requests_processed: result.requests_processed,
-        total_amount_processed: result.total_amount_processed,
-        fees_collected: result.fees_collected,
-        queue_tail_updated: result.new_tail_position,
-        timestamp: clock.unix_timestamp,
+        provider: request.provider,
+        lp_tokens_burned: lp_to_burn,
+        amount_paid_to_user: net_amount,
+        fees_collected: fee_amount,
+        queue_tail_updated: pool.withdraw_queue_tail,
     });
 
     Ok(())
 }
-
-// =============================================================================
-// Queue Processing Implementation
-// =============================================================================
-
-/// Queue processing results for comprehensive tracking
-#[derive(Debug, Default)]
-struct ProcessingResult {
-    requests_processed: u8,
-    total_amount_processed: u64,
-    fees_collected: u64,
-    new_tail_position: u64,
-}
-
 

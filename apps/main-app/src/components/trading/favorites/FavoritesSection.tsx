@@ -8,7 +8,8 @@ import { calculatePerformanceColor, formatPriceChange } from '../../../utils/for
 export function FavoritesSection() {
   const mobileFavoritesRef = useRef<HTMLDivElement>(null);
   const [isFavoritesExpanded, setIsFavoritesExpanded] = useState(false);
-  const { filteredBaskts, isLoading: isLoadingBaskts } = useBasktList();
+  const { combinedBaskts, isLoading: isLoadingBaskts } = useBasktList();
+  const safeFilteredBaskts = combinedBaskts || [];
 
   return (
     <div>
@@ -20,8 +21,8 @@ export function FavoritesSection() {
             <div className="flex items-center gap-4 overflow-x-auto">
               {isLoadingBaskts ? (
                 <span className="text-sm text-muted-foreground whitespace-nowrap">Loading...</span>
-              ) : filteredBaskts.length > 0 ? (
-                filteredBaskts.slice(0, 5).map((baskt, index) => {
+              ) : safeFilteredBaskts.length > 0 ? (
+                safeFilteredBaskts.slice(0, 5).map((baskt, index) => {
                   const profit = baskt.performance?.day || 0;
                   const profitColor = calculatePerformanceColor(profit);
                   const profitText = formatPriceChange(profit);
@@ -69,8 +70,8 @@ export function FavoritesSection() {
                 <div className="col-span-2 text-center text-sm text-muted-foreground py-2">
                   Loading baskts...
                 </div>
-              ) : filteredBaskts.length > 0 ? (
-                filteredBaskts.map((baskt, index) => {
+              ) : safeFilteredBaskts.length > 0 ? (
+                safeFilteredBaskts.map((baskt, index) => {
                   const profit = baskt.performance?.day || 0;
                   const profitColor = calculatePerformanceColor(profit);
                   const profitText = formatPriceChange(profit);

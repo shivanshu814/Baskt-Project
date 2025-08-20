@@ -15,9 +15,9 @@ export const createStandaloneConfig = (options: {
   return defineConfig({
     entry,
     format: ['esm'],
-    dts: false, // Skip .d.ts for production builds
+    dts: additionalOptions.dts || false, // Skip .d.ts for production builds
     splitting: false,
-    sourcemap: false, // Skip sourcemaps for production
+    sourcemap: process.env.NODE_ENV === 'production' ? false : true, // Skip sourcemaps for production
     clean: true,
     outDir: 'dist',
     target: platform === 'node' ? 'node18' : 'es2022',

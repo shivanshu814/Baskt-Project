@@ -17,7 +17,8 @@ export function MobileLayout({ baskt }: MobileTradingOverlayProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isBasketDropdownOpen, setIsBasketDropdownOpen] = useState(false);
   const mobileDropdownRef = useRef<HTMLDivElement>(null);
-  const { filteredBaskts } = useBasktList();
+  const { combinedBaskts } = useBasktList();
+  const safeFilteredBaskts = combinedBaskts || [];
 
   const { shouldShowMobile, shouldShowDesktop, currentPrice, priceColor, onClose } = (() => {
     const isMobile = false;
@@ -38,7 +39,7 @@ export function MobileLayout({ baskt }: MobileTradingOverlayProps) {
     return { performanceColor, performanceText };
   };
 
-  const filteredBasktsList = filteredBaskts
+  const filteredBasktsList = safeFilteredBaskts
     ?.filter((basktItem) => basktItem.basktId !== baskt?.basktId)
     ?.filter((basktItem) => {
       if (!searchQuery) return true;
@@ -145,7 +146,7 @@ export function MobileLayout({ baskt }: MobileTradingOverlayProps) {
                             <div className="font-semibold text-sm">{basktItem.name}</div>
                             <div className="text-sm text-muted-foreground">
                               <NumberFormat
-                                value={basktItem.price || 0}
+                                value={basktItem.currentNav || basktItem.baselineNav || 0}
                                 isPrice={true}
                                 showCurrency={true}
                               />

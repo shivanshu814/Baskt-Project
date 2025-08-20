@@ -2,6 +2,7 @@ import BN from 'bn.js';
 import dotenv from 'dotenv';
 import { PublicKey } from '@solana/web3.js';
 import { client } from '../../client';
+import { waitForTx } from '../../../tests/utils/chain-helpers';
 
 dotenv.config();
 
@@ -59,7 +60,7 @@ const createRandomBasket = async (
     baselinePrice: new BN(0),
   }));
 
-  const { basktId } = await client.createBaskt(assets, true);
+  const { basktId , txSignature} = await client.createBaskt(assets, true);
   console.log('Basket created with ID:', basktId.toString());
   console.log(
     'Basket assets:',
@@ -69,6 +70,8 @@ const createRandomBasket = async (
       weight: a.weight.toString(),
     })),
   );
+
+  await waitForTx(client.connection, txSignature, 'confirmed');
   return {basktId, assets };
 };
 

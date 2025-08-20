@@ -18,8 +18,8 @@ export function useMobileTradingOverlay() {
     };
   };
 
-  const handleBasktSelect = (basktName: string) => {
-    router.push(`${ROUTES.TRADE}/${encodeURIComponent(basktName)}`);
+  const handleBasktSelect = (basktId: string) => {
+    router.push(`${ROUTES.TRADE}/${encodeURIComponent(basktId)}`);
   };
 
   const filterBaskts = (baskts: BasktInfo[], currentBasktId: string, searchQuery: string) => {

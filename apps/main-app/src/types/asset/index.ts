@@ -97,3 +97,18 @@ export interface SelectedAssetChipProps {
   asset: Asset;
   onRemove: (id: string) => void;
 }
+
+export interface AssetBreakdownItem {
+  assetId: string;
+  assetName: string;
+  assetLogo: string;
+  assetTicker: string;
+  totalValue: string;
+  portfolioPercentage: number;
+  longCount: number;
+  shortCount: number;
+}
+
+export interface AssetBreakdownProps {
+  uniqueAssets: AssetBreakdownItem[];
+}

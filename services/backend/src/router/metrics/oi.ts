@@ -1,7 +1,7 @@
 import { PositionStatus } from '@baskt/types';
 import { z } from 'zod';
 import { publicProcedure } from '../../trpc/trpc';
-import { querier } from '../../utils/querier';
+import { querier } from '../../utils/';
 
 export const getOpenInterestForBaskt = publicProcedure
   .input(
@@ -82,15 +82,17 @@ export const getOpenInterestForAllAssets = publicProcedure.query(async () => {
   }
 });
 
-export const getOpenInterestForBasktsWithPositions = publicProcedure.query(async () => {
+export const getTopBasktsWithVolume = publicProcedure.query(async () => {
   try {
-    const result = await querier.metrics.getOpenInterestForBasktsWithPositions();
-    return result;
+    return {
+      success: true,
+      data: [],
+    };
   } catch (error) {
-    console.error('Error fetching open interest for baskts with positions:', error);
+    console.error('Error fetching top baskts with volume:', error);
     return {
       success: false,
-      message: 'Failed to fetch open interest for baskts with positions',
+      message: 'Failed to fetch top baskts with volume',
     };
   }
 });

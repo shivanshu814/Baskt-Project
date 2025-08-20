@@ -21,8 +21,6 @@ macro_rules! impl_bps_setter {
         $field:ident,
         // Maximum allowed value passed to `validate_bps`
         $max:expr,
-        // Event struct to emit, e.g. `OpeningFeeUpdatedEvent`
-        $event:ident,
         // Identifier for the *old* field value captured for the event
         $old_ident:ident,
         // Identifier for the *new* field value passed in by the caller
@@ -52,10 +50,8 @@ macro_rules! impl_bps_setter {
             protocol.config.last_updated_by = ctx.accounts.authority.key();
 
             // --- Event ------------------------------------------------------
-            anchor_lang::prelude::emit!($event {
+            anchor_lang::prelude::emit!($crate::events::ProtocolStateUpdatedEvent {
                 protocol: protocol.key(),
-                $old_ident,
-                $new_ident,
                 updated_by: ctx.accounts.authority.key(),
                 timestamp: clock.unix_timestamp,
             });

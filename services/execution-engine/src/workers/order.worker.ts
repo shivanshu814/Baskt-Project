@@ -52,9 +52,12 @@ export class OrderWorker extends BaseWorker {
 
       // Execute based on action
       let txSignature: string;
+      let positionCreated: string | null = null;
       switch (order.request.order.action) {
-        case OrderAction.Open:
-          txSignature = await this.executor.openPosition(order);
+        case OrderAction.Open: 
+          const result = await this.executor.openPosition(order);
+          txSignature = result.txSignature;
+          positionCreated = result.positionCreated;
           break;
         case OrderAction.Close:
           txSignature = await this.executor.closePosition(order);
@@ -65,15 +68,6 @@ export class OrderWorker extends BaseWorker {
 
       // Record for idempotency
       await IdempotencyTracker.recordTransaction(order.request.order.orderId.toString(), order.request.order.action, txSignature);
-
-      // Update order metadata
-      const orderPDA = basktClient.getOrderPDA(order.request.order.orderId, order.request.order.owner);
-
-      await querierClient.metadata.updateOrderByPDA(orderPDA.toString(), {
-        orderStatus: 'FILLED',
-        orderFullFillTx: txSignature,
-        orderFullfillTs: Date.now().toString(),
-      });
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

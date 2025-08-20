@@ -1,13 +1,16 @@
-import { BasktMetadataModel } from '../models/mongodb';
-import { createQuerierError, handleQuerierError } from '../utils/error-handling';
+import { BaseClient, calculateNav } from '@baskt/sdk';
+import { PublicKey } from '@solana/web3.js';
+import { BN } from 'bn.js';
+import { BasktMetadataModel, RebalanceRequestModel, BasktRebalanceHistoryModel } from '../models/mongodb';
 import { QueryResult } from '../models/types';
+import { BasktMetadata } from '../types';
+import { BasktNAV, BasktPerformance, BasktQueryOptions, CombinedBaskt } from '../types/baskt';
+import { createQuerierError, handleQuerierError } from '../utils/error-handling';
 import { AssetQuerier } from './asset.querier';
 import { PriceQuerier } from './price.querier';
-import { BN } from 'bn.js';
-import { BaseClient, calculateNav } from '@baskt/sdk';
-import { BasktStatus, OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
-import { PublicKey } from '@solana/web3.js';
-import { CombinedBaskt,  BasktNAV, BasktQueryOptions, BasktPerformance } from '../types/baskt';
+import { toNumber } from '../utils/helpers';
+import { metadataManager } from '../models/metadata-manager';
+import { RebalanceRequestMetadata, BasktRebalanceHistory } from '../types/models';
 
 /**
  * Baskt Querier
@@ -22,25 +25,40 @@ export class BasktQuerier {
   private priceQuerier: PriceQuerier;
   private basktClient: BaseClient;
 
-  constructor(assetQuerier: AssetQuerier, priceQuerier: PriceQuerier, basktClient: BaseClient) {
-    this.assetQuerier = assetQuerier;
-    this.priceQuerier = priceQuerier;
+  private static instance: BasktQuerier;
+
+  public static getInstance(basktClient: BaseClient): BasktQuerier {
+    if (!BasktQuerier.instance) {
+      BasktQuerier.instance = new BasktQuerier(basktClient);
+    }
+    return BasktQuerier.instance;
+  }
+
+  constructor(basktClient: BaseClient) {
+    this.assetQuerier = AssetQuerier.getInstance(basktClient);
+    this.priceQuerier = PriceQuerier.getInstance(basktClient);
     this.basktClient = basktClient;
   }
 
   /**
    * Get all baskts with asset integration
    */
-  async getAllBaskts(options: BasktQueryOptions = {}): Promise<QueryResult<CombinedBaskt[]>> {
+  async getAllBaskts(
+    options: BasktQueryOptions = {
+      withPerformance: false,
+      hidePrivateBaskts: true,
+    },
+  ): Promise<QueryResult<CombinedBaskt[]>> {
     try {
-      const hidePrivateBaskts = options.hidePrivateBaskts || true;
-      // Fetch data from multiple sources
-      const [basktConfigs, onchainBaskts, allAssetsResult] = await Promise.all([
+      const [basktConfigs, allAssetsResult] = await Promise.all([
         this.getBasktConfigsFromMongoDB(),
-        this.getBasktsFromOnchain(hidePrivateBaskts),
-        this.assetQuerier.getAllAssets({ withConfig: true }),
+        this.assetQuerier.getAllAssets({ withConfig: false }),
       ]);
-      const performanceMap = options.withPerformance ? await this.priceQuerier.getBatchBasktPerformanceOptimized(onchainBaskts.map(baskt => baskt.basktId?.toString() || '')) : null;
+      const performanceMap = options.withPerformance
+        ? await this.priceQuerier.getBatchBasktPerformanceOptimized(
+            basktConfigs.map((baskt) => baskt.basktId?.toString() || ''),
+          )
+        : null;
 
       if (!basktConfigs || basktConfigs.length === 0) {
         return {
@@ -61,29 +79,21 @@ export class BasktQuerier {
       }
       // Combine baskts with asset data
       const combinedBaskts = await Promise.all(
-        onchainBaskts.map(async (onchainBaskt) => {
-          const basktMetadata = basktConfigs.find(
-            (b) => b.basktId === onchainBaskt.basktId?.toString(),
-          );
-
-          if (!basktMetadata) {
-            return null;
-          }
-          const performance = performanceMap?.get(onchainBaskt.basktId?.toString());
-
+        basktConfigs.map(async (basktConfig) => {
           const result = await this.combineBasktData(
-            onchainBaskt,
-            basktMetadata,
+            basktConfig,
             assetLookup,
-            performance || null,
+            performanceMap?.get(basktConfig.basktId?.toString()) || null,
           );
           return result;
-        })
+        }),
       );
 
       const result: QueryResult<CombinedBaskt[]> = {
         success: true,
-        data: combinedBaskts.filter((baskt): baskt is CombinedBaskt => baskt !== null && baskt !== undefined),
+        data: combinedBaskts.filter(
+          (baskt): baskt is CombinedBaskt => baskt !== null && baskt !== undefined,
+        ),
       };
 
       return result;
@@ -100,22 +110,23 @@ export class BasktQuerier {
   /**
    * Get baskt by ID
    */
-  async getBasktById(
+  async getBasktByAddress(
     basktId: string,
-    options: BasktQueryOptions = {},
+    options: BasktQueryOptions = {
+      withPerformance: false,
+      hidePrivateBaskts: true,
+    },
   ): Promise<QueryResult<CombinedBaskt>> {
     try {
-      const [basktMetadata, onchainBaskt, allAssetsResult, performance] = await Promise.all([
-        this.getBasktConfigByIdFromMongoDB(basktId),
-        this.getBasktFromOnchain(basktId),
+      const [basktMetadata, allAssetsResult, performance] = await Promise.all([
+        BasktMetadataModel.findOne({ basktId }).lean<BasktMetadata>(),
         this.assetQuerier.getAllAssets({
-          withConfig: true,
+          withConfig: false,
         }),
         options.withPerformance ? this.priceQuerier.getBasktPerformanceOptimized(basktId) : null,
       ]);
 
-
-      if (!basktMetadata && !onchainBaskt) {
+      if (!basktMetadata) {
         return {
           success: false,
           message: 'Baskt not found',
@@ -132,19 +143,12 @@ export class BasktQuerier {
         });
       }
 
-      const combinedBaskt = await this.combineBasktData(
-        onchainBaskt,
-        basktMetadata,
-        assetLookup,
-        performance,
-      );
+      const combinedBaskt = await this.combineBasktData(basktMetadata, assetLookup, performance);
 
       const result: QueryResult<CombinedBaskt> = {
         success: true,
         data: combinedBaskt,
       };
-
-
       return result;
     } catch (error) {
       console.error('Error fetching baskt metadata:', error);
@@ -160,14 +164,16 @@ export class BasktQuerier {
   /**
    * Get baskt by name
    */
-  async getBasktByName(
+  async getBasktByUID(
     basktName: string,
-    options: BasktQueryOptions = {},
+    options: BasktQueryOptions = {
+      withPerformance: false,
+      hidePrivateBaskts: true,
+    },
   ): Promise<QueryResult<CombinedBaskt>> {
     try {
-      // TODO we will change this later on
       const basktId = await this.basktClient.getBasktPDA(parseInt(basktName));
-      return this.getBasktById(basktId.toString(), options);
+      return this.getBasktByAddress(basktId.toString(), options);
     } catch (error) {
       const querierError = handleQuerierError(error);
       return {
@@ -183,41 +189,13 @@ export class BasktQuerier {
    */
   async getBasktNAV(basktId: string): Promise<QueryResult<BasktNAV>> {
     try {
-      const [onchainBaskt, allAssetsResult] = await Promise.all([
-        this.getBasktFromOnchain(basktId),
-        this.assetQuerier.getAllAssets({
-          withConfig: true,
-        }),
-      ]);
-
-
-      if (!onchainBaskt) {
-        return {
-          success: false,
-          message: 'Baskt not found',
-        };
-      }
-
-      // Create asset lookup map using asset.assetAddress as key
-      const assetLookup = new Map<string, any>();
-      if (allAssetsResult.success && allAssetsResult.data) {
-        allAssetsResult.data.forEach((asset: any) => {
-          if (asset && asset.assetAddress) {
-            assetLookup.set(asset.assetAddress, asset);
-          }
-        });
-      }
-
-      const nav = this.computeNav(onchainBaskt, assetLookup);
-
-      const result: QueryResult<BasktNAV> = {
+      const basktMetadata = await this.getBasktByAddress(basktId);
+      return {
         success: true,
         data: {
-          nav: nav.toNumber(),
+          nav: basktMetadata.data?.price || 0,
         },
       };
-
-      return result;
     } catch (error) {
       console.error('Error fetching baskt NAV:', error);
       const querierError = handleQuerierError(error);
@@ -229,9 +207,101 @@ export class BasktQuerier {
     }
   }
 
-  private computeNav(onchainBaskt: OnchainBasktAccount, assetLookup: Map<string, any>) {
+  async getBasktByAssetId(assetId: string): Promise<QueryResult<BasktMetadata[]>> {
+    const basktsForAssets = await BasktMetadataModel.find({
+      currentAssetConfigs: {
+        $elemMatch: {
+          assetId: assetId,
+        },
+      },
+    }).lean<BasktMetadata[]>();
+
+    return {
+      success: true,
+      data: basktsForAssets,
+    };
+  }
+
+  /**
+   * Resync baskt metadata from on-chain data
+   */
+  async resyncBasktMetadata(basktId: string): Promise<void> {
+    try {
+      const basktAccount = await this.basktClient.getBasktAccount(new PublicKey(basktId));
+
+      // Get asset metadata to map assetObjectIds using metadata manager directly
+      const assetAddresses = basktAccount.currentAssetConfigs.map(config => config.assetId.toString());
+      const assetMetadatas = await metadataManager.getAllAssets();
+      
+      // Create a map of asset address to asset metadata ID
+      const assetIdMap = new Map<string, string>();
+      assetMetadatas.forEach(asset => {
+        if (assetAddresses.includes(asset.assetAddress)) {
+          assetIdMap.set(asset.assetAddress, asset._id?.toString() || '');
+        }
+      });
+
+      // Create new baskt metadata entry with current timestamp
+      await metadataManager.updateBaskt(basktId, {
+        uid: toNumber(basktAccount.uid),
+        status: basktAccount.status,
+        isPublic: basktAccount.isPublic,
+        openPositions: toNumber(basktAccount.openPositions),
+        lastRebalanceTime: toNumber(basktAccount.lastRebalanceTime),
+        baselineNav: basktAccount.baselineNav.toString(),
+        rebalancePeriod: toNumber(basktAccount.rebalancePeriod),
+        config: {
+          openingFeeBps: basktAccount.config.openingFeeBps ? toNumber(basktAccount.config.openingFeeBps) : undefined,
+          closingFeeBps: basktAccount.config.closingFeeBps ? toNumber(basktAccount.config.closingFeeBps) : undefined,
+          liquidationFeeBps: basktAccount.config.liquidationFeeBps ? toNumber(basktAccount.config.liquidationFeeBps) : undefined,
+          minCollateralRatioBps: basktAccount.config.minCollateralRatioBps ? toNumber(basktAccount.config.minCollateralRatioBps) : undefined,
+          liquidationThresholdBps: basktAccount.config.liquidationThresholdBps ? toNumber(basktAccount.config.liquidationThresholdBps) : undefined,
+        },
+        fundingIndex: {
+          cumulativeIndex: basktAccount.fundingIndex.cumulativeIndex.toString(),
+          lastUpdateTimestamp: toNumber(basktAccount.fundingIndex.lastUpdateTimestamp),
+          currentRate: basktAccount.fundingIndex.currentRate.toString(),
+        },
+        rebalanceFeeIndex: {
+          cumulativeIndex: basktAccount.rebalanceFeeIndex.cumulativeIndex.toString(),
+          lastUpdateTimestamp: toNumber(basktAccount.rebalanceFeeIndex.lastUpdateTimestamp),
+        },
+        currentAssetConfigs: basktAccount.currentAssetConfigs.map(config => {
+          const assetAddress = config.assetId.toString();
+          const assetObjectId = assetIdMap.get(assetAddress);
+          
+          if (!assetObjectId) {
+            console.warn(`Asset metadata not found for asset: ${assetAddress}`);
+          }
+          
+          return {
+            assetObjectId: assetObjectId || '', // Use empty string if not found, but log warning
+            assetId: assetAddress,
+            direction: config.direction,
+            weight: toNumber(config.weight),
+            baselinePrice: config.baselinePrice.toString(),
+          };
+        }),
+        updatedAt: new Date(),
+      });
+      
+      console.log(`Baskt metadata resynced for baskt: ${basktId}`);
+    } catch (error) {
+      console.error('Failed to resync baskt metadata:', error);
+      throw error;
+    }
+  }
+
+  private computeNav(basktMetadata: BasktMetadata, assetLookup: Map<string, any>) {
+    const baselineAssetConfigs = basktMetadata.currentAssetConfigs.map((asset: any) => ({
+      assetId: new PublicKey(asset.assetId),
+      weight: asset.weight,
+      direction: asset.direction,
+      baselinePrice: new BN(asset.baselinePrice),
+    }));
+
     const currentAssetConfigs =
-      onchainBaskt.currentAssetConfigs?.map((asset: any) => {
+      basktMetadata.currentAssetConfigs?.map((asset: any) => {
         const assetId = asset.assetId;
         const fetchedAsset = assetLookup.get(assetId.toString());
 
@@ -244,18 +314,19 @@ export class BasktQuerier {
         return assetData;
       }) || [];
 
-
     return calculateNav(
-      onchainBaskt.currentAssetConfigs,
+      baselineAssetConfigs,
       currentAssetConfigs,
-      new BN(onchainBaskt?.baselineNav || 100 * 1e6),
+      new BN(basktMetadata?.baselineNav || 100 * 1e6),
     );
   }
 
   // MongoDB data fetching methods
-  private async getBasktConfigsFromMongoDB(): Promise<any[]> {
+  private async getBasktConfigsFromMongoDB(): Promise<BasktMetadata[]> {
     try {
-      const basktConfigs = await BasktMetadataModel.find().sort({ createdAt: -1 });
+      const basktConfigs = await BasktMetadataModel.find()
+        .sort({ createdAt: -1 })
+        .lean<BasktMetadata[]>();
       return basktConfigs;
     } catch (error) {
       throw createQuerierError(
@@ -266,122 +337,53 @@ export class BasktQuerier {
       );
     }
   }
-
-  private async getBasktConfigByIdFromMongoDB(basktId: string): Promise<any> {
-    try {
-      const basktMetadata = await BasktMetadataModel.findOne({ basktId }).exec();
-      return basktMetadata;
-    } catch (error) {
-      throw createQuerierError(
-        'Failed to fetch baskt config by ID from MongoDB',
-        'MONGODB_ERROR',
-        500,
-        error,
-      );
-    }
-  }
-
-  // Onchain data fetching methods
-  private async getBasktsFromOnchain(hidePrivateBaskts: boolean): Promise<any[]> {
-    try {
-      const onchainBaskts = await this.basktClient.getAllBaskts();
-      return onchainBaskts.filter((baskt) => !hidePrivateBaskts || baskt.isPublic);
-    } catch (error) {
-      throw createQuerierError('Failed to fetch baskts from onchain', 'ONCHAIN_ERROR', 500, error);
-    }
-  }
-
-  private async getBasktFromOnchain(basktId: string): Promise<any> {
-    try {
-      return this.basktClient.getBasktAccount(new PublicKey(basktId));
-    } catch (error) {
-      throw createQuerierError('Failed to fetch baskt from onchain', 'ONCHAIN_ERROR', 500, error);
-    }
-  }
-
   // Data combination methods
   private async combineBasktData(
-    onchainBaskt: OnchainBasktAccount,
-    basktMetadata: any,
+    basktMetadata: BasktMetadata,
     assetLookup: Map<string, any>,
     performance: BasktPerformance | null,
   ): Promise<CombinedBaskt | undefined> {
-    if (!onchainBaskt && !basktMetadata) {
+    if (!basktMetadata) {
       return undefined;
     }
 
-    // Get assets for this baskt using the same logic as the original
-    const currentAssetConfigs =
-      onchainBaskt?.currentAssetConfigs || onchainBaskt?.currentAssetConfigs;
-
     const assets =
-      currentAssetConfigs?.map((asset: any) => {
+      basktMetadata?.currentAssetConfigs?.map((asset: any) => {
         const assetId = asset.assetId.toString();
         const fetchedAsset = assetLookup.get(assetId);
 
         const assetData = {
           ...(fetchedAsset || {}),
-          weight: (asset.weight.toNumber() * 100) / 10_000,
+          weight: (asset.weight * 100) / 10_000,
           direction: asset.direction,
           id: assetId,
-          baselinePrice: asset.baselinePrice.toNumber(),
+          baselinePrice: new BN(asset.baselinePrice),
           volume24h: 0,
           marketCap: 0,
         };
         return assetData;
       }) || [];
 
-    const basktId =
-      basktMetadata?.basktId?.toString() || onchainBaskt?.basktId?.toString();
-
-    // Calculate NAV with proper logic from the original
     let price = new BN(0);
-    const status = onchainBaskt?.status;
-    const isActive = status === BasktStatus.Active;
 
     try {
-      price = this.computeNav(onchainBaskt, assetLookup);
+      price = this.computeNav(basktMetadata, assetLookup);
     } catch (error) {
       //TODO nshmadhani: handle this error
       //console.error('Error calculating NAV:', error);
       price = new BN(0);
     }
 
-    // Build final result with proper account structure conversion
-    const account = (onchainBaskt || {}) as OnchainBasktAccount;
-
     return {
-      _id: basktMetadata?._id,
-      basktId,
-      name: basktMetadata?.name || '',
-      creator: basktMetadata?.creator || '',
-      txSignature: basktMetadata?.txSignature,
-      assets,
-      totalAssets: assets.length,
-      price: price.toNumber(),
+      ...basktMetadata,
+      assets: assets.map((asset) => ({
+        ...asset,
+        baselinePrice: asset.baselinePrice.toString(),
+      })),
+      price: toNumber(price),
       change24h: 0,
       aum: 0,
       sparkline: [],
-      account: {
-        ...account,
-        fundingIndex: {
-          cumulativeIndex: account?.fundingIndex?.cumulativeIndex?.toString() || '0',
-          lastUpdateTimestamp: account?.fundingIndex?.lastUpdateTimestamp?.toString() || '0',
-          currentRate: account?.fundingIndex?.currentRate?.toString() || '0',
-        },
-        basktRebalancePeriod: account?.basktRebalancePeriod?.toString() || '0',
-        lastRebalanceTime: account?.lastRebalanceTime?.toString() || '',
-        baselineNav: account?.baselineNav?.toString() || '0',
-        currentAssetConfigs:
-          account?.currentAssetConfigs?.map((asset: any) => ({
-            ...asset,
-            weight: asset?.weight?.toString() || '0',
-            baselinePrice: asset?.baselinePrice?.toString() || '0',
-          })) || [],
-        isActive: isActive,
-      },
-      creationDate: basktMetadata?.creationDate || new Date().toISOString(),
-      priceHistory: { daily: [] }, // Placeholder
       performance: performance || {
         daily: 0,
         weekly: 0,
@@ -389,5 +391,58 @@ export class BasktQuerier {
         year: 0,
       },
     };
+  }
+
+  // Rebalance request methods
+  async createRebalanceRequest(rebalanceRequest: RebalanceRequestMetadata): Promise<void> {
+    await RebalanceRequestModel.create(rebalanceRequest);
+  }
+
+  // Rebalance history methods
+  async createRebalanceHistory(rebalanceHistory: Omit<BasktRebalanceHistory, '_id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+    await BasktRebalanceHistoryModel.create(rebalanceHistory);
+  }
+
+  async getRebalanceHistory(basktId: string, limit: number = 50): Promise<QueryResult<BasktRebalanceHistory[]>> {
+    try {
+      const history = await BasktRebalanceHistoryModel
+        .find({ basktId })
+        .sort({ timestamp: -1 })
+        .limit(limit)
+        .lean()
+        .exec();
+
+      return {
+        success: true,
+        data: history as BasktRebalanceHistory[],
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to get rebalance history',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  async getLatestRebalance(basktId: string): Promise<QueryResult<BasktRebalanceHistory | null>> {
+    try {
+      const latest = await BasktRebalanceHistoryModel
+        .findOne({ basktId })
+        .sort({ timestamp: -1 })
+        .lean()
+        .exec();
+
+      return {
+        success: true,
+        data: latest as BasktRebalanceHistory | null,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to get latest rebalance',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   }
 }

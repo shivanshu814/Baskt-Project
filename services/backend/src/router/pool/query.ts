@@ -1,5 +1,5 @@
 import { publicProcedure } from '../../trpc/trpc';
-import { querier } from '../../utils/querier';
+import { querier } from '../../utils/';
 
 export const getLiquidityPool = publicProcedure.query(async () => {
   try {

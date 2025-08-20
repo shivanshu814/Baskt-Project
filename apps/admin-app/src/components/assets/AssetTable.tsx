@@ -1,21 +1,21 @@
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuTrigger,
+  Loading,
   TableCell,
   TableRow,
-  Loading,
 } from '@baskt/ui';
 import { MoreHorizontal } from 'lucide-react';
 import { ASSET_TABLE_CONFIG } from '../../config/assets';
-import { AssetTableCell } from './AssetTableCell';
 import { AssetTableProps } from '../../types/assets';
+import { AssetTableCell } from './AssetTableCell';
 
 export function AssetTable({ assets, isLoading, onViewPrices, onEdit, onDelete }: AssetTableProps) {
   if (isLoading) {
     return (
-      <TableRow>
+      <TableRow key="loading">
         <TableCell colSpan={ASSET_TABLE_CONFIG.length + 1} className="h-32">
           <div className="flex items-center justify-center">
             <Loading />
@@ -25,9 +25,9 @@ export function AssetTable({ assets, isLoading, onViewPrices, onEdit, onDelete }
     );
   }
 
-  if (assets.length === 0) {
+  if (assets?.length === 0) {
     return (
-      <TableRow>
+      <TableRow key="empty">
         <TableCell colSpan={ASSET_TABLE_CONFIG.length + 1} className="h-32">
           <div className="flex items-center justify-center">
             <Loading />
@@ -36,12 +36,11 @@ export function AssetTable({ assets, isLoading, onViewPrices, onEdit, onDelete }
       </TableRow>
     );
   }
-
 
   return (
     <>
-      {assets.map((asset) => (
-        <TableRow key={asset.account.address.toString()}>
+      {assets?.map((asset) => (
+        <TableRow key={asset._id.toString()}>
           {ASSET_TABLE_CONFIG.map((header) => (
             <AssetTableCell key={header.id} asset={asset} id={header.id} />
           ))}

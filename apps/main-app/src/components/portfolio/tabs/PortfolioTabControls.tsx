@@ -2,13 +2,7 @@
 
 import { Button } from '@baskt/ui';
 import { BarChart3, Briefcase, Clock, History } from 'lucide-react';
-
-export type PortfolioTabType = 'positions' | 'baskts' | 'open-orders' | 'order-history';
-
-export interface PortfolioTabControlsProps {
-  activeTab: PortfolioTabType;
-  onTabChange: (tab: PortfolioTabType) => void;
-}
+import { PortfolioTabControlsProps } from '../../../types/portfolio';
 
 export const PortfolioTabControls = ({ activeTab, onTabChange }: PortfolioTabControlsProps) => {
   return (

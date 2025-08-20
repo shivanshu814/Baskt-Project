@@ -89,7 +89,7 @@ export function useVaultExposure() {
     isLoading,
     error,
     refetch,
-  } = trpc.metrics.getOpenInterestForBasktsWithPositions.useQuery(undefined, {
+  } = trpc.metrics.getTopBasktsWithVolume.useQuery(undefined, {
     refetchInterval: REFETCH_INTERVAL,
     staleTime: STALE_TIME,
   });

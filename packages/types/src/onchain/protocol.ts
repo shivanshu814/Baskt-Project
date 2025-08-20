@@ -59,6 +59,8 @@ export interface OnchainProtocolConfig {
   basktCreationFeeLamports: BN;
   /** Treasury cut in basis points */
   treasuryCutBps: BN;
+  /** Funding cut in basis points */
+  fundingCutBps: BN;
 }
 
 /**

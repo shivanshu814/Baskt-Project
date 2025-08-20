@@ -4,11 +4,10 @@ import { handleQuerierError } from '../utils/error-handling';
 import { BaseClient } from '@baskt/sdk';
 import { CombinedPosition } from '../types/position';
 import BN from 'bn.js';
-
-// Fee constants from the program
-const OPENING_FEE_BPS = 10; // 0.1%
-const CLOSING_FEE_BPS = 10; // 0.1%
-const BPS_DIVISOR = 10000; // 100%
+import { PositionMetadata } from '../types';
+import { PositionStatus } from '@baskt/types';
+import { AssetQuerier } from './asset.querier';
+import { BasktQuerier } from './baskt.querier';
 
 /**
  * Position Querier
@@ -18,8 +17,18 @@ const BPS_DIVISOR = 10000; // 100%
  * It has methods to fetch all positions and combine data from multiple sources.
  */
 export class PositionQuerier {
+
   private basktClient: BaseClient;
-  constructor(basktClient: BaseClient) {
+  public static instance: PositionQuerier;
+
+  public static getInstance(basktClient: BaseClient): PositionQuerier {
+    if (!PositionQuerier.instance) {
+      PositionQuerier.instance = new PositionQuerier(basktClient);
+    }
+    return PositionQuerier.instance;
+  }
+
+  private constructor(basktClient: BaseClient) {
     this.basktClient = basktClient;
   }
 
@@ -41,57 +50,31 @@ export class PositionQuerier {
     return '0';
   }
 
-  /**
-   * Calculate fees for a position
-   */
-  private calculateFees(usdcSize: string): number {
-    const totalFeeBps = OPENING_FEE_BPS + CLOSING_FEE_BPS;
-    const feeRate = totalFeeBps / BPS_DIVISOR;
-    const positionValue = new BN(usdcSize || '0').toNumber();
-    return positionValue * feeRate;
-  }
 
   /**
    * Get all positions with optional filters
-   */
+   */ 
   async getPositions(options: PositionOptions = {}): Promise<QueryResult<CombinedPosition[]>> {
     try {
-      const onchainPositions = await this.basktClient.getAllPositions();
 
       // Build MongoDB filter
       const filter: any = {};
-      if (options.basktId) filter.basktId = options.basktId;
-      if (options.assetId) filter.assetId = options.assetId;
-      if (options.userId) filter.owner = { $regex: options.userId, $options: 'i' };
+      if (options.basktId) filter.basktAddress = options.basktId;
+      if (options.userId) filter.owner = options.userId;
       if (typeof options.isActive === 'boolean') {
-        filter.status = options.isActive ? 'OPEN' : 'CLOSED';
+        filter.status = options.isActive ? PositionStatus.OPEN : PositionStatus.CLOSED;
       }
 
-      const positionMetadatas = await PositionMetadataModel.find(filter);
+      const positionMetadatas = await PositionMetadataModel.find(filter).lean<PositionMetadata[]>();
       // Combine onchain and metadata positions
-      const combinedPositions = onchainPositions
-        .map((onchainPosition) => {
-          const meta = positionMetadatas.find(
-            (m: any) =>
-              m.positionPDA.toLowerCase() === onchainPosition.positionPDA.toString().toLowerCase(),
-          );
-          return this.convertPosition(onchainPosition, meta);
-        })
-        .filter((position): position is CombinedPosition => position !== null);
-
-      // Also include position metadata that don't have corresponding on-chain positions
-      const onchainPositionPDAs = onchainPositions.map((position) =>
-        position.positionPDA.toString().toLowerCase(),
-      );
-      const metadataOnlyPositions = positionMetadatas
-        .filter((meta: any) => !onchainPositionPDAs.includes(meta.positionPDA.toLowerCase()))
-        .map((meta: any) => this.convertPosition(null, meta))
-        .filter((position): position is CombinedPosition => position !== null);
-
-      const allPositions = [...combinedPositions, ...metadataOnlyPositions];
+      const combinedPositions = positionMetadatas
+        .map((positionMetadata) => {
+          return this.convertPosition(positionMetadata);
+        });
+ 
       const result: QueryResult<CombinedPosition[]> = {
         success: true,
-        data: allPositions,
+        data: combinedPositions,
       };
 
       return result;
@@ -105,66 +88,46 @@ export class PositionQuerier {
     }
   }
 
-  private convertPosition(
-    onchainPosition: any | null,
-    positionMetadata: any,
-  ): CombinedPosition | null {
-    if (!positionMetadata) return null;
+  async getPositionByAssetId(assetId: string, positionStatus: PositionStatus = PositionStatus.OPEN): Promise<QueryResult<CombinedPosition[]>> {
+    const basktAssetResult = await BasktQuerier.getInstance(this.basktClient).getBasktByAssetId(assetId);
 
-    if (!onchainPosition) {
-      const usdcSize = this.calculateUsdcSize(positionMetadata);
-      const fees = this.calculateFees(usdcSize);
-
+    if (!basktAssetResult.data) {
       return {
-        positionId: positionMetadata.positionId,
-        positionPDA: positionMetadata.positionPDA,
-        basktId: positionMetadata.basktId,
-        openOrder: positionMetadata.openOrder,
-        closeOrder: positionMetadata.closeOrder,
-        openPosition: positionMetadata.openPosition,
-        closePosition: positionMetadata.closePosition,
-        positionStatus: positionMetadata.status,
-        entryPrice: positionMetadata.entryPrice || '',
-        exitPrice: positionMetadata.exitPrice || '',
-        owner: positionMetadata.owner,
-        status: positionMetadata.status,
-        size: positionMetadata.size || '0',
-        remainingSize: positionMetadata.remainingSize || positionMetadata.size || '0',
-        collateral: positionMetadata.collateral || '0',
-        isLong: positionMetadata.isLong,
-        usdcSize: usdcSize,
-        fees: fees,
-        partialCloseHistory: positionMetadata.partialCloseHistory || [],
-        createdAt: positionMetadata.createdAt,
-        updatedAt: positionMetadata.updatedAt,
-      } as CombinedPosition;
+        success: true,
+        data: []
+      };
     }
 
-    const usdcSize = this.calculateUsdcSize(onchainPosition);
-    const fees = this.calculateFees(usdcSize);
+    const positionResults = await Promise.all(
+      basktAssetResult.data.map(baskt => 
+        this.getPositions({ basktId: baskt.basktId, isActive:true })
+      )
+    );
+
+    const combinedPositions = positionResults
+      .filter(result => result.success && result.data)
+      .flatMap(result => result.data!);
 
     return {
-      positionId: onchainPosition.positionId?.toString(),
-      positionPDA: onchainPosition.positionPDA?.toString(),
-      basktId: onchainPosition.basktId,
-      openOrder: positionMetadata?.openOrder,
-      closeOrder: positionMetadata?.closeOrder,
-      openPosition: positionMetadata?.openPosition,
-      closePosition: positionMetadata?.closePosition,
-      positionStatus: onchainPosition.status,
-      entryPrice: onchainPosition.entryPrice?.toString() || '',
-      exitPrice: onchainPosition.exitPrice?.toString() || '',
-      owner: onchainPosition.owner?.toString(),
-      status: onchainPosition.status,
-      size: onchainPosition.size?.toString(),
-      remainingSize: positionMetadata?.remainingSize || onchainPosition.size?.toString(),
-      collateral: onchainPosition.collateral?.toString(),
-      isLong: onchainPosition.isLong,
-      usdcSize: usdcSize,
-      fees: fees,
-      partialCloseHistory: positionMetadata?.partialCloseHistory || [],
-      createdAt: positionMetadata?.createdAt,
-      updatedAt: positionMetadata?.updatedAt,
-    } as CombinedPosition;
+      success: true,
+      data: combinedPositions
+    };
   }
+
+  async getPositionByAddress(address: string): Promise<QueryResult<any>> {
+    const position = await PositionMetadataModel.findOne({ positionPDA: address });
+    return {
+      success: true,
+      data: position,
+    };
+  }
+
+  private convertPosition(positionMetadata: PositionMetadata): CombinedPosition {
+      const usdcSize = this.calculateUsdcSize(positionMetadata);
+
+      return {
+        ...positionMetadata,
+        usdcSize: usdcSize
+      } as CombinedPosition;
+    }
 }

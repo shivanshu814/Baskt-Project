@@ -12,6 +12,7 @@ export default createStandaloneConfig({
   ],
   additionalOptions: {
     // Generate types for this package as it's a library
-    dts: true
+    dts: true,
+    minify: false
   }
 });

@@ -79,7 +79,6 @@ crate::impl_bps_setter!(
     SetOpeningFeeBps<'info>,
     opening_fee_bps,
     MAX_FEE_BPS,
-    OpeningFeeUpdatedEvent,
     old_opening_fee_bps,
     new_opening_fee_bps
 );
@@ -89,7 +88,6 @@ crate::impl_bps_setter!(
     SetClosingFeeBps<'info>,
     closing_fee_bps,
     MAX_FEE_BPS,
-    ClosingFeeUpdatedEvent,
     old_closing_fee_bps,
     new_closing_fee_bps
 );
@@ -99,7 +97,6 @@ crate::impl_bps_setter!(
     SetLiquidationFeeBps<'info>,
     liquidation_fee_bps,
     MAX_FEE_BPS,
-    LiquidationFeeUpdatedEvent,
     old_liquidation_fee_bps,
     new_liquidation_fee_bps
 );
@@ -145,10 +142,8 @@ pub fn set_min_collateral_ratio_bps(
     protocol.config.last_updated = clock.unix_timestamp;
     protocol.config.last_updated_by = ctx.accounts.authority.key();
 
-    emit!(MinCollateralRatioUpdatedEvent {
+    emit!(ProtocolStateUpdatedEvent {
         protocol: protocol.key(),
-        old_min_collateral_ratio_bps,
-        new_min_collateral_ratio_bps,
         updated_by: ctx.accounts.authority.key(),
         timestamp: clock.unix_timestamp,
     });
@@ -197,10 +192,8 @@ pub fn set_liquidation_threshold_bps(
     protocol.config.last_updated = clock.unix_timestamp;
     protocol.config.last_updated_by = ctx.accounts.authority.key();
 
-    emit!(LiquidationThresholdUpdatedEvent {
+    emit!(ProtocolStateUpdatedEvent {
         protocol: protocol.key(),
-        old_liquidation_threshold_bps,
-        new_liquidation_threshold_bps,
         updated_by: ctx.accounts.authority.key(),
         timestamp: clock.unix_timestamp,
     });
@@ -238,10 +231,8 @@ pub fn update_treasury(ctx: Context<UpdateTreasury>, new_treasury: Pubkey) -> Re
     protocol.treasury = new_treasury;
     let clock = Clock::get()?;
 
-    emit!(TreasuryUpdatedEvent {
+    emit!(ProtocolStateUpdatedEvent {
         protocol: protocol.key(),
-        old_treasury,
-        new_treasury,
         updated_by: ctx.accounts.authority.key(),
         timestamp: clock.unix_timestamp,
     });
@@ -281,6 +272,13 @@ pub fn set_min_liquidity(ctx: Context<SetMinLiquidity>, new_min_liquidity: u64) 
 
     protocol.config.last_updated = Clock::get()?.unix_timestamp;
     protocol.config.last_updated_by = ctx.accounts.admin.key();
+
+    // Emit event
+    emit!(ProtocolStateUpdatedEvent {
+        protocol: protocol.key(),
+        updated_by: ctx.accounts.admin.key(),
+        timestamp: Clock::get()?.unix_timestamp,
+    });
 
     msg!(
         "Min liquidity updated from {} to {}",
@@ -360,10 +358,8 @@ pub fn set_rebalance_request_fee(
     protocol.config.last_updated = clock.unix_timestamp;
     protocol.config.last_updated_by = authority.key();
 
-    emit!(RebalanceRequestFeeUpdatedEvent {
+    emit!(ProtocolStateUpdatedEvent {
         protocol: protocol.key(),
-        old_fee_lamports,
-        new_fee_lamports,
         updated_by: authority.key(),
         timestamp: clock.unix_timestamp,
     });
@@ -399,10 +395,8 @@ pub fn set_baskt_creation_fee(
     protocol.config.last_updated = clock.unix_timestamp;
     protocol.config.last_updated_by = authority.key();
 
-    emit!(BasktCreationFeeUpdatedEvent {
+    emit!(ProtocolStateUpdatedEvent {
         protocol: protocol.key(),
-        old_fee_lamports,
-        new_fee_lamports,
         updated_by: authority.key(),
         timestamp: clock.unix_timestamp,
     });
@@ -415,7 +409,6 @@ crate::impl_bps_setter!(
     SetTreasuryCutBps<'info>,
     treasury_cut_bps,
     MAX_TREASURY_CUT_BPS,
-    TreasuryCutUpdatedEvent,
     old_treasury_cut_bps,
     new_treasury_cut_bps
 );
@@ -425,7 +418,6 @@ crate::impl_bps_setter!(
     SetFundingCutBps<'info>,
     funding_cut_bps,
     BPS_DIVISOR,
-    FundingCutUpdatedEvent,
     old_funding_cut_bps,
     new_funding_cut_bps
 );

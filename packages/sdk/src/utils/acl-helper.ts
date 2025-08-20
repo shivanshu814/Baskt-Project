@@ -25,29 +25,25 @@ export function toRoleString(role: AccessControlRole): string {
   }
 }
 export function stringToRole(roleStr: string): AccessControlRole {
-  switch (roleStr) {
-    case 'AssetManager':
+  switch (roleStr.toLowerCase()) {
+    case 'assetmanager':
       return AccessControlRole.AssetManager;
-    case 'BasktManager':
+    case 'basktmanager':
       return AccessControlRole.BasktManager;
-    case 'Rebalancer':
+    case 'rebalancer':
       return AccessControlRole.Rebalancer;
-    case 'Matcher':
+    case 'matcher':
       return AccessControlRole.Matcher;
-    case 'Liquidator':
+    case 'liquidator':
       return AccessControlRole.Liquidator;
-    case 'FundingManager':
+    case 'fundingmanager':
       return AccessControlRole.FundingManager;
-    case 'ConfigManager':
+    case 'configmanager':
       return AccessControlRole.ConfigManager;
-    case 'Keeper':
+    case 'keeper':
       return AccessControlRole.Keeper;
-    case 'Owner':
-      // For Owner role, we can't actually add it as a role in the access control list
-      // but we handle it specially in the hasPermission method
-      throw new Error(
-        `Cannot add ${AccessControlRole.Owner} as a role. Owner is set during protocol initialization.`,
-      );
+    case 'owner':
+      return AccessControlRole.Owner;
     default:
       throw new Error(`Invalid role string: ${roleStr}`);
   }

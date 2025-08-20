@@ -249,6 +249,7 @@ export abstract class BaseClient {
         lastUpdatedBy: rawProtocol.config.lastUpdatedBy.toString(),
         basktCreationFeeLamports: rawProtocol.config.basktCreationFeeLamports,
         treasuryCutBps: rawProtocol.config.treasuryCutBps,
+        fundingCutBps: rawProtocol.config.fundingCutBps,
       },
       collateralMint: rawProtocol.collateralMint,
       treasury: rawProtocol.treasury,
@@ -766,11 +767,11 @@ export abstract class BaseClient {
       status: status,
       openPositions: new BN(baskt.openPositions),
       config: {
-        openingFeeBps: (baskt.config.flags & 0x01) !== 0 ? new BN(baskt.config.openingFeeBps) : null,
-        closingFeeBps: (baskt.config.flags & 0x02) !== 0 ? new BN(baskt.config.closingFeeBps) : null,
-        liquidationFeeBps: (baskt.config.flags & 0x04) !== 0 ? new BN(baskt.config.liquidationFeeBps) : null,
-        minCollateralRatioBps: (baskt.config.flags & 0x08) !== 0 ? new BN(baskt.config.minCollateralRatioBps) : null,
-        liquidationThresholdBps: (baskt.config.flags & 0x10) !== 0 ? new BN(baskt.config.liquidationThresholdBps) : null,
+        openingFeeBps: (baskt.config.flags & 0x01) != 0 ? new BN(baskt.config.openingFeeBps) : null,
+        closingFeeBps: (baskt.config.flags & 0x02) != 0 ? new BN(baskt.config.closingFeeBps) : null,
+        liquidationFeeBps: (baskt.config.flags & 0x04) != 0 ? new BN(baskt.config.liquidationFeeBps) : null,
+        minCollateralRatioBps: (baskt.config.flags & 0x08) != 0 ? new BN(baskt.config.minCollateralRatioBps) : null,
+        liquidationThresholdBps: (baskt.config.flags & 0x10) != 0 ? new BN(baskt.config.liquidationThresholdBps) : null,
       },
       fundingIndex: {
         cumulativeIndex: new BN(baskt.fundingIndex.cumulativeIndex),
@@ -1136,10 +1137,9 @@ export abstract class BaseClient {
     const poolData = await this.getLiquidityPool();
 
     // Get the token vault account to find the mint
-    const tokenVaultAccount = await getAccount(this.connection, tokenVault);
     const treasuryTokenAccount = await this.getUserTokenAccount(
       protocol.treasury,
-      tokenVaultAccount.mint,
+      USDC_MINT,
     );
 
     // Get LP mint from pool data
@@ -1181,7 +1181,7 @@ export abstract class BaseClient {
    * @param requestId The withdrawal request ID
    * @returns The withdraw request PDA
    */
-  public  getWithdrawRequestPDA(requestId: BN | number): PublicKey {
+  public getWithdrawRequestPDA(requestId: BN | number): PublicKey {
     const requestIdBN = new BN(requestId);
     const liquidityPool = this.liquidityPoolPDA;
     const [withdrawRequest] = PublicKey.findProgramAddressSync(
@@ -1189,6 +1189,31 @@ export abstract class BaseClient {
       this.program.programId,
     );
     return withdrawRequest;
+  }
+
+  /**
+   * Get a withdrawal request account by its ID
+   * @param requestId The withdrawal request ID
+   * @param commitment Commitment level for the account fetch
+   * @returns The withdrawal request account data
+   */
+  public async getWithdrawalRequest(requestId: BN | number, commitment: Commitment = 'confirmed') {
+    const withdrawRequestPDA = this.getWithdrawRequestPDA(requestId);
+    
+    try {
+      const withdrawRequest = await this.program.account.withdrawRequest.fetch(
+        withdrawRequestPDA,
+        commitment
+      );
+      
+      return {
+        ...withdrawRequest,
+        key: withdrawRequestPDA,
+      };
+    } catch (error) {
+      console.error(`Error fetching withdrawal request ${requestId}:`, error);
+      return null;
+    }
   }
 
   /**
@@ -1670,7 +1695,8 @@ export abstract class BaseClient {
     );
 
     // Get token vault for validation
-    const tokenVault = (await this.getUsdcVaultPda())[0];
+    const tokenVault = (await this.getUsdcVaultPda())[0];    
+
 
     const orderEscrow = await this.getOrderEscrowPDA(params.orderOwner || this.getPublicKey());
 

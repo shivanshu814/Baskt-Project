@@ -1,25 +1,12 @@
 import { QueryResult } from '../models/types';
+import { LiquidityPoolMetadata } from './models/LiquidityPool';
 
 /**
  * Liquidity Pool Data Structure
  */
-export interface LiquidityPool {
-  totalLiquidity: string;
-  totalShares: string;
-  depositFeeBps: number;
-  withdrawalFeeBps: number;
-  minDeposit: string;
-  lastUpdateTimestamp: number;
-  lpMint: string;
+export interface LiquidityPool extends LiquidityPoolMetadata {
   tokenVault: string;
-  bump: number;
-  withdrawQueueHead: number;
-  withdrawQueueTail: number;
-  pendingLpTokens: string;
-  withdrawRateLimitBps: number;
-  rateLimitPeriodSecs: number;
-  lastRateLimitReset: number;
-  withdrawnInWindow: string;
+  minDeposit: string;
 }
 
 /**

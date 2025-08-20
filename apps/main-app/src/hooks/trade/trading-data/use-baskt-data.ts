@@ -4,7 +4,7 @@ import { trpc } from '../../../lib/api/trpc';
 import { processBasktData } from '../../../utils/baskt/baskt';
 
 export const useBasktData = (
-  basktName: string,
+  basktId: string,
   setBaskt: (baskt: any) => void,
   setIsLoading: (loading: boolean) => void,
   setIsNewlyCreated: (created: boolean) => void,
@@ -17,13 +17,13 @@ export const useBasktData = (
     isError: isBasktDataError,
     isLoading: isBasktDataLoading,
     refetch,
-  } = trpc.baskt.getBasktMetadataByName.useQuery(
-    { basktName, withPerformance: true },
+  } = trpc.baskt.getBasktMetadataByAddress.useQuery(
+    { basktId, withPerformance: true },
     {
       refetchOnMount: true,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      enabled: !!basktName,
+      enabled: !!basktId,
       retry: 3,
       retryDelay: 2000,
     },
@@ -31,13 +31,11 @@ export const useBasktData = (
 
   const { data: basktNavData, isSuccess: isBasktNavDataLoaded } = trpc.baskt.getBasktNAV.useQuery(
     {
-      basktId:
-        basktInfo?.success && 'data' in basktInfo && basktInfo.data ? basktInfo.data.basktId : '',
+      basktId,
     },
     {
       refetchInterval: 2 * 1000,
-      enabled:
-        basktInfo?.success && 'data' in basktInfo && basktInfo.data && !!basktInfo.data.basktId,
+      enabled: !!basktId,
     },
   );
 
@@ -70,18 +68,15 @@ export const useBasktData = (
     if (isBasktDataLoaded) {
       if (basktInfo?.success && 'data' in basktInfo) {
         try {
-          const processedBaskt = processBasktData({
-            success: true,
-            data: [basktInfo.data as any],
-          })[0];
-
-          if (processedBaskt) {
-            setBaskt(processedBaskt);
+          const processedBaskt = processBasktData([basktInfo.data as any]);
+          if (processedBaskt[0]) {
+            setBaskt(processedBaskt[0]);
             setIsNewlyCreated(false);
           } else {
             toast.error('Failed to load baskt data');
           }
         } catch (error) {
+          console.error('Error processing baskt data:', error);
           toast.error('Failed to load baskt data');
         } finally {
           setIsLoading(false);

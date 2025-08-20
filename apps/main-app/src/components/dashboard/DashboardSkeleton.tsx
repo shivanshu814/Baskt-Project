@@ -13,7 +13,7 @@ export const DashboardSkeleton = () => {
           {/* Left Column - Stats Cards */}
           <div className="lg:col-span-3 space-y-4">
             {/* Total Portfolio Value Card */}
-            <div className="bg-gray border-primary/30 border border rounded-lg p-6 hover:shadow-lg">
+            <div className="bg-gray border-muted border border rounded-lg p-6 hover:shadow-lg">
               <div className="space-y-4">
                 <div className="h-4 w-32 bg-muted animate-pulse rounded"></div>
                 <div className="h-8 w-24 bg-muted animate-pulse rounded"></div>
@@ -25,7 +25,7 @@ export const DashboardSkeleton = () => {
             </div>
 
             {/* Funds Card */}
-            <div className="bg-gray border-primary/30 border border rounded-lg p-6 hover:shadow-lg">
+            <div className="bg-gray border-muted border border rounded-lg p-6 hover:shadow-lg">
               <div className="space-y-4">
                 <div className="h-4 w-16 bg-muted animate-pulse rounded"></div>
                 <div className="grid grid-cols-2 gap-3">
@@ -43,7 +43,7 @@ export const DashboardSkeleton = () => {
           </div>
 
           {/* Right Column - Wallet Breakdown */}
-          <div className="lg:col-span-7 bg-gray rounded-lg p-6 border border-primary/30">
+          <div className="lg:col-span-7 bg-gray rounded-lg p-6 border border-muted">
             <div className="space-y-4">
               <div className="h-6 w-40 bg-muted rounded"></div>
               <div className="h-48 w-full bg-muted rounded"></div>
@@ -53,7 +53,7 @@ export const DashboardSkeleton = () => {
 
         {/* Tab Controls */}
         <div className="mb-2">
-          <div className="flex bg-primary/10 border border-primary/30 rounded-lg p-1 gap-1 w-fit">
+          <div className="flex bg-muted border border-muted rounded-lg p-1 gap-1 w-fit">
             {Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={index}
@@ -65,7 +65,7 @@ export const DashboardSkeleton = () => {
 
         {/* Tab Content */}
         <div className="mb-8">
-          <div className="bg-gray border-primary/30 border border rounded-lg p-6">
+          <div className="bg-gray border-muted border border rounded-lg p-6">
             <div className="space-y-4">
               <div className="h-6 w-32 bg-muted animate-pulse rounded"></div>
               <div className="space-y-3">

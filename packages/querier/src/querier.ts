@@ -24,6 +24,7 @@ import { WithdrawQueueQuerier } from './queriers/withdraw-queue.querier';
 // Import metadata manager
 import { BaseClient } from '@baskt/sdk';
 import { metadataManager } from './models/metadata-manager';
+import { ProtocolQuerier } from './queriers/protocol.querier';
 
 /**
  * Querier
@@ -54,23 +55,24 @@ export class Querier {
   public pool: PoolQuerier;
   public feeEvent: FeeEventQuerier;
   public withdrawQueue: WithdrawQueueQuerier;
-
+  public protocol: ProtocolQuerier;
   // Metadata manager
   public metadata = metadataManager;
 
   private constructor(basktClient: BaseClient) {
     this.basktClient = basktClient;
-    this.asset = new AssetQuerier(basktClient);
-    this.price = new PriceQuerier(basktClient);
-    this.baskt = new BasktQuerier(this.asset, this.price, basktClient);
-    this.order = new OrderQuerier(basktClient);
-    this.position = new PositionQuerier(basktClient);
+    this.asset = AssetQuerier.getInstance(basktClient);
+    this.price = PriceQuerier.getInstance(basktClient);
+    this.baskt = BasktQuerier.getInstance(basktClient);
+    this.order = OrderQuerier.getInstance(basktClient); 
+    this.position = PositionQuerier.getInstance(basktClient);
+    this.protocol = ProtocolQuerier.getInstance(basktClient);
+    this.feeEvent = FeeEventQuerier.getInstance();
     this.history = new HistoryQuerier();
     this.metrics = new MetricsQuerier(this.asset, this.baskt);
     this.access = new AccessQuerier();
     this.faucet = new FaucetQuerier(basktClient);
     this.pool = new PoolQuerier(basktClient);
-    this.feeEvent = new FeeEventQuerier(basktClient);
     this.withdrawQueue = new WithdrawQueueQuerier(basktClient);
   }
 

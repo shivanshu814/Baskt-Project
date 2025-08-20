@@ -25,7 +25,7 @@ export function TradingContainer({
   isBasktDataError,
   baskt,
 }: TradingPageContainerProps) {
-  const { filteredBaskts } = useBasktList();
+  const { combinedBaskts } = useBasktList();
   const { totalOpenInterest, isLoading: oiLoading } = useBasktOI(baskt?.basktId || '');
   const { totalVolume, isLoading: volumeLoading } = useBasktVolume(baskt?.basktId || '');
   const { performanceColor, performanceText, handleBasktSelect } = useMobileHeader(
@@ -33,6 +33,8 @@ export function TradingContainer({
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
+  const safeFilteredBaskts = combinedBaskts || [];
+
   const {
     isAddCollateralModalOpen,
     isCancelOrderModalOpen,
@@ -69,7 +71,7 @@ export function TradingContainer({
                 setSearchQuery={setSearchQuery}
                 selectedFilter={selectedFilter}
                 setSelectedFilter={setSelectedFilter}
-                filteredBaskts={filteredBaskts}
+                filteredBaskts={safeFilteredBaskts as any}
                 onBasktSelect={handleBasktSelect}
               />
 

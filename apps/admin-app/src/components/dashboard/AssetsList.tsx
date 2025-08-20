@@ -1,14 +1,14 @@
 'use client';
 
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@baskt/ui';
-import { AssetPriceHistoryPage } from './AssetPriceHistory';
-import { useAssets } from '../../hooks/assets/useAssets';
-import { AssetTable } from '../assets/AssetTable';
-import { ASSET_TABLE_CONFIG } from '../../config/assets';
-import { Asset } from '../../types/assets';
-import { EditAssetDialog } from '../assets/EditAssetDialog';
-import { DeleteAssetDialog } from '../assets/DeleteAssetDialog';
 import { useMemo } from 'react';
+import { ASSET_TABLE_CONFIG } from '../../config/assets';
+import { useAssets } from '../../hooks/assets/useAssets';
+import { Asset } from '../../types/assets';
+import { AssetTable } from '../assets/AssetTable';
+import { DeleteAssetDialog } from '../assets/DeleteAssetDialog';
+import { EditAssetDialog } from '../assets/EditAssetDialog';
+import { AssetPriceHistoryPage } from './AssetPriceHistory';
 
 export function AdminAssetsList() {
   const {
@@ -29,10 +29,9 @@ export function AdminAssetsList() {
     handleDeleteAsset,
   } = useAssets();
 
-  // Calculate asset counts
   const assetCounts = useMemo(() => {
     const total = assets.length;
-    const listed = assets.filter((asset: Asset) => asset.account.isActive).length;
+    const listed = assets?.filter((asset: Asset) => asset?.account?.isActive).length;
     return { total, listed };
   }, [assets]);
 

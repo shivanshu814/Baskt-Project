@@ -26,6 +26,7 @@ export function initSolanaAdapter(router: ObserverRouter) {
       'confirmed',
     );
   });
+
 }
 
 export const adapterName = EventSource.SOLANA;

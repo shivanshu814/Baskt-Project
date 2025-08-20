@@ -3,7 +3,7 @@ import {
   getOpenInterestForAllAssets,
   getOpenInterestForAsset,
   getOpenInterestForBaskt,
-  getOpenInterestForBasktsWithPositions,
+  getTopBasktsWithVolume,
 } from './oi';
 import { getVolumeForAsset, getVolumeForBaskt } from './volume';
 
@@ -13,6 +13,6 @@ export const metricsRouter = router({
   getVolumeForAsset,
   getVolumeForBaskt,
   getOpenInterestForAllAssets,
-  getOpenInterestForBasktsWithPositions,
+  getTopBasktsWithVolume
 });
 export type MetricsRouter = typeof metricsRouter;

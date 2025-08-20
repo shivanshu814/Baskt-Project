@@ -8,7 +8,7 @@ import { OrderAction, OrderType } from './order';
 
 export interface OrderCreatedEvent {
   owner: PublicKey;
-  orderId: number;
+  orderId: BN;
   basktId: PublicKey;
   notionalValue: BN;
   collateral: BN;
@@ -22,23 +22,10 @@ export interface OrderCreatedEvent {
   timestamp: BN;
 }
 
-
 export interface OrderCancelledEvent {
   owner: PublicKey;
   orderId: BN;
   basktId: PublicKey;
-  timestamp: BN;
-}
-
-export interface OrderFilledEvent {
-  owner: PublicKey;
-  orderId: BN;
-  basktId: PublicKey;
-  action: OrderAction;
-  size: BN;
-  fillPrice: BN;
-  positionId: BN | null; // For open orders
-  targetPosition: PublicKey | null; // For close orders
   timestamp: BN;
 }
 
@@ -51,7 +38,6 @@ export interface PositionOpenedEvent {
   collateral: BN;
   isLong: boolean;
   entryPrice: BN;
-  entryFundingIndex: BN;
   feeToTreasury: BN;
   feeToBlp: BN;
   timestamp: BN;
@@ -108,7 +94,14 @@ export interface FundingIndexUpdatedEvent {
   timestamp: BN;
 }
 
+export interface FundingIndexInitializedEvent {
+  basktId: PublicKey;
+  initialIndex: BN;
+  timestamp: BN;
+}
+
 export interface BasktCreatedEvent {
+  basktCreationFee: BN;
   uid: BN;
   basktId: PublicKey;
   creator: PublicKey;
@@ -128,6 +121,13 @@ export interface BasktRebalancedEvent {
   basktId: PublicKey;
   rebalanceIndex: BN;
   baselineNav: BN;
+  timestamp: BN;
+}
+
+export interface RebalanceRequestEvent {
+  rebalanceRequestFee: BN;
+  basktId: PublicKey;
+  creator: PublicKey;
   timestamp: BN;
 }
 
@@ -157,8 +157,6 @@ export interface PositionForceClosed {
   escrowReturnedToPool: BN;
   poolPayout: BN;
   badDebtAbsorbed: BN;
-  basktSettlementTimestamp: BN;
-  positionDurationSeconds: BN;
   collateralRemaining: BN;
 }
 
@@ -175,7 +173,6 @@ export interface LiquidityPoolInitializedEvent {
   usdcVault: PublicKey;
   depositFeeBps: number;
   withdrawalFeeBps: number;
-  minDeposit: BN;
   initializer: PublicKey;
   timestamp: BN;
 }
@@ -199,148 +196,10 @@ export interface LiquidityRemovedEvent {
   timestamp: BN;
 }
 
-export interface OpeningFeeUpdatedEvent {
-  protocol: PublicKey;
-  oldOpeningFeeBps: BN;
-  newOpeningFeeBps: BN;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface ClosingFeeUpdatedEvent {
-  protocol: PublicKey;
-  oldClosingFeeBps: BN;
-  newClosingFeeBps: BN;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface LiquidationFeeUpdatedEvent {
-  protocol: PublicKey;
-  oldLiquidationFeeBps: BN;
-  newLiquidationFeeBps: BN;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface MinCollateralRatioUpdatedEvent {
-  protocol: PublicKey;
-  oldMinCollateralRatioBps: BN;
-  newMinCollateralRatioBps: BN;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface LiquidationThresholdUpdatedEvent {
-  protocol: PublicKey;
-  oldLiquidationThresholdBps: BN;
-  newLiquidationThresholdBps: BN;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface TreasuryUpdatedEvent {
-  protocol: PublicKey;
-  oldTreasury: PublicKey;
-  newTreasury: PublicKey;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface MaxPriceAgeUpdatedEvent {
-  protocol: PublicKey;
-  oldMaxPriceAgeSec: number;
-  newMaxPriceAgeSec: number;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface MaxPriceDeviationUpdatedEvent {
-  protocol: PublicKey;
-  oldMaxPriceDeviationBps: BN;
-  newMaxPriceDeviationBps: BN;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface LiquidationPriceDeviationUpdatedEvent {
-  protocol: PublicKey;
-  oldLiquidationPriceDeviationBps: BN;
-  newLiquidationPriceDeviationBps: BN;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface MinLiquidityUpdatedEvent {
-  protocol: PublicKey;
-  oldMinLiquidity: BN;
-  newMinLiquidity: BN;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface TreasuryCutUpdatedEvent {
-  protocol: PublicKey;
-  oldTreasuryCutBps: BN;
-  newTreasuryCutBps: BN;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface FundingCutUpdatedEvent {
-  protocol: PublicKey;
-  oldFundingCutBps: BN;
-  newFundingCutBps: BN;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
 // Baskt Config Events
-
-export interface BasktOpeningFeeUpdatedEvent {
-  baskt: PublicKey;
-  oldOpeningFeeBps: BN | null;
-  newOpeningFeeBps: BN | null;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface BasktClosingFeeUpdatedEvent {
-  baskt: PublicKey;
-  oldClosingFeeBps: BN | null;
-  newClosingFeeBps: BN | null;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface BasktLiquidationFeeUpdatedEvent {
-  baskt: PublicKey;
-  oldLiquidationFeeBps: BN | null;
-  newLiquidationFeeBps: BN | null;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface BasktMinCollateralRatioUpdatedEvent {
-  baskt: PublicKey;
-  oldMinCollateralRatioBps: BN | null;
-  newMinCollateralRatioBps: BN | null;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
-export interface BasktLiquidationThresholdUpdatedEvent {
-  baskt: PublicKey;
-  oldLiquidationThresholdBps: BN | null;
-  newLiquidationThresholdBps: BN | null;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
 
 export interface BasktConfigUpdatedEvent {
   baskt: PublicKey;
-  oldConfig: any; // TODO: Import BasktConfig type when available
-  newConfig: any; // TODO: Import BasktConfig type when available
   updatedBy: PublicKey;
   timestamp: BN;
 }
@@ -355,11 +214,18 @@ export interface WithdrawalQueuedEvent {
 }
 
 export interface WithdrawQueueProcessedEvent {
-  liquidityPool: PublicKey;
-  keeper: PublicKey;
-  requestsProcessed: number;
-  totalAmountProcessed: BN;
+  provider: PublicKey;
+  lpTokensBurned: BN;
+  amountPaidToUser: BN;
   feesCollected: BN;
   queueTailUpdated: BN;
+}
+
+// Protocol State Events
+
+export interface ProtocolStateUpdatedEvent {
+  protocol: PublicKey;
+  updatedBy: PublicKey;
   timestamp: BN;
 }
+

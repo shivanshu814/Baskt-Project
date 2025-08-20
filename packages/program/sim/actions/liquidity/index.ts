@@ -7,4 +7,5 @@ export const liquidityHelp = `
 Liquidity Management:
   deposit-blp - Deposits USDC into the BLP pool
   withdraw-blp - Withdraws USDC from the BLP pool
+  process-withdraw - Processes a withdrawal request
 `; 

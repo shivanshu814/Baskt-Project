@@ -1,11 +1,11 @@
 import { OrderAccepted } from '@baskt/data-bus';
 import { logger } from '@baskt/data-bus';
 import BN from 'bn.js';
-import { basktClient } from '../config/client';
+import { basktClient, querierClient } from '../config/client';
 import { PublicKey } from '@solana/web3.js';
 
 export class PositionExecutor {
-  async openPosition(order: OrderAccepted): Promise<string> {
+  async openPosition(order: OrderAccepted): Promise<{txSignature: string, positionCreated: string}> {
     try {
       const positionId = basktClient.newUID();
       logger.info('Opening position', order);
@@ -17,28 +17,6 @@ export class PositionExecutor {
       // Calculate PDA for order account
       const orderPDA = await basktClient.getOrderPDA(Number(order.request.order.orderId), order.request.order.owner);
       logger.info('Calculated order PDA', { orderPDA: orderPDA.toString(), orderId: order.request.order.orderId, owner: order.request.order.owner });
-
-      // Fetch the order account on-chain
-      let orderAccount;
-      try {
-        orderAccount = await basktClient.readWithRetry(
-          () => basktClient.program.account.order.fetch(orderPDA, 'confirmed'),
-          3,   // max attempts
-          1500 // 1.5s between attempts
-        );
-        logger.info('Order account found on-chain', {
-          orderId: orderAccount.orderId,
-          status: orderAccount.status,
-        });
-      } catch (err) {
-        logger.error('Order account not found on-chain after retries', {
-          orderPDA: orderPDA.toString(),
-          error: err instanceof Error ? err.message : String(err),
-        });
-        throw new Error(
-          `Order PDA ${orderPDA.toString()} does not exist on-chain after multiple attempts. Order may not have been created yet or RPC node is out of sync.`
-        );
-      }
       
       const tx = await basktClient.openPosition({
         order: orderPDA,
@@ -50,7 +28,8 @@ export class PositionExecutor {
 
       logger.info('Position opened', { positionId: positionId.toString(), tx });
 
-      return tx;
+
+      return {txSignature: tx, positionCreated: positionId.toString()};
     } catch (error) {
       logger.error('Failed to open position', {
         orderId: order.request.order.orderId,

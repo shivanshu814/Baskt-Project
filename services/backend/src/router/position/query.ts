@@ -1,6 +1,6 @@
 import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
-import { querier } from '../../utils/querier';
+import { querier } from '../../utils/';
 import { PositionStatus } from '@baskt/types';
 
 // get all positions
@@ -27,6 +27,13 @@ export const getPositions = publicProcedure
     }
   });
 
+export const getPositionByAssetId = publicProcedure
+  .input(z.object({
+    assetId: z.string(),
+  }))
+  .query(async ({ input }) => {
+    return querier.position.getPositionByAssetId(input.assetId);
+  });
 
 
 // // get historical open interest for an asset

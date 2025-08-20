@@ -179,6 +179,9 @@ pub fn create_order(
             params.target_position.is_some(),
             PerpetualsError::InvalidTargetPosition
         );
+
+        // TODO nshmadhani / siddu: HERE
+        // Check if position size is >= than order size
     }
 
     let order = &mut ctx.accounts.order;

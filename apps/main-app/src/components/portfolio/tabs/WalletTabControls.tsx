@@ -2,13 +2,7 @@
 
 import { Button } from '@baskt/ui';
 import { Briefcase, Coins } from 'lucide-react';
-
-export type WalletTabType = 'baskts' | 'assets';
-
-export interface WalletTabControlsProps {
-  activeTab: WalletTabType;
-  onTabChange: (tab: WalletTabType) => void;
-}
+import { WalletTabControlsProps } from '../../../types/portfolio';
 
 export const WalletTabControls = ({ activeTab, onTabChange }: WalletTabControlsProps) => {
   return (

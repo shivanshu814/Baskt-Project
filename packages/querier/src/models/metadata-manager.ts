@@ -1,3 +1,5 @@
+import mongoose from 'mongoose';
+import { AssetMetadata, BasktMetadata, OrderMetadata, PositionMetadata } from '../types';
 import {
   AssetMetadataModel,
   BasktMetadataModel,
@@ -33,7 +35,7 @@ export class MetadataManager {
    */
 
   // get all assets
-  async getAllAssets(): Promise<any[]> {
+  async getAllAssets(){
     try {
       return await AssetMetadataModel.find().sort({ createdAt: -1 });
     } catch (error) {
@@ -42,7 +44,7 @@ export class MetadataManager {
   }
 
   // find asset by address
-  async findAssetByAddress(assetAddress: string): Promise<any> {
+  async findAssetByAddress(assetAddress: string) {
     try {
       return await AssetMetadataModel.findOne({ assetAddress }).exec();
     } catch (error) {
@@ -51,7 +53,7 @@ export class MetadataManager {
   }
 
   // find asset by id
-  async findAssetById(assetId: string): Promise<any> {
+  async findAssetById(assetId: string) {
     try {
       return await AssetMetadataModel.findById(assetId).exec();
     } catch (error) {
@@ -60,7 +62,7 @@ export class MetadataManager {
   }
 
   // create asset
-  async createAsset(assetData: any): Promise<any> {
+  async createAsset(assetData: AssetMetadata) {
     try {
       const asset = new AssetMetadataModel(assetData);
       return await asset.save();
@@ -70,7 +72,7 @@ export class MetadataManager {
   }
 
   // update asset
-  async updateAsset(assetId: string, updateData: any): Promise<any> {
+  async updateAsset(assetId: string, updateData: any) {
     try {
       return await AssetMetadataModel.findByIdAndUpdate(assetId, updateData, { new: true });
     } catch (error) {
@@ -79,7 +81,7 @@ export class MetadataManager {
   }
 
   // delete asset
-  async deleteAsset(assetId: string): Promise<any> {
+  async deleteAsset(assetId: string) {
     try {
       return await AssetMetadataModel.findByIdAndDelete(assetId);
     } catch (error) {
@@ -93,7 +95,7 @@ export class MetadataManager {
    */
 
   // get all baskts
-  async getAllBaskts(): Promise<any[]> {
+  async getAllBaskts(){
     try {
       return await BasktMetadataModel.find().sort({ createdAt: -1 });
     } catch (error) {
@@ -102,7 +104,7 @@ export class MetadataManager {
   }
 
   // find baskt by id
-  async findBasktById(basktId: string): Promise<any> {
+  async findBasktById(basktId: string) {
     try {
       return await BasktMetadataModel.findOne({ basktId }).exec();
     } catch (error) {
@@ -111,7 +113,7 @@ export class MetadataManager {
   }
 
   // find baskt by name
-  async findBasktByName(name: string): Promise<any> {
+  async findBasktByName(name: string) {
     try {
       return await BasktMetadataModel.findOne({ name }).exec();
     } catch (error) {
@@ -120,7 +122,7 @@ export class MetadataManager {
   }
 
   // create baskt
-  async createBaskt(basktData: any): Promise<any> {
+  async createBaskt(basktData: BasktMetadata) {
     try {
       const baskt = new BasktMetadataModel(basktData);
       return await baskt.save();
@@ -130,9 +132,9 @@ export class MetadataManager {
   }
 
   // update baskt
-  async updateBaskt(basktId: string, updateData: any): Promise<any> {
+  async updateBaskt(basktId: string, updateData: any) {
     try {
-      return await BasktMetadataModel.findOneAndUpdate({ basktId }, updateData, { new: true });
+      return await BasktMetadataModel.findOneAndUpdate({ basktId }, updateData);
     } catch (error) {
       throw new Error(`Failed to update baskt: ${error}`);
     }
@@ -144,7 +146,7 @@ export class MetadataManager {
    */
 
   // get all orders
-  async getAllOrders(): Promise<any[]> {
+  async getAllOrders(){
     try {
       return await OrderMetadataModel.find().sort({ createdAt: -1 });
     } catch (error) {
@@ -153,7 +155,7 @@ export class MetadataManager {
   }
 
   // find order by id
-  async findOrderById(orderId: string): Promise<any> {
+  async findOrderById(orderId: number) {
     try {
       return await OrderMetadataModel.findOne({ orderId }).exec();
     } catch (error) {
@@ -162,7 +164,7 @@ export class MetadataManager {
   }
 
   // find orders by baskt id
-  async findOrdersByBasktId(basktId: string): Promise<any[]> {
+  async findOrdersByBasktId(basktId: string){
     try {
       return await OrderMetadataModel.find({ basktId }).sort({ createdAt: -1 });
     } catch (error) {
@@ -171,7 +173,7 @@ export class MetadataManager {
   }
 
   // create order
-  async createOrder(orderData: any): Promise<any> {
+  async createOrder(orderData: OrderMetadata) {
     try {
       const order = new OrderMetadataModel(orderData);
       return await order.save();
@@ -181,9 +183,9 @@ export class MetadataManager {
   }
 
   // update order
-  async updateOrderByPDA(orderPDA: string, updateData: any): Promise<any> {
+  async updateOrderByPDA(orderPDA: string, updateData: any) {
     try {
-      return await OrderMetadataModel.findOneAndUpdate({ orderPDA }, updateData, { new: true });
+      return await OrderMetadataModel.findOneAndUpdate({ orderPDA }, updateData);
     } catch (error) {
       throw new Error(`Failed to update order: ${error}`);
     }
@@ -195,7 +197,7 @@ export class MetadataManager {
    */
 
   // get all positions
-  async getAllPositions(): Promise<any[]> {
+  async getAllPositions(){
     try {
       return await PositionMetadataModel.find().sort({ createdAt: -1 });
     } catch (error) {
@@ -204,7 +206,7 @@ export class MetadataManager {
   }
 
   // find position by id
-  async findPositionById(positionId: string): Promise<any> {
+  async findPositionById(positionId: string){
     try {
       return await PositionMetadataModel.findOne({ positionId }).exec();
     } catch (error) {
@@ -212,7 +214,7 @@ export class MetadataManager {
     }
   }
 
-  async findPositionByPDA(positionPDA: string): Promise<any> {
+  async findPositionByPDA(positionPDA: string){
     try {
       return await PositionMetadataModel.findOne({ positionPDA }).exec();
     } catch (error) {
@@ -221,7 +223,7 @@ export class MetadataManager {
   }
 
   // find positions by baskt id
-  async findPositionsByBasktId(basktId: string): Promise<any[]> {
+  async findPositionsByBasktId(basktId: string){
     try {
       return await PositionMetadataModel.find({ basktId }).sort({ createdAt: -1 });
     } catch (error) {
@@ -230,17 +232,16 @@ export class MetadataManager {
   }
 
   // create position
-  async createPosition(positionData: any): Promise<any> {
+  async createPosition(positionData: PositionMetadata) {
     try {
-      const position = new PositionMetadataModel(positionData);
-      return await position.save();
+      return await PositionMetadataModel.create(positionData);
     } catch (error) {
       throw new Error(`Failed to create position: ${error}`);
     }
   }
 
 
-  async updatePositionByPDA(positionPDA: string, updateData: any): Promise<any> {
+  async updatePositionByPDA(positionPDA: string, updateData: any) {
     try {
       return await PositionMetadataModel.findOneAndUpdate({ positionPDA }, updateData, {
         new: true,
@@ -256,7 +257,7 @@ export class MetadataManager {
    */
 
   // get all access codes
-  async getAllAccessCodes(): Promise<any[]> {
+  async getAllAccessCodes(){
     try {
       return await AccessCodeModel.find().exec();
     } catch (error) {
@@ -265,7 +266,7 @@ export class MetadataManager {
   }
 
   // find access code by code
-  async findAccessCode(code: string): Promise<any> {
+  async findAccessCode(code: string) {
     try {
       return await AccessCodeModel.findOne({ code }).exec();
     } catch (error) {
@@ -274,7 +275,7 @@ export class MetadataManager {
   }
 
   // create access code
-  async createAccessCode(accessCodeData: any): Promise<any> {
+  async createAccessCode(accessCodeData: any) {
     try {
       const accessCode = new AccessCodeModel(accessCodeData);
       return await accessCode.save();
@@ -284,7 +285,7 @@ export class MetadataManager {
   }
 
   // update access code
-  async updateAccessCode(code: string, updateData: any): Promise<any> {
+  async updateAccessCode(code: string, updateData: any) {
     try {
       return await AccessCodeModel.findOneAndUpdate({ code }, updateData, { new: true });
     } catch (error) {
@@ -293,7 +294,7 @@ export class MetadataManager {
   }
 
   // delete access code
-  async deleteAccessCode(code: string): Promise<any> {
+  async deleteAccessCode(code: string) {
     try {
       return await AccessCodeModel.findOneAndDelete({ code });
     } catch (error) {
@@ -307,7 +308,7 @@ export class MetadataManager {
    */
 
   // get all authorized wallets
-  async getAllAuthorizedWallets(): Promise<any[]> {
+  async getAllAuthorizedWallets(){
     try {
       return await AuthorizedWalletModel.find().exec();
     } catch (error) {
@@ -316,7 +317,7 @@ export class MetadataManager {
   }
 
   // find authorized wallet by address
-  async findAuthorizedWallet(address: string): Promise<any> {
+  async findAuthorizedWallet(address: string) {
     try {
       return await AuthorizedWalletModel.findOne({ walletAddress: address }).exec();
     } catch (error) {
@@ -325,7 +326,7 @@ export class MetadataManager {
   }
 
   // create authorized wallet
-  async createAuthorizedWallet(walletData: any): Promise<any> {
+  async createAuthorizedWallet(walletData: any) {
     try {
       const existingWallet = await AuthorizedWalletModel.findOne({
         walletAddress: walletData.walletAddress,
@@ -351,7 +352,7 @@ export class MetadataManager {
   }
 
   // update authorized wallet
-  async updateAuthorizedWallet(address: string, updateData: any): Promise<any> {
+  async updateAuthorizedWallet(address: string, updateData: any) {
     try {
       return await AuthorizedWalletModel.findOneAndUpdate({ walletAddress: address }, updateData, {
         new: true,

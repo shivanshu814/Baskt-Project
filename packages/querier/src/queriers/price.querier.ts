@@ -16,6 +16,14 @@ import { handleQuerierError } from '../utils/error-handling';
 export class PriceQuerier {
   private basktClient: BaseClient;
 
+  private static instance: PriceQuerier;
+  public static getInstance(basktClient: BaseClient): PriceQuerier {
+    if (!PriceQuerier.instance) {
+      PriceQuerier.instance = new PriceQuerier(basktClient);
+    }
+    return PriceQuerier.instance;
+  }
+
   constructor(basktClient: BaseClient) {
     this.basktClient = basktClient;
   }
@@ -567,4 +575,6 @@ export class PriceQuerier {
       rawPrice: assetPrice.price,
     };
   }
+
+ 
 }

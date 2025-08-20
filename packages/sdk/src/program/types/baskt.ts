@@ -4206,19 +4206,6 @@ export type Baskt = {
       ]
     },
     {
-      "name": "basktClosingFeeUpdatedEvent",
-      "discriminator": [
-        114,
-        102,
-        159,
-        151,
-        135,
-        177,
-        214,
-        51
-      ]
-    },
-    {
       "name": "basktConfigUpdatedEvent",
       "discriminator": [
         161,
@@ -4245,19 +4232,6 @@ export type Baskt = {
       ]
     },
     {
-      "name": "basktCreationFeeUpdatedEvent",
-      "discriminator": [
-        72,
-        196,
-        77,
-        166,
-        236,
-        109,
-        148,
-        195
-      ]
-    },
-    {
       "name": "basktDecommissioningInitiated",
       "discriminator": [
         41,
@@ -4268,58 +4242,6 @@ export type Baskt = {
         88,
         141,
         100
-      ]
-    },
-    {
-      "name": "basktLiquidationFeeUpdatedEvent",
-      "discriminator": [
-        61,
-        1,
-        179,
-        148,
-        201,
-        6,
-        16,
-        80
-      ]
-    },
-    {
-      "name": "basktLiquidationThresholdUpdatedEvent",
-      "discriminator": [
-        68,
-        199,
-        154,
-        67,
-        138,
-        139,
-        99,
-        30
-      ]
-    },
-    {
-      "name": "basktMinCollateralRatioUpdatedEvent",
-      "discriminator": [
-        66,
-        58,
-        119,
-        116,
-        251,
-        70,
-        197,
-        23
-      ]
-    },
-    {
-      "name": "basktOpeningFeeUpdatedEvent",
-      "discriminator": [
-        232,
-        143,
-        250,
-        62,
-        74,
-        131,
-        26,
-        73
       ]
     },
     {
@@ -4336,19 +4258,6 @@ export type Baskt = {
       ]
     },
     {
-      "name": "closingFeeUpdatedEvent",
-      "discriminator": [
-        246,
-        150,
-        60,
-        99,
-        221,
-        98,
-        172,
-        65
-      ]
-    },
-    {
       "name": "collateralAddedEvent",
       "discriminator": [
         90,
@@ -4359,32 +4268,6 @@ export type Baskt = {
         164,
         243,
         177
-      ]
-    },
-    {
-      "name": "decommissionGracePeriodUpdatedEvent",
-      "discriminator": [
-        38,
-        24,
-        170,
-        112,
-        8,
-        51,
-        75,
-        37
-      ]
-    },
-    {
-      "name": "fundingCutUpdatedEvent",
-      "discriminator": [
-        179,
-        9,
-        120,
-        174,
-        151,
-        9,
-        14,
-        60
       ]
     },
     {
@@ -4411,32 +4294,6 @@ export type Baskt = {
         209,
         84,
         145
-      ]
-    },
-    {
-      "name": "liquidationFeeUpdatedEvent",
-      "discriminator": [
-        17,
-        142,
-        252,
-        220,
-        94,
-        31,
-        151,
-        239
-      ]
-    },
-    {
-      "name": "liquidationThresholdUpdatedEvent",
-      "discriminator": [
-        122,
-        137,
-        207,
-        177,
-        4,
-        63,
-        56,
-        152
       ]
     },
     {
@@ -4476,45 +4333,6 @@ export type Baskt = {
         1,
         106,
         215
-      ]
-    },
-    {
-      "name": "minCollateralRatioUpdatedEvent",
-      "discriminator": [
-        190,
-        161,
-        213,
-        135,
-        149,
-        117,
-        21,
-        244
-      ]
-    },
-    {
-      "name": "minLiquidityUpdatedEvent",
-      "discriminator": [
-        214,
-        221,
-        106,
-        19,
-        39,
-        63,
-        38,
-        8
-      ]
-    },
-    {
-      "name": "openingFeeUpdatedEvent",
-      "discriminator": [
-        188,
-        94,
-        113,
-        6,
-        201,
-        236,
-        142,
-        129
       ]
     },
     {
@@ -4596,6 +4414,19 @@ export type Baskt = {
       ]
     },
     {
+      "name": "protocolStateUpdatedEvent",
+      "discriminator": [
+        191,
+        17,
+        185,
+        143,
+        32,
+        206,
+        61,
+        29
+      ]
+    },
+    {
       "name": "rebalanceRequestEvent",
       "discriminator": [
         14,
@@ -4606,45 +4437,6 @@ export type Baskt = {
         243,
         186,
         161
-      ]
-    },
-    {
-      "name": "rebalanceRequestFeeUpdatedEvent",
-      "discriminator": [
-        70,
-        58,
-        235,
-        207,
-        171,
-        32,
-        54,
-        107
-      ]
-    },
-    {
-      "name": "treasuryCutUpdatedEvent",
-      "discriminator": [
-        234,
-        249,
-        120,
-        21,
-        62,
-        228,
-        31,
-        79
-      ]
-    },
-    {
-      "name": "treasuryUpdatedEvent",
-      "discriminator": [
-        140,
-        91,
-        97,
-        30,
-        246,
-        205,
-        211,
-        33
       ]
     },
     {
@@ -5269,38 +5061,6 @@ export type Baskt = {
       }
     },
     {
-      "name": "basktClosingFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "baskt",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldClosingFeeBps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "newClosingFeeBps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "basktConfig",
       "type": {
         "kind": "struct",
@@ -5342,22 +5102,6 @@ export type Baskt = {
             "type": "pubkey"
           },
           {
-            "name": "oldConfig",
-            "type": {
-              "defined": {
-                "name": "basktConfig"
-              }
-            }
-          },
-          {
-            "name": "newConfig",
-            "type": {
-              "defined": {
-                "name": "basktConfig"
-              }
-            }
-          },
-          {
             "name": "updatedBy",
             "type": "pubkey"
           },
@@ -5373,6 +5117,10 @@ export type Baskt = {
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "basktCreationFee",
+            "type": "u64"
+          },
           {
             "name": "uid",
             "type": "u32"
@@ -5405,34 +5153,6 @@ export type Baskt = {
       }
     },
     {
-      "name": "basktCreationFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldFeeLamports",
-            "type": "u64"
-          },
-          {
-            "name": "newFeeLamports",
-            "type": "u64"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "basktDecommissioningInitiated",
       "type": {
         "kind": "struct",
@@ -5443,134 +5163,6 @@ export type Baskt = {
           },
           {
             "name": "initiatedAt",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "basktLiquidationFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "baskt",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldLiquidationFeeBps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "newLiquidationFeeBps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "basktLiquidationThresholdUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "baskt",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldLiquidationThresholdBps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "newLiquidationThresholdBps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "basktMinCollateralRatioUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "baskt",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldMinCollateralRatioBps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "newMinCollateralRatioBps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "basktOpeningFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "baskt",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldOpeningFeeBps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "newOpeningFeeBps",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
             "type": "i64"
           }
         ]
@@ -5653,34 +5245,6 @@ export type Baskt = {
             "type": {
               "option": "u64"
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "closingFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldClosingFeeBps",
-            "type": "u64"
-          },
-          {
-            "name": "newClosingFeeBps",
-            "type": "u64"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
           }
         ]
       }
@@ -5823,34 +5387,6 @@ export type Baskt = {
                 "name": "orderType"
               }
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "decommissionGracePeriodUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldGracePeriod",
-            "type": "i64"
-          },
-          {
-            "name": "newGracePeriod",
-            "type": "i64"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
           }
         ]
       }
@@ -6018,34 +5554,6 @@ export type Baskt = {
       }
     },
     {
-      "name": "fundingCutUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldFundingCutBps",
-            "type": "u64"
-          },
-          {
-            "name": "newFundingCutBps",
-            "type": "u64"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "fundingIndex",
       "type": {
         "kind": "struct",
@@ -6142,62 +5650,6 @@ export type Baskt = {
             "type": {
               "option": "u64"
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "liquidationFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldLiquidationFeeBps",
-            "type": "u64"
-          },
-          {
-            "name": "newLiquidationFeeBps",
-            "type": "u64"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "liquidationThresholdUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldLiquidationThresholdBps",
-            "type": "u64"
-          },
-          {
-            "name": "newLiquidationThresholdBps",
-            "type": "u64"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
           }
         ]
       }
@@ -6417,62 +5869,6 @@ export type Baskt = {
       }
     },
     {
-      "name": "minCollateralRatioUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldMinCollateralRatioBps",
-            "type": "u64"
-          },
-          {
-            "name": "newMinCollateralRatioBps",
-            "type": "u64"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "minLiquidityUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldMinLiquidity",
-            "type": "u64"
-          },
-          {
-            "name": "newMinLiquidity",
-            "type": "u64"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "openOrderParams",
       "type": {
         "kind": "struct",
@@ -6511,34 +5907,6 @@ export type Baskt = {
           {
             "name": "entryPrice",
             "type": "u64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "openingFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldOpeningFeeBps",
-            "type": "u64"
-          },
-          {
-            "name": "newOpeningFeeBps",
-            "type": "u64"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
           }
         ]
       }
@@ -7317,6 +6685,26 @@ export type Baskt = {
       }
     },
     {
+      "name": "protocolStateUpdatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "protocol",
+            "type": "pubkey"
+          },
+          {
+            "name": "updatedBy",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "rebalanceFeeIndex",
       "type": {
         "kind": "struct",
@@ -7346,39 +6734,15 @@ export type Baskt = {
         "kind": "struct",
         "fields": [
           {
+            "name": "rebalanceRequestFee",
+            "type": "u64"
+          },
+          {
             "name": "basktId",
             "type": "pubkey"
           },
           {
             "name": "creator",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "rebalanceRequestFeeUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldFeeLamports",
-            "type": "u64"
-          },
-          {
-            "name": "newFeeLamports",
-            "type": "u64"
-          },
-          {
-            "name": "updatedBy",
             "type": "pubkey"
           },
           {
@@ -7465,62 +6829,6 @@ export type Baskt = {
           {
             "name": "listingTime",
             "type": "u32"
-          }
-        ]
-      }
-    },
-    {
-      "name": "treasuryCutUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldTreasuryCutBps",
-            "type": "u64"
-          },
-          {
-            "name": "newTreasuryCutBps",
-            "type": "u64"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "treasuryUpdatedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "protocol",
-            "type": "pubkey"
-          },
-          {
-            "name": "oldTreasury",
-            "type": "pubkey"
-          },
-          {
-            "name": "newTreasury",
-            "type": "pubkey"
-          },
-          {
-            "name": "updatedBy",
-            "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
           }
         ]
       }
@@ -7621,19 +6929,15 @@ export type Baskt = {
         "kind": "struct",
         "fields": [
           {
-            "name": "liquidityPool",
+            "name": "provider",
             "type": "pubkey"
           },
           {
-            "name": "keeper",
-            "type": "pubkey"
+            "name": "lpTokensBurned",
+            "type": "u64"
           },
           {
-            "name": "requestsProcessed",
-            "type": "u8"
-          },
-          {
-            "name": "totalAmountProcessed",
+            "name": "amountPaidToUser",
             "type": "u64"
           },
           {
@@ -7643,10 +6947,6 @@ export type Baskt = {
           {
             "name": "queueTailUpdated",
             "type": "u64"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
           }
         ]
       }

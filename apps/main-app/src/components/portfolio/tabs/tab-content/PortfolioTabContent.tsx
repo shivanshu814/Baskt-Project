@@ -1,26 +1,28 @@
 'use client';
 
+import { PortfolioTabContentProps } from '../../../../types/portfolio';
 import { PositionsTable } from '../../PositionsTable';
 import { OpenOrdersTable } from '../OpenOrdersTable';
 import { OrderHistoryTable } from '../OrderHistoryTable';
-import { PortfolioTabType } from '../PortfolioTabControls';
 import { UserBaskts } from '../UserBaskts';
 
-export interface PortfolioTabContentProps {
-  activeTab: PortfolioTabType;
-}
-
-export const PortfolioTabContent = ({ activeTab }: PortfolioTabContentProps) => {
+export const PortfolioTabContent = ({
+  activeTab,
+  positions,
+  openOrders,
+  orderHistory,
+  userBaskts,
+}: PortfolioTabContentProps) => {
   switch (activeTab) {
     case 'positions':
-      return <PositionsTable />;
+      return <PositionsTable positions={positions} />;
     case 'baskts':
-      return <UserBaskts />;
+      return <UserBaskts userBaskts={userBaskts} />;
     case 'open-orders':
-      return <OpenOrdersTable />;
+      return <OpenOrdersTable openOrders={openOrders} />;
     case 'order-history':
-      return <OrderHistoryTable />;
+      return <OrderHistoryTable orderHistory={orderHistory} />;
     default:
-      return <PositionsTable />;
+      return <PositionsTable positions={positions} />;
   }
 };

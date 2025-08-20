@@ -9,8 +9,10 @@ export const PortfolioHeader = () => {
       <div className="container mx-auto px-2 py-6">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Portfolio</h1>
-            <p className="text-gray-700 dark:text-gray-300">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2 bg-gradient-to-br from-pink-500 via-purple-500 to-violet-500 bg-clip-text text-transparent">
+              Portfolio
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Your <span className="text-purple-500 font-medium">baskts</span>. Your performance.
               All in one place.
             </p>

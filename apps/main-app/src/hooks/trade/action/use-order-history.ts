@@ -10,7 +10,7 @@ function processOrderHistory(order: any, baskt?: any) {
   const adjustedSize = order.status === 'FILLED' ? orderSize / 100 : orderSize;
   const filledAmount = order.status === 'FILLED' ? order.filledAmount || adjustedSize : 0;
   const fees = filledAmount > 0 ? ((filledAmount * orderPrice) / 1e6) * 0.002 : 0;
-  const status = order.status || 'Filled';
+  const status = order.orderStatus || 'Filled';
   const transactionHash = order.transactionHash || order.orderId;
   const isLong = order.isLong || false;
 
@@ -86,14 +86,16 @@ export function useOrderHistory(
     };
   }, [ordersQuery]);
 
+
   const processedOrders = useMemo(() => {
     const orders = (ordersQuery.data as any)?.data || [];
     const baskts = (basktsQuery.data as any)?.data || [];
 
+
     let filteredOrders = orders;
 
     if (filterByStatus && statusFilter) {
-      filteredOrders = orders.filter((order: any) => order.status === statusFilter);
+      filteredOrders = orders.filter((order: any) => order.orderStatus === statusFilter);
     }
 
     if (shouldIncludeBasktInfo) {

@@ -8,15 +8,14 @@ import { ModalProvider } from '../../../hooks/trade/modals/use-modal-state';
 import { useBasktData } from '../../../hooks/trade/trading-data/use-baskt-data';
 
 export default function BasktTradingPage() {
-  const name = useParams().name;
-  const basktName = decodeURIComponent(name?.toString() || '');
+  const id = useParams().id;
+  const basktId = decodeURIComponent(id?.toString() || '');
   const [retryCount, setRetryCount] = useState(0);
   const [baskt, setBaskt] = useState<BasktInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isNewlyCreated, setIsNewlyCreated] = useState(false); //eslint-disable-line
-
   const { basktNavData, isBasktDataError, isBasktNavDataLoaded } = useBasktData(
-    basktName,
+    basktId,
     setBaskt,
     setIsLoading,
     setIsNewlyCreated,

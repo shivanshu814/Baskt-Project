@@ -1,4 +1,3 @@
-
 import { OnchainBasktAccount } from '../onchain/baskt';
 
 export interface AssetInfo {
@@ -26,6 +25,7 @@ export interface BasktAssetInfo extends AssetInfo {
   weight: number;
   direction: boolean;
   baselinePrice?: number;
+  currentWeight?: number; // Real-time weight based on price changes from API
 }
 
 export interface UserBasktPositionInfo {
@@ -60,11 +60,9 @@ interface PriceHistory {
   yearly: PriceHistoryEntry[];
 }
 
-export interface BasktMetadataModel {
+export interface BasktMetadataModel {}
 
-}
-
-export interface BasktInfo  {
+export interface BasktInfo {
   basktId: string;
   name: string;
   creator: string;

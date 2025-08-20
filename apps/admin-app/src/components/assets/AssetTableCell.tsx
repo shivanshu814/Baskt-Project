@@ -1,6 +1,5 @@
-import { PublicKeyText, NumberFormat, TableCell, getSolscanAddressUrl } from '@baskt/ui';
-import { DATE_FORMAT_OPTIONS } from '../../constants/assets';
-import { ASSET_TABLE_IDS } from '../../constants/assets';
+import { NumberFormat, PublicKeyText, TableCell, getSolscanAddressUrl } from '@baskt/ui';
+import { ASSET_TABLE_IDS, DATE_FORMAT_OPTIONS } from '../../constants/assets';
 import { AssetTableCellProps } from '../../types/assets';
 
 export function AssetTableCell({ asset, id }: AssetTableCellProps) {
@@ -12,12 +11,12 @@ export function AssetTableCell({ asset, id }: AssetTableCellProps) {
       return (
         <TableCell className="font-mono text-xs">
           <a
-            href={getSolscanAddressUrl(asset.account.address.toString())}
+            href={getSolscanAddressUrl(asset?.account?.address?.toString())}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-500 hover:underline"
           >
-            <PublicKeyText publicKey={asset.account.address.toString()} />
+            <PublicKeyText publicKey={asset?.account?.address?.toString()} />
           </a>
         </TableCell>
       );
@@ -25,26 +24,25 @@ export function AssetTableCell({ asset, id }: AssetTableCellProps) {
     case ASSET_TABLE_IDS.LISTING_TIME:
       return (
         <TableCell className="whitespace-nowrap">
-          {new Date(asset.account.listingTime).toLocaleString('en-US', DATE_FORMAT_OPTIONS)}
+          {new Date(asset?.account?.listingTime).toLocaleString('en-US', DATE_FORMAT_OPTIONS)}
         </TableCell>
       );
 
     case ASSET_TABLE_IDS.PRICE:
       return (
         <TableCell>
-          <NumberFormat value={asset.price} isPrice={true} />
+          <NumberFormat value={asset?.price} isPrice={true} />
         </TableCell>
       );
 
     case ASSET_TABLE_IDS.ALLOW_LONG:
-      return <TableCell>{asset.account.permissions.allowLongs ? 'Yes' : 'No'}</TableCell>;
+      return <TableCell>{asset?.account?.permissions?.allowLongs ? 'Yes' : 'No'}</TableCell>;
 
     case ASSET_TABLE_IDS.ALLOW_SHORT:
-      return <TableCell>{asset.account.permissions.allowShorts ? 'Yes' : 'No'}</TableCell>;
+      return <TableCell>{asset?.account?.permissions?.allowShorts ? 'Yes' : 'No'}</TableCell>;
 
     case ASSET_TABLE_IDS.STATUS:
-      return <TableCell>{asset.account.isActive ? 'Active' : 'Inactive'}</TableCell>;
-
+      return <TableCell>{asset?.account?.isActive ? 'Active' : 'Inactive'}</TableCell>;
 
     default:
       return <TableCell />;

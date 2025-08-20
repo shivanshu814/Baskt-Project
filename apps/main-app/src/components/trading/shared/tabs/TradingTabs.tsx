@@ -23,6 +23,7 @@ export function TradingTabs({ baskt }: TradingTabsProps) {
   const modalState = useModalState();
 
   const { positions = [] } = useOpenPositions(baskt?.basktId, userAddress);
+  // TODO: Shivanshu this can be done in one fetch. 
   const { orders = [], processedOrders = [] } = useOpenOrders(baskt?.basktId, userAddress, baskt);
   const { orders: orderHistory = [] } = useOrderHistory(baskt?.basktId, userAddress);
   const { isRebalancing, rebalanceBaskt } = useBasktRebalance();

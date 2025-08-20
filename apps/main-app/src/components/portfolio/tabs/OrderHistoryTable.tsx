@@ -1,121 +1,111 @@
 'use client';
 
-import { NumberFormat, PublicKeyText, useBasktClient } from '@baskt/ui';
-import { useOrderHistory } from '../../../hooks/trade/action/use-order-history';
-import { ProcessedOrderHistory } from '../../../types/baskt/ui/ui';
-import { formatOrderHistoryTime } from '../../../utils/formatters/formatters';
-import { getStatusColor } from '../../../utils/validation/validation';
+import {
+  NumberFormat,
+  PublicKeyText,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@baskt/ui';
+import { OrderHistoryTableProps } from '../../../types/portfolio';
+import { formatOrderTime } from '../../../utils/formatters/formatters';
 
-export function OrderHistoryTable() {
-  const { client } = useBasktClient();
-  const userAddress = client?.wallet?.address?.toString();
-  const { orders, isLoading, isError } = useOrderHistory(undefined, userAddress, {
-    isPortfolio: true,
-  });
-
-  if (!userAddress) {
+export function OrderHistoryTable({ orderHistory }: OrderHistoryTableProps) {
+  if (!orderHistory || orderHistory.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">Please connect your wallet to view order history</p>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">Loading order history...</p>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-500">Failed to load order history</p>
+        <p className="text-muted-foreground">No order history found</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm min-w-[800px]">
-        <thead className="sticky top-0 bg-zinc-900/95 z-10 border-b border-border">
-          <tr>
-            <th className="text-left py-2 px-2">Baskt</th>
-            <th className="text-left py-2 px-2">Time</th>
-            <th className="text-left py-2 px-2 whitespace-nowrap">Order Type</th>
-            <th className="text-left py-2 px-2">Direction</th>
-            <th className="text-left py-2 px-2">Size</th>
-            <th className="text-left py-2 px-2">Price</th>
-            <th className="text-left py-2 px-2">Status</th>
-            <th className="text-left py-2 px-2 whitespace-nowrap">Filled Amount</th>
-            <th className="text-left py-2 px-2">Fees</th>
-            <th className="text-left py-2 px-2">Transaction</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.length === 0 ? (
-            <tr>
-              <td colSpan={10} className="py-8 px-2 text-center text-muted-foreground">
-                No order history found
-              </td>
-            </tr>
-          ) : (
-            orders.map((order: ProcessedOrderHistory, index: number) => {
-              const { date, time } = formatOrderHistoryTime(order.orderTime);
-
-              return (
-                <tr key={index} className="border-b border-border/50">
-                  <td className="py-2 px-2">
-                    <span className="text-sm font-medium">{order.basktName}</span>
-                  </td>
-                  <td className="py-2 px-2">
-                    <div className="text-xs">
-                      <div className="">{date}</div>
-                      <div className="text-muted-foreground">{time}</div>
-                    </div>
-                  </td>
-                  <td className="py-2 px-2">
-                    <span className="text-blue-500">
-                      {order.orderType === 'Market' ? 'Limit' : 'Market'}
-                    </span>
-                  </td>
-                  <td className="py-2 px-2">
-                    <span className={order.isLong ? 'text-green-500' : 'text-red-500'}>
-                      {order.isLong ? 'Long' : 'Short'}
-                    </span>
-                  </td>
-                  <td className="py-2 px-2">
-                    <NumberFormat value={order.orderSize} isPrice={true} />
-                  </td>
-                  <td className="py-2 px-2">
-                    {order.orderType === 'Market' ? (
-                      <span className="text-blue-500">Market</span>
-                    ) : (
-                      <NumberFormat value={order.orderPrice} isPrice={true} showCurrency={true} />
-                    )}
-                  </td>
-                  <td className="py-2 px-2">
-                    <span className={getStatusColor(order.status as any)}>{order.status}</span>
-                  </td>
-                  <td className="py-2 px-2">
-                    <NumberFormat value={order.filledAmount} isPrice={true} />
-                  </td>
-                  <td className="py-2 px-2">
-                    <NumberFormat value={order.fees} isPrice={true} showCurrency={true} />
-                  </td>
-                  <td className="py-2 px-2">
-                    <div className="text-xs">
-                      <PublicKeyText publicKey={order.transactionHash} isCopy={true} />
-                    </div>
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+    <div className="rounded-md border border-border">
+      <Table>
+        <TableHeader className="bg-muted">
+          <TableRow>
+            <TableHead>Baskt</TableHead>
+            <TableHead>Time</TableHead>
+            <TableHead className="whitespace-nowrap">Order Type</TableHead>
+            <TableHead>Direction</TableHead>
+            <TableHead>Size</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="whitespace-nowrap">Filled Amount</TableHead>
+            <TableHead>Fees</TableHead>
+            <TableHead>Transaction</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {orderHistory.map((order: any, index: number) => (
+            <TableRow key={order.orderId || index}>
+              <TableCell>
+                <span className="text-sm font-medium">{order.basktName}</span>
+              </TableCell>
+              <TableCell>
+                <div className="text-xs">
+                  <div className="">{formatOrderTime(order.orderTime)}</div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <span className="text-blue-500 capitalize">{order.orderType}</span>
+              </TableCell>
+              <TableCell>
+                <span className={order.direction === 'long' ? 'text-green-500' : 'text-red-500'}>
+                  {order.direction.charAt(0).toUpperCase() + order.direction.slice(1)}
+                </span>
+              </TableCell>
+              <TableCell>
+                <NumberFormat value={order.size} isPrice={true} />
+              </TableCell>
+              <TableCell>
+                {order.price === 0 ? (
+                  <span className="text-blue-500">Market</span>
+                ) : (
+                  <NumberFormat value={order.price} isPrice={true} showCurrency={true} />
+                )}
+              </TableCell>
+              <TableCell>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    order.status === 'FILLED'
+                      ? 'bg-green-500/20 text-green-500'
+                      : order.status === 'PENDING'
+                      ? 'bg-yellow-500/20 text-yellow-500'
+                      : order.status === 'OPEN'
+                      ? 'bg-blue-500/20 text-blue-500'
+                      : 'bg-gray-500/20 text-gray-500'
+                  }`}
+                >
+                  {order.status}
+                </span>
+              </TableCell>
+              <TableCell>
+                <NumberFormat value={order.filledAmount} isPrice={true} />
+              </TableCell>
+              <TableCell>
+                <NumberFormat
+                  value={order.status === 'OPEN' ? order.fees / 1e6 : order.fees}
+                  isPrice={true}
+                  showCurrency={true}
+                />
+              </TableCell>
+              <TableCell>
+                <div className="text-xs">
+                  {order.transactionHash ? (
+                    <PublicKeyText publicKey={order.transactionHash} isCopy={true} />
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }

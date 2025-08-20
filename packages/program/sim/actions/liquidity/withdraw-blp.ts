@@ -19,7 +19,6 @@ const withdrawBlp = async (args: string[]) => {
     }
 
     const userTokenAccount = await client.getUSDCAccount(client.getPublicKey());
-    const liquidityPool = await client.findLiquidityPoolPDA();
     const poolData = await client.getLiquidityPool();
     if (!poolData) {
       throw new Error('Pool data not found');
@@ -35,23 +34,11 @@ const withdrawBlp = async (args: string[]) => {
       throw new Error('Insufficient LP token balance for withdrawal');
     }
 
-    const treasuryTokenAccount = getAssociatedTokenAddressSync(
-      USDC_MINT,
-      protocolAccount.treasury,
-    );
-
-    const minUsdcOut = new BN(0);
-
-    const tx = await client.removeLiquidity(
-      liquidityPool,
+    const tx = await client.queueWithdrawLiquidity(
       withdrawAmount,
-      minUsdcOut,
       userTokenAccount.address,
-      new PublicKey(poolData.tokenVault),
       userLpAccount.address,
       new PublicKey(poolData.lpMint),
-      treasuryTokenAccount,
-      protocolAccount.treasury,
     );
 
     console.log('Withdrawal successful! Transaction:', tx);

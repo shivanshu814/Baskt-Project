@@ -1,6 +1,7 @@
 import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
-import { querier } from '../../utils/querier';
+import { querier } from '../../utils/';
+import { PublicKey } from '@solana/web3.js';
 
 // create an asset
 export const createAsset = publicProcedure
@@ -27,38 +28,44 @@ export const createAsset = publicProcedure
   )
   .mutation(async ({ input }) => {
     try {
-      const existingAsset = await querier.metadata.findAssetByAddress(input.assetAddress);
+      const [existingAsset, assetAccount] = await Promise.all([
+        querier.metadata.findAssetByAddress(input.assetAddress),
+        querier
+          .getBasktClient()
+          .readWithRetry(
+            async () =>
+              await querier.getBasktClient().getAssetRaw(new PublicKey(input.assetAddress)),
+          ),
+      ]);
       if (existingAsset) {
         return { success: false, message: 'Asset address already exists' };
       }
+      if (!assetAccount) {
+        return { success: false, message: 'Asset not found' };
+      }
       const asset = await querier.metadata.createAsset({
-        ...input,
+        assetAddress: input.assetAddress,
+        basktIds: [],
+        name: input.name,
+        ticker: input.ticker,
+        logo: input.logo,
+        priceConfig: input.priceConfig,
+        coingeckoId: input.coingeckoId,
+        isActive: true,
+        listingTime: Date.now(),
+        permissions: {
+          allowLongs: true,
+          allowShorts: true,
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
+      // TODO create user if not exists
+
       return { success: true, data: asset };
     } catch (error) {
       console.error('Error creating asset:', error);
       return { success: false, message: 'Failed to create asset' };
-    }
-  });
-
-// update an assets basktIds
-export const updateAssetBasktIds = publicProcedure
-  .input(z.object({ assetId: z.string(), basktId: z.string() }))
-  .mutation(async ({ input }) => {
-    try {
-      const asset = await querier.metadata.findAssetById(input.assetId);
-      if (!asset) {
-        return { success: false, message: 'Asset not found' };
-      }
-      if (!asset.basktIds) asset.basktIds = [];
-      if (!asset.basktIds.includes(input.basktId)) {
-        asset.basktIds.push(input.basktId);
-        await querier.metadata.updateAsset(input.assetId, asset);
-      }
-      return { success: true, data: asset };
-    } catch (error) {
-      console.error('Error updating asset basktIds:', error);
-      return { success: false, message: 'Failed to update asset basktIds' };
     }
   });
 
@@ -69,18 +76,24 @@ export const updateAssetPriceConfig = publicProcedure
       assetId: z.string(),
       name: z.string().min(1).optional(),
       logo: z.string().min(1).optional(),
-      priceConfig: z.object({
-        provider: z.object({
-          id: z.string().min(1).optional(),
-          name: z.string().min(1).optional(),
-          chain: z.string().optional(),
-        }).optional(),
-        twp: z.object({
-          seconds: z.number().positive().optional(),
-        }).optional(),
-        updateFrequencySeconds: z.number().positive().optional(),
-        units: z.number().positive().optional(),
-      }).optional(),
+      priceConfig: z
+        .object({
+          provider: z
+            .object({
+              id: z.string().min(1).optional(),
+              name: z.string().min(1).optional(),
+              chain: z.string().optional(),
+            })
+            .optional(),
+          twp: z
+            .object({
+              seconds: z.number().positive().optional(),
+            })
+            .optional(),
+          updateFrequencySeconds: z.number().positive().optional(),
+          units: z.number().positive().optional(),
+        })
+        .optional(),
       coingeckoId: z.string().optional(),
     }),
   )
@@ -93,25 +106,24 @@ export const updateAssetPriceConfig = publicProcedure
         return { success: false, message: 'Asset not found' };
       }
 
-
       // Build update object
       const updateData: any = {};
-      
+
       if (name) {
         updateData.name = name;
       }
-      
+
       if (logo) {
         updateData.logo = logo;
       }
-      
+
       if (coingeckoId) {
         updateData.coingeckoId = coingeckoId;
       }
-      
+
       if (priceConfig) {
         updateData.priceConfig = { ...priceConfig };
-        
+
         // Update provider fields if provided
         if (priceConfig.provider) {
           if (priceConfig.provider.name) {
@@ -124,24 +136,24 @@ export const updateAssetPriceConfig = publicProcedure
             updateData.priceConfig.provider.chain = priceConfig.provider.chain;
           }
         }
-        
+
         // Update TWP if provided
         if (priceConfig.twp?.seconds) {
           if (!updateData.priceConfig.twp) updateData.priceConfig.twp = { seconds: 60 };
           updateData.priceConfig.twp.seconds = priceConfig.twp.seconds;
         }
-        
+
         // Update update frequency if provided
         if (priceConfig.updateFrequencySeconds) {
           updateData.priceConfig.updateFrequencySeconds = priceConfig.updateFrequencySeconds;
         }
-        
+
         // Update units if provided
         if (priceConfig.units) {
           updateData.priceConfig.units = priceConfig.units;
         }
       }
-      
+
       const updatedAsset = await querier.metadata.updateAsset(assetId, updateData);
 
       return { success: true, data: updatedAsset };

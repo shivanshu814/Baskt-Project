@@ -2,6 +2,7 @@ use crate::constants::*;
 use crate::error::PerpetualsError;
 use crate::state::position::ProgramAuthority;
 use crate::state::protocol::{FeatureFlags, Protocol, Role};
+use crate::events::*;
 use anchor_lang::prelude::*;
 
 use anchor_spl::token::Mint;
@@ -45,6 +46,13 @@ pub fn initialize_protocol(ctx: Context<InitializeProtocol>, treasury: Pubkey) -
 
     protocol.initialize(authority, treasury, ctx.accounts.collateral_mint.key())?;
 
+    // Emit protocol initialization event
+    emit!(ProtocolStateUpdatedEvent {
+        protocol: protocol.key(),
+        updated_by: authority,
+        timestamp: Clock::get()?.unix_timestamp,
+    });
+
     Ok(())
 }
 
@@ -79,8 +87,16 @@ pub fn add_role(ctx: Context<AddRole>, role_type: u8) -> Result<()> {
         8 => Role::Keeper,
         _ => return Err(PerpetualsError::InvalidRoleType.into()),
     };
+    
     // Add the role to the account
     protocol.add_role(account, role)?;
+
+    // Emit role added event
+    emit!(ProtocolStateUpdatedEvent {
+        protocol: protocol.key(),
+        updated_by: ctx.accounts.owner.key(),
+        timestamp: Clock::get()?.unix_timestamp,
+    });
 
     Ok(())
 }
@@ -118,6 +134,13 @@ pub fn remove_role(ctx: Context<RemoveRole>, role_type: u8) -> Result<()> {
 
     // Remove the role from the account
     protocol.remove_role(account, role)?;
+
+    // Emit role removed event
+    emit!(ProtocolStateUpdatedEvent {
+        protocol: protocol.key(),
+        updated_by: ctx.accounts.owner.key(),
+        timestamp: Clock::get()?.unix_timestamp,
+    });
 
     Ok(())
 }
@@ -171,6 +194,13 @@ pub fn update_feature_flags(
 
     // Update the feature flags
     protocol.update_feature_flags(new_feature_flags)?;
+
+    // Emit feature flags updated event
+    emit!(ProtocolStateUpdatedEvent {
+        protocol: protocol.key(),
+        updated_by: ctx.accounts.owner.key(),
+        timestamp: Clock::get()?.unix_timestamp,
+    });
 
     Ok(())
 }

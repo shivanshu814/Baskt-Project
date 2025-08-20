@@ -12,7 +12,7 @@ export const TrendingBanner = ({ onReviewClick }: TrendingBannerProps) => {
             <Sparkles className="h-4 w-4 text-primary" />
           </div>
           <span className="text-sm font-medium bg-gradient-to-r from-pink-500 via-purple-500 to-violet-500 bg-clip-text text-transparent">
-            Baskt AI detected top trending baskts you might view and trade them
+            Baskt AI detected top trending baskts you might view and trade them.
           </span>
         </div>
         <button

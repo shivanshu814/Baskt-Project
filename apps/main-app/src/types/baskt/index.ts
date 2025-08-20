@@ -26,12 +26,6 @@ export interface RawBasktData {
     year?: number;
   };
   assets?: any[]; // eslint-disable-line
-  priceHistory: {
-    daily?: Array<{ price: string | number; date: string }>;
-    weekly?: Array<{ price: string | number; date: string }>;
-    monthly?: Array<{ price: string | number; date: string }>;
-    yearly?: Array<{ price: string | number; date: string }>;
-  } | null;
   rebalancePeriod?: number; // 0 for manual, seconds for automatic
   txSignature?: string;
   categories?: string[];
@@ -69,10 +63,12 @@ export interface TabControlsProps {
 
 export interface TabContentProps {
   activeTab: TabType;
+  publicBaskts: any[];
+  yourBaskts: any[];
   filteredBaskts: any[];
-  popularBaskts: any[];
-  myBaskts: any[];
+  trendingBaskts: any[];
   userAddress?: string;
+  isLoading?: boolean;
 }
 
 export interface MetricCardProps {
@@ -87,8 +83,35 @@ export interface BasktCardHandlers {
 }
 
 export interface AssetRowProps {
+  assetId: string;
   asset: BasktAssetInfo;
   currentWeight?: number;
+}
+
+// Frontend-specific types with custom fields (baselineNav, daily performance, etc.)
+export interface FrontendPerformanceInfo {
+  daily: number;
+  weekly: number;
+  monthly: number;
+  year?: number;
+}
+
+export interface FrontendBasktInfo {
+  basktId: string;
+  name: string;
+  creator?: string;
+  creationDate?: Date | string;
+  txSignature?: string;
+  assets: BasktAssetInfo[];
+  totalAssets: number;
+  rebalancePeriod: number;
+  isPublic: boolean;
+  baselineNav: number | string;
+  currentNav?: number; // Add current NAV from getBasktNAV
+  performance: FrontendPerformanceInfo;
+  openPositions?: number;
+  lastRebalanceTime?: number;
+  status?: string;
 }
 
 export interface TrendingBannerProps {
@@ -128,33 +151,43 @@ export interface EmptyStateContentProps {
   onButtonClick: () => void;
 }
 
+// Extended asset type to include currentWeight from API
+export interface ExtendedAssetInfo extends BasktAssetInfo {
+  currentWeight?: number;
+}
+
 export interface BasktCardAssetsProps {
-  baskt: BasktInfo;
-  currentWeights: number[];
+  assets: ExtendedAssetInfo[]; // Array of asset objects with currentWeight
 }
 
 export interface BasktCardHeaderProps {
-  baskt: BasktInfo;
-  assetImages: BasktAssetInfo[];
-  extraAssets: number;
-  assetCount: number;
-  basktPrice: number;
-  performanceData: {
-    day?: number;
-    week?: number;
-    month?: number;
-  };
-  safeBasktName: string;
-  handlers: BasktCardHandlers;
+  baskt: FrontendBasktInfo;
+  assets: any[];
+  metrics: any;
   setOpen: (value: string | undefined | ((prev: string | undefined) => string | undefined)) => void;
 }
 
 export interface BasktCardMetricsProps {
-  metricCards: MetricCardType[];
+  metrics: {
+    performance: {
+      daily: number;
+      weekly: number;
+      monthly: number;
+      year: number;
+    };
+    openInterest: number;
+    currentNav: number;
+    baselineNav: string;
+  };
 }
 
 export interface BasktCardRebalancingProps {
-  baskt: any; // eslint-disable-line
+  rebalance: {
+    rebalancePeriod: number;
+    rebalancingMode: string;
+    rebalancingPeriod: string | number;
+    lastRebalanceTime: number;
+  };
 }
 
 export interface Asset {
@@ -191,4 +224,16 @@ export interface TradingDataResponse {
   dataSource?: string;
   message?: string;
   error?: string;
+}
+
+export interface BasktBreakdownItem {
+  basktName: string;
+  assets: string[];
+  totalValuePercentage: number;
+}
+
+export interface BasktBreakdownProps {
+  tradedBaskts: BasktBreakdownItem[];
+  isLoading: boolean;
+  error: any;
 }

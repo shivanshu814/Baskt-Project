@@ -7,21 +7,8 @@ import {
   calculatePositionFees, 
   convertTimestampToDate 
 } from '../../utils/fee-utils';
-
-export type PositionLiquidatedEvent = {
-  owner: PublicKey;
-  positionId: BN;
-  basktId: PublicKey;
-  size: BN;
-  exitPrice: BN;
-  pnl: BN;
-  feeToTreasury: BN;
-  feeToBlp: BN;
-  fundingPayment: BN;
-  remainingCollateral: BN;
-  poolPayout: BN;
-  timestamp: BN;
-};
+import { PositionLiquidatedEvent } from '@baskt/types';
+import { FeeEvents } from '@baskt/querier';
 
 /**
  * Create fee event for position liquidated
@@ -34,7 +21,7 @@ async function createPositionLiquidatedFeeEvent(
   const timestamp = convertTimestampToDate(positionLiquidatedData.timestamp);
 
   await createPositionFeeEvent(
-    'POSITION_LIQUIDATED',
+    FeeEvents.POSITION_LIQUIDATED,
     tx,
     timestamp,
     positionLiquidatedData.basktId.toString(),
@@ -44,7 +31,7 @@ async function createPositionLiquidatedFeeEvent(
     fees.totalFee,
     positionLiquidatedData.positionId.toString(),
     {
-      positionSize: positionLiquidatedData.size.toString(),
+      positionSize: positionLiquidatedData.sizeLiquidated.toString(),
       exitPrice: positionLiquidatedData.exitPrice.toString(),
     }
   );
@@ -57,7 +44,7 @@ async function positionLiquidatedHandler(event: ObserverEvent) {
   try {
     const positionPDA = await basktClient.getPositionPDA(
       positionLiquidatedData.owner,
-      positionLiquidatedData.positionId
+      Number(positionLiquidatedData.positionId)
     );
 
     // Update position status to LIQUIDATED
@@ -69,6 +56,8 @@ async function positionLiquidatedHandler(event: ObserverEvent) {
         ts: positionLiquidatedData.timestamp.toString(),
       },
     });
+
+    await querierClient.pool.resyncLiquidityPool();
 
     // Create fee event record
     await createPositionLiquidatedFeeEvent(positionLiquidatedData, tx);

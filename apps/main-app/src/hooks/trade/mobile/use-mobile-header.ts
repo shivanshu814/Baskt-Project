@@ -10,8 +10,8 @@ export function useMobileHeader(baskt: BasktInfo) {
   const performanceColor = calculatePerformanceColor(performance);
   const performanceText = formatPriceChange(performance);
 
-  const handleBasktSelect = (basktName: string) => {
-    router.push(`${ROUTES.TRADE}/${encodeURIComponent(basktName)}`);
+  const handleBasktSelect = (basktId: string) => {
+    router.push(`${ROUTES.TRADE}/${encodeURIComponent(basktId)}`);
   };
 
   return {

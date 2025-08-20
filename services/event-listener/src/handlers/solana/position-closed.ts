@@ -7,24 +7,8 @@ import {
   calculatePositionFees,
   convertTimestampToDate,
 } from '../../utils/fee-utils';
-
-export type PositionClosedEvent = {
-  orderId: BN;
-  owner: PublicKey;
-  positionId: BN;
-  basktId: PublicKey;
-  sizeClosed: BN;
-  sizeRemaining: BN;
-  exitPrice: BN;
-  pnl: BN;
-  feeToTreasury: BN;
-  feeToBlp: BN;
-  fundingPayment: BN;
-  settlementAmount: BN;
-  poolPayout: BN;
-  collateralRemaining: BN;
-  timestamp: BN;
-};
+import { PositionClosedEvent, PositionStatus } from '@baskt/types';
+import { PartialCloseHistory, FeeEvents } from '@baskt/querier';
 
 /**
  * Create fee event for position closed
@@ -46,10 +30,8 @@ async function createPositionClosedFeeEvent(
   const fees = calculatePositionFees(positionClosedData.feeToTreasury, positionClosedData.feeToBlp);
   const timestamp = convertTimestampToDate(positionClosedData.timestamp);
 
-  const eventType = isPartialClose ? 'POSITION_PARTIALLY_CLOSED' : 'POSITION_CLOSED';
-
   await createPositionFeeEvent(
-    eventType,
+    FeeEvents.POSITION_CLOSED,
     tx,
     timestamp,
     positionClosedData.basktId?.toString() || '',
@@ -78,69 +60,49 @@ async function positionClosedHandler(event: ObserverEvent) {
 
     const positionPDA = await basktClient.getPositionPDA(
       positionClosedData.owner,
-      positionClosedData.positionId,
+      Number(positionClosedData.positionId),
     );
+
+
+    const positionMetadata = await querierClient.metadata.findPositionByPDA(positionPDA.toString());
+    const orderMetadata = await querierClient.metadata.findOrderById(Number(positionClosedData.orderId));
+
+    if (!positionMetadata) {
+      console.error('Position not found in metadata for PDA:', positionPDA.toString());
+      return;
+    }
 
     const isPartialClose =
       positionClosedData.sizeRemaining && positionClosedData.sizeRemaining.gt(new BN(0));
 
-    if (isPartialClose) {
-      console.log('Position PARTIAL CLOSE');
-      const totalFees = positionClosedData.feeToTreasury.add(positionClosedData.feeToBlp);
+    const totalFees = positionClosedData.feeToTreasury.add(positionClosedData.feeToBlp);
 
-      try {
-        const position = await querierClient.metadata.findPositionByPDA(positionPDA.toString());
+    const partialCloseEntry = {
+      id: `${positionPDA.toString()}-${Date.now()}`,
+      closeAmount: positionClosedData.sizeClosed?.toString() || '0',
+      closePrice: positionClosedData.exitPrice?.toString() || '0',
+      pnl: positionClosedData.pnl?.toString() || '0',
+      feeCollected: totalFees.toString(),
+      closePosition: {
+        tx: tx,
+        ts: positionClosedData.timestamp?.toString() || Date.now().toString(),
+      },
+      order: orderMetadata!._id,
+    } as PartialCloseHistory;
 
-        if (!position) {
-          console.error('Position not found in metadata for PDA:', positionPDA.toString());
-          return;
-        }
+    positionMetadata!.remainingSize = positionClosedData.sizeRemaining.toString();
+    positionMetadata!.remainingCollateral = positionClosedData.collateralRemaining.toString();
+    positionMetadata!.partialCloseHistory.push(partialCloseEntry);
 
-        const partialCloseEntry = {
-          id: `${positionPDA.toString()}-${Date.now()}`,
-          closeAmount: positionClosedData.sizeClosed?.toString() || '0',
-          closePrice: positionClosedData.exitPrice?.toString() || '0',
-          pnl: positionClosedData.pnl?.toString() || '0',
-          feeCollected: totalFees.toString(),
-          closePosition: {
-            tx: tx,
-            ts: positionClosedData.timestamp?.toString() || Date.now().toString(),
-          },
-          settlementAmount: positionClosedData.settlementAmount?.toString() || '0',
-          poolPayout: positionClosedData.poolPayout?.toString() || '0',
-          fundingPayment: positionClosedData.fundingPayment?.toString() || '0',
-          collateralRemaining: positionClosedData.collateralRemaining?.toString() || '0',
-        };
-
-        const currentSize = new BN(position.remainingSize || position.size || '0');
-        const closeAmountBN = new BN(positionClosedData.sizeClosed || '0');
-        const remainingSize = new BN(positionClosedData.sizeRemaining || '0');
-
-        const currentCollateral = new BN(position.collateral || '0');
-        const closeAmountRatio = closeAmountBN.mul(new BN(1000000)).div(currentSize);
-        const collateralToClose = currentCollateral.mul(closeAmountRatio).div(new BN(1000000));
-        const remainingCollateral = currentCollateral.sub(collateralToClose);
-
-        await querierClient.metadata.updatePositionByPDA(positionPDA.toString(), {
-          size: remainingSize.toString(),
-          remainingSize: remainingSize.toString(),
-          collateral: remainingCollateral.toString(),
-          partialCloseHistory: [...(position.partialCloseHistory || []), partialCloseEntry],
-        });
-      } catch (error) {
-        console.error('Querier metadata update failed:', error);
-      }
-    } else {
-      console.log('Position FULL CLOSE');
-      await querierClient.metadata.updatePositionByPDA(positionPDA.toString(), {
-        status: 'CLOSED',
-        exitPrice: positionClosedData.exitPrice?.toString() || '0',
-        closePosition: {
-          tx: tx,
-          ts: positionClosedData.timestamp?.toString() || Date.now().toString(),
-        },
-      });
+    if(positionMetadata.remainingSize === '0') {
+      positionMetadata.status = PositionStatus.CLOSED;
+      positionMetadata.closePosition = partialCloseEntry.closePosition;
     }
+
+    await positionMetadata!.save();
+
+
+    await querierClient.pool.resyncLiquidityPool();
 
     await createPositionClosedFeeEvent(positionClosedData, tx, isPartialClose);
   } catch (error) {

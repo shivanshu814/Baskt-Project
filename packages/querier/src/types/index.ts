@@ -9,3 +9,5 @@ export * from './metrics';
 export * from './order';
 export * from './access'; 
 export * from './models';
+export * from './fee-event';
+export * from './withdraw-queue';

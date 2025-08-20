@@ -156,6 +156,7 @@ pub fn create_baskt(ctx: Context<CreateBaskt>, params: CreateBasktParams) -> Res
     )?;
 
     emit!(BasktCreatedEvent {
+        baskt_creation_fee: creation_fee_lamports,
         uid: params.uid,
         baskt_id: baskt.key(),
         creator: creator.key(),

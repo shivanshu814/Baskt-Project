@@ -1,7 +1,9 @@
-import { ObserverRouter } from 'src/observer-router';
-import { EventSource } from 'src/types';
+import { ObserverRouter } from '../../observer-router';
+import { EventSource } from '../../types';
 
 import basktCreatedHandler from './baskt-created';
+import rebalanceRequestHandler from './baskt-rebalance-request';
+import basktRebalancedHandler from './baskt-rebalanced';
 import orderCreatedHandler from './order-created';
 import positionOpenedHandler from './position-opened';
 import positionClosedHandler from './position-closed';
@@ -9,24 +11,36 @@ import positionLiquidatedHandler from './position-liquidated';
 import orderCancelledHandler from './order-cancelled';
 import collateralAddedHandler from './collateral-added';
 import liquidityAddedHandler from './liquidity-added';
-import liquidityRemovedHandler from './liquidity-removed';
+import protocolStateUpdatedHandler from './protocol-state-updated';
+import basktConfigUpdatedHandler from './baskt-config-updated';
+import withdrawalQueuedHandler from './withdrawal-queued';
+import withdrawQueueProcessedHandler from './withdraw-queue-processed';
 
 export default function registerAllHandlers(router: ObserverRouter) {
+  // Register baskt handlers
   router.register(EventSource.SOLANA, basktCreatedHandler.type, basktCreatedHandler.handler);
+  router.register(EventSource.SOLANA, rebalanceRequestHandler.type, rebalanceRequestHandler.handler);
+  router.register(EventSource.SOLANA, basktRebalancedHandler.type, basktRebalancedHandler.handler);
+  router.register(EventSource.SOLANA, basktConfigUpdatedHandler.type, basktConfigUpdatedHandler.handler);
+
+  
+  // Register order handlers
   router.register(EventSource.SOLANA, orderCreatedHandler.type, orderCreatedHandler.handler);
+  router.register(EventSource.SOLANA, orderCancelledHandler.type, orderCancelledHandler.handler);
+  
+  // Register position handlers
   router.register(EventSource.SOLANA, positionOpenedHandler.type, positionOpenedHandler.handler);
   router.register(EventSource.SOLANA, positionClosedHandler.type, positionClosedHandler.handler);
-  router.register(
-    EventSource.SOLANA,
-    positionLiquidatedHandler.type,
-    positionLiquidatedHandler.handler,
-  );
-  router.register(EventSource.SOLANA, orderCancelledHandler.type, orderCancelledHandler.handler);
+  router.register(EventSource.SOLANA, positionLiquidatedHandler.type, positionLiquidatedHandler.handler);
   router.register(EventSource.SOLANA, collateralAddedHandler.type, collateralAddedHandler.handler);
+  
+  // Register liquidity handlers
   router.register(EventSource.SOLANA, liquidityAddedHandler.type, liquidityAddedHandler.handler);
-  router.register(
-    EventSource.SOLANA,
-    liquidityRemovedHandler.type,
-    liquidityRemovedHandler.handler,
-  );
+
+  // Register protocol state handlers
+  router.register(EventSource.SOLANA, protocolStateUpdatedHandler.type, protocolStateUpdatedHandler.handler);
+  
+  // Register withdrawal handlers
+  router.register(EventSource.SOLANA, withdrawalQueuedHandler.type, withdrawalQueuedHandler.handler);
+  router.register(EventSource.SOLANA, withdrawQueueProcessedHandler.type, withdrawQueueProcessedHandler.handler);
 }

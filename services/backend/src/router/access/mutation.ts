@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { publicProcedure } from '../../trpc/trpc';
 import { TRPCError } from '@trpc/server';
-import { querier } from '../../utils/querier';
+import { querier } from '../../utils/';
 
 // generate random 8-character code
 function generateAccessCode(): string {

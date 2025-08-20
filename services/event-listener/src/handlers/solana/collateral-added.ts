@@ -2,15 +2,9 @@ import { basktClient, querierClient } from '../../utils/config';
 import BN from 'bn.js';
 import { PublicKey } from '@solana/web3.js';
 import { EventSource, ObserverEvent } from '../../types';
+import { CollateralAddedEvent } from '@baskt/types';
 
-export type CollateralAddedEvent = {
-  owner: PublicKey;
-  positionId: BN;
-  basktId: PublicKey;
-  additionalCollateral: BN;
-  newTotalCollateral: BN;
-  timestamp: BN;
-};
+
 
 async function collateralAddedHandler(event: ObserverEvent) { 
   const collateralAddedData = event.payload.event as CollateralAddedEvent;

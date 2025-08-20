@@ -6,14 +6,21 @@ import { useWallet } from '../../../hooks/wallet/use-wallet';
 import { ROUTES } from '../../../routes/route';
 import { TabContentProps } from '../../../types/baskt';
 import { BasktCard } from '../card/BasktCard';
-import { EmptyState, NoBasktsCreatedState, WalletEmptyState } from '../empty-state/EmptyState';
+import {
+  EmptyState,
+  NoBasktsCreatedState,
+  NoTrendingBasktsState,
+  WalletEmptyState,
+} from '../empty-state/EmptyState';
+import { BasktListSkeleton } from '../skeleton/BasktListSkeleton';
 
 export const TabContent = ({
   activeTab,
-  filteredBaskts,
-  popularBaskts,
-  myBaskts,
+  filteredBaskts = [],
+  trendingBaskts = [],
+  yourBaskts = [],
   userAddress,
+  isLoading = false,
 }: TabContentProps) => {
   const router = useRouter();
   const { handleLogin } = useWallet();
@@ -22,7 +29,7 @@ export const TabContent = ({
     <div className="space-y-6">
       {baskts.map((baskt) => (
         <BasktCard
-          key={baskt.basktId.toString()}
+          key={baskt.baskt.basktId?.toString()}
           baskt={baskt}
           className="hover:shadow-lg transition-all duration-200"
         />
@@ -31,40 +38,31 @@ export const TabContent = ({
   ));
 
   if (activeTab === 'all') {
-    return (
-      <div>
-        {filteredBaskts.length === 0 ? (
-          <EmptyState onCreateClick={() => router.push(ROUTES.CREATE_BASKT)} />
-        ) : (
-          <BasktGridInline baskts={filteredBaskts} />
-        )}
-      </div>
+    return filteredBaskts.length === 0 ? (
+      <EmptyState onCreateClick={() => router.push(ROUTES.CREATE_BASKT)} />
+    ) : (
+      <BasktGridInline baskts={filteredBaskts} />
     );
   }
 
   if (activeTab === 'trending') {
-    return (
-      <div>
-        <div className="mb-4 sm:mb-6">
-          <BasktGridInline baskts={popularBaskts} />
-        </div>
-      </div>
+    if (isLoading) {
+      return <BasktListSkeleton />;
+    }
+    return trendingBaskts.length === 0 ? (
+      <NoTrendingBasktsState />
+    ) : (
+      <BasktGridInline baskts={trendingBaskts} />
     );
   }
 
   if (activeTab === 'your') {
-    return (
-      <div>
-        <div className="mb-4 sm:mb-6">
-          {!userAddress ? (
-            <WalletEmptyState onConnectClick={handleLogin} />
-          ) : myBaskts.length === 0 ? (
-            <NoBasktsCreatedState onCreateClick={() => router.push(ROUTES.CREATE_BASKT)} />
-          ) : (
-            <BasktGridInline baskts={myBaskts} />
-          )}
-        </div>
-      </div>
+    return !userAddress ? (
+      <WalletEmptyState onConnectClick={handleLogin} />
+    ) : yourBaskts.length === 0 ? (
+      <NoBasktsCreatedState onCreateClick={() => router.push(ROUTES.CREATE_BASKT)} />
+    ) : (
+      <BasktGridInline baskts={yourBaskts} />
     );
   }
 

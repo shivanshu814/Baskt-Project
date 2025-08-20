@@ -2,17 +2,20 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import express from 'express';
-import cors from 'cors';
 import * as trpcExpress from '@trpc/server/adapters/express';
+import cors from 'cors';
+import express from 'express';
 import { appRouter } from '../router/';
-import { initializeQuerier, shutdownQuerier } from '../utils/querier';
+import { initializeQuerier, shutdownQuerier } from '../utils/';
+import logger from '../utils/logger';
 
 const app = express();
 const port = process.env.PORT || 4000;
 
 // Initialize querier
-initializeQuerier().catch(console.error);
+initializeQuerier().catch((error) => {
+  logger.error('Failed to initialize querier:', error);
+});
 
 app.use(cors());
 app.use(express.json());
@@ -30,14 +33,14 @@ app.get('/health', (_req, res) => {
 });
 
 const server = app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-  console.log(`tRPC endpoint: http://localhost:${port}/trpc`);
+  logger.info(`Server running at http://localhost:${port}`);
+  logger.info(`tRPC endpoint: http://localhost:${port}/trpc`);
 });
 
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received. Shutting down gracefully');
+  logger.info('SIGTERM received. Shutting down gracefully');
   server.close(async () => {
-    console.log('Process terminated');
+    logger.info('Process terminated');
     await shutdownQuerier();
   });
 });

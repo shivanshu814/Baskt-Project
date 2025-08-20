@@ -43,7 +43,7 @@ const createBaskt = async (args: string[]) => {
       baselinePrice: config.baselinePrice.toString(),
     })));
 
-    const { basktId, txSignature } = await client.createBaskt(basktName, assetConfigs, isPublic);
+    const { basktId, txSignature } = await client.createBaskt( assetConfigs, isPublic);
     console.log('Baskt created successfully!');
     console.log('Baskt ID:', basktId.toString());
     console.log('Transaction:', txSignature);

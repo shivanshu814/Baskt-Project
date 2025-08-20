@@ -6,7 +6,6 @@ import { CombinedAsset } from './asset';
  * Open interest data structure
  */
 export interface OpenInterestData {
-  assetMetadata?: CombinedAsset;
   totalOpenInterest: number;
   totalPositions: number;
   longOpenInterest: number;

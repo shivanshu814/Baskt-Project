@@ -1,6 +1,6 @@
 import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
-import { querier } from '../../utils/querier';
+import { querier } from '../../utils/';
 
 export const getAllAssets = publicProcedure
   .input(
@@ -16,7 +16,5 @@ export const getAllAssets = publicProcedure
 export const getAssetsByAddress = publicProcedure
   .input(z.array(z.string()))
   .query(async ({ input }) => {
-    // Use querier for each address (could be optimized in querier)
-    const results = await Promise.all(input.map((addr) => querier.asset.getAssetByAddress(addr)));
-    return results.map((r: any) => r.data).filter(Boolean);
+    return querier.asset.getAssetsByAddress(input);
   });

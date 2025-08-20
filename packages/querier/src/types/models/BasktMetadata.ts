@@ -1,59 +1,46 @@
-import mongoose, { ObjectId } from 'mongoose';
-
-type TimeUnit = 'day' | 'hour';
+import { BasktStatus } from "@baskt/types";
+import { ObjectId } from "mongoose";
 
 /**
  * Interface for BasktMetadata model
  * Stores metadata for a Baskt that is not stored on-chain
  */
-export interface BasktMetadataModel {
-  basktId: string | ObjectId;
-  name: string;
-  creator: string;
-  creationDate: Date;
-  txSignature: string;
+export interface BasktMetadata{
   _id?: ObjectId;
+  uid: number;
+  basktId: string; // Pubkey as string
+  creator: string; // Reference to User object (pubkey)
+  name: string;
+  currentAssetConfigs: Array<{
+    assetObjectId: string;
+    assetId: string; // Pubkey as string
+    direction: boolean; // true for long, false for short
+    weight: number; // In BPS (basis points, e.g., 5000 = 50%)
+    baselinePrice: string; // Price at last rebalance/activation
+  }>;
+  isPublic: boolean;
+  status: BasktStatus;
+  openPositions: number;
+  lastRebalanceTime: number;
+  baselineNav: string;
+  rebalancePeriod: number;
+  config: {
+    openingFeeBps?: number;
+    closingFeeBps?: number;
+    liquidationFeeBps?: number;
+    minCollateralRatioBps?: number;
+    liquidationThresholdBps?: number;
+  };
+  fundingIndex: {
+    cumulativeIndex: string;
+    lastUpdateTimestamp: number;
+    currentRate: string;
+  };
+  rebalanceFeeIndex: {
+    cumulativeIndex: string;
+    lastUpdateTimestamp: number;
+  };
+  creationTxSignature: string;
   createdAt?: Date;
   updatedAt?: Date;
-  isActive: boolean;
 }
-
-/**
- * Mongoose schema for BasktMetadata
- */
-export const BasktMetadataSchema = new mongoose.Schema(
-  {
-    basktId: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    txSignature: {
-      type: String,
-      required: true,
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now,
-    },
-  },
-  {
-    timestamps: true,
-  },
-);
-
-// Add indexes for frequently queried fields
-BasktMetadataSchema.index({ basktId: 1 });
-BasktMetadataSchema.index({ name: 1 });
-BasktMetadataSchema.index({ creator: 1 });
-BasktMetadataSchema.index({ createdAt: -1 });

@@ -10,28 +10,21 @@ import {
 } from '@baskt/ui';
 import { ExternalLink, Info, MoreVertical, Share2 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import React from 'react';
 import { useShareLink } from '../../../hooks/shared/use-share-link';
+import { ROUTES } from '../../../routes/route';
 import { BasktCardHeaderProps } from '../../../types/baskt';
 import { AssetLogo } from '../../create-baskt/assetModal/AssetLogo';
 
 export const BasktCardHeader = React.memo(
-  ({
-    baskt,
-    assetImages,
-    extraAssets,
-    assetCount,
-    basktPrice,
-    performanceData,
-    safeBasktName,
-    handlers,
-    setOpen,
-  }: BasktCardHeaderProps) => {
+  ({ baskt, assets, metrics, setOpen }: BasktCardHeaderProps) => {
     const { shareBasktLink } = useShareLink();
+    const router = useRouter();
 
     const handleShareClick = async (e: React.MouseEvent) => {
       e.stopPropagation();
-      await shareBasktLink(safeBasktName);
+      await shareBasktLink(baskt.basktId);
     };
 
     return (
@@ -39,34 +32,38 @@ export const BasktCardHeader = React.memo(
         <div className="ml-3 flex items-center gap-2 min-w-0 flex-1">
           <div className="flex flex-col min-w-0">
             <Link
-              href={`/trade/${encodeURIComponent(safeBasktName)}`}
-              className="group flex items-center gap-1 max-w-[120px] truncate text-base font-semibold"
-              onClick={handlers.handleExternalLinkClick}
+              href={`${ROUTES.TRADE}/${encodeURIComponent(baskt.basktId)}`}
+              className="group flex items-center gap-1 text-base font-semibold"
             >
-              <span className="truncate group-hover:underline group-focus:underline">
-                {baskt.name || 'Unnamed Baskt'}
+              <span className="truncate max-w-[120px] group-hover:underline group-focus:underline">
+                {baskt.name || ''}
               </span>
-              <ExternalLink className="ml-2 w-4 h-4 text-muted-foreground hover:text-foreground" />
+              <ExternalLink className="ml-2 w-4 h-4 text-muted-foreground hover:text-foreground shrink-0" />
             </Link>
             <div className="flex items-center gap-1.5 mt-1.5">
               <div className="flex -space-x-2">
-                {assetImages.map((asset, idx) => (
-                  <div key={`${asset.ticker || asset.name || idx}`} className="relative z-10">
-                    <AssetLogo
-                      ticker={asset.ticker || asset.name || 'Asset'}
-                      logo={asset.logo || ''}
-                      size="sm"
-                    />
-                  </div>
-                ))}
-                {extraAssets > 0 && (
+                {assets?.slice(0, 3).map((assetItem: any, idx: number) => {
+                  return (
+                    <div
+                      key={`${assetItem.ticker || assetItem.name || idx}`}
+                      className="relative z-10"
+                    >
+                      <AssetLogo
+                        ticker={assetItem.ticker || assetItem.name || 'Asset'}
+                        logo={assetItem.logo || ''}
+                        size="sm"
+                      />
+                    </div>
+                  );
+                })}
+                {baskt.totalAssets > 3 && (
                   <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground border border-border ml-1">
-                    +{extraAssets}
+                    +{baskt.totalAssets - 3}
                   </div>
                 )}
               </div>
               <span className="text-xs text-muted-foreground whitespace-nowrap">
-                {assetCount} asset{assetCount !== 1 ? 's' : ''}
+                {baskt.totalAssets} asset{baskt.totalAssets !== 1 ? 's' : ''}
               </span>
             </div>
           </div>
@@ -75,16 +72,24 @@ export const BasktCardHeader = React.memo(
         <div className="flex items-right justify-end flex-1 mr-4">
           <div className="flex flex-col items-right">
             <span className="text-lg font-bold text-foreground whitespace-nowrap">
-              <NumberFormat value={basktPrice} isPrice={true} showCurrency={true} />
+              <NumberFormat
+                value={Number(metrics?.currentNav || metrics?.baselineNav)}
+                isPrice={true}
+                showCurrency={true}
+              />
             </span>
-            {performanceData.day !== undefined && (
+            {metrics?.performance?.daily !== undefined && (
               <span
                 className={`text-xs font-medium ${
-                  performanceData.day >= 0 ? 'text-green-500' : 'text-red-500'
+                  metrics.performance.daily > 0
+                    ? 'text-green-500'
+                    : metrics.performance.daily < 0
+                    ? 'text-red-500'
+                    : 'text-text'
                 } text-right block`}
               >
-                {performanceData.day >= 0 ? '+' : ''}
-                {performanceData.day.toFixed(2)}%
+                {metrics.performance.daily > 0 ? '+' : ''}
+                {metrics.performance.daily.toFixed(2)}%
               </span>
             )}
           </div>
@@ -93,7 +98,7 @@ export const BasktCardHeader = React.memo(
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              handlers.handleTradeClick(e);
+              router.push(`${ROUTES.TRADE}/${encodeURIComponent(baskt.basktId)}`);
             }}
             className="ml-4 mt-1 mr-2 bg-primary/10 border-primary/30 hover:bg-primary/20 hover:border-primary/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10"
           >
@@ -114,7 +119,7 @@ export const BasktCardHeader = React.memo(
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
-                  handlers.handleTradeClick(e);
+                  router.push(`${ROUTES.TRADE}/${encodeURIComponent(baskt.basktId)}`);
                 }}
               >
                 <span className="flex items-center gap-2">

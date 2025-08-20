@@ -1,5 +1,6 @@
 import {  OnchainBasktAccount } from '@baskt/types';
 import { CombinedAsset } from './asset';
+import { BasktMetadata } from './models';
 
 /**
  * Performance metrics for a baskt
@@ -12,34 +13,11 @@ export interface BasktPerformance {
 }
 
 /**
- * Price history data for a baskt
- */
-export interface BasktPriceHistory {
-  daily: Array<{
-    date: string;
-    price: number;
-    volume?: number;
-  }>;
-}
-
-/**
  * Combined baskt data structure that merges metadata, onchain data, and asset information
  */
-export interface CombinedBaskt {
-  /** MongoDB document ID */
-  _id?: string;
-  /** Baskt ID */
-  basktId: string;
-  /** Baskt name */
-  name: string;
-  /** Creator address */
-  creator: string;
-  /** Transaction signature */
-  txSignature: string;
+export interface CombinedBaskt extends Omit<BasktMetadata, 'currentAssetConfigs'> {
   /** Array of combined assets in the baskt */
   assets: CombinedBasktAsset[];
-  /** Total number of assets */
-  totalAssets: number;
   /** Current price/NAV */
   price: number;
   /** 24-hour price change percentage */
@@ -48,12 +26,6 @@ export interface CombinedBaskt {
   aum: number;
   /** Sparkline data for mini chart */
   sparkline: number[];
-  /** Onchain baskt account data */
-  account: OnchainBasktAccount | {};
-  /** Creation date */
-  creationDate: string;
-  /** Price history data */
-  priceHistory: BasktPriceHistory;
   /** Performance metrics */
   performance: BasktPerformance;
 }
@@ -88,12 +60,6 @@ export interface BasktNAV {
  * Options for baskt queries
  */
 export interface BasktQueryOptions {
-  /** Hide private baskts */
   hidePrivateBaskts?: boolean;
-  /** Include asset configuration data */
-  withConfig?: boolean;
-  /** Include performance metrics */
-  withPerformance?: boolean;
-  /** Include price history */
-  withPriceHistory?: boolean;
+  withPerformance: boolean;
 } 

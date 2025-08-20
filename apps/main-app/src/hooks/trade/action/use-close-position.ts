@@ -1,7 +1,7 @@
 import { useBasktClient } from '@baskt/ui';
-import { BN } from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
-import { useEffect, useState } from 'react';
+import BN from 'bn.js';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { calculateAmount, calculatePercentage } from '../../../utils/calculation/calculations';
 import { validateCloseAmount } from '../../../utils/validation/validation';
@@ -14,15 +14,33 @@ export const useClosePosition = (position: any, onClose: () => void) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const positionSize = Number(position?.size || 0);
-  const positionEntryPrice = Number(position?.entryPrice || 0);
-  const positionUsdcSizeMicro =
-    position?.usdcSize !== undefined && position?.usdcSize !== null
-      ? Number(position.usdcSize)
-      : positionSize > 0 && positionEntryPrice > 0
-      ? positionSize * positionEntryPrice
-      : 0;
-  const positionValue = positionUsdcSizeMicro / 1e6;
+  const validatePositionStructure = useCallback((pos: any): string | null => {
+    if (!pos) return 'Position data is missing';
+    if (!pos.positionPDA) return 'Position PDA is missing';
+    if (!pos.basktAddress) return 'Baskt ID is missing';
+    if (!pos.size) return 'Position size is missing';
+    if (!pos.entryPrice) return 'Entry price is missing';
+    const sizeNum = Number(pos.size);
+    if (isNaN(sizeNum) || sizeNum <= 0) return 'Position size must be a positive number';
+
+    return null;
+  }, []);
+
+  const positionSize = useMemo(() => Number(position?.size || 0), [position?.size]);
+  const positionEntryPrice = useMemo(
+    () => Number(position?.entryPrice || 0),
+    [position?.entryPrice],
+  );
+  const positionUsdcSizeMicro = useMemo(() => {
+    if (position?.usdcSize !== undefined && position?.usdcSize !== null) {
+      return Number(position.usdcSize);
+    }
+    if (positionSize > 0 && positionEntryPrice > 0) {
+      return positionSize * positionEntryPrice;
+    }
+    return 0;
+  }, [position?.usdcSize, positionSize, positionEntryPrice]);
+  const positionValue = useMemo(() => positionUsdcSizeMicro / 1e6, [positionUsdcSizeMicro]);
 
   useEffect(() => {
     if (position) {
@@ -32,52 +50,61 @@ export const useClosePosition = (position: any, onClose: () => void) => {
     }
   }, [position, positionValue]);
 
-  const handleAmountChange = (value: string) => {
-    const validationError = validateCloseAmount(value, positionValue);
-    setError(validationError);
-    setCloseAmount(value);
+  const handleAmountChange = useCallback(
+    (value: string) => {
+      const validationError = validateCloseAmount(value, positionValue);
+      setError(validationError);
+      setCloseAmount(value);
 
-    if (!validationError) {
-      const numValue = parseFloat(value);
-      if (numValue > 0) {
-        const percentage = calculatePercentage(numValue, positionValue);
-        setClosePercentage(percentage);
-      } else {
+      if (!validationError) {
+        const numValue = parseFloat(value);
+        if (numValue > 0) {
+          const percentage = calculatePercentage(numValue, positionValue);
+          setClosePercentage(percentage);
+        } else {
+          setClosePercentage('');
+        }
+      }
+    },
+    [positionValue],
+  );
+
+  const handleSliderChange = useCallback(
+    (percentage: number) => {
+      const amount = calculateAmount(percentage, positionValue);
+      setCloseAmount(parseFloat(amount).toFixed(2));
+      setClosePercentage(percentage.toFixed(1));
+      setError(null);
+    },
+    [positionValue],
+  );
+
+  const handlePercentageChange = useCallback(
+    (value: string) => {
+      if (value === '') {
         setClosePercentage('');
+        setCloseAmount('0');
+      } else {
+        const numValue = parseInt(value);
+        if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+          const percentage = numValue.toString();
+          setClosePercentage(percentage);
+          const amount = calculateAmount(numValue, positionValue);
+          setCloseAmount(parseFloat(amount).toFixed(2));
+          setError(null);
+        }
       }
-    }
-  };
+    },
+    [positionValue],
+  );
 
-  const handleSliderChange = (percentage: number) => {
-    const amount = calculateAmount(percentage, positionValue);
-    setCloseAmount(parseFloat(amount).toFixed(2));
-    setClosePercentage(percentage.toFixed(1));
-    setError(null);
-  };
-
-  const handlePercentageChange = (value: string) => {
-    if (value === '') {
-      setClosePercentage('');
-      setCloseAmount('0');
-    } else {
-      const numValue = parseInt(value);
-      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-        const percentage = numValue.toString();
-        setClosePercentage(percentage);
-        const amount = calculateAmount(numValue, positionValue);
-        setCloseAmount(parseFloat(amount).toFixed(2));
-        setError(null);
-      }
-    }
-  };
-
-  const handleMaxClick = () => {
+  const handleMaxClick = useCallback(() => {
     setCloseAmount(positionValue.toFixed(2));
     setClosePercentage('100.0');
     setError(null);
-  };
+  }, [positionValue]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     const validationError = validateCloseAmount(closeAmount, positionValue);
     if (validationError) {
       setError(validationError);
@@ -89,35 +116,37 @@ export const useClosePosition = (position: any, onClose: () => void) => {
       return;
     }
 
-    if (!position?.positionPDA) {
-      toast.error('Invalid position data');
+    const positionValidationError = validatePositionStructure(position);
+    if (positionValidationError) {
+      toast.error(positionValidationError);
+      return;
+    }
+
+    if (typeof position !== 'object' || position === null) {
+      toast.error('Position object is not valid');
       return;
     }
 
     const isFullClose = parseFloat(closePercentage || '0') >= 99.99;
-    const closeType = isFullClose ? 'full' : 'partial';
+    let amountBeingClosed = isFullClose ? positionValue : closeAmount;
 
     setIsLoading(true);
     try {
       const toastId = toast.loading(`Closing position...`);
 
-      // Convert value (USDC) to contracts proportionally: sizeToClose = fraction * totalSize
-      let closeAmountBN: BN;
-      if (closeType === 'full') {
-        closeAmountBN = new BN(position.size);
-      } else {
-        const closeValue = parseFloat(closeAmount); // decimal USDC
-        const fraction = positionValue > 0 ? closeValue / positionValue : 0;
-        const sizeToClose = fraction * positionSize; // contracts (decimal)
-        closeAmountBN = new BN(Math.floor(sizeToClose * 1e6)); // convert to micro-contracts
+      let numOfContractsToClose: BN;
+      numOfContractsToClose = new BN(Number(amountBeingClosed) * 1e6).mul(new BN(position.size)).div(new BN(Number(positionValue) * 1e6));
+
+      if (!numOfContractsToClose || !numOfContractsToClose.gt(new BN(0))) {
+        throw new Error('Created BN is invalid or zero : ' + numOfContractsToClose.toString());
       }
 
       const orderId = client.newUID();
 
       const tx = await client.createMarketCloseOrder({
         orderId,
-        basktId: new PublicKey(position.basktId),
-        sizeAsContracts: closeAmountBN,
+        basktId: new PublicKey(position.basktAddress),
+        sizeAsContracts: numOfContractsToClose,
         targetPosition: new PublicKey(position.positionPDA),
         ownerTokenAccount: await client
           .getUSDCAccount(client.getPublicKey())
@@ -150,7 +179,16 @@ export const useClosePosition = (position: any, onClose: () => void) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [
+    closeAmount,
+    closePercentage,
+    positionValue,
+    positionSize,
+    client,
+    position,
+    validatePositionStructure,
+    onClose,
+  ]);
 
   return {
     closeAmount,

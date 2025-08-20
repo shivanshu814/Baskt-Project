@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ROUTES } from '../../../routes/route';
-import { BasktBreakdownProps } from '../../../types/baskt/ui/ui';
+import { BasktBreakdownProps } from '../../../types/baskt';
 import { BasktModal } from './baskt-modal/BasktModal';
 
 export const BasktBreakdown = ({ tradedBaskts, isLoading, error }: BasktBreakdownProps) => {
@@ -59,15 +59,14 @@ export const BasktBreakdown = ({ tradedBaskts, isLoading, error }: BasktBreakdow
     <div>
       {tradedBaskts.length > 0 ? (
         <>
-          {/* Progress Bar with Labels */}
           <div className="mb-6">
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 flex overflow-hidden mb-2">
-              {displayedBaskts.map((baskt: any, index: number) => (
+              {displayedBaskts.map((baskt, index: number) => (
                 <div
-                  key={baskt.id || index}
+                  key={baskt.basktName || index}
                   className={`h-4 ${getBasketColor(index)}`}
                   style={{
-                    width: `${baskt.percentage || 0}%`,
+                    width: `${baskt.totalValuePercentage || 0}%`,
                   }}
                 />
               ))}
@@ -76,7 +75,7 @@ export const BasktBreakdown = ({ tradedBaskts, isLoading, error }: BasktBreakdow
                   className="h-4 bg-orange-400"
                   style={{
                     width: `${otherBaskts.reduce(
-                      (sum: number, b: any) => sum + (b.percentage || 0),
+                      (sum: number, b) => sum + (b.totalValuePercentage || 0),
                       0,
                     )}%`,
                   }}
@@ -86,20 +85,20 @@ export const BasktBreakdown = ({ tradedBaskts, isLoading, error }: BasktBreakdow
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {displayedBaskts.map((baskt: any, index: number) => {
+            {displayedBaskts.map((baskt, index: number) => {
               return (
                 <div
-                  key={baskt.basktId || index}
+                  key={baskt.basktName || index}
                   className="flex items-center gap-3 p-3 rounded-lg cursor-pointer border-none"
                 >
                   <div className="flex items-center">
                     <div className="flex -space-x-3">
-                      {baskt.assets?.slice(0, 4).map((asset: any, i: number) => (
+                      {baskt.assets?.slice(0, 4).map((assetUrl: string, i: number) => (
                         <div key={i} className="relative w-8 h-8 flex items-center justify-center">
-                          {asset?.logo ? (
+                          {assetUrl ? (
                             <Image
-                              src={asset.logo}
-                              alt={asset.ticker}
+                              src={assetUrl}
+                              alt={`Asset ${i + 1}`}
                               width={32}
                               height={32}
                               className="w-8 h-8 rounded-full object-cover"
@@ -115,7 +114,7 @@ export const BasktBreakdown = ({ tradedBaskts, isLoading, error }: BasktBreakdow
                           ) : (
                             <div className="w-8 h-8 border-2 border-orange-400 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-600">
                               <span className="text-white text-xs font-bold">
-                                {asset?.ticker?.slice(0, 2)}
+                                {baskt.basktName?.slice(0, 2) || 'B'}
                               </span>
                             </div>
                           )}
@@ -128,12 +127,12 @@ export const BasktBreakdown = ({ tradedBaskts, isLoading, error }: BasktBreakdow
                     <div className="flex items-center gap-2 group">
                       <span
                         className="text-sm font-medium text-gray-900 dark:text-white truncate hover:underline cursor-pointer group-hover:underline"
-                        onClick={() => router.push(`${ROUTES.TRADE}/${baskt.name}`)}
+                        onClick={() => router.push(`${ROUTES.TRADE}/${baskt.basktName}`)}
                       >
-                        {baskt.name}
+                        {baskt.basktName}
                       </span>
                       <button
-                        onClick={() => router.push(`${ROUTES.TRADE}/${baskt.name}`)}
+                        onClick={() => router.push(`${ROUTES.TRADE}/${baskt.basktName}`)}
                         className="flex-shrink-0 p-1 hover:bg-primary/10 rounded-md transition-colors duration-200"
                         title="Trade this baskt"
                       >
@@ -141,7 +140,7 @@ export const BasktBreakdown = ({ tradedBaskts, isLoading, error }: BasktBreakdow
                       </button>
                     </div>
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {baskt.percentage?.toFixed(1)}%
+                      {baskt.totalValuePercentage?.toFixed(1)}%
                     </span>
                   </div>
                 </div>
@@ -155,14 +154,14 @@ export const BasktBreakdown = ({ tradedBaskts, isLoading, error }: BasktBreakdow
               >
                 <div className="flex items-center">
                   <div className="flex -space-x-3">
-                    {otherBaskts.slice(0, 4).map((baskt: any, i: number) => {
+                    {otherBaskts.slice(0, 4).map((baskt, i: number) => {
                       const firstAsset = baskt.assets[0];
                       return (
                         <div key={i} className="relative w-8 h-8 flex items-center justify-center">
-                          {firstAsset?.logo ? (
+                          {firstAsset ? (
                             <Image
-                              src={firstAsset.logo}
-                              alt={firstAsset.ticker}
+                              src={firstAsset}
+                              alt={`Asset ${i + 1}`}
                               width={32}
                               height={32}
                               className="w-8 h-8 rounded-full object-cover"
@@ -178,7 +177,7 @@ export const BasktBreakdown = ({ tradedBaskts, isLoading, error }: BasktBreakdow
                           ) : (
                             <div className="w-8 h-8 border-2 border-orange-400 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-600">
                               <span className="text-white text-xs font-bold">
-                                {firstAsset?.ticker?.slice(0, 2) || 'O'}
+                                {baskt.basktName?.slice(0, 2) || 'O'}
                               </span>
                             </div>
                           )}
@@ -197,7 +196,7 @@ export const BasktBreakdown = ({ tradedBaskts, isLoading, error }: BasktBreakdow
                   </div>
                   <span className="text-sm text-gray-600 dark:text-gray-400">
                     {otherBaskts
-                      .reduce((sum: number, b: any) => sum + (b.percentage || 0), 0)
+                      .reduce((sum: number, b) => sum + (b.totalValuePercentage || 0), 0)
                       .toFixed(1)}
                     %
                   </span>

@@ -9,6 +9,7 @@ import { HistoryQueryParams, HistoryResult } from '../types/history';
  * It is used to fetch the history of orders and positions.
  */
 
+// TODO: @nshmadhani We need to redo this 
 export class HistoryQuerier {
   // get history of orders and positions
   async getHistory(params: HistoryQueryParams): Promise<HistoryResult> {
@@ -45,13 +46,10 @@ export class HistoryQuerier {
       const allOrders = await metadataManager.getAllOrders();
       const allPositions = await metadataManager.getAllPositions();
 
-      const filteredOrders = basktId ? allOrders.filter((o) => o.basktId === basktId) : allOrders;
+      const filteredOrders = basktId ? allOrders.filter((o) => o.basktAddress === basktId) : allOrders;
       const filteredPositions = basktId
-        ? allPositions.filter((p) => p.basktId === basktId)
+        ? allPositions.filter((p) => p.basktAddress === basktId)
         : allPositions;
-
-      const totalOrders = filteredOrders.length;
-      const totalPositions = filteredPositions.length;
 
       const allBasktIds = [
         ...filteredOrders.map((o: any) => o.basktId).filter(Boolean),
@@ -73,21 +71,21 @@ export class HistoryQuerier {
         if (
           order.orderStatus === 'FILLED' &&
           order.orderAction === OrderAction.Close &&
-          order.limitPrice
+          order.limitParams?.limitPrice
         ) {
           try {
             const correspondingPosition = allPositions.find(
               (pos) =>
-                pos.positionId === order.position ||
+                pos.positionId === order.positionAddress ||
                 (pos.owner === order.owner &&
-                  pos.basktId === order.basktId &&
+                  pos.basktAddress === order.basktAddress &&
                   pos.status === PositionStatus.CLOSED),
             );
 
             if (correspondingPosition && correspondingPosition.entryPrice) {
               const entryPrice = parseFloat(correspondingPosition.entryPrice || '0');
-              const exitPrice = parseFloat(order.limitPrice || '0');
-              const size = parseFloat(order.size || '0');
+              const exitPrice = parseFloat(order.limitParams?.limitPrice || '0');
+              const size = parseFloat(order.openParams?.notionalValue || '0');
 
               if (!isNaN(entryPrice) && !isNaN(exitPrice) && !isNaN(size)) {
                 if (correspondingPosition.isLong) {
@@ -112,17 +110,17 @@ export class HistoryQuerier {
         return {
           id: order.orderPDA || '',
           type: 'order',
-          orderId: order.orderId || '',
-          basktId: order.basktId || '',
-          basktName: basktNameMap.get(order.basktId) || '',
+          orderId: order.orderId,
+          basktId: order.basktAddress,
+          basktName: basktNameMap.get(order.basktAddress) || '',
           owner: order.owner || '',
           action: order.orderAction || OrderAction.Open,
           status: order.orderStatus || '',
-          size: order.size || '0',
-          collateral: order.size || '0',
-          isLong: order.isLong || false,
-          entryPrice: order.limitPrice || undefined,
-          exitPrice: order.limitPrice || undefined,
+          size: order.openParams?.notionalValue || '0',
+          collateral: order.openParams?.collateral || '0',
+          isLong: order.openParams?.isLong || false,
+          entryPrice: order.limitParams?.limitPrice || undefined,
+          exitPrice: order.limitParams?.limitPrice || undefined,
           pnl,
           pnlPercentage,
           timestamp:
@@ -170,8 +168,8 @@ export class HistoryQuerier {
             id: position.positionPDA || '',
             type: 'position',
             positionId: position.positionId || '',
-            basktId: position.basktId || '',
-            basktName: basktNameMap.get(position.basktId) || '',
+            basktId: position.basktAddress || '',
+            basktName: basktNameMap.get(position.basktAddress) || '',
             owner: position.owner || '',
             action: position.isLong ? OrderAction.Open : OrderAction.Close,
             status: position.status || '',

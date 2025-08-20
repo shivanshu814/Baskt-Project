@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { publicProcedure } from '../../trpc/trpc';
-import { querier } from '../../utils/querier';
+import { querier } from '../../utils/';
 
 /**
  * Get withdrawal queue statistics

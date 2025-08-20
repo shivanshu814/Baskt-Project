@@ -3,7 +3,7 @@ import { OrderAction, OnchainOrderStatus, PositionStatus } from '../onchain';
 export interface HistoryItem {
   id: string;
   type: 'order' | 'position';
-  orderId?: string;
+  orderId?: number;
   positionId?: string;
   basktId: string;
   basktName?: string;

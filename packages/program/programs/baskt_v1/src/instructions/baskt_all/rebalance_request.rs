@@ -56,6 +56,7 @@ pub fn rebalance_request(ctx: Context<RebalanceRequest>) -> Result<()> {
 
     // Emit the rebalance request event
     emit!(RebalanceRequestEvent {
+        rebalance_request_fee: fee_lamports,
         baskt_id: ctx.accounts.baskt.key(),
         creator: ctx.accounts.creator.key(),
         timestamp: current_timestamp,

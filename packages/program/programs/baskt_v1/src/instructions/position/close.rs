@@ -126,7 +126,6 @@ pub struct ClosePosition<'info> {
         constraint = usdc_vault.mint == protocol.collateral_mint @ PerpetualsError::InvalidMint,
         constraint = treasury_token.key() != usdc_vault.key() @ PerpetualsError::InvalidInput,
         constraint = owner_collateral_account.key() != usdc_vault.key() @ PerpetualsError::InvalidInput,
-        constraint = owner_collateral_account.key() != treasury_token.key() @ PerpetualsError::InvalidInput
     )]
     pub usdc_vault: Account<'info, TokenAccount>,
 

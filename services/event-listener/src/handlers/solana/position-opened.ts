@@ -1,28 +1,13 @@
 import { querierClient, basktClient } from '../../utils/config';
-import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
-import { PositionStatus } from '@baskt/types';
+import { OnchainOrderStatus, PositionOpenedEvent, PositionStatus } from '@baskt/types';
 import { EventSource, ObserverEvent } from '../../types';
 import {
   createPositionFeeEvent,
   calculatePositionFees,
   convertTimestampToDate,
 } from '../../utils/fee-utils';
-
-interface PositionOpenedEvent {
-  orderId: BN;
-  owner: PublicKey;
-  positionId: BN | number | string;
-  basktId: PublicKey;
-  size: BN;
-  collateral: BN;
-  isLong: boolean;
-  entryPrice: BN;
-  entryFundingIndex: BN;
-  feeToTreasury: BN;
-  feeToBlp: BN;
-  timestamp: BN;
-}
+import { FeeEvents } from '@baskt/querier';
 
 /**
  * Create fee event for position opened
@@ -36,7 +21,7 @@ async function createPositionOpenedFeeEvent(
   const timestamp = convertTimestampToDate(positionOpenedData.timestamp);
 
   await createPositionFeeEvent(
-    'POSITION_OPENED',
+    FeeEvents.POSITION_OPENED,
     tx,
     timestamp,
     positionOpenedData.basktId.toString(),
@@ -59,35 +44,51 @@ async function positionOpenedHandler(event: ObserverEvent) {
   const tx = event.payload.signature;
 
   try {
-    const positionId =
-      positionOpenedData.positionId instanceof BN
-        ? positionOpenedData.positionId
-        : new BN(positionOpenedData.positionId.toString());
+    const positionId = positionOpenedData.positionId;
 
-    const positionPDA = await basktClient.getPositionPDA(positionOpenedData.owner, positionId);
-
+    const positionPDA = await basktClient.getPositionPDA(positionOpenedData.owner, Number(positionId));
     const isLong = positionOpenedData.isLong;
 
-    const positionData = {
+    const baskt = await querierClient.metadata.findBasktById(positionOpenedData.basktId.toString());
+
+    const order = await querierClient.metadata.findOrderById(Number(positionOpenedData.orderId.toString()));
+
+   const positionData = await querierClient.metadata.createPosition({
       positionPDA: positionPDA.toString(),
       positionId: positionId.toString(),
       owner: positionOpenedData.owner.toString(),
-      basktId: positionOpenedData.basktId.toString(),
+      basktAddress: positionOpenedData.basktId.toString(),
+      baskt: baskt!._id,
       size: positionOpenedData.size.toString(),
       remainingSize: positionOpenedData.size.toString(),
       collateral: positionOpenedData.collateral.toString(),
+      remainingCollateral: positionOpenedData.collateral.toString(),
       entryPrice: positionOpenedData.entryPrice.toString(),
       status: PositionStatus.OPEN,
       isLong: isLong,
-      openOrder: positionOpenedData.orderId.toString(),
+      openOrderId: positionOpenedData.orderId.toNumber(),
+      openOrder: order!._id,
       openPosition: {
         tx: tx,
         ts: positionOpenedData.timestamp.toString(),
       },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      partialCloseHistory: [],
+    }); 
+
+    order!.orderStatus = OnchainOrderStatus.FILLED;
+    order!.fullFillOrder = {
+      tx: tx,
+      ts: positionOpenedData.timestamp.toString(),
     };
+    order!.positionCreated = positionData._id;
+    await order!.save();
 
-    await querierClient.metadata.createPosition(positionData); 
-
+    baskt!.openPositions += 1;
+    
+    await baskt!.save();
+ 
     // Create fee event record
     await createPositionOpenedFeeEvent(positionOpenedData, tx, isLong);
   } catch (error) {

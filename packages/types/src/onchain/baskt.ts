@@ -12,8 +12,6 @@ export interface OnchainAssetConfig {
 export enum BasktStatus {
   Pending = 'pending',
   Active = 'active',
-  Decommissioning = 'decommissioning',
-  Settled = 'settled',
   Closed = 'closed',
 }
 
@@ -32,8 +30,6 @@ export interface OnchainRebalanceFee {
 export const statusStringToEnum = (status: any) => {
   if ('pending' in status) return BasktStatus.Pending;
   if ('active' in status) return BasktStatus.Active;
-  if ('decommissioning' in status) return BasktStatus.Decommissioning;
-  if ('settled' in status) return BasktStatus.Settled;
   if ('closed' in status) return BasktStatus.Closed;
   return BasktStatus.Pending;
 }
@@ -57,7 +53,7 @@ export interface OnchainBasktAccount {
   baselineNav: BN | string;
   bump: number;
   isActive: boolean;
-  basktRebalancePeriod: BN | string; // u32 timestamp
+  rebalancePeriod: BN | string; // u32 timestamp
   fundingIndex: OnchainFunding;
   rebalanceFeeIndex: OnchainRebalanceFee;
   config: OnchainBasktConfig;

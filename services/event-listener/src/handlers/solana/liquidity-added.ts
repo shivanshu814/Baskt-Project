@@ -5,15 +5,9 @@ import {
   createLiquidityFeeEvent, 
   convertTimestampToDate 
 } from '../../utils/fee-utils';
-
-export type LiquidityAddedEvent = {
-  provider: PublicKey;
-  liquidityPool: PublicKey;
-  depositAmount: BN;
-  feeAmount: BN;
-  sharesMinted: BN;
-  timestamp: BN;
-};
+import { LiquidityAddedEvent } from '@baskt/types';
+import { querierClient } from '../../utils/config';
+import { FeeEvents } from '@baskt/querier';
 
 /**
  * Create fee event for liquidity added
@@ -26,15 +20,11 @@ async function createLiquidityAddedFeeEvent(
   const timestamp = convertTimestampToDate(liquidityAddedData.timestamp);
 
   await createLiquidityFeeEvent(
-    'LIQUIDITY_ADDED',
+    FeeEvents.LIQUIDITY_ADDED,
     tx,
     timestamp,
     liquidityAddedData.provider.toString(),
     feeAmount,
-    liquidityAddedData.provider.toString(),
-    liquidityAddedData.liquidityPool.toString(),
-    liquidityAddedData.depositAmount.toString(),
-    liquidityAddedData.sharesMinted.toString()
   );
 }
 
@@ -44,6 +34,20 @@ async function liquidityAddedHandler(event: ObserverEvent) {
 
   try {
     await createLiquidityAddedFeeEvent(liquidityAddedData, tx);
+    await querierClient.pool.resyncLiquidityPool();
+    
+    // Create deposit record
+    const netDeposit = liquidityAddedData.depositAmount.sub(liquidityAddedData.feeAmount).toString();
+    await querierClient.pool.createLiquidityDeposit({
+      provider: liquidityAddedData.provider.toString(),
+      liquidityPool: liquidityAddedData.liquidityPool.toString(),
+      depositAmount: liquidityAddedData.depositAmount.toString(),
+      feeAmount: liquidityAddedData.feeAmount.toString(),
+      sharesMinted: liquidityAddedData.sharesMinted.toString(),
+      timestamp: liquidityAddedData.timestamp.toNumber(),
+      transactionSignature: tx,
+      netDeposit,
+    });
   } catch (error) {
     console.error('Error processing liquidity added event:', error);
   }

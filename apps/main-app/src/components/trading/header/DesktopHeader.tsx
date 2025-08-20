@@ -22,12 +22,10 @@ export function DesktopHeader({ baskt }: DesktopHeaderProps) {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [isBasketDropdownOpen, setIsBasketDropdownOpen] = useState(false);
 
-  const { filteredBaskts, isLoading: isLoadingBaskts } = useBasktList();
+  const { combinedBaskts: filteredBaskts } = useBasktList();
   const { totalOpenInterest, isLoading: oiLoading } = useBasktOI(baskt?.basktId || '');
   const { totalVolume, isLoading: volumeLoading } = useBasktVolume(baskt?.basktId || '');
-  const { data: allOiResp } = trpc.metrics.getOpenInterestForBasktsWithPositions.useQuery(
-    undefined,
-  );
+  const { data: allOiResp } = trpc.metrics.getTopBasktsWithVolume.useQuery(undefined);
 
   const oiByBasktId = useMemo(() => {
     const map = new Map<string, number>();
@@ -42,7 +40,7 @@ export function DesktopHeader({ baskt }: DesktopHeaderProps) {
   }, [allOiResp]);
 
   const filteredBasktsList = useMemo(() => {
-    const list = filterBasktsBySearch(filteredBaskts, searchQuery);
+    const list = filterBasktsBySearch(filteredBaskts as any, searchQuery);
     return [...list].sort((a, b) => {
       const oiB = oiByBasktId.get(b.basktId) || 0;
       const oiA = oiByBasktId.get(a.basktId) || 0;
@@ -50,8 +48,8 @@ export function DesktopHeader({ baskt }: DesktopHeaderProps) {
     });
   }, [filteredBaskts, searchQuery, oiByBasktId]);
 
-  const handleBasktClick = (basktName: string) => {
-    router.push(`${ROUTES.TRADE}/${encodeURIComponent(basktName)}`);
+  const handleBasktClick = (basktId: string) => {
+    router.push(`${ROUTES.TRADE}/${encodeURIComponent(basktId)}`);
     setIsBasketDropdownOpen(false);
   };
 
@@ -126,7 +124,7 @@ export function DesktopHeader({ baskt }: DesktopHeaderProps) {
                         <HeaderList
                           key={basktItem.basktId || index}
                           baskt={basktItem}
-                          onClick={() => handleBasktClick(basktItem.name)}
+                          onClick={() => handleBasktClick(basktItem.basktId)}
                         />
                       ))}
                     </TableBody>

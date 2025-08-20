@@ -1,6 +1,6 @@
 import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
-import { querier } from '../../utils/querier';
+import { querier } from '../../utils/';
 
 // send usdc to a user
 export const faucet = publicProcedure

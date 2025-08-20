@@ -1,17 +1,18 @@
 /** @format */
 
-import { router, publicProcedure } from '../trpc/trpc';
-import { assetRouter } from './asset';
-import { basktRouter } from './baskt';
-import { assetPriceRouter } from './assetPrice';
-import { poolRouter } from './pool';
-import { orderRouter } from './order';
-import { positionRouter } from './position';
-import { metricsRouter } from './metrics';
-import { historyRouter } from './history';
+import { publicProcedure, router } from '../trpc/trpc';
 import { accessRouter } from './access';
+import { assetRouter } from './asset';
+import { assetPriceRouter } from './assetPrice';
+import { basktRouter } from './baskt';
 import { faucetRouter } from './faucet';
 import { feeEventRouter } from './feeEvent';
+import { historyRouter } from './history';
+import { metricsRouter } from './metrics';
+import { orderRouter } from './order';
+import { poolRouter } from './pool';
+import { portfolioRouter } from './portfolio';
+import { positionRouter } from './position';
 
 export const appRouter = router({
   health: publicProcedure.query(() => {
@@ -31,6 +32,7 @@ export const appRouter = router({
   accessCode: accessRouter,
   faucet: faucetRouter,
   feeEvent: feeEventRouter,
+  portfolio: portfolioRouter,
 });
 
 export type AppRouter = typeof appRouter;

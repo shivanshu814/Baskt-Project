@@ -1,42 +1,20 @@
 'use client';
 
+import { WalletTabContentProps } from '../../../../types/portfolio';
 import { AssetBreakdown } from '../../asset/AssetBreakdown';
 import { BasktBreakdown } from '../../baskt/BasktBreakdown';
-import { WalletTabType } from '../WalletTabControls';
-
-export interface WalletTabContentProps {
-  activeTab: WalletTabType;
-  tradedBaskts: any[];
-  uniqueAssets: any[];
-  isLoading: boolean;
-  error: any;
-  positions: any[];
-  baskts: any[];
-}
 
 export const WalletTabContent = ({
   activeTab,
   tradedBaskts,
-  uniqueAssets,
-  isLoading,
-  error,
-  positions,
-  baskts,
+  tradedAssets,
 }: WalletTabContentProps) => {
   switch (activeTab) {
     case 'baskts':
-      return <BasktBreakdown tradedBaskts={tradedBaskts} isLoading={isLoading} error={error} />;
+      return <BasktBreakdown tradedBaskts={tradedBaskts} isLoading={false} error={null} />;
     case 'assets':
-      return (
-        <AssetBreakdown
-          uniqueAssets={uniqueAssets}
-          isLoading={isLoading}
-          error={error}
-          positions={positions}
-          baskts={baskts}
-        />
-      );
+      return <AssetBreakdown uniqueAssets={tradedAssets} />;
     default:
-      return <BasktBreakdown tradedBaskts={tradedBaskts} isLoading={isLoading} error={error} />;
+      return <BasktBreakdown tradedBaskts={tradedBaskts} isLoading={false} error={null} />;
   }
 };
