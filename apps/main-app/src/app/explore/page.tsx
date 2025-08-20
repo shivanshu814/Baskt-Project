@@ -15,24 +15,38 @@ import {
   useTrendingBaskts,
   useYourBaskts,
 } from '../../hooks/baskt/use-explore-data';
+import { TabType } from '../../types/baskt';
 
 const ExplorePage = () => {
-  const [activeTab, setActiveTab] = useState<'all' | 'trending' | 'your'>('all');
+  const [activeTab, setActiveTab] = useState<TabType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('no_filter');
 
   const { client } = useBasktClient();
   const userAddress = client?.wallet?.address?.toString();
 
-  const { baskts: publicBaskts, isLoading: isPublicLoading } = usePublicBaskts();
-  const { baskts: trendingBaskts, isLoading: isTrendingLoading } = useTrendingBaskts();
-  const { baskts: yourBaskts, isLoading: isYourLoading } = useYourBaskts();
-  const { baskts: combinedBaskts, isLoading: isCombinedLoading } = useCombinedBaskts();
+  const { baskts: publicBaskts, isLoading: isPublicLoading } = usePublicBaskts(
+    true,
+    activeTab === 'all' && !userAddress,
+  );
+  const { baskts: trendingBaskts, isLoading: isTrendingLoading } = useTrendingBaskts(
+    true,
+    activeTab === 'trending',
+  );
+  const { baskts: yourBaskts, isLoading: isYourLoading } = useYourBaskts(
+    true,
+    activeTab === 'your' && !!userAddress,
+  );
+  const { baskts: combinedBaskts, isLoading: isCombinedLoading } = useCombinedBaskts(
+    true,
+    activeTab === 'all' && !!userAddress,
+  );
 
   const isLoading =
-    isPublicLoading ||
-    isTrendingLoading ||
-    (userAddress ? isYourLoading || isCombinedLoading : false);
+    (activeTab === 'all' && !userAddress && isPublicLoading) ||
+    (activeTab === 'all' && userAddress && isCombinedLoading) ||
+    (activeTab === 'trending' && isTrendingLoading) ||
+    (activeTab === 'your' && userAddress && isYourLoading);
 
   const filteredBaskts = useMemo(() => {
     if (isLoading) return [];
@@ -42,8 +56,7 @@ const ExplorePage = () => {
     if (!userAddress) {
       source = publicBaskts;
     } else {
-      source =
-        activeTab === 'all' ? combinedBaskts : activeTab === 'your' ? yourBaskts : combinedBaskts;
+      source = activeTab === 'your' ? yourBaskts : combinedBaskts;
     }
 
     if (!q) return source;

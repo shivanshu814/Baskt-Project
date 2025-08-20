@@ -9,106 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from '@baskt/ui';
-import Image from 'next/image';
-import React, { useMemo } from 'react';
-import { useVaultExposureCalculations } from '../../../hooks/vault/use-vault-data';
-import { AssetExposure } from '../../../types/vault';
+import React from 'react';
+import { ExposureTableProps } from '../../../types/vault';
 
-const AssetExposureRow = React.memo<{ asset: AssetExposure }>(({ asset }) => {
-  const { calculateExposurePercentages, getAssetImage, getProcessedAssetData } =
-    useVaultExposureCalculations();
-  const assetSymbol = asset.ticker || asset.name || 'Unknown';
-  const assetImage = getAssetImage(asset);
-  const { longExposure, shortExposure, netExposure } = getProcessedAssetData(asset);
-  const { longPercentage, shortPercentage } = calculateExposurePercentages(
-    longExposure,
-    shortExposure,
-  );
-
-  return (
-    <TableRow key={assetSymbol}>
-      <TableCell className="flex items-center gap-3">
-        <Image
-          src={assetImage}
-          alt={assetSymbol}
-          className="w-7 h-7 rounded-full"
-          width={28}
-          height={28}
-        />
-        <div>
-          <div className="font-semibold text-foreground">{assetSymbol}</div>
-        </div>
-      </TableCell>
-      <TableCell>
-        <div className="font-semibold text-foreground">
-          <NumberFormat value={longExposure} isPrice={true} showCurrency={true} />
-        </div>
-        <div className="text-xs text-muted-foreground">{longPercentage}%</div>
-      </TableCell>
-      <TableCell>
-        <div className="font-semibold text-foreground">
-          <NumberFormat value={shortExposure} isPrice={true} showCurrency={true} />
-        </div>
-        <div className="text-xs text-muted-foreground">{shortPercentage}%</div>
-      </TableCell>
-      <TableCell>
-        <div className="font-semibold text-foreground">
-          <NumberFormat value={Math.abs(netExposure)} isPrice={true} showCurrency={true} />
-        </div>
-        <div className="text-xs text-muted-foreground">{netExposure >= 0 ? 'Long' : 'Short'}</div>
-      </TableCell>
-    </TableRow>
-  );
-});
-
-AssetExposureRow.displayName = 'AssetExposureRow';
-
-export const ExposureTable = React.memo(() => {
-  const { assetExposureData, isLoading, error } = useVaultExposureCalculations();
-  const tableContent = useMemo(() => {
-    if (isLoading) {
-      return (
-        <TableRow>
-          <TableCell colSpan={4} className="h-32">
-            <div className="flex items-center justify-center">
-              <Loading />
-            </div>
-          </TableCell>
-        </TableRow>
-      );
-    }
-
-    if (error) {
-      return (
-        <TableRow>
-          <TableCell colSpan={4} className="h-32">
-            <div className="flex items-center justify-center">
-              <div className="text-red-500">Error: {error?.message}</div>
-            </div>
-          </TableCell>
-        </TableRow>
-      );
-    }
-
-    if (assetExposureData.length === 0) {
-      return (
-        <TableRow>
-          <TableCell colSpan={4} className="h-32">
-            <div className="flex items-center justify-center">
-              <div className="text-muted-foreground">No exposure data available</div>
-            </div>
-          </TableCell>
-        </TableRow>
-      );
-    }
-
-    return assetExposureData.map((asset: AssetExposure) => (
-      <AssetExposureRow
-        key={asset.assetId || asset.ticker || asset.name || 'unknown'}
-        asset={asset}
-      />
-    ));
-  }, [assetExposureData, isLoading, error]);
+export const ExposureTable = React.memo(({ allocationData }: ExposureTableProps) => {
+  const isLoading = !allocationData;
 
   return (
     <div className="mt-4">
@@ -130,7 +35,94 @@ export const ExposureTable = React.memo(() => {
               </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>{tableContent}</TableBody>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="h-32">
+                  <div className="flex items-center justify-center">
+                    <Loading />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : allocationData.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="h-32">
+                  <div className="flex items-center justify-center">
+                    <div className="text-muted-foreground">No allocation data available</div>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              allocationData.map((asset, index) => (
+                <TableRow key={`${asset.name}-${index}`}>
+                  <TableCell className="flex items-center gap-3">
+                    {asset.logo ? (
+                      <img
+                        src={asset.logo}
+                        alt={asset.name || 'Asset'}
+                        className="w-7 h-7 rounded-full"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center"
+                      style={{ display: asset.logo ? 'none' : 'flex' }}
+                    >
+                      <span className="text-xs font-bold text-primary">
+                        {asset.name?.charAt(0) || '?'}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-foreground">
+                        {asset.name || 'Unknown Asset'}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-semibold text-foreground">
+                      <NumberFormat
+                        value={asset.longExposure / 10}
+                        isPrice={true}
+                        showCurrency={true}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {asset.longExposurePercentage}%
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-semibold text-foreground">
+                      <NumberFormat
+                        value={asset.shortExposure / 10}
+                        isPrice={true}
+                        showCurrency={true}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {asset.shortExposurePercentage}%
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-semibold text-foreground">
+                      <NumberFormat
+                        value={Math.abs(asset.netExposure) / 10}
+                        isPrice={true}
+                        showCurrency={true}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {asset.isLong ? 'Long' : 'Short'}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
         </Table>
       </div>
     </div>

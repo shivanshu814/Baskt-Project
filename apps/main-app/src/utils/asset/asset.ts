@@ -31,18 +31,6 @@ export const handleAssetClick = (asset: BasktAssetInfo) => {
   }
 };
 
-export const getAssetCount = (assets: BasktAssetInfo[] | undefined): number => {
-  return assets?.length || 0;
-};
-
-export const getAssetImages = (
-  assets: BasktAssetInfo[] | undefined,
-  maxVisible: number = 3,
-): BasktAssetInfo[] => {
-  if (!assets || assets.length === 0) return [];
-  return assets.slice(0, maxVisible);
-};
-
 export const getExtraAssetsCount = (
   assets: BasktAssetInfo[] | undefined,
   maxVisible: number = 3,

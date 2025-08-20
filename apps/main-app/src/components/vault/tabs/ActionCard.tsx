@@ -101,7 +101,7 @@ export const ActionCard = React.memo(
                 <div className="flex justify-between text-muted-foreground">
                   <span>Fee:</span>
                   <span className="font-medium">
-                    <NumberFormat value={Number(fee) * 1e6} isPrice={true} showCurrency={true} />
+                    <NumberFormat value={Number(fee) * 1e7} isPrice={true} showCurrency={true} />
                   </span>
                 </div>
               )}

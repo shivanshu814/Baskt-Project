@@ -1,9 +1,8 @@
 import { BasktInfo, OnchainAssetConfig } from '@baskt/types';
 import * as anchor from '@coral-xyz/anchor';
 import { PublicKey } from '@solana/web3.js';
-import { ROUTES } from '../../routes/route';
 import { Asset } from '../../types/asset';
-import { BasktCardHandlers, RawBasktData } from '../../types/baskt';
+import { RawBasktData } from '../../types/baskt';
 import { AssetWithPosition } from '../../types/baskt/creation';
 
 export function sanitizeBasktName(value: string): string {
@@ -94,44 +93,7 @@ export function formatRebalancingDisplay(
   return 'Manual';
 }
 
-export const createBasktCardHandlers = (
-  setOpen: (value: string | undefined) => void,
-  router: any,
-  basktId: string,
-  open: string | undefined,
-): BasktCardHandlers => {
-  const handleCardClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.closest('a') || target.closest('button') || target.closest('[role="button"]')) {
-      return;
-    }
-    setOpen(open === 'baskt' ? undefined : 'baskt');
-  };
-
-  const handleAccordionToggle = (value: string | undefined) => {
-    setOpen(value);
-  };
-
-  const handleTradeClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    router.push(`${ROUTES.TRADE}/${encodeURIComponent(basktId)}`);
-  };
-
-  const handleExternalLinkClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
-  return {
-    handleCardClick,
-    handleAccordionToggle,
-    handleTradeClick,
-    handleExternalLinkClick,
-  };
-};
-
-export const processBasktData = (
- rawBasktData: RawBasktData[],
-): BasktInfo[] => {
+export const processBasktData = (rawBasktData: RawBasktData[]): BasktInfo[] => {
   if (!rawBasktData) {
     return [];
   }
@@ -211,14 +173,6 @@ export const processBasktData = (
           openPositions: (baskt as any)?.openPositions || '0',
         },
       };
-
-      console.log('[processBasktData] processed baskt:', {
-        basktId: processedBaskt.basktId,
-        name: processedBaskt.name,
-        isActive: processedBaskt.isActive,
-        isPublic: processedBaskt.isPublic,
-        assetCount: processedBaskt.assets?.length,
-      });
 
       return processedBaskt;
     });

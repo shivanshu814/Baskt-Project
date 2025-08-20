@@ -58,33 +58,15 @@ export interface ActionCardProps {
 }
 
 export interface UseDepositProps {
-  vaultData: VaultData | null;
-  liquidityPool: PublicKey | null;
-  onSuccess?: () => void;
+  amount: string;
+  vaultData?: VaultData | null;
+  liquidityPool?: PublicKey | null;
 }
 
 export interface UseWithdrawProps {
-  vaultData: VaultData | null;
-  liquidityPool: PublicKey | null;
-  onSuccess?: () => void;
-}
-
-export interface VaultCalculations {
-  depositFee: string;
-  depositExpectedOutput: string;
-  withdrawFee: string;
-  withdrawExpectedOutput: string;
-  calculateFee: (amount: string, isDeposit: boolean) => string;
-  calculateExpectedOutput: (amount: string, isDeposit: boolean) => string;
-}
-
-export interface VaultMetrics {
-  currentAPR: string;
-  tvl: string;
-  totalSupply: string;
-  blpPrice: string;
-  actualTotalSupply: number;
-  totalFeesEarned: string;
+  amount: string;
+  vaultData?: VaultData | null;
+  liquidityPool?: PublicKey | null;
 }
 
 export interface AssetExposure {
@@ -118,45 +100,97 @@ export interface UseVaultTabsReturn {
   handleMaxDeposit: () => void;
   handleMaxWithdraw: () => void;
 }
-export interface WithdrawQueueProps {
-  poolId: string;
-  userAddress?: string;
-}
-
-export interface UseWithdrawQueueProps {
-  userAddress?: string;
-  poolId?: string;
-}
-
-export interface WithdrawQueueItem {
-  id: string;
-  poolId: string;
-  providerAddress: string;
-  lpAmount: string;
-  remainingLp: string;
-  providerTokenAccount: string;
-  queuePosition: number;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
-  requestedAt: string;
-  processedAt?: string;
-  amountProcessed?: string;
-  feeCollected?: string;
-  tx: string;
-  processedTx?: string;
-}
-
-export interface WithdrawQueueStats {
-  totalQueueItems: number;
-  averageProcessingTime: number;
-  queueProcessingRate: number;
-  estimatedWaitTime?: number;
-  userQueuePosition?: number;
-  nextProcessingTime?: string;
-  processingInterval?: number;
-  isProcessingNow?: boolean;
-}
 
 export interface VaultActionTabsProps {
-  vaultData: VaultData | null;
-  liquidityPool: PublicKey | null;
+  vaultData?: VaultData | null;
+  liquidityPool?: PublicKey | null;
+  statistics?: {
+    fees?: number;
+    blpPrice?: number;
+    totalSupply?: number;
+  };
+  userDepositData?: {
+    totalDeposits: number;
+  };
+  userWithdrawalData?: {
+    totalWithdrawals: number;
+  };
+  onVaultOperationSuccess?: () => void;
+}
+
+export interface EnhancedVaultDataPublic {
+  apr: number;
+  allocation: {
+    totalValueLocked: number;
+    allocationData: Array<{
+      longExposure: number;
+      shortExposure: number;
+      longExposurePercentage: number;
+      shortExposurePercentage: number;
+      netExposure: number;
+      isLong: boolean;
+      logo?: string;
+      name?: string;
+    }>;
+  };
+  statistics: {
+    fees: number;
+    blpPrice: number;
+    totalSupply: number;
+  };
+}
+
+export interface EnhancedVaultDataUser extends EnhancedVaultDataPublic {
+  userDepositData?: {
+    totalDeposits: number;
+  };
+  userWithdrawalData?: {
+    totalWithdrawals: number;
+  };
+  userWithdraw?: {
+    totalWithdrawalsInQueue: number;
+    totalWithdrawalsInCompleted: number;
+    withdrawRequests: Array<{
+      amount: number;
+      status: string;
+      requestedAt: string;
+      userAddress: string;
+    }>;
+  };
+}
+
+export type EnhancedVaultData = EnhancedVaultDataPublic & Partial<EnhancedVaultDataUser>;
+
+export interface VaultInfoProps {
+  apr: number;
+}
+
+export interface TvlDisplayProps {
+  totalValueLocked: number;
+}
+
+export interface ExposureTableProps {
+  allocationData?: Array<{
+    longExposure: number;
+    shortExposure: number;
+    longExposurePercentage: number;
+    shortExposurePercentage: number;
+    netExposure: number;
+    isLong: boolean;
+    logo?: string;
+    name?: string;
+  }>;
+}
+
+export interface WithdrawQueueProps {
+  withdrawData?: {
+    totalWithdrawalsInQueue: number;
+    totalWithdrawalsInCompleted: number;
+    withdrawRequests: Array<{
+      amount: number;
+      status: string;
+      requestedAt: string;
+      userAddress: string;
+    }>;
+  };
 }

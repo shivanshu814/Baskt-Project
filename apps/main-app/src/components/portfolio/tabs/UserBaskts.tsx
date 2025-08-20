@@ -53,12 +53,12 @@ export const UserBaskts = ({ userBaskts }: UserBasktsProps) => {
               <div className="flex items-center gap-2 flex-1 min-w-0 group">
                 <h4
                   className="font-medium text-card-foreground truncate hover:underline cursor-pointer group-hover:underline"
-                  onClick={() => router.push(`${ROUTES.TRADE}/${baskt.basktId}`)}
+                  onClick={() => router.push(`${ROUTES.TRADE}/${baskt.baskt.basktId}`)}
                 >
                   {baskt.baskt.name}
                 </h4>
                 <button
-                  onClick={() => router.push(`${ROUTES.TRADE}/${baskt.basktId}`)}
+                  onClick={() => router.push(`${ROUTES.TRADE}/${baskt.baskt.basktId}`)}
                   className="flex-shrink-0 p-1 hover:bg-primary/10 rounded-md transition-colors duration-200"
                   title="Trade this baskt"
                 >

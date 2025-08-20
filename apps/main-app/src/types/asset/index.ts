@@ -88,11 +88,6 @@ export interface AssetSearchProps {
   filteredAssetsCount: number;
 }
 
-export interface ErrorStateProps {
-  error: any;
-  onRetry: () => void;
-}
-
 export interface SelectedAssetChipProps {
   asset: Asset;
   onRemove: (id: string) => void;

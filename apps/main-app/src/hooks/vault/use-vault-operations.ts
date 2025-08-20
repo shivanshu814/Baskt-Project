@@ -41,16 +41,13 @@ export function useVaultTabs(
 }
 
 // handle deposits
-export function useDeposit({ vaultData, liquidityPool, onSuccess }: UseDepositProps) {
+export function useDeposit({ vaultData, liquidityPool, amount }: UseDepositProps) {
   const { client, wallet } = useBasktClient();
   const { protocol } = useProtocol();
-  const [depositAmount, setDepositAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
   const { refetch: refetchUSDCBalance } = useUSDCBalance();
 
-  const isDepositValid = Boolean(
-    depositAmount && !isNaN(Number(depositAmount)) && Number(depositAmount) > 0,
-  );
+  const isDepositValid = Boolean(amount && !isNaN(Number(amount)) && Number(amount) > 0);
 
   const handleDeposit = useCallback(async () => {
     if (
@@ -67,12 +64,14 @@ export function useDeposit({ vaultData, liquidityPool, onSuccess }: UseDepositPr
     try {
       setIsDepositing(true);
 
-      const depositAmountNum = Number(depositAmount);
+      const depositAmountNum = Number(amount);
+
       if (isNaN(depositAmountNum)) {
         toast.error('Invalid deposit amount');
         setIsDepositing(false);
         return;
       }
+
       const depositAmountBN = new BN(depositAmountNum * PRICE_PRECISION);
       const userTokenAccount = await client.getUserTokenAccount(
         new PublicKey(wallet.address),
@@ -127,10 +126,7 @@ export function useDeposit({ vaultData, liquidityPool, onSuccess }: UseDepositPr
       refetchUSDCBalance();
 
       toast.success('Deposit successful! Your deposit has been processed');
-      setDepositAmount('');
-      onSuccess?.();
     } catch (error) {
-      console.error(error);
       if (error instanceof Error) {
         if (error.message.includes('Treasury')) {
           toast.error('Treasury account error. Please contact support.');
@@ -146,20 +142,17 @@ export function useDeposit({ vaultData, liquidityPool, onSuccess }: UseDepositPr
       setIsDepositing(false);
     }
   }, [
+    isDepositValid,
     client,
     wallet,
     liquidityPool,
     vaultData,
-    depositAmount,
-    isDepositValid,
-    onSuccess,
-    refetchUSDCBalance,
     protocol,
+    amount,
+    refetchUSDCBalance,
   ]);
 
   return {
-    depositAmount,
-    setDepositAmount,
     isDepositing,
     isDepositValid,
     handleDeposit,
@@ -167,14 +160,11 @@ export function useDeposit({ vaultData, liquidityPool, onSuccess }: UseDepositPr
 }
 
 // handle withdrawals
-export function useWithdraw({ vaultData, liquidityPool, onSuccess }: UseWithdrawProps) {
+export function useWithdraw({ vaultData, liquidityPool, amount }: UseWithdrawProps) {
   const { client, wallet } = useBasktClient();
-  const [withdrawAmount, setWithdrawAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
-  const isWithdrawValid = Boolean(
-    withdrawAmount && !isNaN(Number(withdrawAmount)) && Number(withdrawAmount) > 0,
-  );
+  const isWithdrawValid = Boolean(amount && !isNaN(Number(amount)) && Number(amount) > 0);
 
   const handleWithdraw = useCallback(async () => {
     if (!isWithdrawValid || !client || !wallet?.address || !liquidityPool || !vaultData) {
@@ -184,7 +174,7 @@ export function useWithdraw({ vaultData, liquidityPool, onSuccess }: UseWithdraw
     try {
       setIsWithdrawing(true);
 
-      const withdrawAmountNum = Number(withdrawAmount);
+      const withdrawAmountNum = Number(amount);
       if (isNaN(withdrawAmountNum)) {
         toast.error('Invalid withdrawal amount');
         setIsWithdrawing(false);
@@ -218,8 +208,6 @@ export function useWithdraw({ vaultData, liquidityPool, onSuccess }: UseWithdraw
 
       if (tx) {
         toast.success('Withdrawal queued successfully!');
-        setWithdrawAmount('');
-        onSuccess?.();
       } else {
         toast.error('Failed to add withdrawal to queue');
       }
@@ -237,11 +225,9 @@ export function useWithdraw({ vaultData, liquidityPool, onSuccess }: UseWithdraw
     } finally {
       setIsWithdrawing(false);
     }
-  }, [client, wallet, liquidityPool, vaultData, withdrawAmount, isWithdrawValid, onSuccess]);
+  }, [client, wallet, liquidityPool, vaultData, amount, isWithdrawValid]);
 
   return {
-    withdrawAmount,
-    setWithdrawAmount,
     isWithdrawing,
     isWithdrawValid,
     handleWithdraw,

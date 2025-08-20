@@ -10,7 +10,9 @@ export function useProtocol() {
   const [error, setError] = useState<Error | null>(null);
 
   const fetchProtocol = useCallback(async () => {
-    if (!client) return;
+    if (!client) {
+      return;
+    }
 
     try {
       const protocolAccount = await client.getProtocolAccount();

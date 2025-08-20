@@ -73,7 +73,6 @@ export function formatCloseAmount(closeAmount: string | number): string {
   return amount.toFixed(2);
 }
 
-// Composition formatters
 export function calculateAssetCompositionData(baskt: BasktInfo): AssetCompositionData[] {
   if (!baskt?.assets || baskt.assets.length === 0) {
     return [];

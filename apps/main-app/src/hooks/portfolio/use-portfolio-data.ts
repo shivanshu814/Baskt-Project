@@ -12,7 +12,7 @@ export function usePortfolioData() {
       includeHistory: true,
     },
     {
-      enabled: !!userAddress,
+      enabled: true,
       refetchInterval: 5 * 60 * 1000,
       staleTime: 4 * 60 * 1000,
       cacheTime: 10 * 60 * 1000,

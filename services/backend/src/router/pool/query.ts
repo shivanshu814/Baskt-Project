@@ -1,9 +1,10 @@
 import { publicProcedure } from '../../trpc/trpc';
 import { querier } from '../../utils/';
+import logger from '../../utils/logger';
 
 export const getLiquidityPool = publicProcedure.query(async () => {
   try {
-    console.log('Getting liquidity pool data');
+    logger.info('Getting liquidity pool data');
 
     const poolResult = await querier.pool.getLiquidityPool();
 
@@ -46,7 +47,7 @@ export const getLiquidityPool = publicProcedure.query(async () => {
       },
     };
   } catch (error) {
-    console.error('Error fetching liquidity pool with fee data:', error);
+    logger.error('Error fetching liquidity pool with fee data:', error);
     return {
       success: false,
       error: 'Failed to fetch liquidity pool data',
@@ -54,12 +55,29 @@ export const getLiquidityPool = publicProcedure.query(async () => {
   }
 });
 
+export const resyncLiquidityPool = publicProcedure.mutation(async () => {
+  try {
+    await querier.pool.resyncLiquidityPool();
+
+    return {
+      success: true,
+      message: 'Liquidity pool resynced successfully',
+    };
+  } catch (error) {
+    logger.error('Error resyncing liquidity pool:', error);
+    return {
+      success: false,
+      error: 'Failed to resync liquidity pool',
+    };
+  }
+});
+
 export const getPoolDeposits = publicProcedure.query(async () => {
   try {
-    const result = await querier.pool.getPoolDeposits();
-    return result;
+    const depositsResult = await querier.pool.getPoolDeposits();
+    return depositsResult;
   } catch (error) {
-    console.error('Error fetching pool deposits:', error);
+    logger.error('Error fetching pool deposits:', error);
     return {
       success: false,
       error: 'Failed to fetch pool deposits',
@@ -69,5 +87,6 @@ export const getPoolDeposits = publicProcedure.query(async () => {
 
 export const getRouter = {
   getLiquidityPool,
+  resyncLiquidityPool,
   getPoolDeposits,
 };

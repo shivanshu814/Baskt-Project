@@ -13,6 +13,7 @@ import { orderRouter } from './order';
 import { poolRouter } from './pool';
 import { portfolioRouter } from './portfolio';
 import { positionRouter } from './position';
+import { vaultRouter } from './vault';
 
 export const appRouter = router({
   health: publicProcedure.query(() => {
@@ -33,6 +34,7 @@ export const appRouter = router({
   faucet: faucetRouter,
   feeEvent: feeEventRouter,
   portfolio: portfolioRouter,
+  vault: vaultRouter,
 });
 
 export type AppRouter = typeof appRouter;

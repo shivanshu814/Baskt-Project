@@ -1,4 +1,3 @@
-import { BaseClient } from '@baskt/sdk';
 import { FeeEventMetadataModel } from '../models/mongodb';
 import { QueryResult } from '../models/types';
 import { FeeEventFilterOptions, FeeEventStats } from '../types/fee-event';
@@ -12,7 +11,6 @@ import { handleQuerierError } from '../utils/error-handling';
  * It handles all fee-related events from the Baskt protocol including position and liquidity events.
  */
 export class FeeEventQuerier {
-
   private static instance: FeeEventQuerier;
 
   public static getInstance(): FeeEventQuerier {
@@ -21,7 +19,7 @@ export class FeeEventQuerier {
     }
     return FeeEventQuerier.instance;
   }
-  
+
   /**
    * Calculate APR based on fee data and liquidity
    */
@@ -89,11 +87,27 @@ export class FeeEventQuerier {
       }
 
       const events = feeEventResult.data || [];
-      const totalFees = events.reduce((sum, event) => sum + (parseFloat(event.totalFee) || 0), 0);
-      const totalFeesToBlp = events.reduce(
-        (sum, event) => sum + (parseFloat(event.feeToBlp) || 0),
-        0,
-      );
+      const totalFees = events.reduce((sum, event) => {
+        let eventFees = 0;
+        if (event.positionFee) {
+          eventFees += parseFloat(event.positionFee.totalFee || '0');
+        }
+        if (event.liquidityFee) {
+          eventFees += parseFloat(event.liquidityFee.totalFee || '0');
+        }
+        return sum + eventFees;
+      }, 0);
+
+      const totalFeesToBlp = events.reduce((sum, event) => {
+        let eventFeesToBlp = 0;
+        if (event.positionFee) {
+          eventFeesToBlp += parseFloat(event.positionFee.feeToBlp || '0');
+        }
+        if (event.liquidityFee) {
+          eventFeesToBlp += parseFloat(event.liquidityFee.feeToBlp || '0');
+        }
+        return sum + eventFeesToBlp;
+      }, 0);
 
       return {
         success: true,
@@ -452,13 +466,35 @@ export class FeeEventQuerier {
         FeeEventMetadataModel.countDocuments(),
         FeeEventMetadataModel.aggregate([
           {
+            $project: {
+              eventType: 1,
+              feeToTreasury: {
+                $add: [
+                  { $ifNull: [{ $toDouble: '$positionFee.feeToTreasury' }, 0] },
+                  { $ifNull: [{ $toDouble: '$liquidityFee.feeToTreasury' }, 0] },
+                ],
+              },
+              feeToBlp: {
+                $add: [
+                  { $ifNull: [{ $toDouble: '$positionFee.feeToBlp' }, 0] },
+                  { $ifNull: [{ $toDouble: '$liquidityFee.feeToBlp' }, 0] },
+                ],
+              },
+              totalFee: {
+                $add: [
+                  { $ifNull: [{ $toDouble: '$positionFee.totalFee' }, 0] },
+                  { $ifNull: [{ $toDouble: '$liquidityFee.totalFee' }, 0] },
+                ],
+              },
+            },
+          },
+          {
             $group: {
               _id: '$eventType',
               count: { $sum: 1 },
-              totalFeesToTreasury: { $sum: { $toDouble: '$feeToTreasury' } },
-              totalFeesToBlp: { $sum: { $toDouble: '$feeToBlp' } },
-              totalFees: { $sum: { $toDouble: '$totalFee' } },
-              avgLiquidityAmount: { $avg: { $toDouble: '$liquidityAmount' } },
+              totalFeesToTreasury: { $sum: '$feeToTreasury' },
+              totalFeesToBlp: { $sum: '$feeToBlp' },
+              totalFees: { $sum: '$totalFee' },
             },
           },
         ]),

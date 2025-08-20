@@ -16,7 +16,7 @@ export default function PortfolioPage() {
   const [activeTab, setActiveTab] = useState<PortfolioTabType>('positions');
 
   const { balance: usdcBalance } = useUSDCBalance();
-  const { baskts: usersBaskts } = useYourBaskts();
+  const { baskts: usersBaskts } = useYourBaskts(true, activeTab === 'baskts');
   const { data: portfolioData, isLoading } = usePortfolioData();
 
   if (isLoading) {

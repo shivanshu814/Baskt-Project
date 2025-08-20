@@ -1,38 +1,17 @@
-import { Button, Card, CardContent, CardTitle, NumberFormat } from '@baskt/ui';
-import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { Button, Card, CardContent, NumberFormat } from '@baskt/ui';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
-import { useWithdrawQueue } from '../../../hooks/vault/use-withdrawal-queue';
 import { WithdrawQueueProps } from '../../../types/vault';
 
-export const WithdrawQueue: React.FC<WithdrawQueueProps> = ({ poolId, userAddress }) => {
+export const WithdrawQueue: React.FC<WithdrawQueueProps> = React.memo(({ withdrawData }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { userQueueItems, isLoading } = useWithdrawQueue({ poolId, userAddress });
+  const totalInQueue = withdrawData?.totalWithdrawalsInQueue || 0;
+  const totalCompleted = withdrawData?.totalWithdrawalsInCompleted || 0;
+  const userRequests = withdrawData?.withdrawRequests || [];
 
-  const userLpInQueue = userQueueItems.reduce(
-    (total, item) => total + parseFloat(item.remainingLp || '0'),
-    0,
-  );
-
-  const totalProcessed = userQueueItems.filter((item) => item.status === 'completed').length;
-  const totalInQueue = userQueueItems.filter((item) => item.status === 'pending').length;
-
-  if (isLoading) {
-    return (
-      <Card className="border border-primary/10">
-        <CardTitle className="flex items-center gap-2 p-4">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          Withdrawals
-        </CardTitle>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!userAddress || (userLpInQueue === 0 && totalProcessed === 0)) return null;
+  const userLpInQueue = userRequests
+    .filter((req) => req.status === 'pending')
+    .reduce((total, req) => total + req.amount, 0);
 
   return (
     <Card className="border border-primary/10">
@@ -63,62 +42,53 @@ export const WithdrawQueue: React.FC<WithdrawQueueProps> = ({ poolId, userAddres
             <span className="font-medium text-blue-500">{totalInQueue}</span>
           </div>
           <div>
-            <span className="text-muted-foreground">Total Processed: </span>
-            <span className="font-medium text-green-500">{totalProcessed}</span>
+            <span className="text-muted-foreground">Total Completed: </span>
+            <span className="font-medium text-green-500">{totalCompleted}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Current Amount: </span>
             <span className="font-medium text-orange-500">
-              <NumberFormat value={userLpInQueue} isPrice={true} /> BLP
+              <NumberFormat value={userLpInQueue * 1e6} isPrice={true} /> BLP
             </span>
           </div>
         </div>
 
-        {isExpanded && userQueueItems.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-2 font-medium text-muted-foreground">Position</th>
-                  <th className="text-left py-2 font-medium text-muted-foreground">Amount (BLP)</th>
-                  <th className="text-left py-2 font-medium text-muted-foreground">Status</th>
-                  <th className="text-left py-2 font-medium text-muted-foreground">Requested</th>
-                  <th className="text-left py-2 font-medium text-muted-foreground">Processed</th>
-                </tr>
-              </thead>
-              <tbody>
-                {userQueueItems.map((item) => (
-                  <tr key={item.id} className="border-b border-border/50">
-                    <td className="py-3 font-medium">#{item.queuePosition}</td>
-                    <td className="py-3">
-                      <NumberFormat value={parseFloat(item.remainingLp)} isPrice={true} />
-                    </td>
-                    <td className="py-3">
-                      <span
-                        className={`font-medium ${
-                          item.status === 'completed'
-                            ? 'text-green-500'
-                            : item.status === 'processing'
-                            ? 'text-yellow-500'
-                            : 'text-blue-500'
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="py-3 text-muted-foreground">
-                      {new Date(item.requestedAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 text-muted-foreground">
-                      {item.processedAt ? new Date(item.processedAt).toLocaleDateString() : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {isExpanded && userRequests.length > 0 && (
+          <div className="space-y-3">
+            {userRequests.map((request, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  <div>
+                    <div className="font-medium">
+                      <NumberFormat value={request.amount} isPrice={false} /> BLP
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(request.requestedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm">
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      request.status === 'pending'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-green-100 text-green-800'
+                    }`}
+                  >
+                    {request.status}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </CardContent>
     </Card>
   );
-};
+});
+
+WithdrawQueue.displayName = 'WithdrawQueue';

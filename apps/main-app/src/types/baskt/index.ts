@@ -1,7 +1,5 @@
-import { BasktAssetInfo, BasktInfo } from '@baskt/types';
+import { BasktAssetInfo } from '@baskt/types';
 import { SortOption } from '@baskt/ui';
-import { LucideIcon } from 'lucide-react';
-import { ReactNode } from 'react';
 
 export interface BasktCardProps {
   baskt: any;
@@ -33,22 +31,6 @@ export interface RawBasktData {
   isPublic?: boolean;
 }
 
-export interface MetricCardType {
-  label: string;
-  value: ReactNode;
-  displayValue?: string | number;
-  isFormatted?: boolean;
-  color?: string;
-}
-
-export interface BasktGridProps {
-  baskts: BasktInfo[];
-}
-
-export interface EmptyStateProps {
-  onCreateClick: () => void;
-}
-
 export interface FilterControlsProps {
   sortBy: SortOption;
   setSortBy: (value: SortOption) => void;
@@ -71,10 +53,6 @@ export interface TabContentProps {
   isLoading?: boolean;
 }
 
-export interface MetricCardProps {
-  card: MetricCardType;
-}
-
 export interface BasktCardHandlers {
   handleCardClick: (e: React.MouseEvent) => void;
   handleAccordionToggle: (value: string | undefined) => void;
@@ -82,13 +60,6 @@ export interface BasktCardHandlers {
   handleExternalLinkClick: (e: React.MouseEvent) => void;
 }
 
-export interface AssetRowProps {
-  assetId: string;
-  asset: BasktAssetInfo;
-  currentWeight?: number;
-}
-
-// Frontend-specific types with custom fields (baselineNav, daily performance, etc.)
 export interface FrontendPerformanceInfo {
   daily: number;
   weekly: number;
@@ -107,7 +78,7 @@ export interface FrontendBasktInfo {
   rebalancePeriod: number;
   isPublic: boolean;
   baselineNav: number | string;
-  currentNav?: number; // Add current NAV from getBasktNAV
+  currentNav?: number;
   performance: FrontendPerformanceInfo;
   openPositions?: number;
   lastRebalanceTime?: number;
@@ -118,46 +89,12 @@ export interface TrendingBannerProps {
   onReviewClick: () => void;
 }
 
-export interface EmptyStateBaseProps {
-  title: string;
-  description: string;
-  buttonText: string;
-  icon: ReactNode;
-  onButtonClick: () => void;
-}
-
-export interface EmptyStateIconProps {
-  icon: LucideIcon;
-  className?: string;
-}
-
-export interface EmptyStateButtonProps {
-  onClick: () => void;
-  text: string;
-  icon: LucideIcon;
-  className?: string;
-}
-
-export interface EmptyStateContainerProps {
-  children: ReactNode;
-  className?: string;
-}
-
-export interface EmptyStateContentProps {
-  title: string;
-  description: string;
-  buttonText: string;
-  icon: LucideIcon;
-  onButtonClick: () => void;
-}
-
-// Extended asset type to include currentWeight from API
 export interface ExtendedAssetInfo extends BasktAssetInfo {
   currentWeight?: number;
 }
 
 export interface BasktCardAssetsProps {
-  assets: ExtendedAssetInfo[]; // Array of asset objects with currentWeight
+  assets: ExtendedAssetInfo[];
 }
 
 export interface BasktCardHeaderProps {

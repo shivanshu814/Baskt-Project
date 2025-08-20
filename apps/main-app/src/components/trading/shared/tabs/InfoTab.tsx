@@ -13,8 +13,8 @@ export function InfoTab({ baskt }: InfoTabProps) {
     <div className="space-y-4 -mt-4 -ml-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">Baskt Status</span>
-        <span className={`text-sm ${getBasktStatusColor(baskt?.isActive)}`}>
-          {getBasktStatusText(baskt?.isActive)}
+        <span className={`text-sm ${getBasktStatusColor((baskt as any)?.status)}`}>
+          {getBasktStatusText((baskt as any)?.status)}
         </span>
       </div>
       <div className="space-y-2">

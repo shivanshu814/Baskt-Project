@@ -1,45 +1,36 @@
-import {
-  Card,
-  CardContent,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-  useBasktClient,
-} from '@baskt/ui';
+import { Card, CardContent, Tabs, TabsContent, TabsList, TabsTrigger } from '@baskt/ui';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
-import { useTokenBalance } from '../../../hooks/pool/use-token-balance';
+import { useState } from 'react';
 import { useUSDCBalance } from '../../../hooks/pool/use-usdc-balance';
-import { useVaultCalculations } from '../../../hooks/vault/use-vault-calculations';
+import { useLiquidityPool } from '../../../hooks/vault/use-liquidity-pool';
 import { useDeposit, useVaultTabs, useWithdraw } from '../../../hooks/vault/use-vault-operations';
 import { VaultActionTabsProps } from '../../../types/vault';
 import { ActionCard } from './ActionCard';
 
-export function VaultActionTabs({ vaultData, liquidityPool }: VaultActionTabsProps) {
-  const { wallet } = useBasktClient();
+export function VaultActionTabs({
+  statistics,
+  userWithdrawalData,
+  onVaultOperationSuccess,
+}: VaultActionTabsProps) {
+  const { vaultData, liquidityPool } = useLiquidityPool();
+  const { balance } = useUSDCBalance();
+  const userUSDCBalance = balance || '0';
+  const userLpBalance = userWithdrawalData?.totalWithdrawals?.toString() || '0';
 
-  const { balance: userUSDCBalance } = useUSDCBalance();
-  const { balance: userLpBalance } = useTokenBalance(
-    vaultData?.lpMint ?? '',
-    wallet?.address ?? '',
-  );
+  const [depositAmount, setDepositAmount] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
 
-  // calculate deposit
-  const { depositAmount, setDepositAmount, isDepositing, isDepositValid, handleDeposit } =
-    useDeposit({
-      vaultData,
-      liquidityPool,
-    });
+  const { isDepositing, isDepositValid, handleDeposit } = useDeposit({
+    vaultData,
+    liquidityPool,
+    amount: depositAmount,
+  });
 
-  // calculate withdraw
-  const { withdrawAmount, setWithdrawAmount, isWithdrawing, isWithdrawValid, handleWithdraw } =
-    useWithdraw({
-      vaultData,
-      liquidityPool,
-    });
-
-  // calculate vault calculations and metrics
-  const calculations = useVaultCalculations(vaultData, depositAmount, withdrawAmount);
+  const { isWithdrawing, isWithdrawValid, handleWithdraw } = useWithdraw({
+    vaultData,
+    liquidityPool,
+    amount: withdrawAmount,
+  });
 
   const { activeTab, handleTabChange, handleMaxDeposit, handleMaxWithdraw } = useVaultTabs(
     userUSDCBalance,
@@ -47,6 +38,53 @@ export function VaultActionTabs({ vaultData, liquidityPool }: VaultActionTabsPro
     setDepositAmount,
     setWithdrawAmount,
   );
+
+  const handleDepositWithRefresh = async () => {
+    try {
+      await handleDeposit();
+
+      setDepositAmount('');
+
+      if (onVaultOperationSuccess) {
+        onVaultOperationSuccess();
+      }
+    } catch (error) {
+      console.error('Deposit failed:', error);
+    }
+  };
+
+  const handleWithdrawWithRefresh = async () => {
+    try {
+      await handleWithdraw();
+
+      setWithdrawAmount('');
+
+      if (onVaultOperationSuccess) {
+        onVaultOperationSuccess();
+      }
+    } catch (error) {
+      console.error('Withdraw failed:', error);
+    }
+  };
+
+  const depositFee =
+    depositAmount && statistics?.fees
+      ? ((parseFloat(depositAmount) * statistics.fees) / 1000).toFixed(3)
+      : '0';
+
+  const withdrawFee =
+    withdrawAmount && statistics?.fees
+      ? ((parseFloat(withdrawAmount) * statistics.fees) / 1000).toFixed(3)
+      : '0';
+
+  const blpPrice = statistics?.blpPrice || 1;
+
+  const depositExpectedOutput = depositAmount
+    ? (parseFloat(depositAmount) / blpPrice).toFixed(3)
+    : '0';
+  const withdrawExpectedOutput = withdrawAmount
+    ? (parseFloat(withdrawAmount) * blpPrice).toFixed(3)
+    : '0';
 
   return (
     <Card className="border-border border-primary/10 rounded-lg">
@@ -79,13 +117,13 @@ export function VaultActionTabs({ vaultData, liquidityPool }: VaultActionTabsPro
                 icon={<ArrowUpRight className="h-5 w-5 text-green-400" />}
                 inputValue={depositAmount}
                 setInputValue={setDepositAmount}
-                onAction={handleDeposit}
+                onAction={handleDepositWithRefresh}
                 actionLabel="Deposit"
                 loading={isDepositing}
                 color="green"
                 disabled={!isDepositValid}
-                fee={calculations.depositFee}
-                expectedOutput={calculations.depositExpectedOutput}
+                fee={depositFee}
+                expectedOutput={depositExpectedOutput}
                 onMaxClick={handleMaxDeposit}
                 unit="USDC"
                 tokenBalance={userUSDCBalance}
@@ -98,13 +136,13 @@ export function VaultActionTabs({ vaultData, liquidityPool }: VaultActionTabsPro
                 icon={<ArrowDownRight className="h-5 w-5 text-red-400" />}
                 inputValue={withdrawAmount}
                 setInputValue={setWithdrawAmount}
-                onAction={handleWithdraw}
+                onAction={handleWithdrawWithRefresh}
                 actionLabel="Withdraw"
                 loading={isWithdrawing}
                 color="red"
                 disabled={!isWithdrawValid}
-                fee={calculations.withdrawFee}
-                expectedOutput={calculations.withdrawExpectedOutput}
+                fee={withdrawFee}
+                expectedOutput={withdrawExpectedOutput}
                 onMaxClick={handleMaxWithdraw}
                 unit="BLP"
                 tokenBalance={userLpBalance}

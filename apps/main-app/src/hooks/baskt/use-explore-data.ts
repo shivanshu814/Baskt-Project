@@ -9,6 +9,7 @@ export const useOptimizedBasktList = (
     | 'yourBaskts'
     | 'combinedBaskts' = 'publicBaskts',
   includeCurrentWeights: boolean = true,
+  isActive: boolean = false,
 ) => {
   const { client } = useBasktClient();
   const userAddress = client?.wallet?.address?.toString();
@@ -24,20 +25,22 @@ export const useOptimizedBasktList = (
       staleTime: 5 * 60 * 1000,
       cacheTime: 30 * 60 * 1000,
       refetchOnWindowFocus: false,
-      enabled: (() => {
-        switch (dataType) {
-          case 'publicBaskts':
-            return true;
-          case 'trendingBaskts':
-            return true;
-          case 'yourBaskts':
-            return !!userAddress;
-          case 'combinedBaskts':
-            return !!userAddress;
-          default:
-            return true;
-        }
-      })(),
+      enabled:
+        isActive &&
+        (() => {
+          switch (dataType) {
+            case 'publicBaskts':
+              return true;
+            case 'trendingBaskts':
+              return true;
+            case 'yourBaskts':
+              return !!userAddress;
+            case 'combinedBaskts':
+              return !!userAddress;
+            default:
+              return true;
+          }
+        })(),
     },
   );
 
@@ -49,14 +52,14 @@ export const useOptimizedBasktList = (
   };
 };
 
-export const useYourBaskts = (includeCurrentWeights?: boolean) =>
-  useOptimizedBasktList('yourBaskts', includeCurrentWeights);
+export const useYourBaskts = (includeCurrentWeights?: boolean, isActive?: boolean) =>
+  useOptimizedBasktList('yourBaskts', includeCurrentWeights, isActive);
 
-export const useCombinedBaskts = (includeCurrentWeights?: boolean) =>
-  useOptimizedBasktList('combinedBaskts', includeCurrentWeights);
+export const useCombinedBaskts = (includeCurrentWeights?: boolean, isActive?: boolean) =>
+  useOptimizedBasktList('combinedBaskts', includeCurrentWeights, isActive);
 
-export const usePublicBaskts = (includeCurrentWeights?: boolean) =>
-  useOptimizedBasktList('publicBaskts', includeCurrentWeights);
+export const usePublicBaskts = (includeCurrentWeights?: boolean, isActive?: boolean) =>
+  useOptimizedBasktList('publicBaskts', includeCurrentWeights, isActive);
 
-export const useTrendingBaskts = (includeCurrentWeights?: boolean) =>
-  useOptimizedBasktList('trendingBaskts', includeCurrentWeights);
+export const useTrendingBaskts = (includeCurrentWeights?: boolean, isActive?: boolean) =>
+  useOptimizedBasktList('trendingBaskts', includeCurrentWeights, isActive);
