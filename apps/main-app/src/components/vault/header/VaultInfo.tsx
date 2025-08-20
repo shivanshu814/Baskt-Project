@@ -30,7 +30,7 @@ export const VaultInfo = React.memo(({ apr }: VaultInfoProps) => {
                 <div className="space-y-3 p-2">
                   <div className="flex justify-between items-center text-primary">
                     <span className="font-semibold">Current APR:</span>
-                    <span className="font-bold text-sm">{apr.toFixed(2)}%</span>
+                    <span className="font-bold text-sm">{(apr * 100).toFixed(2)}%</span>
                   </div>
 
                   <div className="text-xs">
@@ -43,7 +43,7 @@ export const VaultInfo = React.memo(({ apr }: VaultInfoProps) => {
             </Tooltip>
           </TooltipProvider>
         </div>
-        <span className="text-2xl font-extrabold text-primary">{apr.toFixed(2)}%</span>
+        <span className="text-2xl font-extrabold text-primary">{(apr * 100).toFixed(2)}%</span>
         <span className="text-xs text-muted-foreground mt-1">
           Last updated at {new Date().toLocaleDateString()}
         </span>
