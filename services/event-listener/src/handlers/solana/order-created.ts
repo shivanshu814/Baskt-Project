@@ -16,11 +16,10 @@ async function orderCreatedHandler(event: ObserverEvent) {
     }
 
     const onchainOrder: OnchainOrder = await basktClient.readWithRetry(
-      async () => await basktClient.getOrderById(orderCreatedData.orderId, orderCreatedData.owner, 'confirmed'),
+      async () => await basktClient.getOrderById(orderCreatedData.orderId.toNumber(), orderCreatedData.owner, 'confirmed'),
       5,
       100,
     );
-    console.log('onChainOrder', onchainOrder.closeParams?.sizeAsContracts.toString());
 
     const baskt = await querierClient.baskt.getBasktByAddress(onchainOrder.basktId.toString());
 
@@ -47,9 +46,9 @@ async function orderCreatedHandler(event: ObserverEvent) {
       // Add action-specific parameters
       if (onchainOrder.action === OrderAction.Open && onchainOrder.openParams) {
         orderData.openParams = {
-          notionalValue: onchainOrder.openParams.notionalValue.toString(),
-          leverageBps: onchainOrder.openParams.leverageBps.toString(),
-          collateral: onchainOrder.openParams.collateral.toString(),
+          notionalValue: onchainOrder.openParams.notionalValue,
+          leverageBps: onchainOrder.openParams.leverageBps.toNumber(),
+          collateral: onchainOrder.openParams.collateral,
           isLong: onchainOrder.openParams.isLong,
         };
       }
@@ -57,7 +56,7 @@ async function orderCreatedHandler(event: ObserverEvent) {
       if (onchainOrder.action === OrderAction.Close && onchainOrder.closeParams) {
         const position = await querierClient.position.getPositionByAddress(onchainOrder.closeParams.targetPosition.toString());
         orderData.closeParams = {
-          sizeAsContracts: onchainOrder.closeParams.sizeAsContracts.toString(),
+          sizeAsContracts: onchainOrder.closeParams.sizeAsContracts,
           targetPosition: position.data?._id,
           targetPositionAddress: onchainOrder.closeParams.targetPosition.toString(),
         };
@@ -70,7 +69,7 @@ async function orderCreatedHandler(event: ObserverEvent) {
 
       if (onchainOrder.orderType === OrderType.Limit && onchainOrder.limitParams) {
         orderData.limitParams = {
-          limitPrice: onchainOrder.limitParams.limitPrice.toString(),
+          limitPrice: onchainOrder.limitParams.limitPrice.toNumber(),
           maxSlippageBps: onchainOrder.limitParams.maxSlippageBps.toNumber(),
         };
       }

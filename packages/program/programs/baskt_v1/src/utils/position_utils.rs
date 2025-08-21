@@ -20,10 +20,12 @@ pub struct SettlementDetails {
     pub escrow_to_treasury: u64,
     pub escrow_to_pool: u64,
     pub escrow_to_user: u64,
-    pub fee_to_treasury: u64,
-    pub user_payout_u64: u64,    // escrow_to_user + pool_to_user
-    pub fee_to_blp: u64,
     pub pool_to_user: u64,
+    pub user_payout_u64: u64,    // escrow_to_user + pool_to_user
+    pub fee_to_treasury: u64,
+    pub fee_to_blp: u64,
+    pub base_fee: u64,
+    pub rebalance_fee: u64,
     pub funding_accumulated: i128,
     pub pnl: i128,
     pub bad_debt_amount: u64,
@@ -81,7 +83,7 @@ pub fn execute_settlement_transfers<'info>(
     protocol_key: Pubkey,
     params: &TransferParams,
     details: &SettlementDetails,
-) -> Result<SettlementTransferResult> {
+) -> Result<()> {
 
  
     // Authority signer seeds
@@ -161,28 +163,21 @@ pub fn execute_settlement_transfers<'info>(
         )?;
     }   
 
-            
-    Ok(SettlementTransferResult {
-        from_escrow_to_user: details.escrow_to_user,
-        from_pool_to_user: details.pool_to_user,
-        from_escrow_to_pool: details.escrow_to_pool,
-        fee_to_treasury: details.escrow_to_treasury,
-        fee_to_blp: details.fee_to_blp,
-    })
+    Ok(())
 }
 
 /// Update liquidity pool state based on settlement using actual transferred amounts
 pub fn update_pool_state(
     liquidity_pool: &mut LiquidityPool,
-    transfer_result: &SettlementTransferResult,
+    settlement_details: &SettlementDetails,
     bad_debt_amount: u64,
 ) -> Result<()> {
 
     // Calculate net change to pool using ACTUAL transferred amounts
     // Pool gains from escrow and actual BLP fees, loses from payouts and bad debt
-    let gains = transfer_result.from_escrow_to_pool as i128;
+    let gains = settlement_details.escrow_to_pool as i128;
     // Removed bad debt from pool losses
-    let losses = transfer_result.from_pool_to_user as i128;
+    let losses = settlement_details.pool_to_user as i128;
 
     let net_change = gains
         .checked_sub(losses)
@@ -256,6 +251,8 @@ pub fn calculate_position_settlement(
             pool_to_user: 0,
             fee_to_treasury: 0,
             fee_to_blp: 0,
+            base_fee: 0,
+            rebalance_fee: 0,
             pnl: realized_pnl_i128,
             funding_accumulated: funding_closed_i128,
             bad_debt_amount: bad_debt_amount.try_into().unwrap_or(u64::MAX),
@@ -286,6 +283,8 @@ pub fn calculate_position_settlement(
             pool_to_user: 0,
             fee_to_treasury,
             fee_to_blp,
+            base_fee,
+            rebalance_fee: rebalance_fee_owed,
             pnl: realized_pnl_i128,
             funding_accumulated: funding_closed_i128,
             bad_debt_amount: uncollected_fee,
@@ -308,6 +307,8 @@ pub fn calculate_position_settlement(
         pool_to_user,
         fee_to_treasury,
         fee_to_blp,
+        base_fee,
+        rebalance_fee: rebalance_fee_owed,
         pnl: realized_pnl_i128,
         funding_accumulated: funding_closed_i128,
         bad_debt_amount: uncollected_fee,

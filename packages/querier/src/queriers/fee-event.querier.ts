@@ -1,8 +1,10 @@
+import { PRICE_PRECISION } from '@baskt/sdk';
 import { FeeEventMetadataModel } from '../models/mongodb';
 import { QueryResult } from '../models/types';
 import { FeeEventFilterOptions, FeeEventStats } from '../types/fee-event';
 import { FeeEventMetadata } from '../types/models';
 import { handleQuerierError } from '../utils/error-handling';
+import BN  from 'bn.js';
 
 /**
  * Fee Event Querier
@@ -132,7 +134,7 @@ export class FeeEventQuerier {
    * Get pool analytics including APR and fee data
    */
   async getPoolAnalytics(
-    totalLiquidity: number,
+    totalLiquidity: BN,
     timeWindowDays: number = 30,
   ): Promise<
     QueryResult<{
@@ -153,7 +155,7 @@ export class FeeEventQuerier {
         this.getFeeDataForTimeWindow(timeWindowDays),
       ]);
 
-      const totalLiquidityUSDC = totalLiquidity / 1_000_000;
+      const totalLiquidityUSDC = totalLiquidity.div(new BN(PRICE_PRECISION)).toNumber();
       const recentFeeData =
         recentFeeDataResult.success && recentFeeDataResult.data
           ? recentFeeDataResult.data

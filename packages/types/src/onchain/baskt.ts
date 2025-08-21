@@ -12,6 +12,7 @@ export interface OnchainAssetConfig {
 export enum BasktStatus {
   Pending = 'pending',
   Active = 'active',
+  Decommissioning = 'decommissioning',
   Closed = 'closed',
 }
 
@@ -30,6 +31,7 @@ export interface OnchainRebalanceFee {
 export const statusStringToEnum = (status: any) => {
   if ('pending' in status) return BasktStatus.Pending;
   if ('active' in status) return BasktStatus.Active;
+  if ('decommissioning' in status) return BasktStatus.Decommissioning;
   if ('closed' in status) return BasktStatus.Closed;
   return BasktStatus.Pending;
 }

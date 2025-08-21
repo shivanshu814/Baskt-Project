@@ -216,7 +216,7 @@ pub fn liquidate_position<'info>(
     // Update pool state using actual transferred amounts
     update_pool_state(
         &mut ctx.accounts.liquidity_pool,
-        &transfer_result,
+        &settlement_details,
         settlement_details.bad_debt_amount,
     )?;
 
@@ -234,24 +234,24 @@ pub fn liquidate_position<'info>(
         position_id: position.position_id as u64,
         baskt_id: position.baskt_id,
         size_liquidated: size_to_liquidate,
-        size_remaining: if is_full_liquidation {
-            0
-        } else {
-            position.size
-        },
+        size_remaining: position.size,
         exit_price: params.exit_price,
-        pnl: settlement_details.pnl as i64,
-        fee_to_treasury: transfer_result.fee_to_treasury,
-        fee_to_blp: transfer_result.fee_to_blp,
-        funding_payment: settlement_details.funding_accumulated,
-        remaining_collateral: settlement_details.user_payout_u64,
-        pool_payout: transfer_result.from_pool_to_user,
-        collateral_remaining: if is_full_liquidation {
-            0
-        } else {
-            position.collateral
-        },
         timestamp: clock.unix_timestamp,
+        collateral_remaining: position.collateral,
+        // Settlement details
+        fee_to_treasury: settlement_details.fee_to_treasury,
+        fee_to_blp: settlement_details.fee_to_blp,
+        pnl: settlement_details.pnl,
+        funding_accumulated: settlement_details.funding_accumulated,
+        escrow_to_treasury: settlement_details.escrow_to_treasury,
+        escrow_to_pool: settlement_details.escrow_to_pool,
+        escrow_to_user: settlement_details.escrow_to_user,
+        pool_to_user: settlement_details.pool_to_user,
+        user_total_payout: settlement_details.user_payout_u64,
+        base_fee: settlement_details.base_fee,
+        rebalance_fee: settlement_details.rebalance_fee,
+        bad_debt_amount: settlement_details.bad_debt_amount,
+        collateral_released: settlement_details.collateral_to_release,
     });
 
     // Handle instruction-specific logic (account closing)

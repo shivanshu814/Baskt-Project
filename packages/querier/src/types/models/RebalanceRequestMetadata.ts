@@ -5,7 +5,7 @@ export interface RebalanceRequestMetadata {
     baskt: ObjectId;
     basktId: string;
     creator: string;
-    rebalanceRequestFee: string;
+    rebalanceRequestFee: number;
     timestamp: number;
     txSignature: string;
     createdAt?: Date;

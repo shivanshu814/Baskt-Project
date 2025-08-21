@@ -224,10 +224,9 @@ pub mod baskt {
     pub fn rebalance(
         ctx: Context<Rebalance>,
         asset_configs: Vec<AssetConfig>,
-        new_nav: u64,
         rebalance_fee_per_unit: Option<u64>,
     ) -> Result<()> {
-        instructions::baskt_all::rebalance::rebalance(ctx, asset_configs, new_nav, rebalance_fee_per_unit)
+        instructions::baskt_all::rebalance::rebalance(ctx, asset_configs, rebalance_fee_per_unit)
     }
 
     pub fn rebalance_request(ctx: Context<RebalanceRequest>) -> Result<()> {

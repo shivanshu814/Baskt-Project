@@ -61,11 +61,9 @@ export class BasktExecutor {
 
       // Execute baskt activation on-chain
       const tx = await basktClient.activateBaskt(new PublicKey(basktId), baselinePrices);
+      await this.createBasktMetadata(onchainBaskt, onchainAssetList, assetLookup, basktId, onchainBaskt.uid.toString(), basktCreatedMessage.txSignature, tx);
       
       logger.info('Baskt activated successfully', { basktId, tx, txSignature: basktCreatedMessage.txSignature, uid: onchainBaskt.uid.toString() });
-
-      // Create baskt metadata
-      await this.createBasktMetadata(onchainBaskt, onchainAssetList, assetLookup, basktId, onchainBaskt.uid.toString(), basktCreatedMessage.txSignature);
 
       return tx;
     } catch (error) {
@@ -87,7 +85,8 @@ export class BasktExecutor {
     assetLookup: Map<string, CombinedAsset>,
     basktId: string,
     name: string,
-    txSignature: string
+    createTxSignature: string, 
+    activateTxSignature: string,
   ){
     try {
       const result = await querierClient.metadata.createBaskt({ 
@@ -95,7 +94,7 @@ export class BasktExecutor {
         name: name,
         uid: Number(basktAccount.uid.toString()),
         creator: basktAccount.creator.toString(),
-        creationTxSignature: txSignature,
+        creationTxSignature: createTxSignature,
         currentAssetConfigs: currentAssetConfigs.map((asset: OnchainAssetConfig) => ({
           assetObjectId: assetLookup.get(asset.assetId.toString().toLowerCase())?._id!.toString() || '',
           assetId: asset.assetId.toString(),
@@ -125,6 +124,9 @@ export class BasktExecutor {
           cumulativeIndex: basktAccount.rebalanceFeeIndex.cumulativeIndex.toString(),
           lastUpdateTimestamp: Number(basktAccount.rebalanceFeeIndex.lastUpdateTimestamp.toString()),
         },
+        activateBasktTxSignature: activateTxSignature,
+        decomissionBasktTxSignature: '',
+        closeBasktTxSignature: '',
         createdAt: new Date(),
         updatedAt: new Date(),
       });

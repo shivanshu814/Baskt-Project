@@ -33,7 +33,7 @@ export const getVaultData = publicProcedure
 
         if (feeStatsResult.success && feeStatsResult.data) {
           const totalFeesToBlp = feeStatsResult.data.totalFeesToBlp / 1_000_000;
-          const totalLiquidityUSDC = parseFloat(poolData.totalLiquidity) / 1_000_000;
+          const totalLiquidityUSDC = parseFloat(poolData.totalLiquidity.toString()) / 1_000_000;
 
           const dailyFeeRate = totalFeesToBlp / totalLiquidityUSDC / 30;
           const annualizedRate = dailyFeeRate * 365;
@@ -62,7 +62,7 @@ export const getVaultData = publicProcedure
         basktsResult.success && basktsResult.data ? basktsResult.data : [],
       );
 
-      const totalValueLocked = parseFloat(poolData.totalLiquidity) / 1_000_000;
+      const totalValueLocked = parseFloat(poolData.totalLiquidity.toString()) / 1_000_000;
 
       // Scenario 1: User-specific data
       if (userAddress) {
@@ -132,10 +132,10 @@ export const getVaultData = publicProcedure
             statistics: {
               fees,
               blpPrice:
-                totalValueLocked > 0 && parseFloat(poolData.totalShares) > 0
-                  ? totalValueLocked / (parseFloat(poolData.totalShares) / 1_000_000)
+                totalValueLocked > 0 && parseFloat(poolData.totalShares.toString()) > 0
+                  ? totalValueLocked / (parseFloat(poolData.totalShares.toString()) / 1_000_000)
                   : 1,
-              totalSupply: parseFloat(poolData.totalShares) / 1_000_000,
+              totalSupply: parseFloat(poolData.totalShares.toString()) / 1_000_000,
             },
           },
         };
@@ -200,10 +200,10 @@ export const getVaultData = publicProcedure
             statistics: {
               fees,
               blpPrice:
-                totalValueLocked > 0 && parseFloat(poolData.totalShares) > 0
-                  ? totalValueLocked / (parseFloat(poolData.totalShares) / 1_000_000)
+                totalValueLocked > 0 && parseFloat(poolData.totalShares.toString()) > 0
+                  ? totalValueLocked / (parseFloat(poolData.totalShares.toString()) / 1_000_000)
                   : 1,
-              totalSupply: parseFloat(poolData.totalShares) / 1_000_000,
+              totalSupply: parseFloat(poolData.totalShares.toString()) / 1_000_000,
             },
           },
         };
@@ -220,10 +220,10 @@ export const getVaultData = publicProcedure
           statistics: {
             fees,
             blpPrice:
-              totalValueLocked > 0 && parseFloat(poolData.totalShares) > 0
-                ? totalValueLocked / (parseFloat(poolData.totalShares) / 1_000_000)
+              totalValueLocked > 0 && parseFloat(poolData.totalShares.toString()) > 0
+                ? totalValueLocked / (parseFloat(poolData.totalShares.toString()) / 1_000_000)
                 : 1,
-            totalSupply: parseFloat(poolData.totalShares) / 1_000_000,
+            totalSupply: parseFloat(poolData.totalShares.toString()) / 1_000_000,
           },
         },
       };

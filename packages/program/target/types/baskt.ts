@@ -5034,10 +5034,6 @@ export type Baskt = {
             "type": "pubkey"
           },
           {
-            "name": "baselineNav",
-            "type": "u64"
-          },
-          {
             "name": "timestamp",
             "type": "i64"
           }
@@ -6279,8 +6275,12 @@ export type Baskt = {
             "type": "u64"
           },
           {
-            "name": "pnl",
+            "name": "timestamp",
             "type": "i64"
+          },
+          {
+            "name": "collateralRemaining",
+            "type": "u64"
           },
           {
             "name": "feeToTreasury",
@@ -6291,24 +6291,48 @@ export type Baskt = {
             "type": "u64"
           },
           {
-            "name": "fundingPayment",
+            "name": "pnl",
             "type": "i128"
           },
           {
-            "name": "settlementAmount",
+            "name": "fundingAccumulated",
+            "type": "i128"
+          },
+          {
+            "name": "escrowToTreasury",
             "type": "u64"
           },
           {
-            "name": "poolPayout",
+            "name": "escrowToPool",
             "type": "u64"
           },
           {
-            "name": "collateralRemaining",
+            "name": "escrowToUser",
             "type": "u64"
           },
           {
-            "name": "timestamp",
-            "type": "i64"
+            "name": "poolToUser",
+            "type": "u64"
+          },
+          {
+            "name": "userTotalPayout",
+            "type": "u64"
+          },
+          {
+            "name": "baseFee",
+            "type": "u64"
+          },
+          {
+            "name": "rebalanceFee",
+            "type": "u64"
+          },
+          {
+            "name": "badDebtAmount",
+            "type": "u64"
+          },
+          {
+            "name": "collateralReleased",
+            "type": "u64"
           }
         ]
       }
@@ -6331,15 +6355,7 @@ export type Baskt = {
             "type": "pubkey"
           },
           {
-            "name": "settlementPrice",
-            "type": "u64"
-          },
-          {
             "name": "closePrice",
-            "type": "u64"
-          },
-          {
-            "name": "entryPrice",
             "type": "u64"
           },
           {
@@ -6351,43 +6367,63 @@ export type Baskt = {
             "type": "u64"
           },
           {
-            "name": "isLong",
-            "type": "bool"
-          },
-          {
-            "name": "collateralReturned",
-            "type": "u64"
-          },
-          {
-            "name": "pnl",
-            "type": "i64"
-          },
-          {
-            "name": "fundingPayment",
-            "type": "i128"
-          },
-          {
-            "name": "closedBy",
-            "type": "pubkey"
-          },
-          {
             "name": "timestamp",
             "type": "i64"
           },
           {
-            "name": "escrowReturnedToPool",
+            "name": "feeToTreasury",
             "type": "u64"
           },
           {
-            "name": "poolPayout",
-            "type": "u64"
-          },
-          {
-            "name": "badDebtAbsorbed",
+            "name": "feeToBlp",
             "type": "u64"
           },
           {
             "name": "collateralRemaining",
+            "type": "u64"
+          },
+          {
+            "name": "pnl",
+            "type": "i128"
+          },
+          {
+            "name": "fundingAccumulated",
+            "type": "i128"
+          },
+          {
+            "name": "escrowToTreasury",
+            "type": "u64"
+          },
+          {
+            "name": "escrowToPool",
+            "type": "u64"
+          },
+          {
+            "name": "escrowToUser",
+            "type": "u64"
+          },
+          {
+            "name": "poolToUser",
+            "type": "u64"
+          },
+          {
+            "name": "userTotalPayout",
+            "type": "u64"
+          },
+          {
+            "name": "baseFee",
+            "type": "u64"
+          },
+          {
+            "name": "rebalanceFee",
+            "type": "u64"
+          },
+          {
+            "name": "badDebtAmount",
+            "type": "u64"
+          },
+          {
+            "name": "collateralReleased",
             "type": "u64"
           }
         ]
@@ -6423,7 +6459,7 @@ export type Baskt = {
             "type": "u64"
           },
           {
-            "name": "pnl",
+            "name": "timestamp",
             "type": "i64"
           },
           {
@@ -6435,24 +6471,52 @@ export type Baskt = {
             "type": "u64"
           },
           {
-            "name": "fundingPayment",
-            "type": "i128"
-          },
-          {
-            "name": "remainingCollateral",
-            "type": "u64"
-          },
-          {
-            "name": "poolPayout",
-            "type": "u64"
-          },
-          {
             "name": "collateralRemaining",
             "type": "u64"
           },
           {
-            "name": "timestamp",
-            "type": "i64"
+            "name": "pnl",
+            "type": "i128"
+          },
+          {
+            "name": "fundingAccumulated",
+            "type": "i128"
+          },
+          {
+            "name": "escrowToTreasury",
+            "type": "u64"
+          },
+          {
+            "name": "escrowToPool",
+            "type": "u64"
+          },
+          {
+            "name": "escrowToUser",
+            "type": "u64"
+          },
+          {
+            "name": "poolToUser",
+            "type": "u64"
+          },
+          {
+            "name": "userTotalPayout",
+            "type": "u64"
+          },
+          {
+            "name": "baseFee",
+            "type": "u64"
+          },
+          {
+            "name": "rebalanceFee",
+            "type": "u64"
+          },
+          {
+            "name": "badDebtAmount",
+            "type": "u64"
+          },
+          {
+            "name": "collateralReleased",
+            "type": "u64"
           }
         ]
       }

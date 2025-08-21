@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { BNAndDecimal128 } from './helper';
 
 export const LiquidityDepositSchema = new mongoose.Schema(
   {
@@ -14,18 +15,9 @@ export const LiquidityDepositSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
-    depositAmount: {
-      type: String,
-      required: true,
-    },
-    feeAmount: {
-      type: String,
-      required: true,
-    },
-    sharesMinted: {
-      type: String,
-      required: true,
-    },
+    depositAmount: BNAndDecimal128(true),
+    feeAmount: BNAndDecimal128(true),
+    sharesMinted: BNAndDecimal128(true),
     timestamp: {
       type: Number,
       required: true,
@@ -37,10 +29,7 @@ export const LiquidityDepositSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
-    netDeposit: {
-      type: String,
-      required: true,
-    },
+    netDeposit: BNAndDecimal128(true),
   },
   {
     timestamps: true,

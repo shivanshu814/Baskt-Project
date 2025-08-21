@@ -1,16 +1,17 @@
 import mongoose, { ObjectId } from 'mongoose';
 import { OrderAction, OnchainOrderStatus, OrderType } from '@baskt/types';
+import BN  from 'bn.js';
 
 // Action-specific parameters
 export interface OpenOrderParams {
-  notionalValue: string;
-  leverageBps: string;
-  collateral: string;
+  notionalValue: BN;
+  leverageBps: number;
+  collateral: BN;
   isLong: boolean;
 }
 
 export interface CloseOrderParams {
-  sizeAsContracts: string;
+  sizeAsContracts: BN;
   targetPosition: ObjectId; // Changed to ObjectId to match schema
   targetPositionAddress: string;
 }
@@ -21,7 +22,7 @@ export interface MarketOrderParams {
 }
 
 export interface LimitOrderParams {
-  limitPrice: string;
+  limitPrice: number;
   maxSlippageBps: number;
 }
 

@@ -224,10 +224,10 @@ export const getPortfolioData = publicProcedure
         let pnl = 0;
         let pnlPercentage = 0;
 
-        const entryPrice = position.entryPrice ? parseFloat(position.entryPrice) : 0;
-        const usdcSize = position.usdcSize ? parseFloat(position.usdcSize) : 0;
+        const entryPrice = position.entryPrice;
+        const usdcSize = parseFloat(position.usdcSize.toString());
         const isLong = position.isLong;
-        const collateral = position.collateral ? parseFloat(position.collateral) : 0;
+        const collateral = parseFloat(position.collateral.toString());
 
         if (entryPrice > 0 && currentPrice > 0 && usdcSize > 0) {
           const positionSize = usdcSize / entryPrice;
@@ -281,13 +281,13 @@ export const getPortfolioData = publicProcedure
             let size = '0';
 
             if (order.orderAction === 'OPEN' && order.openParams?.notionalValue) {
-              const notionalValue = parseFloat(order.openParams.notionalValue);
+              const notionalValue = parseFloat(order.openParams.notionalValue.toString()  );
               size = notionalValue.toString();
             } else if (order.orderAction === 'CLOSE' && order.closeParams?.sizeAsContracts) {
-              const sizeAsContracts = parseFloat(order.closeParams.sizeAsContracts);
+              const sizeAsContracts = parseFloat(order.closeParams.sizeAsContracts.toString());
               size = sizeAsContracts.toString();
             } else if (order.openParams?.collateral) {
-              const collateralValue = parseFloat(order.openParams.collateral);
+              const collateralValue = parseFloat(order.openParams.collateral.toString());
               size = collateralValue.toString();
             }
 

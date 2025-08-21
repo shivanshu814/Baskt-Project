@@ -78,8 +78,29 @@ export class OrderQuerier {
    * Create order from both onchain and metadata sources
    */
   private combineOrder(orderMetadata: OrderMetadata): CombinedOrder {
+
+    const closeParams = orderMetadata.closeParams ? {
+      ...orderMetadata.closeParams,
+      sizeAsContracts: new BN(orderMetadata.closeParams?.sizeAsContracts?.toString() || '0'),
+    } : undefined;
+
+    const openParams = orderMetadata.openParams ? {
+      ...orderMetadata.openParams,
+      notionalValue: new BN(orderMetadata.openParams?.notionalValue?.toString() || '0'),
+      collateral: new BN(orderMetadata.openParams?.collateral?.toString() || '0'),
+    } : undefined;
+
+    const limitParams = orderMetadata.limitParams ? {
+      ...orderMetadata.limitParams,
+      limitPrice: orderMetadata.limitParams?.limitPrice?.toString() ? Number(orderMetadata.limitParams?.limitPrice?.toString()) : undefined,
+    } : undefined;
+
+
     return {
       ...orderMetadata,
+      openParams,
+      closeParams,
+      limitParams,
     } as CombinedOrder;
   }
 }

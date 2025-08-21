@@ -1,13 +1,6 @@
 import mongoose from 'mongoose';
-import { AssetMetadata, BasktMetadata, OrderMetadata, PositionMetadata } from '../types';
-import {
-  AssetMetadataModel,
-  BasktMetadataModel,
-  OrderMetadataModel,
-  PositionMetadataModel,
-  AccessCodeModel,
-  AuthorizedWalletModel,
-} from './mongodb';
+import { AssetMetadataModel, BasktMetadataModel, OrderMetadataModel, PositionMetadataModel, AccessCodeModel, AuthorizedWalletModel } from './mongodb';
+import { AccessCode, AssetMetadata, AuthorizedWallet, BasktMetadata, OrderMetadata, PositionMetadata, } from '../types';
 
 /**
  * Metadata Manager
@@ -106,7 +99,7 @@ export class MetadataManager {
   // find baskt by id
   async findBasktById(basktId: string) {
     try {
-      return await BasktMetadataModel.findOne({ basktId }).exec();
+      return await BasktMetadataModel.findOne({ basktId });
     } catch (error) {
       throw new Error(`Failed to find baskt by ID: ${error}`);
     }
@@ -115,7 +108,7 @@ export class MetadataManager {
   // find baskt by name
   async findBasktByName(name: string) {
     try {
-      return await BasktMetadataModel.findOne({ name }).exec();
+      return await BasktMetadataModel.findOne({ name });
     } catch (error) {
       throw new Error(`Failed to find baskt by name: ${error}`);
     }
@@ -134,7 +127,7 @@ export class MetadataManager {
   // update baskt
   async updateBaskt(basktId: string, updateData: any) {
     try {
-      return await BasktMetadataModel.findOneAndUpdate({ basktId }, updateData);
+      return await BasktMetadataModel.findOneAndUpdate({ basktId }, updateData).lean<BasktMetadata>();
     } catch (error) {
       throw new Error(`Failed to update baskt: ${error}`);
     }
@@ -208,7 +201,7 @@ export class MetadataManager {
   // find position by id
   async findPositionById(positionId: string){
     try {
-      return await PositionMetadataModel.findOne({ positionId }).exec();
+      return await PositionMetadataModel.findOne({ positionId });
     } catch (error) {
       throw new Error(`Failed to find position by ID: ${error}`);
     }
@@ -216,7 +209,7 @@ export class MetadataManager {
 
   async findPositionByPDA(positionPDA: string){
     try {
-      return await PositionMetadataModel.findOne({ positionPDA }).exec();
+      return await PositionMetadataModel.findOne({ positionPDA });
     } catch (error) {
       throw new Error(`Failed to find position by PDA: ${error}`);
     }
@@ -259,7 +252,7 @@ export class MetadataManager {
   // get all access codes
   async getAllAccessCodes(){
     try {
-      return await AccessCodeModel.find().exec();
+      return await AccessCodeModel.find();
     } catch (error) {
       throw new Error(`Failed to get all access codes: ${error}`);
     }
@@ -268,7 +261,7 @@ export class MetadataManager {
   // find access code by code
   async findAccessCode(code: string) {
     try {
-      return await AccessCodeModel.findOne({ code }).exec();
+      return await AccessCodeModel.findOne({ code });
     } catch (error) {
       throw new Error(`Failed to find access code: ${error}`);
     }
@@ -310,7 +303,7 @@ export class MetadataManager {
   // get all authorized wallets
   async getAllAuthorizedWallets(){
     try {
-      return await AuthorizedWalletModel.find().exec();
+      return await AuthorizedWalletModel.find();
     } catch (error) {
       throw new Error(`Failed to get all authorized wallets: ${error}`);
     }
@@ -319,7 +312,7 @@ export class MetadataManager {
   // find authorized wallet by address
   async findAuthorizedWallet(address: string) {
     try {
-      return await AuthorizedWalletModel.findOne({ walletAddress: address }).exec();
+      return await AuthorizedWalletModel.findOne({ walletAddress: address });
     } catch (error) {
       throw new Error(`Failed to find authorized wallet: ${error}`);
     }
@@ -330,7 +323,7 @@ export class MetadataManager {
     try {
       const existingWallet = await AuthorizedWalletModel.findOne({
         walletAddress: walletData.walletAddress,
-      }).exec();
+      });
 
       if (existingWallet) {
         return await AuthorizedWalletModel.findOneAndUpdate(
@@ -388,7 +381,7 @@ export class MetadataManager {
         };
       }
 
-      if (accessCode.expiresAt && new Date() > accessCode.expiresAt) {
+      if (accessCode.expiresAt && new Date() > new Date(accessCode.expiresAt)) {
         return {
           success: false,
           error: 'Access code expired',

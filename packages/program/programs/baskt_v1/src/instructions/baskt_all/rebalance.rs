@@ -26,7 +26,6 @@ pub struct Rebalance<'info> {
 pub fn rebalance(
     ctx: Context<Rebalance>, 
     asset_params: Vec<AssetConfig>, 
-    new_nav: u64, 
     rebalance_fee_per_unit: Option<u64>
 ) -> Result<()> {
     let baskt = &mut ctx.accounts.baskt;
@@ -87,12 +86,10 @@ pub fn rebalance(
     }
 
     baskt.last_rebalance_time = current_timestamp as u32;
-    baskt.baseline_nav = new_nav;
 
     emit!(BasktRebalancedEvent {
         baskt_id: baskt.key(),
         rebalance_index: baskt.rebalance_fee_index.cumulative_index,
-        baseline_nav: new_nav,
         timestamp: current_timestamp,
     });
 

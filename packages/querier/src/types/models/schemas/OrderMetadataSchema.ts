@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { OrderAction, OnchainOrderStatus, OrderType } from '@baskt/types';
+import { BNAndDecimal128 } from './helper';
 
 export const OrderMetadataSchema = new mongoose.Schema(
   {
@@ -46,18 +47,12 @@ export const OrderMetadataSchema = new mongoose.Schema(
 
     // Action-specific parameters
     openParams: {
-      notionalValue: {
-        type: String,
-        trim: true,
-      },
+      notionalValue: BNAndDecimal128(false),
       leverageBps: {
-        type: String,
+        type: Number,
         trim: true,
       },
-      collateral: {
-        type: String,
-        trim: true,
-      },
+      collateral: BNAndDecimal128(false),
       isLong: {
         type: Boolean,
       },
@@ -73,13 +68,15 @@ export const OrderMetadataSchema = new mongoose.Schema(
       trim: true,
     },
     closeParams: {
-      sizeAsContracts: {
-        type: String,
-        trim: true,
-      },
+      sizeAsContracts: BNAndDecimal128(false),
       targetPosition: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'position_metadata',
+        trim: true,
+      },
+      targetPositionAddress: {
+        type: String,
+        required: false,
         trim: true,
       },
     },
@@ -91,7 +88,7 @@ export const OrderMetadataSchema = new mongoose.Schema(
     },
     limitParams: {
       limitPrice: {
-        type: String,
+        type: Number,
         trim: true,
       },
       maxSlippageBps: {

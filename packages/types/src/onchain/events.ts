@@ -3,7 +3,26 @@ import { PublicKey } from '@solana/web3.js';
 import { OrderAction, OrderType } from './order';
 
 //----------------------------------------------------------------------------
-// EVENTS
+// EVENTS - ORGANIZED BY FUNCTIONALITY
+//----------------------------------------------------------------------------
+// This file organizes all TypeScript event interfaces into logical groups:
+//
+// 1. ORDER EVENTS - Order creation, cancellation, and management
+// 2. POSITION EVENTS - Position opening, closing, liquidation, and management
+// 3. BASKT EVENTS - Baskt lifecycle, configuration, and rebalancing
+// 4. FUNDING EVENTS - Funding rate and index updates
+// 5. LIQUIDITY POOL EVENTS - Liquidity pool operations and withdrawals
+// 6. PROTOCOL EVENTS - Protocol-level state changes
+//
+// Each section contains related event interfaces with consistent naming
+// conventions and field structures. Events are ordered by their logical
+// flow in the system lifecycle.
+//
+// Note: These interfaces must stay in sync with the Rust events.rs file
+//----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+// ORDER EVENTS
 //----------------------------------------------------------------------------
 
 export interface OrderCreatedEvent {
@@ -29,6 +48,10 @@ export interface OrderCancelledEvent {
   timestamp: BN;
 }
 
+//----------------------------------------------------------------------------
+// POSITION EVENTS
+//----------------------------------------------------------------------------
+
 export interface PositionOpenedEvent {
   orderId: BN;
   owner: PublicKey;
@@ -51,14 +74,22 @@ export interface PositionClosedEvent {
   sizeClosed: BN;
   sizeRemaining: BN;
   exitPrice: BN;
-  pnl: BN;
+  timestamp: BN;
+  // Settlement details
+  collateralRemaining: BN;
   feeToTreasury: BN;
   feeToBlp: BN;
-  fundingPayment: BN;
-  settlementAmount: BN;
-  poolPayout: BN;
-  collateralRemaining: BN;
-  timestamp: BN;
+  pnl: BN;
+  fundingAccumulated: BN;
+  escrowToTreasury: BN;
+  escrowToPool: BN;
+  escrowToUser: BN;
+  poolToUser: BN;
+  userTotalPayout: BN;
+  baseFee: BN;
+  rebalanceFee: BN;
+  badDebtAmount: BN;
+  collateralReleased: BN;
 }
 
 export interface PositionLiquidatedEvent {
@@ -68,14 +99,47 @@ export interface PositionLiquidatedEvent {
   sizeLiquidated: BN;
   sizeRemaining: BN;
   exitPrice: BN;
-  pnl: BN;
+  timestamp: BN;
+  // Settlement details
+  collateralRemaining: BN;
   feeToTreasury: BN;
   feeToBlp: BN;
-  fundingPayment: BN;
-  remainingCollateral: BN;
-  poolPayout: BN;
-  collateralRemaining: BN;
+  pnl: BN;
+  fundingAccumulated: BN;
+  escrowToTreasury: BN;
+  escrowToPool: BN;
+  escrowToUser: BN;
+  poolToUser: BN;
+  userTotalPayout: BN;
+  baseFee: BN;
+  rebalanceFee: BN;
+  badDebtAmount: BN;
+  collateralReleased: BN;
+}
+
+export interface PositionForceClosed {
+  baskt: PublicKey;
+  position: PublicKey;
+  owner: PublicKey;
+  closePrice: BN;
+  sizeClosed: BN;
+  sizeRemaining: BN;
   timestamp: BN;
+  // Settlement details
+  collateralRemaining: BN;
+  feeToTreasury: BN;
+  feeToBlp: BN;
+  pnl: BN;
+  fundingAccumulated: BN;
+  escrowToTreasury: BN;
+  escrowToPool: BN;
+  escrowToUser: BN;
+  poolToUser: BN;
+  userTotalPayout: BN;
+  baseFee: BN;
+  rebalanceFee: BN;
+  badDebtAmount: BN;
+  collateralReleased: BN;
 }
 
 export interface CollateralAddedEvent {
@@ -87,18 +151,9 @@ export interface CollateralAddedEvent {
   timestamp: BN;
 }
 
-export interface FundingIndexUpdatedEvent {
-  basktId: PublicKey;
-  cumulativeIndex: BN;
-  currentRate: BN;
-  timestamp: BN;
-}
-
-export interface FundingIndexInitializedEvent {
-  basktId: PublicKey;
-  initialIndex: BN;
-  timestamp: BN;
-}
+//----------------------------------------------------------------------------
+// BASKT EVENTS
+//----------------------------------------------------------------------------
 
 export interface BasktCreatedEvent {
   basktCreationFee: BN;
@@ -113,14 +168,28 @@ export interface BasktCreatedEvent {
 
 export interface BasktActivatedEvent {
   basktId: PublicKey;
-  baselineNav: BN;
   timestamp: BN;
 }
 
 export interface BasktRebalancedEvent {
   basktId: PublicKey;
   rebalanceIndex: BN;
-  baselineNav: BN;
+  timestamp: BN;
+}
+
+export interface BasktDecommissioningInitiated {
+  baskt: PublicKey;
+  initiatedAt: BN;
+}
+
+export interface BasktClosed {
+  baskt: PublicKey;
+  closedAt: BN;
+}
+
+export interface BasktConfigUpdatedEvent {
+  baskt: PublicKey;
+  updatedBy: PublicKey;
   timestamp: BN;
 }
 
@@ -131,41 +200,20 @@ export interface RebalanceRequestEvent {
   timestamp: BN;
 }
 
-// Baskt Decommissioning Events
+//----------------------------------------------------------------------------
+// FUNDING EVENTS
+//----------------------------------------------------------------------------
 
-export interface BasktDecommissioningInitiated {
-  baskt: PublicKey;
-  initiatedAt: BN;
-}
-
-export interface PositionForceClosed {
-  baskt: PublicKey;
-  position: PublicKey;
-  owner: PublicKey;
-  settlementPrice: BN;
-  closePrice: BN;
-  entryPrice: BN;
-  sizeClosed: BN;
-  sizeRemaining: BN;
-  isLong: boolean;
-  collateralReturned: BN;
-  pnl: BN;
-  fundingPayment: BN;
-  closedBy: PublicKey;
-  // Enhanced fields for better audit trail
+export interface FundingIndexUpdatedEvent {
+  basktId: PublicKey;
+  cumulativeIndex: BN;
+  currentRate: BN;
   timestamp: BN;
-  escrowReturnedToPool: BN;
-  poolPayout: BN;
-  badDebtAbsorbed: BN;
-  collateralRemaining: BN;
 }
 
-export interface BasktClosed {
-  baskt: PublicKey;
-  closedAt: BN;
-}
-
-// Liquidity Pool Events
+//----------------------------------------------------------------------------
+// LIQUIDITY POOL EVENTS
+//----------------------------------------------------------------------------
 
 export interface LiquidityPoolInitializedEvent {
   liquidityPool: PublicKey;
@@ -186,24 +234,6 @@ export interface LiquidityAddedEvent {
   timestamp: BN;
 }
 
-export interface LiquidityRemovedEvent {
-  provider: PublicKey;
-  liquidityPool: PublicKey;
-  sharesBurned: BN;
-  withdrawalAmount: BN;
-  feeAmount: BN;
-  netAmountReceived: BN;
-  timestamp: BN;
-}
-
-// Baskt Config Events
-
-export interface BasktConfigUpdatedEvent {
-  baskt: PublicKey;
-  updatedBy: PublicKey;
-  timestamp: BN;
-}
-
 export interface WithdrawalQueuedEvent {
   provider: PublicKey;
   requestId: BN;
@@ -221,7 +251,9 @@ export interface WithdrawQueueProcessedEvent {
   queueTailUpdated: BN;
 }
 
-// Protocol State Events
+//----------------------------------------------------------------------------
+// PROTOCOL EVENTS
+//----------------------------------------------------------------------------
 
 export interface ProtocolStateUpdatedEvent {
   protocol: PublicKey;

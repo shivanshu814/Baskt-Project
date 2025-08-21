@@ -7,7 +7,7 @@ import {
   calculatePositionFees,
   convertTimestampToDate,
 } from '../../utils/fee-utils';
-import { PositionClosedEvent, PositionStatus } from '@baskt/types';
+import { OnchainOrderStatus, PositionClosedEvent, PositionStatus } from '@baskt/types';
 import { PartialCloseHistory, FeeEvents } from '@baskt/querier';
 
 /**
@@ -75,14 +75,26 @@ async function positionClosedHandler(event: ObserverEvent) {
     const isPartialClose =
       positionClosedData.sizeRemaining && positionClosedData.sizeRemaining.gt(new BN(0));
 
-    const totalFees = positionClosedData.feeToTreasury.add(positionClosedData.feeToBlp);
 
     const partialCloseEntry = {
       id: `${positionPDA.toString()}-${Date.now()}`,
-      closeAmount: positionClosedData.sizeClosed?.toString() || '0',
-      closePrice: positionClosedData.exitPrice?.toString() || '0',
-      pnl: positionClosedData.pnl?.toString() || '0',
-      feeCollected: totalFees.toString(),
+      closeAmount: new BN(positionClosedData.sizeClosed?.toString() || '0'),
+      closePrice: new BN(positionClosedData.exitPrice?.toString() || '0'),
+      settlementDetails: {
+        escrowToTreasury: new BN(positionClosedData.escrowToTreasury?.toString() || '0'),
+        escrowToPool: new BN(positionClosedData.escrowToPool?.toString() || '0'),
+        escrowToUser: new BN(positionClosedData.escrowToUser?.toString() || '0'),
+        poolToUser: new BN(positionClosedData.poolToUser?.toString() || '0'),
+        feeToTreasury: positionClosedData.feeToTreasury?.toNumber() || 0,
+        feeToBlp: positionClosedData.feeToBlp?.toNumber() || 0,
+        baseFee: positionClosedData.baseFee?.toNumber() || 0,
+        rebalanceFee: positionClosedData.rebalanceFee?.toNumber() || 0,
+        fundingAccumulated: new BN(positionClosedData.fundingAccumulated?.toString() || '0'),
+        pnl: new BN(positionClosedData.pnl?.toString() || '0'),
+        badDebtAmount: new BN(positionClosedData.badDebtAmount?.toString() || '0'),
+        userPayout: new BN(positionClosedData.userTotalPayout?.toString() || '0'),
+        collateralToRelease: new BN(positionClosedData.collateralReleased?.toString() || '0'),
+      },
       closePosition: {
         tx: tx,
         ts: positionClosedData.timestamp?.toString() || Date.now().toString(),
@@ -90,16 +102,22 @@ async function positionClosedHandler(event: ObserverEvent) {
       order: orderMetadata!._id,
     } as PartialCloseHistory;
 
-    positionMetadata!.remainingSize = positionClosedData.sizeRemaining.toString();
-    positionMetadata!.remainingCollateral = positionClosedData.collateralRemaining.toString();
+    positionMetadata!.remainingSize = positionClosedData.sizeRemaining.toString() as any  ;
+    positionMetadata!.remainingCollateral = positionClosedData.collateralRemaining.toString() as any;
     positionMetadata!.partialCloseHistory.push(partialCloseEntry);
 
-    if(positionMetadata.remainingSize === '0') {
+    if(positionMetadata.remainingSize.toString() === '0') {
       positionMetadata.status = PositionStatus.CLOSED;
       positionMetadata.closePosition = partialCloseEntry.closePosition;
     }
 
     await positionMetadata!.save();
+    orderMetadata!.orderStatus = OnchainOrderStatus.FILLED;
+    orderMetadata!.fullFillOrder = {
+      tx: tx,
+      ts: positionClosedData.timestamp.toString(),
+    };
+    await orderMetadata!.save();
 
 
     await querierClient.pool.resyncLiquidityPool();

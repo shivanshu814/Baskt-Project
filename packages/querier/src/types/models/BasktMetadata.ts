@@ -1,4 +1,5 @@
 import { BasktStatus } from "@baskt/types";
+import BN from "bn.js";
 import { ObjectId } from "mongoose";
 
 /**
@@ -16,13 +17,13 @@ export interface BasktMetadata{
     assetId: string; // Pubkey as string
     direction: boolean; // true for long, false for short
     weight: number; // In BPS (basis points, e.g., 5000 = 50%)
-    baselinePrice: string; // Price at last rebalance/activation
+    baselinePrice: BN; // Price at last rebalance/activation
   }>;
   isPublic: boolean;
   status: BasktStatus;
   openPositions: number;
   lastRebalanceTime: number;
-  baselineNav: string;
+  baselineNav: BN;
   rebalancePeriod: number;
   config: {
     openingFeeBps?: number;
@@ -32,15 +33,18 @@ export interface BasktMetadata{
     liquidationThresholdBps?: number;
   };
   fundingIndex: {
-    cumulativeIndex: string;
+    cumulativeIndex: BN;
     lastUpdateTimestamp: number;
-    currentRate: string;
+    currentRate: number;
   };
   rebalanceFeeIndex: {
-    cumulativeIndex: string;
+    cumulativeIndex: BN;
     lastUpdateTimestamp: number;
   };
   creationTxSignature: string;
+  activateBasktTxSignature: string;
+  decomissionBasktTxSignature: string;
+  closeBasktTxSignature: string;
   createdAt?: Date;
   updatedAt?: Date;
 }

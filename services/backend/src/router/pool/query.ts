@@ -19,7 +19,7 @@ export const getLiquidityPool = publicProcedure.query(async () => {
 
     // Get pool analytics (APR and fee data) from FeeEventQuerier
     const analyticsResult = await querier.feeEvent.getPoolAnalytics(
-      parseFloat(poolData.totalLiquidity),
+      poolData.totalLiquidity,
       30, // 30 days window
     );
 

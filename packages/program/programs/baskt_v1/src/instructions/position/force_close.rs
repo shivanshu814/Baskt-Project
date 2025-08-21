@@ -191,7 +191,7 @@ pub fn force_close_position<'info>(
     // Update pool state using actual transferred amounts
     update_pool_state(
         &mut ctx.accounts.liquidity_pool,
-        &transfer_result,
+        &settlement_details,
         settlement_details.bad_debt_amount,
     )?;
 
@@ -209,21 +209,25 @@ pub fn force_close_position<'info>(
         baskt: baskt.key(),
         position: position.key(),
         owner: position.owner,
-        settlement_price,
         close_price: params.close_price,
-        entry_price: position.entry_price,
         size_closed: size_to_close,
         size_remaining: position.size,
-        is_long: position.is_long,
-        collateral_returned: settlement_details.user_payout_u64,
-        pnl: settlement_details.pnl as i64,
-        funding_payment: settlement_details.funding_accumulated,
-        closed_by: ctx.accounts.authority.key(),
         timestamp: clock.unix_timestamp,
-        escrow_returned_to_pool: transfer_result.from_escrow_to_pool,
-        pool_payout: transfer_result.from_pool_to_user,
-        bad_debt_absorbed: settlement_details.bad_debt_amount,
+        // Settlement details
         collateral_remaining: position.collateral,
+        fee_to_treasury: settlement_details.fee_to_treasury,
+        fee_to_blp: settlement_details.fee_to_blp,
+        pnl: settlement_details.pnl,
+        funding_accumulated: settlement_details.funding_accumulated,
+        escrow_to_treasury: settlement_details.escrow_to_treasury,
+        escrow_to_pool: settlement_details.escrow_to_pool,
+        escrow_to_user: settlement_details.escrow_to_user,
+        pool_to_user: settlement_details.pool_to_user,
+        user_total_payout: settlement_details.user_payout_u64,
+        base_fee: settlement_details.base_fee,
+        rebalance_fee: settlement_details.rebalance_fee,
+        bad_debt_amount: settlement_details.bad_debt_amount,
+        collateral_released: settlement_details.collateral_to_release,
     });
 
     if is_full_close {

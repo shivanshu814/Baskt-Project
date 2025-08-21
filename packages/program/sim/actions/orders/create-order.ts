@@ -3,7 +3,6 @@ import { PublicKey } from '@solana/web3.js';
 import { client } from '../../client';
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { USDC_MINT } from '@baskt/sdk';
-import { getCurrentNavForBaskt } from '../../utils';
 
 const createOrderOpen = async (args: string[]) => {
   const basktId = new PublicKey(args[1]);
@@ -19,7 +18,6 @@ const createOrderOpen = async (args: string[]) => {
   const orderId = client.newUID();
 
   const collateralRequired = collateral.muln(12).divn(10);
-
 
   const orderTx = await client.createMarketOpenOrder({
     orderId,
@@ -48,9 +46,6 @@ const createOrderClose = async (args: string[]) => {
     throw new Error('Position not found');
   }
 
-  const exitPrice = await getCurrentNavForBaskt(positionAccount.basktId);
-  const limitPrice = args[2] ? new BN(args[2]) : exitPrice;
-  const maxSlippageBps = args[3] ? new BN(args[3]) : new BN(500);
   
 
   const ownerTokenAccount = getAssociatedTokenAddressSync(
@@ -69,8 +64,6 @@ const createOrderClose = async (args: string[]) => {
   });
 
   console.log('Order creation completed successfully! ', orderTx);
-  console.log('Limit Price:', limitPrice.toString());
-  console.log('Max Slippage (BPS):', maxSlippageBps.toString());
 };
 
 const createOrder = async (args: string[]) => {

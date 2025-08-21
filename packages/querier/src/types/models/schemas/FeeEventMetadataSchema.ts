@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { BNAndDecimal128 } from './helper';
 
 export const FeeEventMetadataSchema = new mongoose.Schema(
     {
@@ -30,64 +31,29 @@ export const FeeEventMetadataSchema = new mongoose.Schema(
           type: String,
           required: false,
         },
-        feeToTreasury: {
-          type: String,
-          required: false,
-        },
-        feeToBlp: {
-          type: String,
-          required: false,
-        },
-        totalFee: {
-          type: String,
-          required: false,
-        },
-        fundingFeePaid: {
-          type: String,
-          required: false,
-        },
-        fundingFeeOwed: {
-          type: String,
-          required: false,
-        },
-        rebalanceFeePaid: {
-          type: String,
-          required: false,
-        },
+        feeToTreasury: BNAndDecimal128(false), 
+        feeToBlp: BNAndDecimal128(false),
+        totalFee: BNAndDecimal128(false),
+        fundingFeePaid: BNAndDecimal128(false),
+        fundingFeeOwed: BNAndDecimal128(false),
+        rebalanceFeePaid: BNAndDecimal128(false),
       },
       // Liquidity-specific fields
       liquidityFee: {
-        feeToTreasury: {
-          type: String,
-          required: false,
-        },
-        feeToBlp: {
-          type: String,
-          required: false,
-        },
-        totalFee: {
-          type: String,
-          required: false,
-        },
+        feeToTreasury: BNAndDecimal128(false),
+        feeToBlp: BNAndDecimal128(false),
+        totalFee: BNAndDecimal128(false),
       },
       // Baskt-specific fields
       basktFee: {
-        basktId: {
-          type: String,
-          required: false,
-        },
-        creationFee: {
-          type: String,
-          required: false,
-        },
-        rebalanceRequestFee: {
-          type: String,
-          required: false,
-        },
+        basktId: { type: String, required: false },
+        creationFee: BNAndDecimal128(false),
+        rebalanceRequestFee: BNAndDecimal128(false),
       },
     },
     {
       timestamps: true,
+      collection: 'fee_event_metadata',
     }
   );
   

@@ -1,4 +1,5 @@
 import { BasktCreatedMessage, DataBus, OrderAccepted, OrderRequest, serializeMessage, STREAMS, type StreamName } from '@baskt/data-bus';
+import { OrderAction } from '@baskt/types';
 import BN from 'bn.js';
 
 
@@ -98,8 +99,12 @@ export class StreamPublisher {
    */
   async publishOrderCreated(payload: OrderRequest): Promise<void> {  
     // await this.safePublish(STREAMS.order.request, payload, { orderId: payload.order.orderId }); 
+
+    const randomPrice = Math.random() * 10 * 1e6;
+    const executionPrice = new BN(randomPrice).add(new BN(95 * 1e6)); // +-% 5% of the random price
+
     await this.safePublish(STREAMS.order.accepted, {
-      executionPrice: new BN(100 * 1e6),
+      executionPrice: payload.order.action === OrderAction.Open ? new BN(100 * 1e6) : executionPrice,
       request: payload,
     } as OrderAccepted, { orderId: payload.order.orderId });
   }

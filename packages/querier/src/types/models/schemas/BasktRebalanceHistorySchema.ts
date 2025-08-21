@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { BNAndDecimal128 } from './helper';
 
 export const BasktRebalanceHistorySchema = new mongoose.Schema(
   {
@@ -16,69 +17,48 @@ export const BasktRebalanceHistorySchema = new mongoose.Schema(
       required: true,
     },
     // Previous state (before rebalance)
-    previousBaselineNav: {
-      type: String,
-      required: true,
-    },
-    previousRebalanceIndex: {
-      type: Number,
-      required: true,
-    },
+    previousBaselineNav: BNAndDecimal128(true),
+    previousRebalanceIndex: BNAndDecimal128(true),
     previousAssetConfigs: [{
       assetId: {
         type: String,
         required: true,
       },
       weight: {
-        type: String,
+        type: Number,
         required: true,
       },
       direction: {
         type: Boolean,
         required: true,
       },
-      baselinePrice: {
-        type: String,
-        required: true,
-      },
+      baselinePrice: BNAndDecimal128(true),
     }],
     // New state (after rebalance)
-    newBaselineNav: {
-      type: String,
-      required: true,
-    },
-    newRebalanceIndex: {
-      type: Number,
-      required: true,
-    },
+    newBaselineNav: BNAndDecimal128(true),
+    newRebalanceIndex: BNAndDecimal128(true),
     newAssetConfigs: [{
       assetId: {
         type: String,
         required: true,
       },
       weight: {
-        type: String,
+        type: Number,
         required: true,
       },
       direction: {
         type: Boolean,
         required: true,
       },
-      baselinePrice: {
-        type: String,
-        required: true,
-      },
+      baselinePrice: BNAndDecimal128(true),
     }],
     // Rebalance fee information
     rebalanceFeePerUnit: {
-      type: String,
+      type: Number,
       required: false,
     },
     // Performance metrics
-    navChange: {
-      type: String,
-      required: true,
-    },
+    navChange: BNAndDecimal128(true),
     navChangePercentage: {
       type: Number,
       required: true,

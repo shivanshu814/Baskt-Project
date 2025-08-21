@@ -1,3 +1,4 @@
+import BN from 'bn.js';
 import mongoose, { ObjectId } from 'mongoose';
 
 export enum FeeEvents {
@@ -20,22 +21,22 @@ export interface FeeEventMetadata {
   positionFee?: {
     basktId: string;
     positionId: string;  
-    feeToTreasury: string;
-    feeToBlp: string;
-    totalFee: string;
-    fundingFeePaid: string;
-    fundingFeeOwed: string;
-    rebalanceFeePaid: string;
+    feeToTreasury: BN;
+    feeToBlp: BN;
+    totalFee: BN;
+    fundingFeePaid: BN;
+    fundingFeeOwed: BN;
+    rebalanceFeePaid: BN;
   }
   liquidityFee?: {
-    feeToTreasury: string;
-    feeToBlp: string;
-    totalFee: string;
+    feeToTreasury: BN;
+    feeToBlp: BN;
+    totalFee: BN;
   }  
   basktFee?: {
     basktId: string;
-    creationFee: string;
-    rebalanceRequestFee?: string;
+    creationFee: BN;
+    rebalanceRequestFee: BN;
   }
   createdAt?: Date;
   updatedAt?: Date;

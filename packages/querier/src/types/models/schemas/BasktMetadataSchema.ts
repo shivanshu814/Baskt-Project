@@ -1,5 +1,6 @@
 import { BasktStatus } from '@baskt/types';
 import mongoose from 'mongoose';
+import { BNAndDecimal128 } from './helper';
 
 const AssetConfigSchema = {
   assetObjectId: {
@@ -21,17 +22,12 @@ const AssetConfigSchema = {
     type: Number,
     required: true,
   },
-  baselinePrice: {
-    type: String,
-    required: true,
-  },
+  baselinePrice: BNAndDecimal128(true),
+   
 };
 
 const FundingIndexSchema = {
-  cumulativeIndex: {
-    type: String,
-    required: true,
-  },
+  cumulativeIndex: BNAndDecimal128(true),
   lastUpdateTimestamp: {
     type: Number,
     required: true,
@@ -43,10 +39,7 @@ const FundingIndexSchema = {
 };
 
 const RebalanceFeeIndexSchema = {
-  cumulativeIndex: {
-    type: String,
-    required: true,
-  },
+  cumulativeIndex: BNAndDecimal128(true),
   lastUpdateTimestamp: {
     type: Number,
     required: true,
@@ -131,7 +124,7 @@ export const BasktMetadataSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: [BasktStatus.Pending, BasktStatus.Active, BasktStatus.Closed],
+      enum: [BasktStatus.Pending, BasktStatus.Active, BasktStatus.Decommissioning, BasktStatus.Closed],
       required: true,
       default: BasktStatus.Pending,
     },
@@ -146,12 +139,7 @@ export const BasktMetadataSchema = new mongoose.Schema(
       default: 0,
     },
     currentAssetConfigs: [AssetConfigSchema],
-    baselineNav: {
-      type: String,
-      required: true,
-      default: 0,
-    },
-    // TODO: nshmadhani: we also want rebalancingType: Automatic/Manual
+    baselineNav: BNAndDecimal128(true),     
     rebalancePeriod: {
       type: Number,
       required: true,
@@ -160,11 +148,24 @@ export const BasktMetadataSchema = new mongoose.Schema(
     config: BasktConfigSchema,
     fundingIndex: FundingIndexSchema,
     rebalanceFeeIndex: RebalanceFeeIndexSchema,
-    // TODO: nshmadhani: add rebalance history
-    // rebalanceHistory: [RebalanceHistorySchema],
     creationTxSignature: {
       type: String,
       required: true,
+      trim: true,
+    },
+    activateBasktTxSignature: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    decomissionBasktTxSignature: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    closeBasktTxSignature: {
+      type: String,
+      required: false,
       trim: true,
     },
   },

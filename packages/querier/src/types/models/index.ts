@@ -15,7 +15,7 @@ export * from './BasktRebalanceHistory';
 export * from './schemas/AssetMetdataSchema';
 export * from './schemas/BasktMetadataSchema';
 export * from './schemas/OrderMetadataSchema';
-export * from './schemas/PositionMetadatSchema';
+export * from './schemas/PositionMetadataSchema';
 export * from './schemas/LiquidityPoolSchema';
 export * from './schemas/LiquidityDepositSchema';
 export * from './schemas/WithdrawalRequestSchema';

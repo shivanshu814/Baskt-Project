@@ -72,7 +72,7 @@ async function getAssetMetadataFromSource(sourceModel: any): Promise<AssetMetada
   try {
     const assets = await sourceModel.find({}).lean();
     console.log(`📊 Found ${assets.length} assets in source database`);
-    return assets as AssetMetadata[];
+    return assets;
   } catch (error) {
     console.error('❌ Error fetching assets from source:', error);
     throw error;

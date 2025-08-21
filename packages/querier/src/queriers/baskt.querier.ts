@@ -3,7 +3,7 @@ import { PublicKey } from '@solana/web3.js';
 import { BN } from 'bn.js';
 import { BasktMetadataModel, RebalanceRequestModel, BasktRebalanceHistoryModel } from '../models/mongodb';
 import { QueryResult } from '../models/types';
-import { BasktMetadata } from '../types';
+import { BasktMetadata, CombinedAsset } from '../types';
 import { BasktNAV, BasktPerformance, BasktQueryOptions, CombinedBaskt } from '../types/baskt';
 import { createQuerierError, handleQuerierError } from '../utils/error-handling';
 import { AssetQuerier } from './asset.querier';
@@ -69,9 +69,9 @@ export class BasktQuerier {
       }
 
       // Create asset lookup map
-      const assetLookup = new Map<string, any>();
+      const assetLookup = new Map<string, CombinedAsset>();
       if (allAssetsResult.success && allAssetsResult.data) {
-        allAssetsResult.data.forEach((asset: any) => {
+        allAssetsResult.data.forEach((asset: CombinedAsset) => {
           if (asset && asset.assetAddress) {
             assetLookup.set(asset.assetAddress, asset);
           }
@@ -229,6 +229,8 @@ export class BasktQuerier {
     try {
       const basktAccount = await this.basktClient.getBasktAccount(new PublicKey(basktId));
 
+      console.log('basktAccount', basktAccount.status);
+
       // Get asset metadata to map assetObjectIds using metadata manager directly
       const assetAddresses = basktAccount.currentAssetConfigs.map(config => config.assetId.toString());
       const assetMetadatas = await metadataManager.getAllAssets();
@@ -340,7 +342,7 @@ export class BasktQuerier {
   // Data combination methods
   private async combineBasktData(
     basktMetadata: BasktMetadata,
-    assetLookup: Map<string, any>,
+    assetLookup: Map<string, CombinedAsset>,
     performance: BasktPerformance | null,
   ): Promise<CombinedBaskt | undefined> {
     if (!basktMetadata) {
@@ -352,12 +354,16 @@ export class BasktQuerier {
         const assetId = asset.assetId.toString();
         const fetchedAsset = assetLookup.get(assetId);
 
+        if (!fetchedAsset) {
+          throw new Error(`Asset not found for assetId: ${assetId}`);
+        }
+
         const assetData = {
-          ...(fetchedAsset || {}),
+          ...fetchedAsset,
           weight: (asset.weight * 100) / 10_000,
           direction: asset.direction,
           id: assetId,
-          baselinePrice: new BN(asset.baselinePrice),
+          baselinePrice: asset.baselinePrice,
           volume24h: 0,
           marketCap: 0,
         };
@@ -409,7 +415,7 @@ export class BasktQuerier {
         .find({ basktId })
         .sort({ timestamp: -1 })
         .limit(limit)
-        .lean()
+        .lean<BasktRebalanceHistory[]>()
         .exec();
 
       return {
@@ -430,12 +436,12 @@ export class BasktQuerier {
       const latest = await BasktRebalanceHistoryModel
         .findOne({ basktId })
         .sort({ timestamp: -1 })
-        .lean()
+        .lean<BasktRebalanceHistory>()
         .exec();
 
       return {
         success: true,
-        data: latest as BasktRebalanceHistory | null,
+        data: latest,
       };
     } catch (error) {
       return {

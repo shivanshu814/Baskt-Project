@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import BN from 'bn.js';
 
 
 export interface BasktRebalanceHistory {
@@ -8,30 +9,30 @@ export interface BasktRebalanceHistory {
   txSignature: string;
   
   // Previous state (before rebalance)
-  previousBaselineNav: string;
-  previousRebalanceIndex: number;
+  previousBaselineNav: BN;
+  previousRebalanceIndex: BN;
   previousAssetConfigs: {
     assetId: string;
-    weight: string;
+    weight: number;
     direction: boolean;
-    baselinePrice: string;
+    baselinePrice: BN;
   }[];
   
   // New state (after rebalance)
-  newBaselineNav: string;
-  newRebalanceIndex: number;
+  newBaselineNav: BN;
+  newRebalanceIndex: BN;
   newAssetConfigs: {
     assetId: string;
-    weight: string;
+    weight: number;
     direction: boolean;
-    baselinePrice: string;
+    baselinePrice: BN;
   }[];
   
   // Rebalance fee information
-  rebalanceFeePerUnit?: string;
+  rebalanceFeePerUnit?: number;
   
   // Performance metrics
-  navChange: string;
+  navChange: BN;
   navChangePercentage: number;
   
   createdAt?: Date;

@@ -15,6 +15,8 @@ import protocolStateUpdatedHandler from './protocol-state-updated';
 import basktConfigUpdatedHandler from './baskt-config-updated';
 import withdrawalQueuedHandler from './withdrawal-queued';
 import withdrawQueueProcessedHandler from './withdraw-queue-processed';
+import { basktClosedHandler, basktDecommissioningInitiatedHandler } from './baskt-lifecycle';
+import basktActivatedHandler from './baskt-activated';
 
 export default function registerAllHandlers(router: ObserverRouter) {
   // Register baskt handlers
@@ -22,7 +24,9 @@ export default function registerAllHandlers(router: ObserverRouter) {
   router.register(EventSource.SOLANA, rebalanceRequestHandler.type, rebalanceRequestHandler.handler);
   router.register(EventSource.SOLANA, basktRebalancedHandler.type, basktRebalancedHandler.handler);
   router.register(EventSource.SOLANA, basktConfigUpdatedHandler.type, basktConfigUpdatedHandler.handler);
-
+  router.register(EventSource.SOLANA, basktClosedHandler.type, basktClosedHandler.handler);
+  router.register(EventSource.SOLANA, basktDecommissioningInitiatedHandler.type, basktDecommissioningInitiatedHandler.handler);
+  router.register(EventSource.SOLANA, basktActivatedHandler.type, basktActivatedHandler.handler);
   
   // Register order handlers
   router.register(EventSource.SOLANA, orderCreatedHandler.type, orderCreatedHandler.handler);

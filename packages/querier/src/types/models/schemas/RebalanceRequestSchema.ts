@@ -17,7 +17,7 @@ export const RebalanceRequestSchema = new mongoose.Schema(
       required: true,
     },
     rebalanceRequestFee: {
-      type: String,
+      type: Number,
       required: true,
     },
     timestamp: {

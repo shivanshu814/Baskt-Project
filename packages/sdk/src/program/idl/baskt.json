@@ -5028,10 +5028,6 @@
             "type": "pubkey"
           },
           {
-            "name": "baseline_nav",
-            "type": "u64"
-          },
-          {
             "name": "timestamp",
             "type": "i64"
           }
@@ -6273,8 +6269,12 @@
             "type": "u64"
           },
           {
-            "name": "pnl",
+            "name": "timestamp",
             "type": "i64"
+          },
+          {
+            "name": "collateral_remaining",
+            "type": "u64"
           },
           {
             "name": "fee_to_treasury",
@@ -6285,24 +6285,48 @@
             "type": "u64"
           },
           {
-            "name": "funding_payment",
+            "name": "pnl",
             "type": "i128"
           },
           {
-            "name": "settlement_amount",
+            "name": "funding_accumulated",
+            "type": "i128"
+          },
+          {
+            "name": "escrow_to_treasury",
             "type": "u64"
           },
           {
-            "name": "pool_payout",
+            "name": "escrow_to_pool",
             "type": "u64"
           },
           {
-            "name": "collateral_remaining",
+            "name": "escrow_to_user",
             "type": "u64"
           },
           {
-            "name": "timestamp",
-            "type": "i64"
+            "name": "pool_to_user",
+            "type": "u64"
+          },
+          {
+            "name": "user_total_payout",
+            "type": "u64"
+          },
+          {
+            "name": "base_fee",
+            "type": "u64"
+          },
+          {
+            "name": "rebalance_fee",
+            "type": "u64"
+          },
+          {
+            "name": "bad_debt_amount",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_released",
+            "type": "u64"
           }
         ]
       }
@@ -6325,15 +6349,7 @@
             "type": "pubkey"
           },
           {
-            "name": "settlement_price",
-            "type": "u64"
-          },
-          {
             "name": "close_price",
-            "type": "u64"
-          },
-          {
-            "name": "entry_price",
             "type": "u64"
           },
           {
@@ -6345,43 +6361,63 @@
             "type": "u64"
           },
           {
-            "name": "is_long",
-            "type": "bool"
-          },
-          {
-            "name": "collateral_returned",
-            "type": "u64"
-          },
-          {
-            "name": "pnl",
-            "type": "i64"
-          },
-          {
-            "name": "funding_payment",
-            "type": "i128"
-          },
-          {
-            "name": "closed_by",
-            "type": "pubkey"
-          },
-          {
             "name": "timestamp",
             "type": "i64"
           },
           {
-            "name": "escrow_returned_to_pool",
+            "name": "fee_to_treasury",
             "type": "u64"
           },
           {
-            "name": "pool_payout",
-            "type": "u64"
-          },
-          {
-            "name": "bad_debt_absorbed",
+            "name": "fee_to_blp",
             "type": "u64"
           },
           {
             "name": "collateral_remaining",
+            "type": "u64"
+          },
+          {
+            "name": "pnl",
+            "type": "i128"
+          },
+          {
+            "name": "funding_accumulated",
+            "type": "i128"
+          },
+          {
+            "name": "escrow_to_treasury",
+            "type": "u64"
+          },
+          {
+            "name": "escrow_to_pool",
+            "type": "u64"
+          },
+          {
+            "name": "escrow_to_user",
+            "type": "u64"
+          },
+          {
+            "name": "pool_to_user",
+            "type": "u64"
+          },
+          {
+            "name": "user_total_payout",
+            "type": "u64"
+          },
+          {
+            "name": "base_fee",
+            "type": "u64"
+          },
+          {
+            "name": "rebalance_fee",
+            "type": "u64"
+          },
+          {
+            "name": "bad_debt_amount",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_released",
             "type": "u64"
           }
         ]
@@ -6417,7 +6453,7 @@
             "type": "u64"
           },
           {
-            "name": "pnl",
+            "name": "timestamp",
             "type": "i64"
           },
           {
@@ -6429,24 +6465,52 @@
             "type": "u64"
           },
           {
-            "name": "funding_payment",
-            "type": "i128"
-          },
-          {
-            "name": "remaining_collateral",
-            "type": "u64"
-          },
-          {
-            "name": "pool_payout",
-            "type": "u64"
-          },
-          {
             "name": "collateral_remaining",
             "type": "u64"
           },
           {
-            "name": "timestamp",
-            "type": "i64"
+            "name": "pnl",
+            "type": "i128"
+          },
+          {
+            "name": "funding_accumulated",
+            "type": "i128"
+          },
+          {
+            "name": "escrow_to_treasury",
+            "type": "u64"
+          },
+          {
+            "name": "escrow_to_pool",
+            "type": "u64"
+          },
+          {
+            "name": "escrow_to_user",
+            "type": "u64"
+          },
+          {
+            "name": "pool_to_user",
+            "type": "u64"
+          },
+          {
+            "name": "user_total_payout",
+            "type": "u64"
+          },
+          {
+            "name": "base_fee",
+            "type": "u64"
+          },
+          {
+            "name": "rebalance_fee",
+            "type": "u64"
+          },
+          {
+            "name": "bad_debt_amount",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_released",
+            "type": "u64"
           }
         ]
       }

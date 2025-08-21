@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { WithdrawRequestStatus } from '@baskt/types';
+import { BNAndDecimal128 } from './helper';
 
 export const WithdrawalRequestSchema = new mongoose.Schema(
   {
@@ -21,14 +22,8 @@ export const WithdrawalRequestSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
-    requestedLpAmount: {
-      type: String,
-      required: true,
-    },
-    remainingLp: {
-      type: String,
-      required: true,
-    },
+    requestedLpAmount: BNAndDecimal128(true),
+    remainingLp: BNAndDecimal128(true),
     providerUsdcAccount: {
       type: String,
       required: true,
@@ -82,14 +77,8 @@ export const WithdrawalRequestSchema = new mongoose.Schema(
         required: true,
         trim: true,
       },
-      amountProcessed: {
-        type: String,
-        required: true,
-      },
-      lpTokensBurned: {
-        type: String,
-        required: true,
-      },
+      amountProcessed: BNAndDecimal128(true),
+      lpTokensBurned: BNAndDecimal128(true),
     }],
   },
   {

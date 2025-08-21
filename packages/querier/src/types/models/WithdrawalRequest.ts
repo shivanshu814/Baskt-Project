@@ -1,5 +1,6 @@
 import { ObjectId } from "mongoose";
 import { WithdrawRequestStatus } from "@baskt/types";
+import BN from "bn.js";
 
 export interface WithdrawalRequest {
   _id?: ObjectId;
@@ -8,8 +9,8 @@ export interface WithdrawalRequest {
   requestId: number;
   withdrawalProcessAddress: string;
   provider: string;
-  requestedLpAmount: string;
-  remainingLp: string;
+  requestedLpAmount: BN;
+  remainingLp: BN;
   providerUsdcAccount: string;
   status: WithdrawRequestStatus;
   
@@ -30,8 +31,8 @@ export interface WithdrawalRequest {
   processingHistory?: Array<{
     ts: number;
     tx: string;
-    amountProcessed: string;
-    lpTokensBurned: string;
+    amountProcessed: BN;
+    lpTokensBurned: BN;
   }>;
   
   // Timestamps

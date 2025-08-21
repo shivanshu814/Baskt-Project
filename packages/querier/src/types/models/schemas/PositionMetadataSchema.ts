@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { PositionStatus } from '@baskt/types';
+import { BNAndDecimal128 } from './helper';
 
 export const PositionMetadataSchema = new mongoose.Schema(
   {
@@ -33,6 +34,16 @@ export const PositionMetadataSchema = new mongoose.Schema(
       required: true,
     },
     openPosition: {
+      feeToTreasury: {
+        type: Number,
+        required: true,
+        trim: true,
+      },
+      feeToBlp: {
+        type: Number,
+        required: true,
+        trim: true,
+      },
       tx: {
         type: String,
         required: true,
@@ -45,12 +56,12 @@ export const PositionMetadataSchema = new mongoose.Schema(
       },
     },
     entryPrice: {
-      type: String,
+      type: Number,
       required: true,
       trim: true,
     },
     exitPrice: {
-      type: String,
+      type: Number,
       required: false,
       trim: true,
     },
@@ -66,10 +77,10 @@ export const PositionMetadataSchema = new mongoose.Schema(
         trim: true,
       },
     },
-    size: { type: String, required: true, trim: true },
-    remainingSize: { type: String, required: true, trim: true },
-    collateral: { type: String, required: true, trim: true },
-    remainingCollateral: { type: String, required: true, trim: true },
+    size: BNAndDecimal128(true),
+    remainingSize: BNAndDecimal128(true),
+    collateral: BNAndDecimal128(true),
+    remainingCollateral: BNAndDecimal128(true),
     owner: {
       type: String,
       required: true,
@@ -89,11 +100,27 @@ export const PositionMetadataSchema = new mongoose.Schema(
           ref: 'order_metadata',
           required: true,
         },
-        // TODO: Shivanshu we need to modify this
+        // TODO: Shivanshu we need to modify this closeAmount - What is it used for?
         closeAmount: { type: String, required: true, trim: true },
+
         closePrice: { type: String, required: true, trim: true },
-        pnl: { type: String, required: true, trim: true },
-        feeCollected: { type: String, required: true, trim: true },
+
+        settlementDetails: {
+          escrowToTreasury: BNAndDecimal128(true),
+          escrowToPool: BNAndDecimal128(true),
+          escrowToUser: BNAndDecimal128(true),
+          poolToUser: BNAndDecimal128(true),
+          feeToTreasury: { type: Number, required: true, trim: true },
+          feeToBlp: { type: Number, required: true, trim: true },
+          baseFee: { type: Number, required: true, trim: true },
+          rebalanceFee: { type: Number, required: true, trim: true },
+          fundingAccumulated: BNAndDecimal128(true),
+          pnl: BNAndDecimal128(true),
+          badDebtAmount: BNAndDecimal128(true),
+          userPayout: BNAndDecimal128(true),
+          collateralToRelease: BNAndDecimal128(true),
+        },
+        
         closePosition: {
           tx: { type: String, required: true, trim: true },
           ts: { type: String, required: true, trim: true },

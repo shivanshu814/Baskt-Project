@@ -1,23 +1,16 @@
 import mongoose from 'mongoose';
+import { BNAndDecimal128 } from './helper';
 
 export const LiquidityPoolSchema = new mongoose.Schema(
   {
-    totalLiquidity: {
-      type: String,
-      required: true,
-      default: '0',
-    },
+    totalLiquidity: BNAndDecimal128(true),
     lpMint: {
       type: String,
       required: true,
       trim: true,
       index: true,
     },
-    totalShares: {
-      type: String,
-      required: true,
-      default: '0',
-    },
+    totalShares: BNAndDecimal128(true),
     lastUpdateTimestamp: {
       type: Number,
       required: true,

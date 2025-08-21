@@ -6,7 +6,7 @@ import {
   WithdrawalRequestModel,
 } from '../models/mongodb';
 import { QueryResult } from '../models/types';
-import { WithdrawalRequest } from '../types';
+import { LiquidityDeposit, WithdrawalRequest } from '../types';
 import { LiquidityPoolMetadata } from '../types/models/LiquidityPool';
 import { LiquidityPool, PoolDeposit } from '../types/pool';
 import { ProtocolQuerier } from './protocol.querier';
@@ -119,14 +119,14 @@ export class PoolQuerier {
     try {
       const deposits = await LiquidityDepositModel.find({
         provider: userAddress,
-      }).lean();
+      }).lean<LiquidityDeposit[]>();
 
       const totalDeposits = deposits.reduce((total, deposit) => {
-        return total + parseFloat(deposit.netDeposit) / 1000000;
+        return total + deposit.netDeposit.toNumber() / 1000000;
       }, 0);
 
       const totalShares = deposits.reduce((total, deposit) => {
-        return total + parseFloat(deposit.sharesMinted) / 1000000;
+        return total + deposit.sharesMinted.toNumber() / 1000000;
       }, 0);
 
       return {
@@ -344,7 +344,7 @@ export class PoolQuerier {
 
   async checkAndUpdateWithdrawalRequestStatus(requestId: number): Promise<void> {
     try {
-      const withdrawalRequest = await WithdrawalRequestModel.findOne({ requestId });
+      const withdrawalRequest = await WithdrawalRequestModel.findOne({ requestId }).lean<WithdrawalRequest>();
 
       if (!withdrawalRequest) {
         console.log(`[PoolQuerier] Withdrawal request ${requestId} not found`);
@@ -353,10 +353,10 @@ export class PoolQuerier {
 
       const totalLpProcessed =
         withdrawalRequest.processingHistory?.reduce((total, entry) => {
-          return total + parseFloat(entry.lpTokensBurned);
+          return total + entry.lpTokensBurned.toNumber();
         }, 0) || 0;
 
-      const requestedLpAmount = parseFloat(withdrawalRequest.requestedLpAmount);
+      const requestedLpAmount = withdrawalRequest.requestedLpAmount.toNumber();
 
       if (totalLpProcessed >= requestedLpAmount) {
         await WithdrawalRequestModel.findOneAndUpdate(
