@@ -8,8 +8,6 @@ export function usePortfolioData() {
   const portfolioQuery = trpc.portfolio.getPortfolioData.useQuery(
     {
       userId: userAddress || '',
-      includeOrders: true,
-      includeHistory: true,
     },
     {
       enabled: true,

@@ -1,4 +1,4 @@
-import { QueryResult } from '../models/types';
+import { PositionStatus } from '@baskt/types';
 import { PositionMetadata } from './models/PositionMetadata';
 
 
@@ -10,15 +10,6 @@ export interface CombinedPosition  extends PositionMetadata {
   usdcSize: string;
 }
 
-/**
- * Position status enum
- */
-export enum PositionStatus {
-  OPEN = 'OPEN',
-  CLOSED = 'CLOSED',
-  LIQUIDATED = 'LIQUIDATED',
-  CANCELLED = 'CANCELLED',
-}
 
 /**
  * Position filter options
