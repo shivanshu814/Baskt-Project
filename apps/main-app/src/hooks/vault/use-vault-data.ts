@@ -1,7 +1,8 @@
 import { useBasktClient } from '@baskt/ui';
 import { useCallback } from 'react';
 import { trpc } from '../../lib/api/trpc';
-import { EnhancedVaultData } from '../../types/vault';
+import { EnhancedPoolData, EnhancedVaultData } from '../../types/vault';
+import { processEnhancedPoolData } from '../../utils/vault/vault-data-utils';
 
 export function useVaultData(userAddress?: string) {
   const { client } = useBasktClient();
@@ -24,6 +25,11 @@ export function useVaultData(userAddress?: string) {
 
   const data: EnhancedVaultData | null =
     vaultQuery.data?.success && 'data' in vaultQuery.data ? vaultQuery.data.data : null;
+  const poolData: EnhancedPoolData | null = data?.poolData
+    ? processEnhancedPoolData(data.poolData)
+    : null;
+
+  const liquidityPool = client?.liquidityPoolPDA || null;
 
   const delayedRefetch = useCallback(() => {
     setTimeout(() => {
@@ -33,6 +39,8 @@ export function useVaultData(userAddress?: string) {
 
   return {
     data,
+    poolData,
+    liquidityPool,
     isLoading: vaultQuery.isLoading,
     isError: vaultQuery.isError,
     error: vaultQuery.error,

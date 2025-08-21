@@ -15,7 +15,7 @@ export interface VaultData {
   recentFeeData?: {
     totalFees?: string;
     totalFeesToBlp?: string;
-    eventCount: number;
+    eventCount?: number;
     timeWindowDays: number;
   };
   feeStats?: {
@@ -32,6 +32,45 @@ export interface VaultData {
       avgLiquidityAmount?: number;
     }>;
   };
+}
+
+export interface EnhancedPoolData {
+  totalLiquidity: string;
+  totalShares: string;
+  depositFeeBps: number;
+  withdrawalFeeBps: number;
+  minDeposit: string;
+  lastUpdateTimestamp: number;
+  lpMint: string;
+  tokenVault: string;
+  apr: number;
+  totalFeesEarned: string;
+  recentFeeData?: {
+    totalFees?: string;
+    totalFeesToBlp?: string;
+    eventCount?: number;
+    timeWindowDays: number;
+  };
+  feeStats?: {
+    totalEvents?: number;
+    totalFees?: number;
+    totalFeesToTreasury?: number;
+    totalFeesToBlp?: number;
+    eventTypeBreakdown?: Array<{
+      _id: string;
+      count: number;
+      totalFeesToTreasury: number;
+      totalFeesToBlp: number;
+      totalFees: number;
+      avgLiquidityAmount?: number;
+    }>;
+  } | null;
+  bump: number;
+  poolAuthorityBump: number;
+  pendingLpTokens: string;
+  withdrawQueueHead: number;
+  withdrawQueueTail: number;
+  poolAddress: string;
 }
 
 export interface ActionCardProps {
@@ -59,13 +98,13 @@ export interface ActionCardProps {
 
 export interface UseDepositProps {
   amount: string;
-  vaultData?: VaultData | null;
+  vaultData?: EnhancedPoolData | null;
   liquidityPool?: PublicKey | null;
 }
 
 export interface UseWithdrawProps {
   amount: string;
-  vaultData?: VaultData | null;
+  vaultData?: EnhancedPoolData | null;
   liquidityPool?: PublicKey | null;
 }
 
@@ -119,6 +158,7 @@ export interface VaultActionTabsProps {
 }
 
 export interface EnhancedVaultDataPublic {
+  poolData: EnhancedPoolData;
   apr: number;
   allocation: {
     totalValueLocked: number;

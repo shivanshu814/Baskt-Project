@@ -276,72 +276,107 @@ const getExplorePageBaskts = publicProcedure
       }
 
       const rawBaskts = basktsResult.data;
-      const basktIds = rawBaskts.map((b) => b.basktId?.toString() || '').filter(Boolean);
 
-      let batchNavData = null;
-      if (basktIds.length > 0) {
-        const navPromises = basktIds.map(async (basktId) => {
-          try {
-            const result = await querier.baskt.getBasktNAV(basktId);
-            return {
-              basktId,
-              success: result.success,
-              nav: result.success ? result.data?.nav : null,
-              error: result.success ? null : result.message,
-            };
-          } catch (error) {
-            return {
-              basktId,
-              success: false,
-              nav: null,
-              error: error instanceof Error ? error.message : 'Unknown error',
-            };
-          }
-        });
-
-        const navResults = await Promise.all(navPromises);
-        batchNavData = {
+      if (rawBaskts.length === 0) {
+        return {
           success: true,
-          data: navResults,
-          message: `Successfully fetched NAV data for ${navResults.length} baskts`,
+          data: [],
+          message: 'No baskts found',
+          userAddress: input.userAddress,
         };
       }
 
-      const oiPromises = rawBaskts.map(async (baskt) => {
-        try {
-          const oiResult = await querier.metrics.getOpenInterestForBaskt({
-            basktId: baskt.basktId?.toString() || '',
-            positionStatus: PositionStatus.OPEN,
-          });
-          return {
-            basktId: baskt.basktId?.toString(),
-            totalOI: oiResult.success ? oiResult.data?.totalOpenInterest || 0 : 0,
-          };
-        } catch (error) {
-          return {
-            basktId: baskt.basktId?.toString(),
-            totalOI: 0,
-          };
-        }
+      const basktIds = rawBaskts.map((b) => b.basktId?.toString() || '').filter(Boolean);
+
+      const [batchNavData, oiResults] = await Promise.all([
+        basktIds.length > 0
+          ? (async () => {
+              try {
+                const navPromises = basktIds.map(async (basktId) => {
+                  try {
+                    const result = await querier.baskt.getBasktNAV(basktId);
+                    return {
+                      basktId,
+                      success: result.success,
+                      nav: result.success ? result.data?.nav : null,
+                      error: result.success ? null : result.message,
+                    };
+                  } catch (error) {
+                    return {
+                      basktId,
+                      success: false,
+                      nav: null,
+                      error: error instanceof Error ? error.message : 'Unknown error',
+                    };
+                  }
+                });
+
+                const navResults = await Promise.all(navPromises);
+                return {
+                  success: true,
+                  data: navResults,
+                  message: `Successfully fetched NAV data for ${navResults.length} baskts`,
+                };
+              } catch (error) {
+                logger.error('Error fetching batch NAV data:', error);
+                return { success: false, data: [], message: 'Failed to fetch NAV data' };
+              }
+            })()
+          : Promise.resolve({ success: false, data: [], message: 'No baskts to fetch NAV for' }),
+
+        (async () => {
+          try {
+            const oiPromises = rawBaskts.map(async (baskt) => {
+              try {
+                const oiResult = await querier.metrics.getOpenInterestForBaskt({
+                  basktId: baskt.basktId?.toString() || '',
+                  positionStatus: PositionStatus.OPEN,
+                });
+                return {
+                  basktId: baskt.basktId?.toString(),
+                  totalOI: oiResult.success ? oiResult.data?.totalOpenInterest || 0 : 0,
+                };
+              } catch (error) {
+                return {
+                  basktId: baskt.basktId?.toString(),
+                  totalOI: 0,
+                };
+              }
+            });
+
+            return await Promise.all(oiPromises);
+          } catch (error) {
+            logger.error('Error fetching open interest data:', error);
+            return rawBaskts.map((baskt) => ({
+              basktId: baskt.basktId?.toString(),
+              totalOI: 0,
+            }));
+          }
+        })(),
+      ]);
+
+      const navLookup = new Map();
+      const oiLookup = new Map();
+
+      if (batchNavData.success && batchNavData.data) {
+        batchNavData.data.forEach((nav: any) => {
+          if (nav.success && nav.nav !== null) {
+            navLookup.set(nav.basktId, nav.nav);
+          }
+        });
+      }
+
+      oiResults.forEach((oi) => {
+        oiLookup.set(oi.basktId, oi.totalOI);
       });
 
-      const oiResults = await Promise.all(oiPromises);
-
       const basktsWithNav = rawBaskts.map((baskt) => {
-        let currentNav = parseFloat(baskt.baselineNav?.toString() || '0') || 0;
+        const basktId = baskt.basktId?.toString() || '';
 
-        if (batchNavData?.success && 'data' in batchNavData && batchNavData.data) {
-          const navData = batchNavData.data.find(
-            (nav: any) => nav.basktId === baskt.basktId?.toString(),
-          );
-          if (navData?.success && navData.nav) {
-            currentNav = navData.nav;
-          }
-        }
+        const currentNav =
+          navLookup.get(basktId) || parseFloat(baskt.baselineNav?.toString() || '0') || 0;
 
-        const oiData = oiResults.find((oi) => oi.basktId === baskt.basktId?.toString()) || {
-          totalOI: 0,
-        };
+        const totalOI = oiLookup.get(basktId) || 0;
 
         let currentWeights: number[] = [];
         if (input.includeCurrentWeights && baskt?.assets && baskt.assets.length > 0) {
@@ -395,52 +430,33 @@ const getExplorePageBaskts = publicProcedure
           assets: assets,
           metrics: {
             performance: baskt?.performance || { daily: 0, weekly: 0, monthly: 0, year: 0 },
-            openInterest: oiData.totalOI,
+            openInterest: totalOI,
             currentNav: currentNav,
             baselineNav: baskt?.baselineNav || '0',
           },
         };
       });
 
-      const publicBaskts = basktsWithNav.filter((b) => b.baskt.isPublic);
-
-      const trendingBaskts = publicBaskts.filter((baskt) => {
-        const dailyPerformance = baskt.metrics?.performance?.daily || 0;
-        return dailyPerformance > 4.0;
-      });
-
-      const yourBaskts = input.userAddress
-        ? basktsWithNav.filter((b) => b.baskt.creator?.toString() === input.userAddress)
-        : [];
-
-      const combinedBaskts = input.userAddress
-        ? Array.from(
-            new Map(
-              [...publicBaskts, ...yourBaskts].map((baskt) => [
-                baskt.baskt.basktId?.toString(),
-                baskt,
-              ]),
-            ).values(),
-          )
-        : publicBaskts;
-
-      let resultData = null;
+      let resultData: any[] = [];
       let message = '';
 
       switch (input.dataType) {
         case 'baskts':
           resultData = basktsWithNav;
-          message = `Successfully fetched baskts`;
+          message = 'Successfully fetched baskts';
           break;
 
         case 'publicBaskts':
-          resultData = publicBaskts;
-          message = `Successfully fetched public baskts`;
+          resultData = basktsWithNav.filter((b) => b.baskt.isPublic);
+          message = 'Successfully fetched public baskts';
           break;
 
         case 'trendingBaskts':
-          resultData = trendingBaskts;
-          message = `Successfully fetched trending baskts`;
+          resultData = basktsWithNav.filter((b) => {
+            const dailyPerformance = b.metrics?.performance?.daily || 0;
+            return dailyPerformance > 4.0 && b.baskt.isPublic;
+          });
+          message = 'Successfully fetched trending baskts';
           break;
 
         case 'yourBaskts':
@@ -451,14 +467,32 @@ const getExplorePageBaskts = publicProcedure
               data: null,
             };
           }
-          resultData = yourBaskts;
-          message = `Successfully fetched user baskts`;
+          resultData = basktsWithNav.filter(
+            (b) => b.baskt.creator?.toString() === input.userAddress,
+          );
+          message = 'Successfully fetched user baskts';
           break;
 
         case 'combinedBaskts':
         default:
-          resultData = combinedBaskts;
-          message = `Successfully fetched combined baskts`;
+          if (input.userAddress) {
+            const publicBaskts = basktsWithNav.filter((b) => b.baskt.isPublic);
+            const yourBaskts = basktsWithNav.filter(
+              (b) => b.baskt.creator?.toString() === input.userAddress,
+            );
+
+            const combinedMap = new Map();
+            [...publicBaskts, ...yourBaskts].forEach((baskt) => {
+              const key = baskt.baskt.basktId?.toString();
+              if (key) {
+                combinedMap.set(key, baskt);
+              }
+            });
+            resultData = Array.from(combinedMap.values());
+          } else {
+            resultData = basktsWithNav.filter((b) => b.baskt.isPublic);
+          }
+          message = 'Successfully fetched combined baskts';
           break;
       }
 

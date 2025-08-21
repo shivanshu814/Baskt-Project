@@ -2,7 +2,7 @@ import { Card, CardContent, Tabs, TabsContent, TabsList, TabsTrigger } from '@ba
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { useState } from 'react';
 import { useUSDCBalance } from '../../../hooks/pool/use-usdc-balance';
-import { useLiquidityPool } from '../../../hooks/vault/use-liquidity-pool';
+import { useVaultData } from '../../../hooks/vault/use-vault-data';
 import { useDeposit, useVaultTabs, useWithdraw } from '../../../hooks/vault/use-vault-operations';
 import { VaultActionTabsProps } from '../../../types/vault';
 import { ActionCard } from './ActionCard';
@@ -12,7 +12,7 @@ export function VaultActionTabs({
   userWithdrawalData,
   onVaultOperationSuccess,
 }: VaultActionTabsProps) {
-  const { vaultData, liquidityPool } = useLiquidityPool();
+  const { poolData, liquidityPool } = useVaultData();
   const { balance } = useUSDCBalance();
   const userUSDCBalance = balance || '0';
   const userLpBalance = userWithdrawalData?.totalWithdrawals?.toString() || '0';
@@ -21,13 +21,13 @@ export function VaultActionTabs({
   const [withdrawAmount, setWithdrawAmount] = useState('');
 
   const { isDepositing, isDepositValid, handleDeposit } = useDeposit({
-    vaultData,
+    vaultData: poolData,
     liquidityPool,
     amount: depositAmount,
   });
 
   const { isWithdrawing, isWithdrawValid, handleWithdraw } = useWithdraw({
-    vaultData,
+    vaultData: poolData,
     liquidityPool,
     amount: withdrawAmount,
   });
