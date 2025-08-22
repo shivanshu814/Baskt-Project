@@ -10,6 +10,7 @@ import {
 } from 'lightweight-charts';
 import { Loader2, LucideInfo, LucideXCircle, Target, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFilteredBaskts } from '../../../../hooks/baskt/use-filtered-baskts';
 import { trpc } from '../../../../lib/api/trpc';
 import {
   ChartPeriod,
@@ -92,9 +93,14 @@ const TOOLTIP_STYLES = {
   backdropFilter: 'blur(12px)',
 } as const;
 
-export function TradingChart({ baskt }: TradingChartProps) {
+export function TradingChart({ combinedBaskts }: TradingChartProps) {
   const [mobileTab, setMobileTab] = useState<'markets' | 'trade'>('markets');
   const [responsivePeriod, setResponsivePeriod] = useState<ChartPeriod>('1Y');
+
+  const { currentBaskt } = useFilteredBaskts({
+    combinedBaskts,
+    searchQuery: '',
+  });
 
   useEffect(() => {
     const handleResize = () => {
@@ -121,13 +127,13 @@ export function TradingChart({ baskt }: TradingChartProps) {
     error,
   } = trpc.baskt.getTradingData.useQuery(
     {
-      basktId: baskt.basktId,
+      basktId: currentBaskt?.baskt?.basktId || '',
     },
     {
       refetchOnMount: true,
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
-      enabled: Boolean(baskt.basktId),
+      enabled: Boolean(currentBaskt?.baskt?.basktId),
       staleTime: 5 * 60 * 1000,
       cacheTime: 10 * 60 * 1000,
       keepPreviousData: true,
@@ -477,7 +483,7 @@ export function TradingChart({ baskt }: TradingChartProps) {
 
         {mobileTab === 'trade' && (
           <div className="mt-1 bg-zinc-900/80 border border-border rounded-sm p-4">
-            <TradingPanel baskt={baskt} />
+            <TradingPanel combinedBaskts={combinedBaskts} />
           </div>
         )}
       </div>

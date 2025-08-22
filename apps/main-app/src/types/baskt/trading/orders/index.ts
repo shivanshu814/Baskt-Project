@@ -1,40 +1,5 @@
 import { BasktInfo } from '@baskt/types';
 
-export interface Order {
-  orderId: string;
-  isLong: boolean;
-  size: number;
-  price: number;
-  orderType: {
-    market?: {};
-    limit?: {
-      price: number;
-    };
-  };
-  status: OrderStatus;
-  collateral: number;
-  createdAt?: Date;
-  filledAmount?: number;
-  transactionHash?: string;
-}
-
-export type OrderStatus = 'pending' | 'filled' | 'cancelled' | 'partial';
-
-export interface TradeFormData {
-  selectedPosition: 'long' | 'short';
-  size: string;
-  sizePercentage: number;
-  reduceOnly: boolean;
-  tpSl: boolean;
-}
-
-export interface TradeCalculation {
-  positionSize: number;
-  collateral: number;
-  liquidationPrice?: number;
-  fees: number;
-}
-
 export interface TradingTabsProps {
   baskt: BasktInfo;
 }
@@ -47,7 +12,7 @@ export interface RebalanceTabProps {
 }
 
 export interface TradingChartProps {
-  baskt: BasktInfo;
+  combinedBaskts: any[]; // Using the optimized baskt data structure
 }
 
 export interface TradingPageContainerProps {
@@ -57,7 +22,7 @@ export interface TradingPageContainerProps {
 }
 
 export interface TradingPanelProps {
-  baskt: BasktInfo;
+  combinedBaskts: any[]; // Using the optimized baskt data structure
 }
 
 export interface Position {
@@ -68,11 +33,16 @@ export interface Position {
   collateral: number;
   createdAt?: Date;
   updatedAt?: Date;
-}
-
-export interface PositionTotals {
-  long: number;
-  short: number;
+  remainingCollateral: number;
+  remainingSize: number;
+  positionId: string;
+  basktId: string;
+  usdcSize: string;
+  status: string;
+  basktName?: string;
+  currentPrice?: number;
+  pnl?: number;
+  pnlPercentage?: number;
 }
 
 export interface PositionCalculation {

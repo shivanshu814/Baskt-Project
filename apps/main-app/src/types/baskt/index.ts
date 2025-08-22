@@ -115,6 +115,7 @@ export interface BasktCardMetricsProps {
     openInterest: number;
     currentNav: number;
     baselineNav: string;
+    totalVolume: number;
   };
 }
 
@@ -173,4 +174,20 @@ export interface BasktBreakdownProps {
   tradedBaskts: BasktBreakdownItem[];
   isLoading: boolean;
   error: any;
+}
+
+export interface FavoritesSectionProps {
+  trendingBaskts: any[];
+  isLoading?: boolean;
+}
+
+export interface UseFilteredBasktsProps {
+  combinedBaskts: any[];
+  searchQuery: string;
+  includeCurrentBaskt?: boolean;
+}
+
+export interface UseFilteredBasktsReturn {
+  filteredBaskts: any[];
+  currentBaskt: any;
 }

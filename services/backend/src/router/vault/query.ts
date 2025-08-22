@@ -16,19 +16,22 @@ export const getVaultData = publicProcedure
     const { userAddress, fullData } = input;
 
     try {
-      const [
-        poolResult,
-        assetsResult,
-        withdrawQueueStatsResult,
-        userDepositsResult,
-      ] = await Promise.all([
-        querier.pool.getLiquidityPool(),
-        querier.asset.getAllAssets(),
-        querier.withdrawQueue.getWithdrawQueueStats(),
-        userAddress ? querier.pool.getUserDeposits(userAddress) : [],
-      ]);
+      const [poolResult, assetsResult, withdrawQueueStatsResult, userDepositsResult] =
+        await Promise.all([
+          querier.pool.getLiquidityPool(),
+          querier.asset.getAllAssets(),
+          querier.withdrawQueue.getWithdrawQueueStats(),
+          userAddress ? querier.pool.getUserDeposits(userAddress) : [],
+        ]);
 
-      if (!poolResult.success || !poolResult.data || !assetsResult.success || !assetsResult.data || !withdrawQueueStatsResult.success || !withdrawQueueStatsResult.data) {
+      if (
+        !poolResult.success ||
+        !poolResult.data ||
+        !assetsResult.success ||
+        !assetsResult.data ||
+        !withdrawQueueStatsResult.success ||
+        !withdrawQueueStatsResult.data
+      ) {
         logger.error('Failed to fetch vault data');
         return {
           success: false,
@@ -40,9 +43,13 @@ export const getVaultData = publicProcedure
       const totalValueLocked = new BN(poolData.totalLiquidity.toString());
       const totalShares = new BN(poolData.totalShares.toString());
 
-      const blpPrice = totalShares.gt(new BN(0)) ? totalValueLocked.mul(new BN(PRICE_PRECISION)).div(totalShares).div(PRICE_PRECISION).toString() : '0';
-
-
+      const blpPrice = totalShares.gt(new BN(0))
+        ? totalValueLocked
+            .mul(new BN(PRICE_PRECISION))
+            .div(totalShares)
+            .div(PRICE_PRECISION)
+            .toString()
+        : '0';
 
       let apr = poolData.fees.latestApr;
       let fees = poolData.fees.totalFeesCollected.toString();
@@ -65,31 +72,39 @@ export const getVaultData = publicProcedure
 
         apr: Number(apr.toFixed(6)),
         totalFeesEarned: fees.toString(),
-
       };
 
       const assetExpoures = assetsResult.data.map((asset) => {
+        const longExposure = Number(asset.exposure?.longOpenInterest || 0);
+        const shortExposure = Number(asset.exposure?.shortOpenInterest || 0);
+        const netExposure = longExposure - shortExposure;
+        const totalExposure = longExposure + shortExposure;
+
         return {
-          assetAddress: asset.assetAddress,
-          assetName: asset.name,
-          ticker: asset.ticker,
-          longExposure: asset.exposure?.longOpenInterest,
-          shortExposure: asset.exposure?.shortOpenInterest,
-          nextExposure: asset.volume?.longVolume.sub(asset.volume?.shortVolume).toString(),
-        }
-      })
+          longExposure,
+          shortExposure,
+          longExposurePercentage: totalExposure > 0 ? (longExposure / totalExposure) * 100 : 0,
+          shortExposurePercentage: totalExposure > 0 ? (shortExposure / totalExposure) * 100 : 0,
+          netExposure,
+          isLong: netExposure > 0,
+          logo: asset.logo || '',
+          name: asset.name || asset.ticker || '',
+        };
+      });
 
       const baseResponse = {
         poolData: enhancedPoolData,
         apr: Number(apr.toFixed(6)),
         allocation: {
-          totalValueLocked: totalValueLocked.toString(),
+          totalValueLocked: Number(totalValueLocked.toString()),
           allocationData: assetExpoures,
         },
         statistics: {
           fees: Number(fees),
-          blpPrice: blpPrice,
-          totalSupply: new BN(poolData.totalShares.toString()).div(new BN(PRICE_PRECISION)).toString(),
+          blpPrice: Number(blpPrice),
+          totalSupply: Number(
+            new BN(poolData.totalShares.toString()).div(new BN(PRICE_PRECISION)).toString(),
+          ),
         },
       };
 

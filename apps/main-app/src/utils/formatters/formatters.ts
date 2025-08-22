@@ -1,6 +1,4 @@
-import { calculateCollateralAmount } from '@baskt/sdk';
 import { BasktInfo } from '@baskt/types';
-import BN from 'bn.js';
 import {
   AssetCompositionData,
   OrderDetails,
@@ -202,77 +200,44 @@ export function getInfoItems(baskt: BasktInfo) {
 }
 
 export function processOrderDetails(order: any, baskt: BasktInfo): OrderDetails {
-  const orderTime = order.createdAt ? new Date(order.createdAt) : new Date();
-  const orderType = order.orderType?.market ? 'Market' : 'Limit';
-
-  let orderSize = 0;
-  if (order.openParams?.notionalValue) {
-    orderSize = parseFloat(order.openParams.notionalValue);
-  } else if (order.closeParams?.sizeAsContracts) {
-    orderSize = parseFloat(order.closeParams.sizeAsContracts);
-  } else if (order.orderSize) {
-    orderSize = parseFloat(order.orderSize);
-  } else if (order.size) {
-    orderSize = parseFloat(order.size);
-  }
-
-  const orderPrice = order.price || baskt?.price || 0;
-  let orderCollateral = 0;
-
-  if (order.collateral) {
-    orderCollateral = parseFloat(order.collateral);
-  } else if (orderSize > 0) {
-    orderCollateral = calculateCollateralAmount(new BN(orderSize)).toNumber();
-  }
-
-  const limitPrice = order.orderType?.limit?.price || orderPrice;
-  const isLong = order.isLong || false;
+  const createdAt = order.createdAt ? new Date(order.createdAt) : new Date();
+  const orderType = order.orderType || 'MARKET';
+  const direction = order.direction || 'Short';
+  const size = order.size || 0;
+  const collateral = order.collateral || 0;
+  const limitPrice = order.limitPrice || 0;
 
   return {
-    orderTime,
+    createdAt,
     orderType,
-    orderSize,
-    orderPrice,
-    orderCollateral,
+    direction,
+    size,
+    collateral,
     limitPrice,
-    isLong,
     orderPDA: order.orderPDA,
     orderId: order.orderId,
   };
 }
 
 export function processOrderHistoryDetails(order: any, baskt: BasktInfo): OrderHistoryDetails {
-  const orderTime = order.createdAt ? new Date(order.createdAt) : new Date();
-  const orderType = order.orderType?.market ? 'Market' : 'Limit';
-
-  let orderSize = 0;
-  if (order.openParams?.notionalValue) {
-    orderSize = parseFloat(order.openParams.notionalValue);
-  } else if (order.closeParams?.sizeAsContracts) {
-    orderSize = parseFloat(order.closeParams.sizeAsContracts);
-  } else if (order.orderSize) {
-    orderSize = parseFloat(order.orderSize);
-  } else if (order.size) {
-    orderSize = parseFloat(order.size);
-  }
-
-  const orderPrice = order.price || baskt?.price || 0;
-  const filledAmount = order.filledAmount ? parseFloat(order.filledAmount) : orderSize;
-  const fees = ((filledAmount * orderPrice) / 1e6) * 0.002; // 0.2% fee
-  const status = order.status || 'Filled';
-  const transactionHash = order.transactionHash || order.orderId;
-  const isLong = order.isLong || false;
+  const createdAt = order.createdAt ? new Date(order.createdAt) : new Date();
+  const orderType = order.orderType || 'MARKET';
+  const direction = order.direction || 'Short';
+  const size = order.size || 0;
+  const collateral = order.collateral || 0;
+  const fees = order.fees || 0;
+  const transaction = order.transaction || '';
+  const orderStatus = order.orderStatus || '';
 
   return {
-    orderTime,
+    createdAt,
     orderType,
-    orderSize,
-    orderPrice,
-    filledAmount,
+    direction,
+    size,
+    collateral,
     fees,
-    status,
-    transactionHash,
-    isLong,
+    transaction,
+    orderStatus,
     orderPDA: order.orderPDA,
     orderId: order.orderId,
   };

@@ -5,20 +5,26 @@ import { BN } from '@coral-xyz/anchor';
 import { Share2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useFilteredBaskts } from '../../../../hooks/baskt/use-filtered-baskts';
 import { useShareLink } from '../../../../hooks/shared/use-share-link';
 import { useOpenPositions } from '../../../../hooks/trade/action/use-open-positions';
 import { TradingPanelProps } from '../../../../types/baskt/trading/orders';
 
-export function TradingPanel({ baskt }: TradingPanelProps) {
+export function TradingPanel({ combinedBaskts }: TradingPanelProps) {
   const [selectedPosition, setSelectedPosition] = useState<'long' | 'short'>('long');
   const [size, setSize] = useState('0');
   const [sizePercentage, setSizePercentage] = useState(0);
   const { client } = useBasktClient();
   const publicKey = client?.wallet?.address;
 
+  const { currentBaskt } = useFilteredBaskts({
+    combinedBaskts,
+    searchQuery: '',
+  });
+
   const prevPriceRef = useRef<number | null>(null);
   const [priceColor, setPriceColor] = useState('text-foreground');
-  const currentPrice = new BN(baskt.price).toNumber();
+  const currentPrice = new BN(currentBaskt?.metrics?.currentNav || 0).toNumber();
 
   const { shareCurrentPage } = useShareLink();
 
@@ -39,7 +45,13 @@ export function TradingPanel({ baskt }: TradingPanelProps) {
     getLiquidationPrice,
     usdcBalance: hookUsdcBalance,
     userUSDCAccount,
-  } = useOpenPositions(baskt?.basktId, publicKey, baskt, Number(size) || 0, new BN(currentPrice));
+  } = useOpenPositions(
+    currentBaskt?.baskt?.basktId,
+    publicKey,
+    currentBaskt,
+    Number(size) || 0,
+    new BN(currentPrice),
+  );
 
   useEffect(() => {
     if (prevPriceRef.current !== null) {
@@ -60,7 +72,7 @@ export function TradingPanel({ baskt }: TradingPanelProps) {
       return;
     }
 
-    if (!(baskt as any).status) {
+    if ((currentBaskt as any)?.baskt?.status !== 'active') {
       toast.error('This baskt is not active yet. Please try again later.');
       return;
     }
@@ -79,7 +91,9 @@ export function TradingPanel({ baskt }: TradingPanelProps) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-lg sm:text-xl font-semibold">Trade {baskt.name}</span>
+            <span className="text-lg sm:text-xl font-semibold">
+              Trade {currentBaskt?.baskt?.name}
+            </span>
           </div>
           <span className={`text-lg font-bold sm:text-xl ml-2 ${priceColor}`}>
             <NumberFormat value={currentPrice} isPrice={true} showCurrency={true} />
@@ -93,8 +107,7 @@ export function TradingPanel({ baskt }: TradingPanelProps) {
           <Share2 className="h-4 w-4 text-muted-foreground hover:text-foreground" />
         </button>
       </div>
-
-      {!(baskt as any).status ? (
+      {(currentBaskt as any)?.baskt?.status !== 'active' ? (
         <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
           <p className="text-yellow-500 text-xs sm:text-sm">
             This baskt is not active yet. Please try again later.
@@ -256,11 +269,13 @@ export function TradingPanel({ baskt }: TradingPanelProps) {
                 : 'bg-[#EA3943]/10 text-[#EA3943] border-[#EA3943] hover:bg-[#EA3943]/30 hover:text-[#EA3943]'
             }`}
             onClick={() => handleTrade(selectedPosition)}
-            disabled={isLoading || !(baskt as any)?.status || Number(size) <= 0}
+            disabled={
+              isLoading || (currentBaskt as any)?.baskt?.status !== 'active' || Number(size) <= 0
+            }
           >
             {isLoading
               ? 'Confirming...'
-              : !(baskt as any)?.status
+              : (currentBaskt as any)?.baskt?.status !== 'active'
               ? 'Baskt Not Active'
               : Number(size) <= 0
               ? 'Enter Size'

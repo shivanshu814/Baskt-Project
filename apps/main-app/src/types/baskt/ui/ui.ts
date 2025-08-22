@@ -67,12 +67,6 @@ export interface SearchBarComponentProps {
   };
 }
 
-export interface BasktBreakdownProps {
-  tradedBaskts: any[];
-  isLoading: boolean;
-  error: any;
-}
-
 export interface BasktModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -82,21 +76,6 @@ export interface BasktModalProps {
 export type SortField = 'baskt' | 'size' | 'positionValue' | 'entryPrice' | 'currentPrice' | 'pnl';
 
 export type SortDirection = 'asc' | 'desc';
-
-export interface Position {
-  positionId: string;
-  basktId: string;
-  size: string;
-  usdcSize: string;
-  collateral: string;
-  entryPrice: string;
-  isLong: boolean;
-  status: string;
-  basktName?: string;
-  currentPrice?: number;
-  pnl?: number;
-  pnlPercentage?: number;
-}
 
 export interface ProcessedOrder {
   orderTime: Date;

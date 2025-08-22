@@ -10,9 +10,8 @@ export function CancelOrderModal({ isOpen, onClose, order }: CancelOrderModalPro
   const { isLoading, handleCancel } = useCancelOrder(order, onClose);
   const orderType = order?.isLong ? 'Long' : 'Short';
   const orderTypeColor = order?.isLong ? 'text-green-500' : 'text-red-500';
-  const orderSize = order?.orderSize || order?.size || 0;
-  const orderPrice = order?.orderPrice || order?.price || 0;
-  const orderCollateral = order?.orderCollateral || 0;
+  const orderSize = order?.size || 0;
+  const orderCollateral = order?.collateral || 0;
 
   if (!isOpen) return null;
 
@@ -42,21 +41,15 @@ export function CancelOrderModal({ isOpen, onClose, order }: CancelOrderModalPro
               <span className={`font-semibold ${orderTypeColor}`}>{orderType}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Size</span>
+              <span className="text-sm text-muted-foreground">Position Value</span>
               <span className="font-semibold text-foreground">
-                <NumberFormat value={orderSize / 1e6} isPrice={true} />
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Price</span>
-              <span className="font-semibold text-foreground">
-                <NumberFormat value={orderPrice} isPrice={true} showCurrency={true} />
+                <NumberFormat value={orderSize} isPrice={true} />
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Collateral</span>
               <span className="font-semibold text-foreground">
-                <NumberFormat value={orderCollateral / 1e4} isPrice={true} showCurrency={true} />
+                <NumberFormat value={orderCollateral} isPrice={true} showCurrency={true} />
               </span>
             </div>
           </div>

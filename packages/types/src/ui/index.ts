@@ -90,6 +90,17 @@ export interface BasktInfo {
   risk?: 'low' | 'medium' | 'high';
   sharpeRatio?: string;
   account: OnchainBasktAccount;
+  metrics?: {
+    currentNav?: number;
+    openInterest?: number;
+    totalVolume?: number;
+    performance?: {
+      daily?: number;
+      monthly?: number;
+      weekly?: number;
+      year?: number;
+    };
+  };
 }
 
 export * from './history';

@@ -91,7 +91,7 @@ export function useOpenPositions(
       return;
     }
 
-    if (!baskt?.status) {
+    if (!baskt?.baskt?.status) {
       toast.error('This baskt is not active yet. Please try again later.');
       return;
     }
@@ -119,7 +119,7 @@ export function useOpenPositions(
       const collateralAmount = new BN(userInputSize).mul(new BN(PRICE_PRECISION)).muln(1.05);
       const tx = await client.createMarketOpenOrder({
         orderId,
-        basktId: new PublicKey(baskt.basktId),
+        basktId: new PublicKey(baskt.baskt?.basktId),
         notionalValue: new BN(userInputSize).mul(new BN(PRICE_PRECISION)),
         collateral: collateralAmount,
         isLong: position === 'long',
@@ -140,12 +140,11 @@ export function useOpenPositions(
       window.dispatchEvent(new Event('order-created'));
       window.dispatchEvent(new Event('balance-updated'));
 
-      const positionSize = (Number(userInputSize) / Number(baskt.price / 1e6)).toLocaleString(
-        undefined,
-        {
-          maximumFractionDigits: 6,
-        },
-      );
+      const positionSize = navPrice
+        ? (Number(userInputSize) / Number(navPrice.toNumber() / 1e6)).toLocaleString(undefined, {
+            maximumFractionDigits: 6,
+          })
+        : '0';
       toast.success(`${positionType} position opened successfully!`, {
         id: toastId,
         description: `Size: ${positionSize} units`,

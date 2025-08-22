@@ -19,13 +19,13 @@ export function usePositionInfo(position: any, closeAmount: string | number) {
   }, [closeAmount]);
 
   const positionValue = useMemo(() => {
-    const usdcSize = position?.usdcSize;
+    const usdcSize = position?.remainingSize * 1e2;
     if (usdcSize !== undefined && usdcSize !== null) {
       const numeric = Number(usdcSize);
       return isNaN(numeric) ? 0 : numeric;
     }
 
-    const size = Number(position?.size || 0);
+    const size = Number(position?.remainingSize || 0);
     const entryPrice = Number(position?.entryPrice || 0);
     if (size > 0 && entryPrice > 0) {
       return size * entryPrice * 1e6;
@@ -38,6 +38,6 @@ export function usePositionInfo(position: any, closeAmount: string | number) {
     positionTypeColor,
     formattedCloseAmount,
     positionValue,
-    positionSize: position?.size || 0,
+    positionSize: position?.remainingSize || 0,
   };
 }

@@ -1,4 +1,4 @@
-import { Position } from '../baskt/ui/ui';
+import { Position } from '../baskt/trading/orders';
 
 export type PortfolioTabType = 'positions' | 'baskts' | 'open-orders' | 'order-history';
 

@@ -1,18 +1,21 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { trpc } from '../../utils/trpc';
 import { useBasktClient } from '@baskt/ui';
-import { PublicKey } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
-import { BasktData, BasktAsset, BasktResponse } from '../../types/baskt';
+import { PublicKey } from '@solana/web3.js';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { BasktAsset, BasktData } from '../../types/baskt';
+import { trpc } from '../../utils/trpc';
 
 export function useBaskts() {
   const [activatingBasktId, setActivatingBasktId] = useState<string | null>(null);
   const [selectedBaskt, setSelectedBaskt] = useState<BasktData | null>(null);
-  const { data: trpcResponse, isLoading, error } = trpc.baskt.getAllBaskts.useQuery({
-    withPerformance: false, 
-    hidePrivateBaskts: true
+  const {
+    data: trpcResponse,
+    isLoading,
+    error,
+  } = trpc.baskt.getAllBaskts.useQuery({
+    hidePrivateBaskts: true,
   });
   const { client } = useBasktClient();
   const router = useRouter();
@@ -61,7 +64,6 @@ export function useBaskts() {
       const params = new URLSearchParams(searchParams.toString());
       params.set('basktId', basktId);
       router.push(`?${params.toString()}`);
-
 
       const baskt = basktList.find((b: any) => b && b !== null && b.basktId === basktId);
       if (baskt) {

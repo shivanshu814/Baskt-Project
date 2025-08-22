@@ -25,7 +25,6 @@ export function ClosePositionModal({ isOpen, onClose, position }: ClosePositionM
     closeAmount,
   );
   if (!isOpen) return null;
-  if (error) return null;
 
   return (
     <ModalBackdrop onClose={onClose}>
@@ -63,16 +62,15 @@ export function ClosePositionModal({ isOpen, onClose, position }: ClosePositionM
                   pattern="[0-9.]*"
                   placeholder="0.00"
                   className="w-24 text-right border-none bg-transparent p-0 text-sm font-bold focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  value={formattedCloseAmount}
+                  value={closeAmount}
                   onChange={(e) => handleAmountChange(e.target.value)}
-                  required
                   min="0.01"
                   step="0.01"
                   max={positionValue}
                   aria-label="Amount to close"
-                  autoFocus
                   disabled={isLoading}
                 />
+
                 <Button
                   variant="outline"
                   size="sm"

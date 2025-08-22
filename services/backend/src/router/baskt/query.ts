@@ -1,10 +1,9 @@
 import { calculateCurrentWeights, PRICE_PRECISION } from '@baskt/sdk';
-import { PositionStatus } from '@baskt/types';
+import BN from 'bn.js';
 import { z } from 'zod';
 import { publicProcedure } from '../../trpc/trpc';
 import { querier } from '../../utils/';
 import logger from '../../utils/logger';
-import BN from 'bn.js';
 
 // get baskt metadata by id
 const getBasktMetadataByAddress = publicProcedure
@@ -240,9 +239,7 @@ const getExplorePageBaskts = publicProcedure
   .input(
     z.object({
       userAddress: z.string().optional(),
-      dataType: z
-        .enum(['all', 'yourBaskts'])
-        .default('all'),
+      dataType: z.enum(['all', 'yourBaskts']).default('all'),
     }),
   )
   .query(async ({ input }) => {
@@ -254,7 +251,6 @@ const getExplorePageBaskts = publicProcedure
         userAddress: input.dataType === 'yourBaskts' ? input.userAddress : undefined,
       });
 
-
       if (!basktsResult.success || !basktsResult.data) {
         return {
           success: false,
@@ -263,11 +259,17 @@ const getExplorePageBaskts = publicProcedure
         };
       }
       const basktsRefined = basktsResult.data.map((baskt) => {
+        const totalOIContracts = new BN(baskt.stats.longOpenInterestContracts.toString()).add(
+          new BN(baskt.stats.shortOpenInterestContracts.toString() || '0'),
+        );
+        const totalOIUSDC = totalOIContracts
+          .mul(new BN(baskt.price))
+          .div(new BN(PRICE_PRECISION))
+          .toString();
 
-        const totalOIContracts = new BN(baskt.stats.longOpenInterestContracts.toString() ).add(new BN(baskt.stats.shortOpenInterestContracts.toString() || '0'));
-        const totalOIUSDC = totalOIContracts.mul(new BN(baskt.price)).div(new BN(PRICE_PRECISION)).toString();
-
-        const totalVolume = new BN(baskt.stats.longAllTimeVolume.toString()).add(new BN(baskt.stats.shortAllTimeVolume.toString()));
+        const totalVolume = new BN(baskt.stats.longAllTimeVolume.toString()).add(
+          new BN(baskt.stats.shortAllTimeVolume.toString()),
+        );
 
         // get the current weight of the asset in the baskt
         const currentWeight = calculateCurrentWeights(baskt.assets);
@@ -300,6 +302,9 @@ const getExplorePageBaskts = publicProcedure
               weight: asset.weight || 0,
               price: asset.price || null,
               currentWeight: currentWeight[index],
+              change: asset.baselinePrice
+                ? ((asset.price - asset.baselinePrice) / asset.baselinePrice) * 100
+                : 0,
             };
           }),
           metrics: {
@@ -308,7 +313,7 @@ const getExplorePageBaskts = publicProcedure
             currentNav: baskt.price || 0,
             baselineNav: baskt.baselineNav.toString(),
             totalVolume: totalVolume.toString(),
-          }
+          },
         };
       });
 
@@ -318,7 +323,9 @@ const getExplorePageBaskts = publicProcedure
         const dailyPerformanceB = b.metrics.performance.daily || 0;
         return dailyPerformanceB - dailyPerformanceA;
       });
-      const yourBaskts = basktsRefined.filter((b) => b.baskt.creator.toString() === input.userAddress);
+      const yourBaskts = basktsRefined.filter(
+        (b) => b.baskt.creator.toString() === input.userAddress,
+      );
 
       let resultData = {
         publicBaskts: publicBaskts,
@@ -326,7 +333,7 @@ const getExplorePageBaskts = publicProcedure
         yourBaskts: yourBaskts,
         combinedBaskts: basktsRefined,
       };
-      
+
       return {
         success: true,
         data: resultData,

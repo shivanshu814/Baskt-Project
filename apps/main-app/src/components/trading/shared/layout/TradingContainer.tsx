@@ -2,14 +2,13 @@ import { useState } from 'react';
 import Loading from '../../../../app/loading';
 import { useBasktOI } from '../../../../hooks/baskt/details/use-baskt-oi';
 import { useBasktVolume } from '../../../../hooks/baskt/details/use-baskt-volume';
-import { useBasktList } from '../../../../hooks/baskt/use-baskt-list';
+import { useOptimizedBasktList } from '../../../../hooks/baskt/use-explore-data';
 import { useMobileHeader } from '../../../../hooks/trade/mobile/use-mobile-header';
 import { useModalState } from '../../../../hooks/trade/modals/use-modal-state';
 import { TradingPageContainerProps } from '../../../../types/baskt/trading/orders';
 import { StatusBanner } from '../../../shared/StatusBanner';
 import { FavoritesSection } from '../../favorites/FavoritesSection';
 import { DesktopHeader } from '../../header/DesktopHeader';
-import { MobileLayout } from '../../layout/MobileLayout';
 import { MobileBasktInfoSection } from '../../sections/MobileBasktInfoSection';
 import { MobilePriceInfoSection } from '../../sections/MobilePriceInfoSection';
 import { TradingChart } from '../charts/TradingChart';
@@ -25,7 +24,10 @@ export function TradingContainer({
   isBasktDataError,
   baskt,
 }: TradingPageContainerProps) {
-  const { combinedBaskts } = useBasktList();
+  const {
+    baskts: { trendingBaskts, combinedBaskts },
+    isLoading: isLoadingBaskts,
+  } = useOptimizedBasktList('all', true);
   const { totalOpenInterest, isLoading: oiLoading } = useBasktOI(baskt?.basktId || '');
   const { totalVolume, isLoading: volumeLoading } = useBasktVolume(baskt?.basktId || '');
   const { performanceColor, performanceText, handleBasktSelect } = useMobileHeader(
@@ -33,7 +35,6 @@ export function TradingContainer({
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
-  const safeFilteredBaskts = combinedBaskts || [];
 
   const {
     isAddCollateralModalOpen,
@@ -58,25 +59,23 @@ export function TradingContainer({
       <div className="grid grid-cols-1 lg:grid-cols-12 min-h-screen">
         <div className="col-span-1 lg:col-span-9 flex flex-col px-1 -mr-1">
           <div>
-            <FavoritesSection />
+            <FavoritesSection trendingBaskts={trendingBaskts || []} isLoading={isLoadingBaskts} />
           </div>
           <div className="hidden lg:block">
-            <DesktopHeader baskt={baskt} />
+            <DesktopHeader combinedBaskts={combinedBaskts || []} />
           </div>
           <div className="lg:hidden">
             <div className="sm:hidden flex gap-1 mt-1">
               <MobileBasktInfoSection
-                baskt={baskt}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 selectedFilter={selectedFilter}
                 setSelectedFilter={setSelectedFilter}
-                filteredBaskts={safeFilteredBaskts as any}
+                combinedBaskts={combinedBaskts || []}
                 onBasktSelect={handleBasktSelect}
               />
-
               <MobilePriceInfoSection
-                baskt={baskt}
+                combinedBaskts={combinedBaskts || []}
                 performanceColor={performanceColor}
                 performanceText={performanceText}
                 oiLoading={oiLoading}
@@ -87,15 +86,15 @@ export function TradingContainer({
             </div>
           </div>
           <div className="flex flex-col flex-1">
-            <TradingChart baskt={baskt} />
+            <TradingChart combinedBaskts={combinedBaskts || []} />
             <TradingTabs baskt={baskt} />
           </div>
         </div>
         <div className="hidden lg:block col-span-3 border border-border bg-zinc-900/80 rounded-sm mx-1 mb-1 mr-1 p-4">
-          <TradingPanel baskt={baskt} />
+          <TradingPanel combinedBaskts={combinedBaskts || []} />
         </div>
       </div>
-      <MobileLayout baskt={baskt} />
+
       <StatusBanner />
       <AddCollateralModal
         isOpen={isAddCollateralModalOpen}

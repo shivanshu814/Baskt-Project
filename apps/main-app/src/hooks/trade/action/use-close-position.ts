@@ -32,15 +32,15 @@ export const useClosePosition = (position: any, onClose: () => void) => {
     [position?.entryPrice],
   );
   const positionUsdcSizeMicro = useMemo(() => {
-    if (position?.usdcSize !== undefined && position?.usdcSize !== null) {
-      return Number(position.usdcSize);
+    if (position?.remainingSize !== undefined && position?.remainingSize !== null) {
+      return Number(position.remainingSize);
     }
     if (positionSize > 0 && positionEntryPrice > 0) {
       return positionSize * positionEntryPrice;
     }
     return 0;
-  }, [position?.usdcSize, positionSize, positionEntryPrice]);
-  const positionValue = useMemo(() => positionUsdcSizeMicro / 1e6, [positionUsdcSizeMicro]);
+  }, [position?.remainingSize, positionSize, positionEntryPrice]);
+  const positionValue = useMemo(() => positionUsdcSizeMicro / 1e4, [positionUsdcSizeMicro]);
 
   useEffect(() => {
     if (position) {
@@ -135,7 +135,9 @@ export const useClosePosition = (position: any, onClose: () => void) => {
       const toastId = toast.loading(`Closing position...`);
 
       let numOfContractsToClose: BN;
-      numOfContractsToClose = new BN(Number(amountBeingClosed) * 1e6).mul(new BN(position.size)).div(new BN(Number(positionValue) * 1e6));
+      numOfContractsToClose = new BN(Number(amountBeingClosed) * 1e6)
+        .mul(new BN(position.size))
+        .div(new BN(Number(positionValue) * 1e6));
 
       if (!numOfContractsToClose || !numOfContractsToClose.gt(new BN(0))) {
         throw new Error('Created BN is invalid or zero : ' + numOfContractsToClose.toString());

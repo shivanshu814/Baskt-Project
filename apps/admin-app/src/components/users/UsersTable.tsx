@@ -1,30 +1,27 @@
 import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Loading,
+  NumberFormat,
+  PublicKeyText,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  Loading,
-  PublicKeyText,
-  Button,
-  NumberFormat,
-  useBasktClient,
   USDC_MINT,
+  useBasktClient,
 } from '@baskt/ui';
-import { Copy, SquareArrowOutUpRight, Coins, MoreVertical } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuItem,
-} from '@baskt/ui';
-import { UsersTableProps } from '../../types/faucet';
-import { useState, useEffect } from 'react';
+import { getAccount, getAssociatedTokenAddress } from '@solana/spl-token';
 import { PublicKey } from '@solana/web3.js';
-import { getAssociatedTokenAddress, getAccount } from '@solana/spl-token';
+import { Coins, Copy, MoreVertical, SquareArrowOutUpRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { UsersTableProps } from '../../types/faucet';
 import { trpc } from '../../utils/trpc';
-
 
 export function UsersTable({ roles, isLoading, onCopyAddress, onFaucet }: UsersTableProps) {
   const { client } = useBasktClient();
@@ -42,11 +39,12 @@ export function UsersTable({ roles, isLoading, onCopyAddress, onFaucet }: UsersT
   );
 
   //TODO: We should just use a useBasktList hook here and give it a user address
-  const { data: basktsData } = trpc.baskt.getAllBaskts.useQuery({
-    withPerformance: false,
-  }, {
-    refetchInterval: 30 * 1000,
-  });
+  const { data: basktsData } = trpc.baskt.getAllBaskts.useQuery(
+    {},
+    {
+      refetchInterval: 30 * 1000,
+    },
+  );
 
   useEffect(() => {
     const processUserData = () => {

@@ -27,7 +27,7 @@ export function RebalanceTab({
           {isCreator && (
             <Button
               onClick={onRebalance}
-              disabled={!baskt?.isActive || isRebalancing}
+              disabled={!baskt?.account?.status || isRebalancing}
               className="flex items-center gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${isRebalancing ? 'animate-spin' : ''}`} />
@@ -46,9 +46,11 @@ export function RebalanceTab({
             <Activity className="absolute right-3 top-3 w-3.5 h-3.5 text-muted-foreground/60" />
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Status</div>
             <div
-              className={`mt-1 text-sm ${baskt?.isActive ? 'text-green-500' : 'text-yellow-500'}`}
+              className={`mt-1 text-sm ${
+                baskt?.account?.status === 'active' ? 'text-green-500' : 'text-yellow-500'
+              }`}
             >
-              {baskt?.isActive ? 'Active' : 'Inactive'}
+              {baskt?.account?.status === 'active' ? 'Active' : 'Inactive'}
             </div>
           </div>
           <div className="relative border border-border rounded-md p-3 bg-background/40">
@@ -74,9 +76,9 @@ export function RebalanceTab({
           </div>
         </div>
 
-        {(!baskt?.isActive || isRebalancing) && (
+        {(!baskt?.account?.status || isRebalancing) && (
           <div className="mt-3 text-xs text-muted-foreground">
-            {!baskt?.isActive
+            {!baskt?.account?.status
               ? 'This baskt is inactive. Rebalance is disabled.'
               : 'Rebalancing in progress. This may take a few moments.'}
           </div>

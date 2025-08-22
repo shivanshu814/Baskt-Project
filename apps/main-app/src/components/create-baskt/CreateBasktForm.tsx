@@ -126,7 +126,7 @@ export function CreateBasktForm() {
         <CongratulationsModal
           open={showCongratulationsModal}
           onOpenChange={setShowCongratulationsModal}
-          basktName={createdBasktData.name}
+          basktName={createdBasktData.basktId}
           basktDescription={`Custom weighted baskt with ${createdBasktData.assets.length} assets`}
           assets={createdBasktData.assets}
           basktId={createdBasktData.uid}

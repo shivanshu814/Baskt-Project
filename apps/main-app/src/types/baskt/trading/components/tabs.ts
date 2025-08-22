@@ -56,13 +56,12 @@ export interface OpenOrdersTabProps {
 }
 
 export interface OrderDetails {
-  orderTime: Date;
+  createdAt: Date;
   orderType: string;
-  orderSize: number;
-  orderPrice: number;
-  orderCollateral: number;
+  direction: string;
+  size: number;
+  collateral: number;
   limitPrice: number;
-  isLong: boolean;
   orderPDA?: string;
   orderId?: string;
 }
@@ -72,15 +71,14 @@ export interface OrdersHistoryTabProps {
 }
 
 export interface OrderHistoryDetails {
-  orderTime: Date;
+  createdAt: Date;
   orderType: string;
-  orderSize: number;
-  orderPrice: number;
-  filledAmount: number;
+  direction: string;
+  size: number;
+  collateral: number;
   fees: number;
-  status: string;
-  transactionHash: string;
-  isLong: boolean;
+  transaction: string;
+  orderStatus: string;
   orderPDA?: string;
   orderId?: string;
 }

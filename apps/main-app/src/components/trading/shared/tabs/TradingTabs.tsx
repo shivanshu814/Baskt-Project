@@ -1,4 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger, useBasktClient } from '@baskt/ui';
+import { BN } from '@coral-xyz/anchor';
 import { useState } from 'react';
 import { useBasktRebalance } from '../../../../hooks/trade/action/use-baskt-rebalance';
 import { useOpenOrders } from '../../../../hooks/trade/action/use-open-orders';
@@ -22,8 +23,14 @@ export function TradingTabs({ baskt }: TradingTabsProps) {
   const userAddress = basktClient?.wallet?.address?.toString();
   const modalState = useModalState();
 
-  const { positions = [] } = useOpenPositions(baskt?.basktId, userAddress);
-  // TODO: Shivanshu this can be done in one fetch. 
+  const { positions = [] } = useOpenPositions(
+    baskt?.basktId,
+    userAddress,
+    baskt,
+    0,
+    baskt?.metrics?.currentNav ? new BN(baskt.metrics.currentNav) : undefined,
+  );
+  // TODO: Shivanshu this can be done in one fetch.
   const { orders = [], processedOrders = [] } = useOpenOrders(baskt?.basktId, userAddress, baskt);
   const { orders: orderHistory = [] } = useOrderHistory(baskt?.basktId, userAddress);
   const { isRebalancing, rebalanceBaskt } = useBasktRebalance();

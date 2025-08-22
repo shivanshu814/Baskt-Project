@@ -92,7 +92,7 @@ export function PositionsTab({
                   <td className="py-2 px-2">
                     <div className="flex items-center gap-1">
                       <NumberFormat
-                        value={position.collateral}
+                        value={position.remainingCollateral}
                         isPrice={true}
                         showCurrency={true}
                       />

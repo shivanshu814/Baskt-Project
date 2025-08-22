@@ -2,14 +2,13 @@
 
 import { ChevronDown, Sparkles, Star } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { useBasktList } from '../../../hooks/baskt/use-baskt-list';
+import { FavoritesSectionProps } from '../../../types/baskt';
 import { calculatePerformanceColor, formatPriceChange } from '../../../utils/formatters/formatters';
 
-export function FavoritesSection() {
+export function FavoritesSection({ trendingBaskts, isLoading = false }: FavoritesSectionProps) {
   const mobileFavoritesRef = useRef<HTMLDivElement>(null);
   const [isFavoritesExpanded, setIsFavoritesExpanded] = useState(false);
-  const { combinedBaskts, isLoading: isLoadingBaskts } = useBasktList();
-  const safeFilteredBaskts = combinedBaskts || [];
+  const safeFilteredBaskts = trendingBaskts || [];
 
   return (
     <div>
@@ -19,17 +18,20 @@ export function FavoritesSection() {
           <div className="hidden lg:flex items-center gap-2 lg:gap-4">
             <Sparkles className="h-4 w-4 text-yellow-500" />
             <div className="flex items-center gap-4 overflow-x-auto">
-              {isLoadingBaskts ? (
+              {isLoading ? (
                 <span className="text-sm text-muted-foreground whitespace-nowrap">Loading...</span>
               ) : safeFilteredBaskts.length > 0 ? (
-                safeFilteredBaskts.slice(0, 5).map((baskt, index) => {
-                  const profit = baskt.performance?.day || 0;
+                safeFilteredBaskts.slice(0, 5).map((basktData, index) => {
+                  const profit = basktData.metrics?.performance?.daily || 0;
                   const profitColor = calculatePerformanceColor(profit);
                   const profitText = formatPriceChange(profit);
 
                   return (
-                    <span key={baskt.basktId || index} className="text-sm whitespace-nowrap">
-                      {baskt.name} <span className={profitColor}>{profitText}</span>
+                    <span
+                      key={basktData.baskt.basktId || index}
+                      className="text-sm whitespace-nowrap"
+                    >
+                      {basktData.baskt.name} <span className={profitColor}>{profitText}</span>
                     </span>
                   );
                 })
@@ -66,19 +68,19 @@ export function FavoritesSection() {
         {isFavoritesExpanded && (
           <div className="px-4 pb-3 border-t border-border/50">
             <div className="grid grid-cols-2 gap-4 pt-3">
-              {isLoadingBaskts ? (
+              {isLoading ? (
                 <div className="col-span-2 text-center text-sm text-muted-foreground py-2">
                   Loading baskts...
                 </div>
               ) : safeFilteredBaskts.length > 0 ? (
-                safeFilteredBaskts.map((baskt, index) => {
-                  const profit = baskt.performance?.day || 0;
+                safeFilteredBaskts.slice(0, 5).map((basktData, index) => {
+                  const profit = basktData.metrics?.performance?.daily || 0;
                   const profitColor = calculatePerformanceColor(profit);
                   const profitText = formatPriceChange(profit);
 
                   return (
-                    <div key={baskt.basktId || index} className="text-sm">
-                      <span className="text-muted-foreground">{baskt.name}</span>
+                    <div key={basktData.baskt.basktId || index} className="text-sm">
+                      <span className="text-muted-foreground">{basktData.baskt.name}</span>
                       <div className={profitColor}>{profitText}</div>
                     </div>
                   );

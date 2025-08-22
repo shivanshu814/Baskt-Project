@@ -15,8 +15,7 @@ export function OpenOrdersTab({ baskt, orders, onCancelOrder }: OpenOrdersTabPro
             <th className="text-left py-2 px-2">Time</th>
             <th className="text-left py-2 px-2">Type</th>
             <th className="text-left py-2 px-2">Direction</th>
-            <th className="text-left py-2 px-2">Size</th>
-            <th className="text-left py-2 px-2">Price</th>
+            <th className="text-left py-2 px-2">Position Value</th>
             <th className="text-left py-2 px-2">Limit Price</th>
             <th className="text-left py-2 px-2">Collateral</th>
             <th className="text-left py-2 px-2">Actions</th>
@@ -32,32 +31,24 @@ export function OpenOrdersTab({ baskt, orders, onCancelOrder }: OpenOrdersTabPro
           ) : (
             orders.map((order, index) => (
               <tr key={index} className="border-b border-border/50">
-                <td className="py-2 px-2">{formatOrderTime(order.orderTime)}</td>
+                <td className="py-2 px-2">{formatOrderTime(order.createdAt)}</td>
                 <td className="py-2 px-2">
-                  <span className="text-blue-500">
-                    {order.orderType === 'Market' ? 'Limit' : 'Market'}
+                  <span className="text-blue-500">{order.orderType}</span>
+                </td>
+                <td className="py-2 px-2">
+                  <span className={order.direction === 'Long' ? 'text-green-500' : 'text-red-500'}>
+                    {order.direction}
                   </span>
                 </td>
                 <td className="py-2 px-2">
-                  <span className={order.isLong ? 'text-green-500' : 'text-red-500'}>
-                    {order.isLong ? 'Long' : 'Short'}
-                  </span>
+                  <NumberFormat value={order.size} isPrice={true} />
                 </td>
-                <td className="py-2 px-2">
-                  <NumberFormat value={order.orderSize / 1e6} isPrice={true} />
-                </td>
-                <td className="py-2 px-2">
-                  <NumberFormat value={order.orderPrice} isPrice={true} showCurrency={true} />
-                </td>
+
                 <td className="py-2 px-2">
                   <NumberFormat value={order.limitPrice} isPrice={true} showCurrency={true} />
                 </td>
                 <td className="py-2 px-2">
-                  <NumberFormat
-                    value={order.orderCollateral / 1e4}
-                    isPrice={true}
-                    showCurrency={true}
-                  />
+                  <NumberFormat value={order.collateral} isPrice={true} showCurrency={true} />
                 </td>
                 <td className="py-2 px-2">
                   <button

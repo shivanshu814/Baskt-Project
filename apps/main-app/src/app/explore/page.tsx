@@ -9,9 +9,7 @@ import { ExploreHeader } from '../../components/baskt/layout/ExploreHeader';
 import { TabContent } from '../../components/baskt/layout/TabContent';
 import { BasktListSkeleton } from '../../components/baskt/skeleton/BasktListSkeleton';
 import { SearchBar } from '../../components/shared/SearchBar';
-import {
-  useOptimizedBasktList
-} from '../../hooks/baskt/use-explore-data';
+import { useOptimizedBasktList } from '../../hooks/baskt/use-explore-data';
 import { TabType } from '../../types/baskt';
 
 const ExplorePage = () => {
@@ -23,17 +21,9 @@ const ExplorePage = () => {
   const userAddress = client?.wallet?.address?.toString();
 
   const {
-    baskts: {
-      publicBaskts,
-      yourBaskts,
-      combinedBaskts,
-      trendingBaskts
-    }, 
+    baskts: { publicBaskts, yourBaskts, combinedBaskts, trendingBaskts },
     isLoading,
-  } = useOptimizedBasktList(
-    'all'
-  );
-
+  } = useOptimizedBasktList('all', true);
 
   const filteredBaskts = useMemo(() => {
     if (isLoading) return [];

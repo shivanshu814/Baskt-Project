@@ -5,7 +5,7 @@ import { processOrderHistoryDetails } from '../../../utils/formatters/formatters
 export function useOrdersHistory(orders: any[], baskt: BasktInfo) {
   const processedOrders = useMemo(() => {
     const mapped = orders.map((order) => processOrderHistoryDetails(order, baskt));
-    return mapped.sort((a, b) => b.orderTime.getTime() - a.orderTime.getTime());
+    return mapped.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }, [orders, baskt]);
 
   const hasOrders = useMemo(() => {

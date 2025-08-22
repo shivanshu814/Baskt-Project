@@ -5,8 +5,7 @@ export const calculatePositionDetails = (
   currentPrice: number,
 ): PositionCalculation => {
   const entryPriceBN = position.entryPrice;
-  const sizeBN = position.size;
-
+  const sizeBN = position.remainingSize;
   const convertBNToNumber = (value: any, divisor: number = 1): number => {
     if (!value) return 0;
 
@@ -72,10 +71,8 @@ export const getLiquidationPrice = (
   if (!currentPrice || collateral <= 0) return null;
 
   try {
-    // This would typically use the SDK's calculateLiquidationPrice
-    // For now, returning a simple calculation
-    const leverage = 1; // Default leverage
-    const marginRatio = 0.1; // 10% margin requirement
+    const leverage = 1;
+    const marginRatio = 0.1;
 
     if (position === 'long') {
       return currentPrice * (1 - marginRatio);

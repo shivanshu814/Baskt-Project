@@ -40,6 +40,19 @@ export const getStatusColor = (status: StatusType): string => {
   }
 };
 
+export const getOrderStatusColor = (status: string): string => {
+  switch (status) {
+    case 'FILLED':
+      return 'text-green-500';
+    case 'PENDING':
+      return 'text-yellow-500';
+    case 'CANCELLED':
+      return 'text-red-500';
+    default:
+      return 'text-gray-500';
+  }
+};
+
 export const getStatusDotColor = (status: StatusType): string => {
   switch (status) {
     case 'operational':

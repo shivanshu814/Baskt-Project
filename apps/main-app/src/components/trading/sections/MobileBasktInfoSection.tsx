@@ -1,7 +1,7 @@
-import { BasktInfo } from '@baskt/types';
 import { NumberFormat } from '@baskt/ui';
 import { ChevronDown } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { useFilteredBaskts } from '../../../hooks/baskt/use-filtered-baskts';
 import { MobileBasktInfoSectionProps } from '../../../types/baskt/trading/components/mobile';
 import { getAssetDisplayInfo } from '../../../utils/asset/asset';
 import { AssetLogo } from '../../create-baskt/assetModal/AssetLogo';
@@ -9,32 +9,27 @@ import { BasketSearchBar } from '../../shared/BasketSearchBar';
 import { BasketAssetsDisplay } from '../shared/baskt/BasketAssetsDisplay';
 
 export function MobileBasktInfoSection({
-  baskt,
   searchQuery,
   setSearchQuery,
   selectedFilter,
   setSelectedFilter,
-  filteredBaskts,
+  combinedBaskts,
   onBasktSelect,
 }: MobileBasktInfoSectionProps) {
   const [isBasktInfoExpanded, setIsBasktInfoExpanded] = useState(false);
   const mobileBasktInfoRef = useRef<HTMLDivElement>(null);
-  const { visibleAssets, extraCount, hasExtraAssets } = getAssetDisplayInfo(baskt.assets);
-  const filterBaskts = (
-    filteredBaskts: BasktInfo[],
-    currentBasktId?: string,
-    searchQuery?: string,
-    maxResults: number = 8,
-  ) => {
-    return filteredBaskts
-      ?.filter((basktItem) => basktItem.basktId !== currentBasktId)
-      ?.filter((basktItem) => {
-        if (!searchQuery) return true;
-        return basktItem.name?.toLowerCase().includes(searchQuery.toLowerCase());
-      })
-      ?.slice(0, maxResults);
-  };
-  const filteredResults = filterBaskts(filteredBaskts, baskt?.basktId, searchQuery);
+
+  const { filteredBaskts, currentBaskt } = useFilteredBaskts({
+    combinedBaskts,
+    searchQuery,
+    includeCurrentBaskt: true,
+  });
+
+  const filteredResults = filteredBaskts.slice(0, 8);
+
+  const { visibleAssets, extraCount, hasExtraAssets } = getAssetDisplayInfo(
+    currentBaskt?.assets || [],
+  );
 
   if (searchQuery && filteredResults?.length === 0) {
     return (
@@ -78,7 +73,9 @@ export function MobileBasktInfoSection({
               </div>
             )}
           </div>
-          <span className="font-semibold text-sm">{baskt.name}</span>
+          <span className="font-semibold text-sm">
+            {currentBaskt?.baskt?.name || 'Select Baskt'}
+          </span>
         </div>
 
         <ChevronDown
@@ -104,26 +101,28 @@ export function MobileBasktInfoSection({
 
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {filteredResults?.map((basktItem, index) => {
-                const performance = basktItem.performance?.day || 0;
+                const performance = basktItem.metrics?.performance?.daily || 0;
                 const isPositive = performance >= 0;
 
                 return (
                   <div
-                    key={basktItem.basktId || index}
+                    key={basktItem.baskt?.basktId || index}
                     className="flex items-center justify-between p-2 bg-zinc-800/50 rounded border border-border/50 hover:bg-zinc-700/50 cursor-pointer transition-colors"
                     onClick={() => {
                       setIsBasktInfoExpanded(false);
-                      onBasktSelect(basktItem.basktId);
+                      onBasktSelect(basktItem.baskt?.basktId);
                     }}
                   >
                     <div className="flex items-center gap-2">
                       <BasketAssetsDisplay assets={basktItem.assets || []} />
                       <div>
-                        <div className="font-medium text-xs">{basktItem.name}</div>
+                        <div className="font-medium text-xs">{basktItem.baskt.name}</div>
                         <div className="text-[10px] text-muted-foreground">
                           <NumberFormat
                             value={
-                              (basktItem as any).currentNav || (basktItem as any).baselineNav || 0
+                              (basktItem as any).metrics.currentNav ||
+                              (basktItem as any).metrics.baselineNav ||
+                              0
                             }
                             isPrice={true}
                             showCurrency={true}

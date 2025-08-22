@@ -2,7 +2,7 @@ import { NumberFormat, PublicKeyText } from '@baskt/ui';
 import { useOrdersHistory } from '../../../../hooks/trade/action/use-orders-history';
 import { OrdersHistoryTabProps } from '../../../../types/baskt/trading/components/tabs';
 import { formatOrderHistoryTime } from '../../../../utils/formatters/formatters';
-import { getStatusColor } from '../../../../utils/validation/validation';
+import { getOrderStatusColor } from '../../../../utils/validation/validation';
 
 export function OrdersHistoryTab({ baskt, orders }: OrdersHistoryTabProps) {
   const { processedOrders, hasOrders } = useOrdersHistory(orders, baskt);
@@ -15,8 +15,7 @@ export function OrdersHistoryTab({ baskt, orders }: OrdersHistoryTabProps) {
             <th className="text-left py-2 px-2">Time</th>
             <th className="text-left py-2 px-2 whitespace-nowrap">Order Type</th>
             <th className="text-left py-2 px-2">Direction</th>
-            <th className="text-left py-2 px-2">Size</th>
-            <th className="text-left py-2 px-2">Price</th>
+            <th className="text-left py-2 px-2 whitespace-nowrap">Position Value</th>
             <th className="text-left py-2 px-2">Status</th>
             <th className="text-left py-2 px-2 whitespace-nowrap">Filled Amount</th>
             <th className="text-left py-2 px-2">Fees</th>
@@ -32,7 +31,7 @@ export function OrdersHistoryTab({ baskt, orders }: OrdersHistoryTabProps) {
             </tr>
           ) : (
             processedOrders.map((order, index) => {
-              const { date, time } = formatOrderHistoryTime(order.orderTime);
+              const { date, time } = formatOrderHistoryTime(order.createdAt);
 
               return (
                 <tr key={index} className="border-b border-border/50">
@@ -43,48 +42,46 @@ export function OrdersHistoryTab({ baskt, orders }: OrdersHistoryTabProps) {
                     </div>
                   </td>
                   <td className="py-2 px-2">
-                    <span className="text-blue-500">
-                      {order.orderType === 'Market' ? 'Limit' : 'Market'}
-                    </span>
+                    <span className="text-blue-500">{order.orderType}</span>
                   </td>
                   <td className="py-2 px-2">
-                    <span className={order.isLong ? 'text-green-500' : 'text-red-500'}>
-                      {order.isLong ? 'Long' : 'Short'}
+                    <span
+                      className={order.direction === 'Long' ? 'text-green-500' : 'text-red-500'}
+                    >
+                      {order.direction}
                     </span>
                   </td>
                   <td className="py-2 px-2">
                     <NumberFormat
-                      value={order.isLong ? order.orderSize : order.orderSize / 1e6}
+                      value={order.direction === 'Close' ? order.size * 100 : order.size}
                       isPrice={true}
+                      showCurrency={true}
                     />
                   </td>
                   <td className="py-2 px-2">
-                    {order.orderType === 'Market' ? (
-                      <span className="text-blue-500">Market</span>
-                    ) : (
-                      <NumberFormat value={order.orderPrice} isPrice={true} showCurrency={true} />
-                    )}
-                  </td>
-                  <td className="py-2 px-2">
-                    <span className={getStatusColor(order.status as any)}>{order.status}</span>
+                    <span className={getOrderStatusColor(order.orderStatus)}>
+                      {order.orderStatus}
+                    </span>
                   </td>
                   <td className="py-2 px-2">
                     <NumberFormat
-                      value={order.isLong ? order.filledAmount * 1e2 : order.filledAmount / 1e4}
+                      value={order.direction === 'Close' ? order.size * 100 : order.size}
                       isPrice={true}
                       showCurrency={true}
                     />
                   </td>
                   <td className="py-2 px-2">
                     <NumberFormat
-                      value={order.isLong ? order.fees : order.fees / 1e6}
+                      value={
+                        order.direction === 'Close' ? (order.fees / 1e8) * 100 : order.fees / 1e8
+                      }
                       isPrice={true}
                       showCurrency={true}
                     />
                   </td>
                   <td className="py-2 px-2">
                     <div className="text-xs">
-                      <PublicKeyText publicKey={order.transactionHash} isCopy={true} />
+                      <PublicKeyText publicKey={order.transaction} isCopy={true} />
                     </div>
                   </td>
                 </tr>

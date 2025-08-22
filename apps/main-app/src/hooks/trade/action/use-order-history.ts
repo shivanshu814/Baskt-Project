@@ -2,29 +2,42 @@ import { useEffect, useMemo } from 'react';
 import { trpc } from '../../../lib/api/trpc';
 
 function processOrderHistory(order: any, baskt?: any) {
-  const orderTime = order.createdAt ? new Date(order.createdAt) : new Date();
-  const orderType = order.orderType?.market ? 'Market' : 'Limit';
-  const orderSize = order.size || 0;
-  const orderPrice = order.price || baskt?.price || 0;
+  const createdAt = order.createdAt ? new Date(order.createdAt) : new Date();
+  const orderType = order.orderType || 'MARKET';
 
-  const adjustedSize = order.status === 'FILLED' ? orderSize / 100 : orderSize;
-  const filledAmount = order.status === 'FILLED' ? order.filledAmount || adjustedSize : 0;
-  const fees = filledAmount > 0 ? ((filledAmount * orderPrice) / 1e6) * 0.002 : 0;
-  const status = order.orderStatus || 'Filled';
-  const transactionHash = order.transactionHash || order.orderId;
-  const isLong = order.isLong || false;
+  let direction = 'Short';
+  let size = 0;
+  let collateral = 0;
 
-  return {
-    orderTime,
+  if (order.orderAction === 'OPEN') {
+    direction = order.openParams?.isLong ? 'Long' : 'Short';
+    size = order.openParams?.notionalValue || 0;
+    collateral = order.openParams?.collateral || 0;
+  } else if (order.orderAction === 'CLOSE') {
+    direction = 'Close';
+    size = order.closeParams?.sizeAsContracts || 0;
+    collateral = 0;
+  }
+
+  const fees =
+    order.openParams?.leverageBps && order.openParams?.collateral
+      ? order.openParams.leverageBps * 100 * order.openParams.collateral
+      : 0;
+  const transaction = order.createOrder?.tx || '';
+  const orderStatus = order.orderStatus || '';
+
+  const result = {
+    createdAt,
     orderType,
-    orderSize: adjustedSize,
-    orderPrice,
-    filledAmount,
+    direction,
+    size,
+    collateral,
     fees,
-    status,
-    transactionHash,
-    isLong,
+    transaction,
+    orderStatus,
   };
+
+  return result;
 }
 
 export function useOrderHistory(
@@ -59,7 +72,7 @@ export function useOrderHistory(
   );
 
   const basktsQuery = trpc.baskt.getAllBaskts.useQuery(
-    { withPerformance: true },
+    { hidePrivateBaskts: true },
     {
       refetchInterval: 30 * 1000,
       enabled: shouldIncludeBasktInfo,
@@ -86,11 +99,9 @@ export function useOrderHistory(
     };
   }, [ordersQuery]);
 
-
   const processedOrders = useMemo(() => {
     const orders = (ordersQuery.data as any)?.data || [];
     const baskts = (basktsQuery.data as any)?.data || [];
-
 
     let filteredOrders = orders;
 
@@ -126,11 +137,12 @@ export function useOrderHistory(
     } else {
       return filteredOrders.map((order: any) => {
         const processedOrder = processOrderHistory(order);
-        return {
+        const result = {
           ...processedOrder,
           orderPDA: order.orderPDA,
           orderId: order.orderId,
         };
+        return result;
       });
     }
   }, [ordersQuery.data, basktsQuery.data, filterByStatus, statusFilter, shouldIncludeBasktInfo]);
