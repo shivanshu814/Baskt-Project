@@ -37,7 +37,12 @@ export const getVaultData = publicProcedure
       }
 
       const poolData = poolResult.data;
-      const totalValueLocked = new BN(poolData.totalLiquidity.toString()).div(new BN(PRICE_PRECISION));
+      const totalValueLocked = new BN(poolData.totalLiquidity.toString());
+      const totalShares = new BN(poolData.totalShares.toString());
+
+      const blpPrice = totalShares.gt(new BN(0)) ? totalValueLocked.mul(new BN(PRICE_PRECISION)).div(totalShares).div(PRICE_PRECISION).toString() : '0';
+
+
 
       let apr = poolData.fees.latestApr;
       let fees = poolData.fees.totalFeesCollected.toString();
@@ -83,7 +88,7 @@ export const getVaultData = publicProcedure
         },
         statistics: {
           fees: Number(fees),
-          blpPrice: totalValueLocked.mul(new BN(PRICE_PRECISION)).div(new BN(poolData.totalShares.toString())).div(PRICE_PRECISION).toString(),
+          blpPrice: blpPrice,
           totalSupply: new BN(poolData.totalShares.toString()).div(new BN(PRICE_PRECISION)).toString(),
         },
       };
