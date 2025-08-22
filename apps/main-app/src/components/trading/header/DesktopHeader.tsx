@@ -25,7 +25,13 @@ export function DesktopHeader({ baskt }: DesktopHeaderProps) {
   const { combinedBaskts: filteredBaskts } = useBasktList();
   const { totalOpenInterest, isLoading: oiLoading } = useBasktOI(baskt?.basktId || '');
   const { totalVolume, isLoading: volumeLoading } = useBasktVolume(baskt?.basktId || '');
-  const { data: allOiResp } = trpc.metrics.getTopBasktsWithVolume.useQuery(undefined);
+  // TODO @nshmadhani clean this up
+  const { data: allOiResp } = {
+    data: {
+      success: true,
+      data: []
+    }
+  };
 
   const oiByBasktId = useMemo(() => {
     const map = new Map<string, number>();

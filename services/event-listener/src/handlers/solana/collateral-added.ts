@@ -30,6 +30,7 @@ async function collateralAddedHandler(event: ObserverEvent) {
 
       await querierClient.metadata.updatePositionByPDA(positionPDA.toString(), {
         collateral: collateralAddedData.newTotalCollateral.toString(),
+        remainingCollateral: collateralAddedData.newTotalCollateral.toString(),
       });
     } catch (error) {
       console.error('Querier metadata update failed:', error);

@@ -2770,10 +2770,6 @@ export type Baskt = {
           }
         },
         {
-          "name": "newNav",
-          "type": "u64"
-        },
-        {
           "name": "rebalanceFeePerUnit",
           "type": {
             "option": "u64"
@@ -4271,19 +4267,6 @@ export type Baskt = {
       ]
     },
     {
-      "name": "fundingIndexInitializedEvent",
-      "discriminator": [
-        103,
-        198,
-        106,
-        15,
-        181,
-        173,
-        213,
-        165
-      ]
-    },
-    {
       "name": "fundingIndexUpdatedEvent",
       "discriminator": [
         142,
@@ -4320,19 +4303,6 @@ export type Baskt = {
         180,
         118,
         59
-      ]
-    },
-    {
-      "name": "liquidityRemovedEvent",
-      "discriminator": [
-        233,
-        117,
-        13,
-        70,
-        229,
-        1,
-        106,
-        215
       ]
     },
     {
@@ -4977,10 +4947,6 @@ export type Baskt = {
             "type": "u32"
           },
           {
-            "name": "baselineNav",
-            "type": "u64"
-          },
-          {
             "name": "bump",
             "type": "u8"
           },
@@ -5175,10 +5141,6 @@ export type Baskt = {
           },
           {
             "name": "rebalanceIndex",
-            "type": "u64"
-          },
-          {
-            "name": "baselineNav",
             "type": "u64"
           },
           {
@@ -5570,26 +5532,6 @@ export type Baskt = {
       }
     },
     {
-      "name": "fundingIndexInitializedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "basktId",
-            "type": "pubkey"
-          },
-          {
-            "name": "initialIndex",
-            "type": "i128"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "fundingIndexUpdatedEvent",
       "type": {
         "kind": "struct",
@@ -5813,42 +5755,6 @@ export type Baskt = {
           {
             "name": "initializer",
             "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "liquidityRemovedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "provider",
-            "type": "pubkey"
-          },
-          {
-            "name": "liquidityPool",
-            "type": "pubkey"
-          },
-          {
-            "name": "sharesBurned",
-            "type": "u64"
-          },
-          {
-            "name": "withdrawalAmount",
-            "type": "u64"
-          },
-          {
-            "name": "feeAmount",
-            "type": "u64"
-          },
-          {
-            "name": "netAmountReceived",
-            "type": "u64"
           },
           {
             "name": "timestamp",

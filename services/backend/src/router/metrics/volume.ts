@@ -29,31 +29,3 @@ export const getVolumeForBaskt = publicProcedure
       };
     }
   });
-
-export const getVolumeForAsset = publicProcedure
-  .input(
-    z.object({
-      assetId: z.string(),
-    }),
-  )
-  .query(async ({ input }) => {
-    try {
-      const { assetId } = input;
-
-      if (!assetId) {
-        throw new Error('Asset ID is required');
-      }
-
-      const result = await querier.metrics.getVolumeForAsset({
-        assetId,
-      });
-
-      return result;
-    } catch (error) {
-      console.error('Error fetching volume:', error);
-      return {
-        success: false,
-        message: 'Failed to fetch volume',
-      };
-    }
-  });

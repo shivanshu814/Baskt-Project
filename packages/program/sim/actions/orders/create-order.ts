@@ -46,8 +46,6 @@ const createOrderClose = async (args: string[]) => {
     throw new Error('Position not found');
   }
 
-  
-
   const ownerTokenAccount = getAssociatedTokenAddressSync(
     USDC_MINT,
     client.getPublicKey(),
@@ -55,10 +53,12 @@ const createOrderClose = async (args: string[]) => {
 
   const orderId = client.newUID();
 
+  const percentageToClose = new BN(args[2] || 100);
+
   const orderTx = await client.createMarketCloseOrder({
     orderId,
     basktId: positionAccount.basktId,
-    sizeAsContracts: positionAccount.size,
+    sizeAsContracts: positionAccount.size.mul(percentageToClose).divn(100),
     targetPosition: positionPDA,
     ownerTokenAccount,
   });

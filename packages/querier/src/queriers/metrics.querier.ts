@@ -22,6 +22,7 @@ import { PositionQuerier } from './position.querier';
  * It is used to fetch metrics for the application.
  */
 
+// TODO nshmadhaani Delete the unused code
 export class MetricsQuerier {
   private assetQuerier: AssetQuerier;
   private basktClient: BaseClient;
@@ -102,26 +103,6 @@ export class MetricsQuerier {
     }
   }
 
-  // get volume for an asset
-  async getVolumeForAsset(params: AssetVolumeParams): Promise<VolumeResult> {
-    try {
-      const { assetId } = params;
-
-      const positionsResult = await PositionQuerier.getInstance(this.basktClient).getPositionByAssetId(assetId, PositionStatus.OPEN);
-      const positions = positionsResult.data || [];
-
-      return {
-        success: true,
-        data: await this.calculateVolumeFromPositions(positions),
-      };
-    } catch (error) {
-      console.error('Error fetching volume:', error);
-      return {
-        success: false,
-        error: 'Failed to fetch volume',
-      };
-    }
-  }
 
    // get open interest for an asset
   async getOpenInterestForAllAsset(): Promise<QueryResult<Map<string, OpenInterestData>>> {
