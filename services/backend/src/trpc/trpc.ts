@@ -22,39 +22,52 @@ const bnToStringMiddleware = t.middleware(async ({ next }) => {
   const result = await next();
   
   // Convert BN objects to strings in the response
-  const convertBNToStrings = (obj: any): any => {
-    if (obj === null || obj === undefined) {
+  const convertBNToStrings = (obj: any, depth: number = 0): any => {
+
+    try {
+
+      if(depth > 10) {
+        return 5;
+      }
+      
+      if (obj === null || obj === undefined || Object.keys(obj).length === 0 || obj === '' || obj ) {
+        return obj;
+      }
+
+      if (obj._bsontype === 'ObjectID' || 
+        (obj.constructor && obj.constructor.name === 'ObjectId') ||
+        (typeof obj.toHexString === 'function' && typeof obj.toString === 'function')) {
+        return '';
+      }
+
+      if(obj instanceof String) {
+        return obj;
+      }
+      
+      if (obj instanceof BN) {
+        return obj.toString();
+      }
+      
+      if (Array.isArray(obj)) {
+        return obj.map((item) => convertBNToStrings(item, depth + 1));
+      }
+      
+      if (typeof obj === 'object') {
+        const converted: any = {};
+        for (const [key, value] of Object.entries(obj)) {
+          converted[key] = convertBNToStrings(value, depth + 1);
+        }
+        return converted;
+      }
+    } catch (error) {
+      console.error("Error converting BN to string", error);
       return obj;
     }
-
-    if (obj._bsontype === 'ObjectID' || 
-      (obj.constructor && obj.constructor.name === 'ObjectId') ||
-      (typeof obj.toHexString === 'function' && typeof obj.toString === 'function')) {
-      return '';
-    }
-    
-    if (obj instanceof BN) {
-      return obj.toString();
-    }
-    
-    if (Array.isArray(obj)) {
-      return obj.map(convertBNToStrings);
-    }
-    
-    if (typeof obj === 'object') {
-      const converted: any = {};
-      for (const [key, value] of Object.entries(obj)) {
-        converted[key] = convertBNToStrings(value);
-      }
-      return converted;
-    }
-    
-    return obj;
   };
   
   // Apply the conversion to the result
   if (result.ok) {
-    result.data = convertBNToStrings(result.data);
+    result.data = convertBNToStrings(result.data, 0);
   }
   
   return result;

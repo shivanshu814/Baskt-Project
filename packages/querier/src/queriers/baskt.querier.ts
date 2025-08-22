@@ -102,6 +102,7 @@ export class BasktQuerier {
       return result;
     } catch (err) {
       const querierError = handleQuerierError(err);
+      console.error('Error fetching baskts:', querierError);
       return {
         success: false,
         message: 'Failed to fetch baskts',
@@ -236,48 +237,48 @@ export class BasktQuerier {
       });
 
       // Create new baskt metadata entry with current timestamp
-      await metadataManager.updateBaskt(basktId, {
-        uid: toNumber(basktAccount.uid),
-        status: basktAccount.status,
-        isPublic: basktAccount.isPublic,
-        openPositions: toNumber(basktAccount.openPositions),
-        lastRebalanceTime: toNumber(basktAccount.lastRebalanceTime),
-        baselineNav: basktAccount.baselineNav.toString(),
-        rebalancePeriod: toNumber(basktAccount.rebalancePeriod),
-        config: {
-          openingFeeBps: basktAccount.config.openingFeeBps ? toNumber(basktAccount.config.openingFeeBps) : undefined,
-          closingFeeBps: basktAccount.config.closingFeeBps ? toNumber(basktAccount.config.closingFeeBps) : undefined,
-          liquidationFeeBps: basktAccount.config.liquidationFeeBps ? toNumber(basktAccount.config.liquidationFeeBps) : undefined,
-          minCollateralRatioBps: basktAccount.config.minCollateralRatioBps ? toNumber(basktAccount.config.minCollateralRatioBps) : undefined,
-          liquidationThresholdBps: basktAccount.config.liquidationThresholdBps ? toNumber(basktAccount.config.liquidationThresholdBps) : undefined,
-        },
-        fundingIndex: {
-          cumulativeIndex: basktAccount.fundingIndex.cumulativeIndex.toString(),
-          lastUpdateTimestamp: toNumber(basktAccount.fundingIndex.lastUpdateTimestamp),
-          currentRate: basktAccount.fundingIndex.currentRate.toString(),
-        },
-        rebalanceFeeIndex: {
-          cumulativeIndex: basktAccount.rebalanceFeeIndex.cumulativeIndex.toString(),
-          lastUpdateTimestamp: toNumber(basktAccount.rebalanceFeeIndex.lastUpdateTimestamp),
-        },
-        currentAssetConfigs: basktAccount.currentAssetConfigs.map(config => {
-          const assetAddress = config.assetId.toString();
-          const assetObjectId = assetIdMap.get(assetAddress);
+      // await metadataManager.updateBaskt(basktId, {
+      //   uid: toNumber(basktAccount.uid),
+      //   status: basktAccount.status,
+      //   isPublic: basktAccount.isPublic,
+      //   openPositions: toNumber(basktAccount.openPositions),
+      //   lastRebalanceTime: toNumber(basktAccount.lastRebalanceTime),
+      //   baselineNav: basktAccount.baselineNav.toString(),
+      //   rebalancePeriod: toNumber(basktAccount.rebalancePeriod),
+      //   config: {
+      //     openingFeeBps: basktAccount.config.openingFeeBps ? toNumber(basktAccount.config.openingFeeBps) : undefined,
+      //     closingFeeBps: basktAccount.config.closingFeeBps ? toNumber(basktAccount.config.closingFeeBps) : undefined,
+      //     liquidationFeeBps: basktAccount.config.liquidationFeeBps ? toNumber(basktAccount.config.liquidationFeeBps) : undefined,
+      //     minCollateralRatioBps: basktAccount.config.minCollateralRatioBps ? toNumber(basktAccount.config.minCollateralRatioBps) : undefined,
+      //     liquidationThresholdBps: basktAccount.config.liquidationThresholdBps ? toNumber(basktAccount.config.liquidationThresholdBps) : undefined,
+      //   },
+      //   fundingIndex: {
+      //     cumulativeIndex: basktAccount.fundingIndex.cumulativeIndex.toString(),
+      //     lastUpdateTimestamp: toNumber(basktAccount.fundingIndex.lastUpdateTimestamp),
+      //     currentRate: basktAccount.fundingIndex.currentRate.toString(),
+      //   },
+      //   rebalanceFeeIndex: {
+      //     cumulativeIndex: basktAccount.rebalanceFeeIndex.cumulativeIndex.toString(),
+      //     lastUpdateTimestamp: toNumber(basktAccount.rebalanceFeeIndex.lastUpdateTimestamp),
+      //   },
+      //   currentAssetConfigs: basktAccount.currentAssetConfigs.map(config => {
+      //     const assetAddress = config.assetId.toString();
+      //     const assetObjectId = assetIdMap.get(assetAddress);
           
-          if (!assetObjectId) {
-            console.warn(`Asset metadata not found for asset: ${assetAddress}`);
-          }
+      //     if (!assetObjectId) {
+      //       console.warn(`Asset metadata not found for asset: ${assetAddress}`);
+      //     }
           
-          return {
-            assetObjectId: assetObjectId || '', // Use empty string if not found, but log warning
-            assetId: assetAddress,
-            direction: config.direction,
-            weight: toNumber(config.weight),
-            baselinePrice: config.baselinePrice.toString(),
-          };
-        }),
-        updatedAt: new Date(),
-      });
+      //     return {
+      //       assetObjectId: assetObjectId || '', // Use empty string if not found, but log warning
+      //       assetId: assetAddress,
+      //       direction: config.direction,
+      //       weight: toNumber(config.weight),
+      //       baselinePrice: config.baselinePrice.toString(),
+      //     };
+      //   }),
+      //   updatedAt: new Date(),
+      // });
       
       console.log(`Baskt metadata resynced for baskt: ${basktId}`);
     } catch (error) {
@@ -354,6 +355,7 @@ export class BasktQuerier {
       console.error('Error calculating NAV:', error);
       price = new BN(0);
     }
+    console.log(basktMetadata.stats);
 
     return {
       ...basktMetadata,
