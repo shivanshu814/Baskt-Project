@@ -7,7 +7,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-baskt = "Bw6sN8LvQMqVhgZYihtkxoYqUZdPZe3vMWJ8N7ba6jLW"
+baskt = "EwEg2kTxcKDX8uhWFUDUJRXcYRSfUfDSekDrAHNVTTuK"
 
 [registry]
 url = "https://stylish-divine-market.solana-mainnet.quiknode.pro/1aec6db0690864cdcaf90a2ba4daf161786b0117/"

@@ -9,6 +9,7 @@ import {
 } from '../../utils/fee-utils';
 import { OnchainOrderStatus, PositionClosedEvent, PositionStatus } from '@baskt/types';
 import { PartialCloseHistory, FeeEvents } from '@baskt/querier';
+import { PRICE_PRECISION } from '@baskt/sdk/dist/math';
 
 /**
  * Create fee event for position closed
@@ -119,6 +120,17 @@ async function positionClosedHandler(event: ObserverEvent) {
     };
     await orderMetadata!.save();
 
+    const baskt = await querierClient.metadata.findBasktById(positionClosedData.basktId.toString());
+    baskt!.openPositions -= 1;
+    if(positionMetadata.isLong) {
+      baskt!.stats!.longAllTimeVolume = new BN(baskt!.stats!.longAllTimeVolume.toString()).add(positionClosedData.sizeClosed.mul(positionClosedData.exitPrice).div(new BN(PRICE_PRECISION))).toString() as any;
+      baskt!.stats!.longOpenInterestContracts = new BN(baskt!.stats!.longOpenInterestContracts.toString()).sub(positionClosedData.sizeClosed).toString() as any;
+ 
+    } else {
+      baskt!.stats!.shortAllTimeVolume = new BN(baskt!.stats!.shortAllTimeVolume.toString()).add(positionClosedData.sizeClosed.mul(positionClosedData.exitPrice).div(new BN(PRICE_PRECISION))).toString() as any;
+      baskt!.stats!.shortOpenInterestContracts = new BN(baskt!.stats!.shortOpenInterestContracts.toString()).sub(positionClosedData.sizeClosed).toString() as any;  
+    }
+    await baskt!.save();
 
     await querierClient.pool.resyncLiquidityPool();
 

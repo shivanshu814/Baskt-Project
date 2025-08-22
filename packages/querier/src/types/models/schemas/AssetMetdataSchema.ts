@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { BNAndDecimal128 } from './helper';
 
 export const AssetMetadataSchema = new mongoose.Schema(
   {
@@ -34,6 +35,8 @@ export const AssetMetadataSchema = new mongoose.Schema(
         default: true,
       },
     },
+    allTimeLongVolume:  BNAndDecimal128(true),
+    allTimeShortVolume: BNAndDecimal128(true),
     isActive: {
       type: Boolean,
       required: true,

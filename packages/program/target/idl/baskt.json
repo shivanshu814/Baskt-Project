@@ -1,5 +1,5 @@
 {
-  "address": "Bw6sN8LvQMqVhgZYihtkxoYqUZdPZe3vMWJ8N7ba6jLW",
+  "address": "EwEg2kTxcKDX8uhWFUDUJRXcYRSfUfDSekDrAHNVTTuK",
   "metadata": {
     "name": "baskt",
     "version": "0.1.0",
@@ -2764,6 +2764,10 @@
           }
         },
         {
+          "name": "new_nav",
+          "type": "u64"
+        },
+        {
           "name": "rebalance_fee_per_unit",
           "type": {
             "option": "u64"
@@ -4949,6 +4953,10 @@
             "type": "u32"
           },
           {
+            "name": "baseline_nav",
+            "type": "u64"
+          },
+          {
             "name": "config",
             "type": {
               "defined": {
@@ -5135,6 +5143,10 @@
           },
           {
             "name": "rebalance_index",
+            "type": "u64"
+          },
+          {
+            "name": "new_nav",
             "type": "u64"
           },
           {

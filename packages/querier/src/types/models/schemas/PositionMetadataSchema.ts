@@ -8,11 +8,13 @@ export const PositionMetadataSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      unique: true,
     },
     positionPDA: {
       type: String,
       required: true,
       trim: true,
+      unique: true,
     },
     baskt: {
       type: mongoose.Schema.Types.ObjectId,

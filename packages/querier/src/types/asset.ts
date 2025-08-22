@@ -1,4 +1,5 @@
 import { AssetMetadata } from './models';
+import BN from 'bn.js';
 
 /**
  * Price information for an asset
@@ -15,6 +16,14 @@ export interface AssetPriceData {
 export interface CombinedAsset extends AssetMetadata {
   price: number;
   change24h: number;
+  exposure?: {
+    longOpenInterest: BN;
+    shortOpenInterest: BN;
+  }
+  volume?: {
+    longVolume: BN;
+    shortVolume: BN;
+  }
 }
 
 /**

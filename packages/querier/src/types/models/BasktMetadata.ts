@@ -32,6 +32,16 @@ export interface BasktMetadata{
     minCollateralRatioBps?: number;
     liquidationThresholdBps?: number;
   };
+  stats: {
+    change24h: number;
+    change7d: number;
+    change30d: number;
+    change365d: number;
+    longAllTimeVolume: BN;
+    shortAllTimeVolume: BN;
+    longOpenInterestContracts: BN;
+    shortOpenInterestContracts: BN;
+  };
   fundingIndex: {
     cumulativeIndex: BN;
     lastUpdateTimestamp: number;

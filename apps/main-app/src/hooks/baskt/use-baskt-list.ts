@@ -8,7 +8,7 @@ export const useBasktList = () => {
   const userAddress = client?.wallet?.address?.toString();
 
   const { data: basktsData, isLoading } = trpc.baskt.getAllBaskts.useQuery(
-    { withPerformance: true },
+    {  },
     {
       staleTime: 5 * 60 * 1000,
       cacheTime: 30 * 60 * 1000,
@@ -20,33 +20,19 @@ export const useBasktList = () => {
   const baskts = rawBaskts.map(cleanBasktData);
   const basktIds = baskts.map((b) => b.basktId);
 
-  const { data: batchNavData, isLoading: isNavLoading } = trpc.baskt.getBatchBasktNAV.useQuery(
-    { basktIds },
-    {
-      staleTime: 5 * 60 * 1000,
-      cacheTime: 30 * 60 * 1000,
-      refetchOnWindowFocus: false,
-      enabled: basktIds.length > 0,
-    },
-  );
+
+
 
   const basktsWithNav = useMemo(() => {
     return baskts.map((baskt) => {
-      let currentNav = parseFloat(baskt.baselineNav) || 0;
-
-      if (batchNavData?.success && 'data' in batchNavData && batchNavData.data) {
-        const navData = batchNavData.data.find((nav: any) => nav.basktId === baskt.basktId);
-        if (navData?.success && navData.nav) {
-          currentNav = navData.nav;
-        }
-      }
+      let currentNav = parseFloat(baskt.baselineNav);
 
       return {
         ...baskt,
         currentNav,
       };
     });
-  }, [baskts, batchNavData]);
+  }, [baskts,]);
 
   const publicBaskts = basktsWithNav.filter((b) => b.isPublic);
   const yourBaskts = userAddress ? basktsWithNav.filter((b) => b.creator === userAddress) : [];
@@ -62,6 +48,6 @@ export const useBasktList = () => {
     yourBaskts,
     combinedBaskts,
     userAddress,
-    isLoading: isLoading || isNavLoading,
+    isLoading: isLoading,
   };
 };

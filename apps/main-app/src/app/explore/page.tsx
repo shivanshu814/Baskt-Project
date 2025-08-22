@@ -10,10 +10,7 @@ import { TabContent } from '../../components/baskt/layout/TabContent';
 import { BasktListSkeleton } from '../../components/baskt/skeleton/BasktListSkeleton';
 import { SearchBar } from '../../components/shared/SearchBar';
 import {
-  useCombinedBaskts,
-  usePublicBaskts,
-  useTrendingBaskts,
-  useYourBaskts,
+  useOptimizedBasktList
 } from '../../hooks/baskt/use-explore-data';
 import { TabType } from '../../types/baskt';
 
@@ -25,28 +22,18 @@ const ExplorePage = () => {
   const { client } = useBasktClient();
   const userAddress = client?.wallet?.address?.toString();
 
-  const { baskts: publicBaskts, isLoading: isPublicLoading } = usePublicBaskts(
-    true,
-    activeTab === 'all' && !userAddress,
-  );
-  const { baskts: trendingBaskts, isLoading: isTrendingLoading } = useTrendingBaskts(
-    true,
-    activeTab === 'trending',
-  );
-  const { baskts: yourBaskts, isLoading: isYourLoading } = useYourBaskts(
-    true,
-    activeTab === 'your' && !!userAddress,
-  );
-  const { baskts: combinedBaskts, isLoading: isCombinedLoading } = useCombinedBaskts(
-    true,
-    activeTab === 'all' && !!userAddress,
+  const {
+    baskts: {
+      publicBaskts,
+      yourBaskts,
+      combinedBaskts,
+      trendingBaskts
+    }, 
+    isLoading,
+  } = useOptimizedBasktList(
+    'all'
   );
 
-  const isLoading =
-    (activeTab === 'all' && !userAddress && isPublicLoading) ||
-    (activeTab === 'all' && userAddress && isCombinedLoading) ||
-    (activeTab === 'trending' && isTrendingLoading) ||
-    (activeTab === 'your' && userAddress && isYourLoading);
 
   const filteredBaskts = useMemo(() => {
     if (isLoading) return [];
@@ -98,7 +85,7 @@ const ExplorePage = () => {
               publicBaskts={publicBaskts}
               yourBaskts={yourBaskts}
               userAddress={userAddress}
-              isLoading={isTrendingLoading}
+              isLoading={isLoading}
             />
           </div>
         </div>

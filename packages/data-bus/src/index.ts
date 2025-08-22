@@ -1,8 +1,6 @@
 import Redis, { Cluster } from 'ioredis';
 import { EventEmitter } from 'events';
-import { createHmac } from 'crypto';
 import { ulid } from 'ulid';
-import stringify from 'json-stable-stringify';
 import BN from 'bn.js';
 
 import {

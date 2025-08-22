@@ -9,6 +9,7 @@ import {
 import {   AssetPrice, AssetPriceProviderConfig } from '@baskt/types';
 import { fetchAssetPrices } from '../helpers/pricing';
 import { AssetMetadata } from '../types/models';
+import { BN } from 'bn.js';
 
 /**
  * Asset Querier
@@ -20,6 +21,8 @@ import { AssetMetadata } from '../types/models';
 export class AssetQuerier {
   public basktClient: BaseClient;
   private static instance: AssetQuerier;
+
+  public assetMetadataCache: Map<string, AssetMetadata[]> = new Map();
 
   public static getInstance(basktClient: BaseClient): AssetQuerier {
     if (!AssetQuerier.instance) {
@@ -58,6 +61,8 @@ export class AssetQuerier {
         livePrices,
         withConfig,
       );
+
+      this.assetMetadataCache.set(assetMetadatas.map((asset) => asset.assetAddress.toString()).join(','), assetMetadatas);
 
       const result: QueryResult<CombinedAsset[]> = {
         success: true,
@@ -192,6 +197,14 @@ export class AssetQuerier {
       ...assetMetadata,
       price: Number(livePrice?.priceUSD),
       change24h: 0,
+      exposure: {
+        longOpenInterest: new BN(0),
+        shortOpenInterest: new BN(0),
+      },
+      volume: {
+        longVolume: assetMetadata.allTimeLongVolume,
+        shortVolume: assetMetadata.allTimeShortVolume,
+      },
     } as CombinedAsset;
   }
 

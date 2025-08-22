@@ -142,6 +142,7 @@ export interface UseVaultTabsReturn {
 
 export interface VaultActionTabsProps {
   vaultData?: VaultData | null;
+  poolData?: EnhancedPoolData | null;
   liquidityPool?: PublicKey | null;
   statistics?: {
     fees?: number;

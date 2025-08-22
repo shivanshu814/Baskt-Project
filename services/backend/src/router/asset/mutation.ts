@@ -2,6 +2,7 @@ import { publicProcedure } from '../../trpc/trpc';
 import { z } from 'zod';
 import { querier } from '../../utils/';
 import { PublicKey } from '@solana/web3.js';
+import BN from 'bn.js';
 
 // create an asset
 export const createAsset = publicProcedure
@@ -56,7 +57,9 @@ export const createAsset = publicProcedure
         permissions: {
           allowLongs: true,
           allowShorts: true,
-        },
+        },  
+        allTimeLongVolume: new BN(0),
+        allTimeShortVolume: new BN(0),
         createdAt: new Date(),
         updatedAt: new Date(),
       });

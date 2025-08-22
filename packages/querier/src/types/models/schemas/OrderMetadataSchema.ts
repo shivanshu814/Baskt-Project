@@ -5,15 +5,16 @@ import { BNAndDecimal128 } from './helper';
 export const OrderMetadataSchema = new mongoose.Schema(
   {
     owner: {
-        type: String,
-        required: true,
-        trim: true,
+      type: String,
+      required: true,
+      trim: true,
     },  
     orderPDA: {
       type: String,
       required: true,
       trim: true,
-    },
+      unique: true,
+    },    
     orderId: {
       type: Number,
       required: true,

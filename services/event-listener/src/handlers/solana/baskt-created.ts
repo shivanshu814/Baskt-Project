@@ -4,6 +4,7 @@ import { EventSource } from '../../types';
 import { getStreamPublisher } from 'src/utils/stream-publisher';
 import { querierClient } from '../../utils/config';
 import { FeeEventMetadata, FeeEvents } from '@baskt/querier';
+import BN from 'bn.js';
 
 export default {
   source: EventSource.SOLANA,
@@ -22,7 +23,8 @@ export default {
         feePaidIn: 'SOL',
         basktFee: {
           basktId: basktCreatedData.basktId.toString(),
-          creationFee: basktCreatedData.basktCreationFee.toString(),
+          creationFee: new BN(basktCreatedData.basktCreationFee),
+          rebalanceRequestFee: new BN(0),
         }
       } as FeeEventMetadata);
 

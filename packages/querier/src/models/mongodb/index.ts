@@ -14,6 +14,23 @@ import {
 } from '../../types/models';
 import mongoose from 'mongoose';
 import ProtocolMetadataSchema from '../../types/models/schemas/ProtocolMetadataSchema';
+import mongooseLeanGetters from 'mongoose-lean-getters';
+
+BasktMetadataSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
+AssetMetadataSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
+OrderMetadataSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
+PositionMetadataSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
+ProtocolMetadataSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
+FeeEventMetadataSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
+LiquidityPoolSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
+LiquidityDepositSchema.plugin(mongooseLeanGetters);
+WithdrawalRequestSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
+RebalanceRequestSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
+BasktRebalanceHistorySchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
+AccessCodeSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
+AuthorizedWalletSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
+
+
 
 export const AssetMetadataModel = mongoose.model('asset_metadata', AssetMetadataSchema);
 export const BasktMetadataModel = mongoose.model('baskt_metadata', BasktMetadataSchema);

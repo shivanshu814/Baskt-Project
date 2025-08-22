@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/baskt.json`.
  */
 export type Baskt = {
-  "address": "Bw6sN8LvQMqVhgZYihtkxoYqUZdPZe3vMWJ8N7ba6jLW",
+  "address": "EwEg2kTxcKDX8uhWFUDUJRXcYRSfUfDSekDrAHNVTTuK",
   "metadata": {
     "name": "baskt",
     "version": "0.1.0",
@@ -2770,6 +2770,10 @@ export type Baskt = {
           }
         },
         {
+          "name": "newNav",
+          "type": "u64"
+        },
+        {
           "name": "rebalanceFeePerUnit",
           "type": {
             "option": "u64"
@@ -4955,6 +4959,10 @@ export type Baskt = {
             "type": "u32"
           },
           {
+            "name": "baselineNav",
+            "type": "u64"
+          },
+          {
             "name": "config",
             "type": {
               "defined": {
@@ -5141,6 +5149,10 @@ export type Baskt = {
           },
           {
             "name": "rebalanceIndex",
+            "type": "u64"
+          },
+          {
+            "name": "newNav",
             "type": "u64"
           },
           {

@@ -133,6 +133,34 @@ export const BasktMetadataSchema = new mongoose.Schema(
       required: true,
       default: 0,
     },
+    stats : {
+      // Updated once a day
+      change24h: {
+        type: Number,
+        required: true,
+        default: 0,
+      },
+      change7d: {
+        type: Number,
+        required: true,
+        default: 0,
+      },
+      change30d: {
+        type: Number,
+        required: true,
+        default: 0,
+      },
+      change365d: {
+        type: Number,
+        required: true,
+        default: 0,
+      },
+      // Update Live as we open/close positions
+      longAllTimeVolume: BNAndDecimal128(true),
+      shortAllTimeVolume: BNAndDecimal128(true),
+      longOpenInterestContracts: BNAndDecimal128(true),
+      shortOpenInterestContracts: BNAndDecimal128(true),
+    },
     lastRebalanceTime: {
       type: Number,
       required: true,
@@ -174,3 +202,4 @@ export const BasktMetadataSchema = new mongoose.Schema(
     collection: 'baskt_metadata',
   },
 );
+

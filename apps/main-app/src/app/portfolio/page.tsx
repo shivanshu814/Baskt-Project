@@ -16,7 +16,9 @@ export default function PortfolioPage() {
   const [activeTab, setActiveTab] = useState<PortfolioTabType>('positions');
 
   const { balance: usdcBalance } = useUSDCBalance();
-  const { baskts: usersBaskts } = useYourBaskts(true, activeTab === 'baskts');
+  const { baskts: {
+    yourBaskts
+  } } = useYourBaskts(activeTab === 'baskts');
   const { data: portfolioData, isLoading } = usePortfolioData();
 
   if (isLoading) {
@@ -113,7 +115,7 @@ export default function PortfolioPage() {
             positions={portfolioData?.positions}
             openOrders={portfolioData?.openOrders}
             orderHistory={portfolioData?.orderHistory}
-            userBaskts={usersBaskts}
+            userBaskts={yourBaskts}
           />
         </div>
       </div>

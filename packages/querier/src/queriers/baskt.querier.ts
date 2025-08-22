@@ -1,10 +1,10 @@
-import { BaseClient, calculateNav } from '@baskt/sdk';
+import { BaseClient, calculateNav, PRICE_PRECISION } from '@baskt/sdk';
 import { PublicKey } from '@solana/web3.js';
 import { BN } from 'bn.js';
 import { BasktMetadataModel, RebalanceRequestModel, BasktRebalanceHistoryModel } from '../models/mongodb';
 import { QueryResult } from '../models/types';
 import { BasktMetadata, CombinedAsset } from '../types';
-import { BasktNAV, BasktPerformance, BasktQueryOptions, CombinedBaskt } from '../types/baskt';
+import { BasktNAV,  BasktQueryOptions, CombinedBaskt } from '../types/baskt';
 import { createQuerierError, handleQuerierError } from '../utils/error-handling';
 import { AssetQuerier } from './asset.querier';
 import { PriceQuerier } from './price.querier';
@@ -44,21 +44,25 @@ export class BasktQuerier {
    * Get all baskts with asset integration
    */
   async getAllBaskts(
-    options: BasktQueryOptions = {
-      withPerformance: false,
+    options: BasktQueryOptions = {  
       hidePrivateBaskts: true,
+      userAddress: undefined,
     },
   ): Promise<QueryResult<CombinedBaskt[]>> {
     try {
+
+      const query: any = {
+        isPublic: options.hidePrivateBaskts,
+      }
+      if(options.userAddress) {
+        query['creator'] = options.userAddress;
+      }
       const [basktConfigs, allAssetsResult] = await Promise.all([
-        this.getBasktConfigsFromMongoDB(),
+        BasktMetadataModel.find(query)
+          .sort({ createdAt: -1 })
+          .lean<BasktMetadata[]>(),
         this.assetQuerier.getAllAssets({ withConfig: false }),
       ]);
-      const performanceMap = options.withPerformance
-        ? await this.priceQuerier.getBatchBasktPerformanceOptimized(
-            basktConfigs.map((baskt) => baskt.basktId?.toString() || ''),
-          )
-        : null;
 
       if (!basktConfigs || basktConfigs.length === 0) {
         return {
@@ -83,7 +87,6 @@ export class BasktQuerier {
           const result = await this.combineBasktData(
             basktConfig,
             assetLookup,
-            performanceMap?.get(basktConfig.basktId?.toString()) || null,
           );
           return result;
         }),
@@ -97,8 +100,8 @@ export class BasktQuerier {
       };
 
       return result;
-    } catch (error) {
-      const querierError = handleQuerierError(error);
+    } catch (err) {
+      const querierError = handleQuerierError(err);
       return {
         success: false,
         message: 'Failed to fetch baskts',
@@ -112,18 +115,13 @@ export class BasktQuerier {
    */
   async getBasktByAddress(
     basktId: string,
-    options: BasktQueryOptions = {
-      withPerformance: false,
-      hidePrivateBaskts: true,
-    },
   ): Promise<QueryResult<CombinedBaskt>> {
     try {
-      const [basktMetadata, allAssetsResult, performance] = await Promise.all([
+      const [basktMetadata, allAssetsResult] = await Promise.all([
         BasktMetadataModel.findOne({ basktId }).lean<BasktMetadata>(),
         this.assetQuerier.getAllAssets({
           withConfig: false,
         }),
-        options.withPerformance ? this.priceQuerier.getBasktPerformanceOptimized(basktId) : null,
       ]);
 
       if (!basktMetadata) {
@@ -143,7 +141,7 @@ export class BasktQuerier {
         });
       }
 
-      const combinedBaskt = await this.combineBasktData(basktMetadata, assetLookup, performance);
+      const combinedBaskt = await this.combineBasktData(basktMetadata, assetLookup);
 
       const result: QueryResult<CombinedBaskt> = {
         success: true,
@@ -165,15 +163,11 @@ export class BasktQuerier {
    * Get baskt by name
    */
   async getBasktByUID(
-    basktName: string,
-    options: BasktQueryOptions = {
-      withPerformance: false,
-      hidePrivateBaskts: true,
-    },
+    basktUID: string,
   ): Promise<QueryResult<CombinedBaskt>> {
     try {
-      const basktId = await this.basktClient.getBasktPDA(parseInt(basktName));
-      return this.getBasktByAddress(basktId.toString(), options);
+      const basktId = await this.basktClient.getBasktPDA(parseInt(basktUID));
+      return this.getBasktByAddress(basktId.toString());
     } catch (error) {
       const querierError = handleQuerierError(error);
       return {
@@ -228,8 +222,6 @@ export class BasktQuerier {
   async resyncBasktMetadata(basktId: string): Promise<void> {
     try {
       const basktAccount = await this.basktClient.getBasktAccount(new PublicKey(basktId));
-
-      console.log('basktAccount', basktAccount.status);
 
       // Get asset metadata to map assetObjectIds using metadata manager directly
       const assetAddresses = basktAccount.currentAssetConfigs.map(config => config.assetId.toString());
@@ -323,27 +315,10 @@ export class BasktQuerier {
     );
   }
 
-  // MongoDB data fetching methods
-  private async getBasktConfigsFromMongoDB(): Promise<BasktMetadata[]> {
-    try {
-      const basktConfigs = await BasktMetadataModel.find()
-        .sort({ createdAt: -1 })
-        .lean<BasktMetadata[]>();
-      return basktConfigs;
-    } catch (error) {
-      throw createQuerierError(
-        'Failed to fetch baskt configs from MongoDB',
-        'MONGODB_ERROR',
-        500,
-        error,
-      );
-    }
-  }
   // Data combination methods
   private async combineBasktData(
     basktMetadata: BasktMetadata,
     assetLookup: Map<string, CombinedAsset>,
-    performance: BasktPerformance | null,
   ): Promise<CombinedBaskt | undefined> {
     if (!basktMetadata) {
       return undefined;
@@ -376,7 +351,7 @@ export class BasktQuerier {
       price = this.computeNav(basktMetadata, assetLookup);
     } catch (error) {
       //TODO nshmadhani: handle this error
-      //console.error('Error calculating NAV:', error);
+      console.error('Error calculating NAV:', error);
       price = new BN(0);
     }
 
@@ -387,14 +362,14 @@ export class BasktQuerier {
         baselinePrice: asset.baselinePrice.toString(),
       })),
       price: toNumber(price),
-      change24h: 0,
+      change24h: basktMetadata.stats.change24h,
       aum: 0,
       sparkline: [],
-      performance: performance || {
-        daily: 0,
-        weekly: 0,
-        monthly: 0,
-        year: 0,
+      performance:  {
+        daily: basktMetadata.stats.change24h,
+        weekly: basktMetadata.stats.change7d,
+        monthly: basktMetadata.stats.change30d,
+        year: basktMetadata.stats.change365d,
       },
     };
   }
