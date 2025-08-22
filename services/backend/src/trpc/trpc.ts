@@ -18,6 +18,7 @@ const t = initTRPC.create({
     };
   },
 });
+
 const bnToStringMiddleware = t.middleware(async ({ next }) => {
   const result = await next();
   
@@ -25,23 +26,17 @@ const bnToStringMiddleware = t.middleware(async ({ next }) => {
   const convertBNToStrings = (obj: any, depth: number = 0): any => {
 
     try {
-
       if(depth > 10) {
         return obj;
       }
       
-      if (obj === null || obj === undefined || Object.keys(obj).length === 0 || obj === '' ) {
+      if (obj === null || obj === undefined || Object.keys(obj).length === 0) {
         return obj;
       }
 
       if (obj._bsontype === 'ObjectID' || 
-        (obj.constructor && obj.constructor.name === 'ObjectId') ||
-        (typeof obj.toHexString === 'function' && typeof obj.toString === 'function')) {
+        (obj.constructor && obj.constructor.name === 'ObjectId')) {
         return '';
-      }
-
-      if(obj instanceof String) {
-        return obj;
       }
       
       if (obj instanceof BN) {
@@ -59,6 +54,8 @@ const bnToStringMiddleware = t.middleware(async ({ next }) => {
         }
         return converted;
       }
+
+      return obj;
     } catch (error) {
       console.error("Error converting BN to string", error);
       return obj;
@@ -72,5 +69,7 @@ const bnToStringMiddleware = t.middleware(async ({ next }) => {
   
   return result;
 });
+
+
 export const router = t.router;
 export const publicProcedure = t.procedure.use(bnToStringMiddleware);

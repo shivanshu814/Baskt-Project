@@ -274,11 +274,11 @@ const getExplorePageBaskts = publicProcedure
 
         return {
           baskt: {
-            name: baskt.name || '',
-            basktId: baskt.basktId || '',
-            creator: baskt.creator || '',
-            status: baskt.status || '',
-            isPublic: baskt.isPublic || false,
+            name: baskt.name,
+            basktId: baskt.basktId,
+            creator: baskt.creator,
+            status: baskt.status,
+            isPublic: baskt.isPublic,
             totalAssets: baskt.assets.length || 0,
           },
           rebalance: {
