@@ -27,10 +27,10 @@ const bnToStringMiddleware = t.middleware(async ({ next }) => {
     try {
 
       if(depth > 10) {
-        return 5;
+        return obj;
       }
       
-      if (obj === null || obj === undefined || Object.keys(obj).length === 0 || obj === '' || obj ) {
+      if (obj === null || obj === undefined || Object.keys(obj).length === 0 || obj === '' ) {
         return obj;
       }
 
