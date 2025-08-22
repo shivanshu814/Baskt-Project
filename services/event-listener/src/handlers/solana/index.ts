@@ -17,6 +17,7 @@ import withdrawalQueuedHandler from './withdrawal-queued';
 import withdrawQueueProcessedHandler from './withdraw-queue-processed';
 import { basktClosedHandler, basktDecommissioningInitiatedHandler } from './baskt-lifecycle';
 import basktActivatedHandler from './baskt-activated';
+import liquidityPoolInitializedHandler from './liquidity-pool-initialized';
 
 export default function registerAllHandlers(router: ObserverRouter) {
   // Register baskt handlers
@@ -40,11 +41,11 @@ export default function registerAllHandlers(router: ObserverRouter) {
   
   // Register liquidity handlers
   router.register(EventSource.SOLANA, liquidityAddedHandler.type, liquidityAddedHandler.handler);
-
-  // Register protocol state handlers
-  router.register(EventSource.SOLANA, protocolStateUpdatedHandler.type, protocolStateUpdatedHandler.handler);
-  
+  router.register(EventSource.SOLANA, liquidityPoolInitializedHandler.type, liquidityPoolInitializedHandler.handler);
   // Register withdrawal handlers
   router.register(EventSource.SOLANA, withdrawalQueuedHandler.type, withdrawalQueuedHandler.handler);
   router.register(EventSource.SOLANA, withdrawQueueProcessedHandler.type, withdrawQueueProcessedHandler.handler);
+
+  // Register protocol state handlers
+  router.register(EventSource.SOLANA, protocolStateUpdatedHandler.type, protocolStateUpdatedHandler.handler);
 }
