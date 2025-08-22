@@ -12,7 +12,7 @@ import pLimit from 'p-limit';
 /* -------------------------------------------------------------------------- */
 const PROGRAM_ROOT = path.resolve(__dirname, '..');
 const TESTS_ROOT = path.join(PROGRAM_ROOT, 'tests');
-const PROGRAM_ID = '8JaW8fhu46ii83WapMp64i4B4bKTM76XUSXftJfHfLyg';
+const PROGRAM_ID = 'EwEg2kTxcKDX8uhWFUDUJRXcYRSfUfDSekDrAHNVTTuK';
 const PROGRAM_SO = path.join(PROGRAM_ROOT, 'target', 'deploy', 'baskt.so');
 const MAX_VALIDATOR_STARTUP_MS = 60_000;
 const VALIDATOR_POLL_INTERVAL_MS = 500;

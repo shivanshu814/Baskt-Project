@@ -1,5 +1,6 @@
 import { ObjectId } from 'mongoose';
 import { AssetPriceProviderConfig } from '@baskt/types';
+import BN  from 'bn.js';
 
 export interface AssetMetadata {
   _id?: ObjectId;
@@ -10,6 +11,8 @@ export interface AssetMetadata {
     allowLongs: boolean;
     allowShorts: boolean;
   };
+  allTimeLongVolume: BN;
+  allTimeShortVolume: BN;
   isActive: boolean;
   listingTime: number; // Unix timestamp
   // Additional metadata fields for UI

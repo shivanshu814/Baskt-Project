@@ -174,6 +174,7 @@ export interface BasktActivatedEvent {
 export interface BasktRebalancedEvent {
   basktId: PublicKey;
   rebalanceIndex: BN;
+  newNav: BN;
   timestamp: BN;
 }
 

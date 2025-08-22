@@ -37,4 +37,5 @@ export const appRouter = router({
   vault: vaultRouter,
 });
 
+
 export type AppRouter = typeof appRouter;

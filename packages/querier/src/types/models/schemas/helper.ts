@@ -6,8 +6,12 @@ export function BNAndDecimal128(required: boolean, trim: boolean = true) {
         required,
         trim,
         type: mongoose.Schema.Types.Decimal128,
-        get: (v: mongoose.Types.Decimal128) => v ? BigInt(v.toString()) : null,
-        set: (v: string | bigint | number | BN) =>
-            v == null ? v : mongoose.Types.Decimal128.fromString(v.toString())
+        get: (v: mongoose.Types.Decimal128) => {
+            return new BN(v.toString());
+        },
+        set: (v: string | bigint | number | BN) => {
+            return v == null ? v : mongoose.Types.Decimal128.fromString(v.toString())
+        },
+        default: 0,
     };
   }

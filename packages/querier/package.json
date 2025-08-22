@@ -21,6 +21,7 @@
     "bn.js": "^5.2.1",
     "dotenv": "^16.4.7",
     "mongoose": "^8.13.2",
+    "mongoose-lean-getters": "^2.2.2",
     "pg": "^8.16.0",
     "redis": "^4.6.0",
     "sequelize": "^6.37.7",

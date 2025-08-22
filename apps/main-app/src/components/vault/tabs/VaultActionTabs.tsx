@@ -2,7 +2,6 @@ import { Card, CardContent, Tabs, TabsContent, TabsList, TabsTrigger } from '@ba
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { useState } from 'react';
 import { useUSDCBalance } from '../../../hooks/pool/use-usdc-balance';
-import { useVaultData } from '../../../hooks/vault/use-vault-data';
 import { useDeposit, useVaultTabs, useWithdraw } from '../../../hooks/vault/use-vault-operations';
 import { VaultActionTabsProps } from '../../../types/vault';
 import { ActionCard } from './ActionCard';
@@ -10,9 +9,10 @@ import { ActionCard } from './ActionCard';
 export function VaultActionTabs({
   statistics,
   userWithdrawalData,
+  poolData,
+  liquidityPool,
   onVaultOperationSuccess,
 }: VaultActionTabsProps) {
-  const { poolData, liquidityPool } = useVaultData();
   const { balance } = useUSDCBalance();
   const userUSDCBalance = balance || '0';
   const userLpBalance = userWithdrawalData?.totalWithdrawals?.toString() || '0';

@@ -10,7 +10,7 @@ import { VaultActionTabs } from '../../components/vault/tabs/VaultActionTabs';
 import { useVaultData } from '../../hooks/vault/use-vault-data';
 
 export default function VaultPage() {
-  const { wallet } = useBasktClient();
+  const { wallet, client } = useBasktClient();
 
   const {
     data: enhancedVaultData,
@@ -48,6 +48,8 @@ export default function VaultPage() {
         <div className="w-full lg:w-[400px]">
           <VaultActionTabs
             statistics={enhancedVaultData?.statistics}
+            poolData={enhancedVaultData?.poolData}
+            liquidityPool={client?.liquidityPoolPDA}
             userWithdrawalData={enhancedVaultData?.userWithdrawalData}
             onVaultOperationSuccess={refetchEnhancedVaultData}
           />

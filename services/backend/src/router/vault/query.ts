@@ -1,4 +1,4 @@
-import { PRICE_PRECISION } from '@baskt/ui';
+import { PRICE_PRECISION } from '@baskt/sdk';
 import BN from 'bn.js';
 import { z } from 'zod';
 import { publicProcedure } from '../../trpc/trpc';
@@ -18,78 +18,29 @@ export const getVaultData = publicProcedure
     try {
       const [
         poolResult,
-        feeStatsResult,
-        positionsResult,
-        basktsResult,
         assetsResult,
-        ...conditionalResults
+        withdrawQueueStatsResult,
+        userDepositsResult,
       ] = await Promise.all([
         querier.pool.getLiquidityPool(),
-        querier.feeEvent.getFeeEventStatsOnly(),
-        querier.position.getPositions({ isActive: true }),
-        querier.baskt.getAllBaskts({
-          withPerformance: false,
-          hidePrivateBaskts: false,
-        }),
         querier.asset.getAllAssets(),
-        ...(userAddress
-          ? [
-              querier.withdrawQueue.getUserWithdrawQueueItems(userAddress),
-              querier.withdrawQueue.getWithdrawQueueStats(userAddress),
-              querier.pool.getUserDeposits(userAddress),
-              querier.pool.getUserWithdrawals(userAddress),
-            ]
-          : []),
-        ...(fullData
-          ? [
-              querier.withdrawQueue.getWithdrawQueue(),
-              querier.withdrawQueue.getWithdrawQueueStats(),
-              querier.pool.getAllUsersDeposits(),
-              querier.pool.getAllUsersWithdrawals(),
-            ]
-          : []),
+        querier.withdrawQueue.getWithdrawQueueStats(),
+        userAddress ? querier.pool.getUserDeposits(userAddress) : [],
       ]);
 
-      if (!poolResult.success || !poolResult.data) {
-        logger.error('Failed to fetch liquidity pool data');
+      if (!poolResult.success || !poolResult.data || !assetsResult.success || !assetsResult.data || !withdrawQueueStatsResult.success || !withdrawQueueStatsResult.data) {
+        logger.error('Failed to fetch vault data');
         return {
           success: false,
-          error: 'Failed to fetch liquidity pool data',
+          error: 'Failed to fetch vault data',
         };
       }
 
       const poolData = poolResult.data;
-      const totalValueLocked = parseFloat(poolData.totalLiquidity.toString()) / PRICE_PRECISION;
+      const totalValueLocked = new BN(poolData.totalLiquidity.toString()).div(new BN(PRICE_PRECISION));
 
-      let apr = 0;
-      let fees = 0;
-
-      if (feeStatsResult.success && feeStatsResult.data) {
-        const totalFeesRaw = feeStatsResult.data.totalFees;
-        const totalFees = parseFloat(totalFeesRaw.toString()) / PRICE_PRECISION;
-
-        if (totalValueLocked > 0 && totalFees > 0) {
-          const dailyFeeRate = totalFees / totalValueLocked / 30;
-          const annualizedRate = dailyFeeRate * 365;
-          apr = Math.min(annualizedRate, 25);
-        } else {
-          logger.warn('APR calculation skipped - invalid inputs:', {
-            totalValueLocked,
-            totalFees,
-            feeStatsData: feeStatsResult.data,
-          });
-        }
-
-        fees = Number(totalFees.toFixed(6));
-      } else {
-        logger.warn('Fee stats call failed or no data');
-      }
-
-      const assetExposures = calculateAssetExposures(
-        positionsResult.success && positionsResult.data ? positionsResult.data : [],
-        assetsResult.success && assetsResult.data ? assetsResult.data : [],
-        basktsResult.success && basktsResult.data ? basktsResult.data : [],
-      );
+      let apr = poolData.fees.latestApr;
+      let fees = poolData.fees.totalFeesCollected.toString();
 
       const enhancedPoolData = {
         totalLiquidity: poolData.totalLiquidity.toString(),
@@ -110,184 +61,32 @@ export const getVaultData = publicProcedure
         apr: Number(apr.toFixed(6)),
         totalFeesEarned: fees.toString(),
 
-        recentFeeData:
-          feeStatsResult.success && feeStatsResult.data
-            ? {
-                totalFees: feeStatsResult.data.totalFees.toString(),
-                totalFeesToBlp: feeStatsResult.data.totalFeesToBlp?.toString() || '0',
-                eventCount: feeStatsResult.data.totalEvents || 0,
-                timeWindowDays: 30,
-              }
-            : {
-                totalFees: '0',
-                totalFeesToBlp: '0',
-                eventCount: 0,
-                timeWindowDays: 30,
-              },
-
-        feeStats:
-          feeStatsResult.success && feeStatsResult.data
-            ? {
-                totalEvents: feeStatsResult.data.totalEvents || 0,
-                totalFees: feeStatsResult.data.totalFees || 0,
-                totalFeesToTreasury: feeStatsResult.data.totalFeesToTreasury || 0,
-                totalFeesToBlp: feeStatsResult.data.totalFeesToBlp || 0,
-                eventTypeBreakdown: feeStatsResult.data.eventTypeBreakdown || [],
-              }
-            : null,
       };
+
+      const assetExpoures = assetsResult.data.map((asset) => {
+        return {
+          assetAddress: asset.assetAddress,
+          assetName: asset.name,
+          ticker: asset.ticker,
+          longExposure: asset.exposure?.longOpenInterest,
+          shortExposure: asset.exposure?.shortOpenInterest,
+          nextExposure: asset.volume?.longVolume.sub(asset.volume?.shortVolume).toString(),
+        }
+      })
 
       const baseResponse = {
         poolData: enhancedPoolData,
         apr: Number(apr.toFixed(6)),
         allocation: {
-          totalValueLocked,
-          allocationData: assetExposures,
+          totalValueLocked: totalValueLocked.toString(),
+          allocationData: assetExpoures,
         },
         statistics: {
-          fees: Number(fees.toFixed(6)),
-          blpPrice:
-            totalValueLocked > 0 && parseFloat(poolData.totalShares.toString()) > 0
-              ? Number(
-                  (
-                    totalValueLocked /
-                    (parseFloat(poolData.totalShares.toString()) / PRICE_PRECISION)
-                  ).toFixed(6),
-                )
-              : 1.0,
-          totalSupply: Number(
-            (parseFloat(poolData.totalShares.toString()) / PRICE_PRECISION).toFixed(6),
-          ),
+          fees: Number(fees),
+          blpPrice: totalValueLocked.mul(new BN(PRICE_PRECISION)).div(new BN(poolData.totalShares.toString())).div(PRICE_PRECISION).toString(),
+          totalSupply: new BN(poolData.totalShares.toString()).div(new BN(PRICE_PRECISION)).toString(),
         },
       };
-
-      if (userAddress) {
-        const userResults = conditionalResults.slice(0, 4);
-        const [withdrawQueueResult, withdrawStatsResult, userDepositsResult] = userResults;
-
-        const withdrawStats =
-          withdrawStatsResult?.success &&
-          withdrawStatsResult.data &&
-          'totalQueueItems' in withdrawStatsResult.data
-            ? withdrawStatsResult.data
-            : { totalQueueItems: 0, averageProcessingTime: 0 };
-
-        const withdrawRequests =
-          withdrawQueueResult?.success &&
-          withdrawQueueResult.data &&
-          Array.isArray(withdrawQueueResult.data)
-            ? withdrawQueueResult.data.map((item: any) => ({
-                amount: parseFloat(item.lpAmount) / PRICE_PRECISION,
-                status: item.status,
-                requestedAt: item.requestedAt,
-                userAddress: item.providerAddress,
-              }))
-            : [];
-
-        const userTotalDeposits =
-          userDepositsResult?.success &&
-          userDepositsResult.data &&
-          'totalDeposits' in userDepositsResult.data
-            ? userDepositsResult.data.totalDeposits || 0
-            : 0;
-
-        const userTotalShares =
-          userDepositsResult?.success &&
-          userDepositsResult.data &&
-          'totalShares' in userDepositsResult.data
-            ? userDepositsResult.data.totalShares || 0
-            : 0;
-
-        const totalPendingWithdrawals = withdrawRequests.reduce(
-          (sum: number, req: any) => sum + req.amount,
-          0,
-        );
-        const netWithdrawals = userTotalShares - totalPendingWithdrawals;
-
-        return {
-          success: true,
-          data: {
-            ...baseResponse,
-            userDepositData: { totalDeposits: userTotalDeposits },
-            userWithdrawalData: { totalWithdrawals: netWithdrawals },
-            userWithdraw: {
-              totalWithdrawalsInQueue: withdrawStats.totalQueueItems,
-              totalWithdrawalsInCompleted: withdrawRequests.filter(
-                (req: any) => req.status === 'completed',
-              ).length,
-              withdrawRequests,
-            },
-          },
-        };
-      }
-
-      if (fullData) {
-        const fullDataResults = conditionalResults.slice(0, 4);
-        const [
-          withdrawQueueResult,
-          withdrawStatsResult,
-          allUsersDepositsResult,
-          allUsersWithdrawalsResult,
-        ] = fullDataResults;
-
-        const withdrawStats =
-          withdrawStatsResult?.success &&
-          withdrawStatsResult.data &&
-          'totalQueueItems' in withdrawStatsResult.data
-            ? withdrawStatsResult.data
-            : { totalQueueItems: 0, averageProcessingTime: 0 };
-
-        const withdrawRequests =
-          withdrawQueueResult?.success &&
-          withdrawQueueResult.data &&
-          Array.isArray(withdrawQueueResult.data)
-            ? withdrawQueueResult.data.map((item: any) => ({
-                amount: parseFloat(item.lpAmount) / PRICE_PRECISION,
-                status: item.status,
-                requestedAt: item.requestedAt,
-                userAddress: item.providerAddress,
-              }))
-            : [];
-
-        const totalInWithdrawQueue = withdrawRequests.reduce(
-          (sum: number, req: any) => sum + req.amount,
-          0,
-        );
-
-        const usersDepositData =
-          allUsersDepositsResult?.success &&
-          allUsersDepositsResult.data &&
-          Array.isArray(allUsersDepositsResult.data)
-            ? allUsersDepositsResult.data
-            : [];
-
-        const usersWithdrawalData =
-          allUsersWithdrawalsResult?.success &&
-          allUsersWithdrawalsResult.data &&
-          Array.isArray(allUsersWithdrawalsResult.data)
-            ? allUsersWithdrawalsResult.data
-            : [];
-
-        return {
-          success: true,
-          data: {
-            ...baseResponse,
-            deposit: {
-              totalDeposits: totalValueLocked,
-              usersDepositData,
-            },
-            withdraw: {
-              totalWithdrawals: totalValueLocked - totalInWithdrawQueue,
-              totalWithdrawalsInQueue: withdrawStats.totalQueueItems,
-              totalWithdrawalsInCompleted: withdrawRequests.filter(
-                (req: any) => req.status === 'completed',
-              ).length,
-              usersWithdrawalData,
-              withdrawRequests,
-            },
-          },
-        };
-      }
 
       return {
         success: true,

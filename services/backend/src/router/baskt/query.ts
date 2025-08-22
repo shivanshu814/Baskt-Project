@@ -1,18 +1,17 @@
-import { calculateCurrentWeights } from '@baskt/sdk';
+import { calculateCurrentWeights, PRICE_PRECISION } from '@baskt/sdk';
 import { PositionStatus } from '@baskt/types';
 import { z } from 'zod';
 import { publicProcedure } from '../../trpc/trpc';
 import { querier } from '../../utils/';
 import logger from '../../utils/logger';
+import BN from 'bn.js';
 
 // get baskt metadata by id
 const getBasktMetadataByAddress = publicProcedure
   .input(z.object({ basktId: z.string(), withPerformance: z.boolean().default(false) }))
   .query(async ({ input }) => {
     try {
-      const result = await querier.baskt.getBasktByAddress(input.basktId, {
-        withPerformance: input.withPerformance,
-      });
+      const result = await querier.baskt.getBasktByAddress(input.basktId);
       return result;
     } catch (error) {
       console.error('Error fetching baskt metadata:', error);
@@ -28,14 +27,12 @@ const getBasktMetadataByAddress = publicProcedure
 const getAllBaskts = publicProcedure
   .input(
     z.object({
-      withPerformance: z.boolean().default(false),
-      hidePrivateBaskts: z.boolean().default(false),
+      hidePrivateBaskts: z.boolean().default(true),
     }),
   )
   .query(async ({ input }) => {
     try {
       const result = await querier.baskt.getAllBaskts({
-        withPerformance: input.withPerformance,
         hidePrivateBaskts: input.hidePrivateBaskts,
       });
       return result;
@@ -50,13 +47,7 @@ const getBasktNAV = publicProcedure
   .input(z.object({ basktId: z.string() }))
   .query(async ({ input }) => {
     try {
-      console.log('[Backend] getBasktNAV input:', input);
       const result = await querier.baskt.getBasktNAV(input.basktId);
-      console.log('[Backend] getBasktNAV result:', {
-        success: result?.success,
-        hasData: !!result?.data,
-        message: (result as any)?.message,
-      });
       return result;
     } catch (error) {
       console.error('Error fetching baskt NAV:', error);
@@ -126,13 +117,11 @@ const getBatchBasktNAV = publicProcedure
 
 // get baskt metadata by name
 const getBasktMetadataByName = publicProcedure
-  .input(z.object({ basktName: z.string(), withPerformance: z.boolean().default(false) }))
+  .input(z.object({ basktName: z.string() }))
   .query(async ({ input }) => {
     try {
       logger.info('[Backend] getBasktMetadataByName input:', input);
-      const result = await querier.baskt.getBasktByUID(input.basktName, {
-        withPerformance: input.withPerformance,
-      });
+      const result = await querier.baskt.getBasktByUID(input.basktName);
       logger.info('[Backend] getBasktMetadataByName result:', {
         success: result?.success,
         hasData: !!result?.data,
@@ -251,21 +240,20 @@ const getExplorePageBaskts = publicProcedure
   .input(
     z.object({
       userAddress: z.string().optional(),
-      withPerformance: z.boolean().default(true),
       dataType: z
-        .enum(['baskts', 'publicBaskts', 'trendingBaskts', 'yourBaskts', 'combinedBaskts'])
-        .default('combinedBaskts'),
-      includeCurrentWeights: z.boolean().default(true),
+        .enum(['all', 'yourBaskts'])
+        .default('all'),
     }),
   )
   .query(async ({ input }) => {
     try {
       logger.info('[Backend] getExplorePageBaskts triggered');
 
-      const basktsResult = await querier.baskt.getAllBaskts({
-        withPerformance: input.withPerformance,
-        hidePrivateBaskts: false,
+      let basktsResult = await querier.baskt.getAllBaskts({
+        hidePrivateBaskts: true,
+        userAddress: input.dataType === 'yourBaskts' ? input.userAddress : undefined,
       });
+
 
       if (!basktsResult.success || !basktsResult.data) {
         return {
@@ -274,232 +262,74 @@ const getExplorePageBaskts = publicProcedure
           data: null,
         };
       }
+      const basktsRefined = basktsResult.data.map((baskt) => {
 
-      const rawBaskts = basktsResult.data;
+        const totalOIContracts = new BN(baskt.stats.longOpenInterestContracts.toString() ).add(new BN(baskt.stats.shortOpenInterestContracts.toString() || '0'));
+        const totalOIUSDC = totalOIContracts.mul(new BN(baskt.price)).div(new BN(PRICE_PRECISION)).toString();
 
-      if (rawBaskts.length === 0) {
-        return {
-          success: true,
-          data: [],
-          message: 'No baskts found',
-          userAddress: input.userAddress,
-        };
-      }
+        const totalVolume = new BN(baskt.stats.longAllTimeVolume.toString()).add(new BN(baskt.stats.shortAllTimeVolume.toString()));
 
-      const basktIds = rawBaskts.map((b) => b.basktId?.toString() || '').filter(Boolean);
-
-      const [batchNavData, oiResults] = await Promise.all([
-        basktIds.length > 0
-          ? (async () => {
-              try {
-                const navPromises = basktIds.map(async (basktId) => {
-                  try {
-                    const result = await querier.baskt.getBasktNAV(basktId);
-                    return {
-                      basktId,
-                      success: result.success,
-                      nav: result.success ? result.data?.nav : null,
-                      error: result.success ? null : result.message,
-                    };
-                  } catch (error) {
-                    return {
-                      basktId,
-                      success: false,
-                      nav: null,
-                      error: error instanceof Error ? error.message : 'Unknown error',
-                    };
-                  }
-                });
-
-                const navResults = await Promise.all(navPromises);
-                return {
-                  success: true,
-                  data: navResults,
-                  message: `Successfully fetched NAV data for ${navResults.length} baskts`,
-                };
-              } catch (error) {
-                logger.error('Error fetching batch NAV data:', error);
-                return { success: false, data: [], message: 'Failed to fetch NAV data' };
-              }
-            })()
-          : Promise.resolve({ success: false, data: [], message: 'No baskts to fetch NAV for' }),
-
-        (async () => {
-          try {
-            const oiPromises = rawBaskts.map(async (baskt) => {
-              try {
-                const oiResult = await querier.metrics.getOpenInterestForBaskt({
-                  basktId: baskt.basktId?.toString() || '',
-                  positionStatus: PositionStatus.OPEN,
-                });
-                return {
-                  basktId: baskt.basktId?.toString(),
-                  totalOI: oiResult.success ? oiResult.data?.totalOpenInterest || 0 : 0,
-                };
-              } catch (error) {
-                return {
-                  basktId: baskt.basktId?.toString(),
-                  totalOI: 0,
-                };
-              }
-            });
-
-            return await Promise.all(oiPromises);
-          } catch (error) {
-            logger.error('Error fetching open interest data:', error);
-            return rawBaskts.map((baskt) => ({
-              basktId: baskt.basktId?.toString(),
-              totalOI: 0,
-            }));
-          }
-        })(),
-      ]);
-
-      const navLookup = new Map();
-      const oiLookup = new Map();
-
-      if (batchNavData.success && batchNavData.data) {
-        batchNavData.data.forEach((nav: any) => {
-          if (nav.success && nav.nav !== null) {
-            navLookup.set(nav.basktId, nav.nav);
-          }
-        });
-      }
-
-      oiResults.forEach((oi) => {
-        oiLookup.set(oi.basktId, oi.totalOI);
-      });
-
-      const basktsWithNav = rawBaskts.map((baskt) => {
-        const basktId = baskt.basktId?.toString() || '';
-
-        const currentNav =
-          navLookup.get(basktId) || parseFloat(baskt.baselineNav?.toString() || '0') || 0;
-
-        const totalOI = oiLookup.get(basktId) || 0;
-
-        let currentWeights: number[] = [];
-        if (input.includeCurrentWeights && baskt?.assets && baskt.assets.length > 0) {
-          try {
-            currentWeights = calculateCurrentWeights(baskt.assets);
-          } catch (error) {
-            logger.error('Error calculating current weights using SDK:', error);
-            currentWeights = baskt.assets.map((asset: any) => asset.weight);
-          }
-        } else {
-          currentWeights = baskt.assets.map((asset: any) => asset.weight);
-        }
-
-        const assets = (baskt?.assets || []).map((asset: any, index: number) => {
-          const currentWeight = currentWeights[index] || asset?.weight || 0;
-
-          return {
-            id: asset?.id,
-            assetAddress: asset?.assetAddress,
-            logo: asset?.logo,
-            name: asset?.name,
-            ticker: asset?.ticker,
-            priceProvider: asset?.priceConfig?.provider || {},
-            baselinePrice: asset?.baselinePrice || '',
-            direction: asset?.direction || false,
-            weight: asset?.weight || 0,
-            price: asset?.price || null,
-            currentWeight: input.includeCurrentWeights ? currentWeight : undefined,
-          };
-        });
-
-        const rebalancePeriod = baskt?.rebalancePeriod || 0;
-        const rebalancingMode = rebalancePeriod === 0 ? 'Manual' : 'Automatic';
-        const rebalancingPeriod = rebalancePeriod === 0 ? 'Manual' : rebalancePeriod;
+        // get the current weight of the asset in the baskt
+        const currentWeight = calculateCurrentWeights(baskt.assets);
 
         return {
           baskt: {
-            name: baskt?.name || '',
-            basktId: baskt?.basktId || '',
-            creator: baskt?.creator || '',
-            status: baskt?.status || '',
-            isPublic: baskt?.isPublic || false,
-            totalAssets: assets.length,
+            name: baskt.name || '',
+            basktId: baskt.basktId || '',
+            creator: baskt.creator || '',
+            status: baskt.status || '',
+            isPublic: baskt.isPublic || false,
+            totalAssets: baskt.assets.length || 0,
           },
           rebalance: {
-            rebalancePeriod: rebalancePeriod,
-            rebalancingMode: rebalancingMode,
-            rebalancingPeriod: rebalancingPeriod,
-            lastRebalanceTime: baskt?.lastRebalanceTime || 0,
+            rebalancePeriod: baskt.rebalancePeriod || 0,
+            rebalancingMode: baskt.rebalancePeriod === 0 ? 'Manual' : 'Auto',
+            rebalancingPeriod: baskt.rebalancePeriod || 0,
+            lastRebalanceTime: baskt.lastRebalanceTime || 0,
           },
-          assets: assets,
+          assets: baskt.assets.map((asset, index) => {
+            return {
+              id: asset.id,
+              assetAddress: asset.assetAddress,
+              logo: asset.logo,
+              name: asset.name,
+              ticker: asset.ticker,
+              priceProvider: asset.priceConfig?.provider || {},
+              baselinePrice: asset.baselinePrice || '',
+              direction: asset.direction || false,
+              weight: asset.weight || 0,
+              price: asset.price || null,
+              currentWeight: currentWeight[index],
+            };
+          }),
           metrics: {
-            performance: baskt?.performance || { daily: 0, weekly: 0, monthly: 0, year: 0 },
-            openInterest: totalOI,
-            currentNav: currentNav,
-            baselineNav: baskt?.baselineNav || '0',
-          },
+            performance: baskt.performance || { daily: 0, weekly: 0, monthly: 0, year: 0 },
+            openInterest: totalOIUSDC,
+            currentNav: baskt.price || 0,
+            baselineNav: baskt.baselineNav.toString(),
+            totalVolume: totalVolume.toString(),
+          }
         };
       });
 
-      let resultData: any[] = [];
-      let message = '';
+      const publicBaskts = basktsRefined.filter((b) => b.baskt.isPublic);
+      const trendingBaskts = basktsRefined.sort((a, b) => {
+        const dailyPerformanceA = a.metrics.performance.daily || 0;
+        const dailyPerformanceB = b.metrics.performance.daily || 0;
+        return dailyPerformanceB - dailyPerformanceA;
+      });
+      const yourBaskts = basktsRefined.filter((b) => b.baskt.creator.toString() === input.userAddress);
 
-      switch (input.dataType) {
-        case 'baskts':
-          resultData = basktsWithNav;
-          message = 'Successfully fetched baskts';
-          break;
-
-        case 'publicBaskts':
-          resultData = basktsWithNav.filter((b) => b.baskt.isPublic);
-          message = 'Successfully fetched public baskts';
-          break;
-
-        case 'trendingBaskts':
-          resultData = basktsWithNav.filter((b) => {
-            const dailyPerformance = b.metrics?.performance?.daily || 0;
-            return dailyPerformance > 4.0 && b.baskt.isPublic;
-          });
-          message = 'Successfully fetched trending baskts';
-          break;
-
-        case 'yourBaskts':
-          if (!input.userAddress) {
-            return {
-              success: false,
-              message: 'User address required for yourBaskts',
-              data: null,
-            };
-          }
-          resultData = basktsWithNav.filter(
-            (b) => b.baskt.creator?.toString() === input.userAddress,
-          );
-          message = 'Successfully fetched user baskts';
-          break;
-
-        case 'combinedBaskts':
-        default:
-          if (input.userAddress) {
-            const publicBaskts = basktsWithNav.filter((b) => b.baskt.isPublic);
-            const yourBaskts = basktsWithNav.filter(
-              (b) => b.baskt.creator?.toString() === input.userAddress,
-            );
-
-            const combinedMap = new Map();
-            [...publicBaskts, ...yourBaskts].forEach((baskt) => {
-              const key = baskt.baskt.basktId?.toString();
-              if (key) {
-                combinedMap.set(key, baskt);
-              }
-            });
-            resultData = Array.from(combinedMap.values());
-          } else {
-            resultData = basktsWithNav.filter((b) => b.baskt.isPublic);
-          }
-          message = 'Successfully fetched combined baskts';
-          break;
-      }
-
+      let resultData = {
+        publicBaskts: publicBaskts,
+        trendingBaskts: trendingBaskts,
+        yourBaskts: yourBaskts,
+        combinedBaskts: basktsRefined,
+      };
+      
       return {
         success: true,
         data: resultData,
-        message,
         userAddress: input.userAddress,
       };
     } catch (error) {

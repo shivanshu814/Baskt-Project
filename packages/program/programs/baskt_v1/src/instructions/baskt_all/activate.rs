@@ -1,4 +1,4 @@
-use crate::constants::{BASKT_SEED, PROTOCOL_SEED};
+use crate::constants::{BASKT_SEED, PROTOCOL_SEED, PRICE_PRECISION, BASE_NAV};
 use crate::error::PerpetualsError;
 use crate::events::*;
 use crate::state::asset::SyntheticAsset;
@@ -42,6 +42,10 @@ pub fn activate_baskt(ctx: Context<ActivateBaskt>, params: ActivateBasktParams) 
         PerpetualsError::BasktAlreadyActive
     );
     let baskt = &mut ctx.accounts.baskt;
+    let current_nav = BASE_NAV
+        .checked_mul(PRICE_PRECISION)
+        .ok_or(PerpetualsError::MathOverflow)?;
+
 
     // Check if the number of prices matches the number of assets in the baskt
     if params.prices.len() != baskt.current_asset_configs.len() {
@@ -49,7 +53,7 @@ pub fn activate_baskt(ctx: Context<ActivateBaskt>, params: ActivateBasktParams) 
     }
     let clock = Clock::get()?;
     // Activate the baskt with the provided prices
-    baskt.activate(params.prices)?;
+    baskt.activate(params.prices, current_nav)?;
     baskt.funding_index.initialize(clock.unix_timestamp)?;
 
     emit!(BasktActivatedEvent {

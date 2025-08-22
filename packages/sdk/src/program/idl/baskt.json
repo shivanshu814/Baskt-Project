@@ -1,5 +1,5 @@
 {
-  "address": "Bw6sN8LvQMqVhgZYihtkxoYqUZdPZe3vMWJ8N7ba6jLW",
+  "address": "EwEg2kTxcKDX8uhWFUDUJRXcYRSfUfDSekDrAHNVTTuK",
   "metadata": {
     "name": "baskt",
     "version": "0.1.0",
@@ -4265,19 +4265,6 @@
       ]
     },
     {
-      "name": "FundingIndexInitializedEvent",
-      "discriminator": [
-        103,
-        198,
-        106,
-        15,
-        181,
-        173,
-        213,
-        165
-      ]
-    },
-    {
       "name": "FundingIndexUpdatedEvent",
       "discriminator": [
         142,
@@ -4314,19 +4301,6 @@
         180,
         118,
         59
-      ]
-    },
-    {
-      "name": "LiquidityRemovedEvent",
-      "discriminator": [
-        233,
-        117,
-        13,
-        70,
-        229,
-        1,
-        106,
-        215
       ]
     },
     {
@@ -4971,16 +4945,16 @@
             "type": "u32"
           },
           {
-            "name": "baseline_nav",
-            "type": "u64"
-          },
-          {
             "name": "bump",
             "type": "u8"
           },
           {
             "name": "rebalance_period",
             "type": "u32"
+          },
+          {
+            "name": "baseline_nav",
+            "type": "u64"
           },
           {
             "name": "config",
@@ -5172,7 +5146,7 @@
             "type": "u64"
           },
           {
-            "name": "baseline_nav",
+            "name": "new_nav",
             "type": "u64"
           },
           {
@@ -5564,26 +5538,6 @@
       }
     },
     {
-      "name": "FundingIndexInitializedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "baskt_id",
-            "type": "pubkey"
-          },
-          {
-            "name": "initial_index",
-            "type": "i128"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "FundingIndexUpdatedEvent",
       "type": {
         "kind": "struct",
@@ -5807,42 +5761,6 @@
           {
             "name": "initializer",
             "type": "pubkey"
-          },
-          {
-            "name": "timestamp",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "LiquidityRemovedEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "provider",
-            "type": "pubkey"
-          },
-          {
-            "name": "liquidity_pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "shares_burned",
-            "type": "u64"
-          },
-          {
-            "name": "withdrawal_amount",
-            "type": "u64"
-          },
-          {
-            "name": "fee_amount",
-            "type": "u64"
-          },
-          {
-            "name": "net_amount_received",
-            "type": "u64"
           },
           {
             "name": "timestamp",

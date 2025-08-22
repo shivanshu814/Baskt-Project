@@ -61,5 +61,5 @@ export interface BasktNAV {
  */
 export interface BasktQueryOptions {
   hidePrivateBaskts?: boolean;
-  withPerformance: boolean;
+  userAddress?: string;
 } 

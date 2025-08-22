@@ -187,6 +187,7 @@ pub struct Baskt {
     pub last_rebalance_time: u32,
     pub bump: u8,
     pub rebalance_period: u32,
+    pub baseline_nav: u64,
     pub config: BasktConfig,
     pub funding_index: FundingIndex,
     pub rebalance_fee_index: RebalanceFeeIndex,
@@ -222,7 +223,7 @@ impl Baskt {
         self.bump = _bump;
         self.rebalance_period = rebalance_period;
         self.config = BasktConfig::default();
-
+        self.baseline_nav = 0;
         // Initialize rebalance fee index
         self.rebalance_fee_index.initialize(creation_time as i64)?;
 
@@ -230,7 +231,7 @@ impl Baskt {
     }
 
     // Activate the baskt with said prices
-    pub fn activate(&mut self, prices: Vec<u64>) -> Result<()> {
+    pub fn activate(&mut self, prices: Vec<u64>, current_nav: u64) -> Result<()> {
         require!(
             matches!(self.status, BasktStatus::Pending),
             PerpetualsError::BasktAlreadyActive
@@ -254,6 +255,7 @@ impl Baskt {
             .for_each(|(config, price)| {
                 config.baseline_price = price;
             });
+        self.baseline_nav = current_nav;
         Ok(())
     }
 

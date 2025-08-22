@@ -201,6 +201,7 @@ pub struct BasktActivatedEvent {
 pub struct BasktRebalancedEvent {
     pub baskt_id: Pubkey,
     pub rebalance_index: u64,
+    pub new_nav: u64,
     pub timestamp: i64,
 }
 
