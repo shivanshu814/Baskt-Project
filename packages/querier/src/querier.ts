@@ -25,6 +25,7 @@ import { WithdrawQueueQuerier } from './queriers/withdraw-queue.querier';
 import { BaseClient } from '@baskt/sdk';
 import { metadataManager } from './models/metadata-manager';
 import { ProtocolQuerier } from './queriers/protocol.querier';
+import { EventsStorageService } from './services/events-storage';
 
 /**
  * Querier
@@ -56,6 +57,7 @@ export class Querier {
   public feeEvent: FeeEventQuerier;
   public withdrawQueue: WithdrawQueueQuerier;
   public protocol: ProtocolQuerier;
+  public eventsStorage: EventsStorageService;
   // Metadata manager
   public metadata = metadataManager;
 
@@ -74,6 +76,7 @@ export class Querier {
     this.faucet = new FaucetQuerier(basktClient);
     this.pool = new PoolQuerier(basktClient);
     this.withdrawQueue = new WithdrawQueueQuerier(basktClient);
+    this.eventsStorage = EventsStorageService.getInstance();
   }
 
   public static getInstance(basktClient: any): Querier {

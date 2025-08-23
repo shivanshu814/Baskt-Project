@@ -1,4 +1,5 @@
 import { ObjectId } from "mongoose";
+import { RebalanceRequestStatus } from "./schemas/RebalanceRequestSchema";
 
 export interface RebalanceRequestMetadata { 
     _id?: ObjectId;
@@ -8,6 +9,7 @@ export interface RebalanceRequestMetadata {
     rebalanceRequestFee: number;
     timestamp: number;
     txSignature: string;
+    status: RebalanceRequestStatus;
     createdAt?: Date;
     updatedAt?: Date;
 }

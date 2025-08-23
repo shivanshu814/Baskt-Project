@@ -19,6 +19,7 @@ import { basktClosedHandler, basktDecommissioningInitiatedHandler } from './bask
 import basktActivatedHandler from './baskt-activated';
 import liquidityPoolInitializedHandler from './liquidity-pool-initialized';
 
+
 export default function registerAllHandlers(router: ObserverRouter) {
   // Register baskt handlers
   router.register(EventSource.SOLANA, basktCreatedHandler.type, basktCreatedHandler.handler);

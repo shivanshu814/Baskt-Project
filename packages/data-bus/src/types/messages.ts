@@ -1,4 +1,4 @@
-import { OnchainOrder, OrderAction, OrderType } from '@baskt/types';
+import { OnchainOrder, RebalanceRequestEvent } from '@baskt/types';
 import BN from 'bn.js';
 
 // Order events - matching blockchain events exactly
@@ -20,6 +20,13 @@ export interface OrderRejected {
 
 export interface BasktCreatedMessage {
   basktId: string;
+  timestamp: string;
+  txSignature: string;
+}
+
+
+export interface RebalanceRequestedMessage {
+  rebalanceRequest: RebalanceRequestEvent;
   timestamp: string;
   txSignature: string;
 }

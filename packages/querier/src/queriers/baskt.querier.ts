@@ -355,7 +355,6 @@ export class BasktQuerier {
       console.error('Error calculating NAV:', error);
       price = new BN(0);
     }
-    console.log(basktMetadata.stats);
 
     return {
       ...basktMetadata,
@@ -379,6 +378,10 @@ export class BasktQuerier {
   // Rebalance request methods
   async createRebalanceRequest(rebalanceRequest: RebalanceRequestMetadata): Promise<void> {
     await RebalanceRequestModel.create(rebalanceRequest);
+  }
+
+  async getRebalanceRequest(basktId: string, txSignature: string): Promise<any> {
+    return await RebalanceRequestModel.findOne({ basktId, txSignature });
   }
 
   // Rebalance history methods

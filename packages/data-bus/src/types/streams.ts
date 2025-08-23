@@ -2,6 +2,9 @@ export const STREAMS = {
   baskt: {
     created: 'baskt.created'
   },
+  rebalance: {
+    requested: 'rebalance.requested'
+  },
   price: {
     update: 'price.update',
     nav: 'basket.nav'

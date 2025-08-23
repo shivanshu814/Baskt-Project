@@ -1,14 +1,17 @@
-import { BasktCreatedMessage, logger } from '@baskt/data-bus';
+import { BasktCreatedMessage, logger, RebalanceRequestedMessage } from '@baskt/data-bus';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { basktClient, querierClient } from '../config/client';
-import { BasktStatus, OnchainAssetConfig, OnchainBasktAccount } from '@baskt/types';
-import { CombinedAsset } from '@baskt/querier';
-import { NAV_PRECISION } from '@baskt/sdk';
+import { BasktStatus, OnchainAssetConfig, OnchainBasktAccount, RebalanceRequestEvent } from '@baskt/types';
+import { CombinedAsset, RebalanceRequestStatus } from '@baskt/querier';
+import { BPS_DIVISOR, calculateNav, NAV_PRECISION } from '@baskt/sdk';
 
 
 
 export class BasktExecutor {
+
+  public static readonly REBALANCE_FEE_PER_UNIT_BPS = new BN(10); 
+
   /**
    * Activate a newly created baskt by setting baseline prices
    * Based on baskt-created.ts handler logic
@@ -143,6 +146,54 @@ export class BasktExecutor {
       return result;
     } catch (error) {
       console.error('Error creating baskt metadata:', error);
+      throw error;
+    }
+  }
+
+  async markRequestAsProcessed(basktId: string, txSignature: string) {
+
+    const request = await querierClient.baskt.getRebalanceRequest(basktId, txSignature);
+
+    if (!request) {
+      throw new Error('Request not found');
+    }
+
+    request.txSignature = txSignature;
+    request.status = RebalanceRequestStatus.Processed;
+    await request.save();
+  }
+
+
+  async rebalanceBaskt(rebalanceRequestMessage: RebalanceRequestedMessage): Promise<string> {
+    const { rebalanceRequest, txSignature } = rebalanceRequestMessage;
+    const { basktId } = rebalanceRequest;
+    logger.info('Rebalancing baskt', { basktId });
+    try {
+      const basktResult = await querierClient.baskt.getBasktByAddress(basktId.toString());
+      if (!basktResult.success) {
+        throw new Error('Failed to get baskt');
+      }
+      const baskt = basktResult.data;
+
+      const newNav = new BN(baskt!.price);
+
+      const assetConfigs = baskt!.assets.map((config) => ({
+        assetId: new PublicKey(config.assetAddress),
+        direction: config.direction,
+        weight: new BN(config.weight * 1e4 / 100),
+        baselinePrice: new BN(config.price),
+      } as OnchainAssetConfig));
+
+      const rebalanceTx = await querierClient.getBasktClient().rebalanceBaskt(basktId, assetConfigs, newNav, BasktExecutor.REBALANCE_FEE_PER_UNIT_BPS);
+
+      logger.info('Baskt rebalanced successfully! Transaction:', rebalanceTx);
+      
+      await this.markRequestAsProcessed(basktId.toString(), txSignature);
+  
+      return rebalanceTx;
+
+    } catch (error) {
+      logger.error('Failed to rebalance baskt', { basktId, error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }

@@ -85,8 +85,6 @@ export class OrderWorker extends BaseWorker {
   }
 
   async addJob(jobInfo: JobInfo): Promise<void> {
-
-
     await this.addJobInternal(
       OrderWorker.EXECUTION_JOB_NAME,
       jobInfo,

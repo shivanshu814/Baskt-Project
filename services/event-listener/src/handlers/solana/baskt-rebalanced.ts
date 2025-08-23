@@ -27,8 +27,8 @@ async function basktRebalancedHandler(event: ObserverEvent) {
 
     // The currentAssetConfigs in baskt metadata represents the PREVIOUS state before rebalance
     // The rebalance event contains the NEW state after rebalance
-    const previousBaselineNav = baskt.baselineNav;
-    const previousRebalanceIndex = baskt.rebalanceFeeIndex?.cumulativeIndex ? parseInt(baskt.rebalanceFeeIndex.cumulativeIndex) : 0;
+    const previousBaselineNav = new BN(baskt.baselineNav.toString());
+    const previousRebalanceIndex = new BN(baskt.rebalanceFeeIndex?.cumulativeIndex.toString() || '0');
     
     const previousAssetConfigs = baskt.currentAssetConfigs.map((config: any) => ({
       assetId: config.assetId,
@@ -37,8 +37,11 @@ async function basktRebalancedHandler(event: ObserverEvent) {
       baselinePrice: config.baselinePrice,
     }));
 
+    
+
+
     // Calculate NAV change
-    const navChange = basktRebalancedData.baselineNav.sub(new BN(previousBaselineNav));
+    const navChange = basktRebalancedData.newNav.sub(previousBaselineNav);
     const navChangePercentage = parseFloat(navChange.mul(new BN(10000)).div(new BN(previousBaselineNav)).toString()) / 100;
 
     // Create rebalance history record
@@ -48,13 +51,13 @@ async function basktRebalancedHandler(event: ObserverEvent) {
       txSignature: tx,
       
       // Previous state (from current baskt metadata)
-      previousBaselineNav,
-      previousRebalanceIndex,
+      previousBaselineNav: new BN(previousBaselineNav.toString()),
+      previousRebalanceIndex: new BN(previousRebalanceIndex.toString()),
       previousAssetConfigs,
       
       // New state (from rebalance event)
-      newBaselineNav: basktRebalancedData.baselineNav.toString(),
-      newRebalanceIndex: basktRebalancedData.rebalanceIndex.toNumber(),
+      newBaselineNav: new BN(basktRebalancedData.newNav.toString()),
+      newRebalanceIndex: new BN(basktRebalancedData.rebalanceIndex.toString()),
       newAssetConfigs: basktAccount.currentAssetConfigs.map((config: any) => ({
         assetId: config.assetId,
         weight: config.weight.toString(),
@@ -63,7 +66,7 @@ async function basktRebalancedHandler(event: ObserverEvent) {
       })),
       
       // Performance metrics
-      navChange: navChange.toString(),
+      navChange: new BN(navChange.toString()),
       navChangePercentage,
     });
 

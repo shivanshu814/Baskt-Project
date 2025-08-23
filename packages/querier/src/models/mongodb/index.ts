@@ -11,6 +11,7 @@ import {
   WithdrawalRequestSchema,
   RebalanceRequestSchema,
   BasktRebalanceHistorySchema,
+  SolanaEventsSchema,
 } from '../../types/models';
 import mongoose from 'mongoose';
 import ProtocolMetadataSchema from '../../types/models/schemas/ProtocolMetadataSchema';
@@ -27,6 +28,7 @@ LiquidityDepositSchema.plugin(mongooseLeanGetters);
 WithdrawalRequestSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
 RebalanceRequestSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
 BasktRebalanceHistorySchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
+SolanaEventsSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
 AccessCodeSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
 AuthorizedWalletSchema.plugin(mongooseLeanGetters,  { defaultLeanOptions: { getters: true } });
 
@@ -43,5 +45,6 @@ export const LiquidityDepositModel = mongoose.model('liquidity_deposits', Liquid
 export const WithdrawalRequestModel = mongoose.model('withdrawal_requests', WithdrawalRequestSchema);
 export const RebalanceRequestModel = mongoose.model('rebalance_request', RebalanceRequestSchema);
 export const BasktRebalanceHistoryModel = mongoose.model('baskt_rebalance_history', BasktRebalanceHistorySchema);
+export const SolanaEventsModel = mongoose.model('solana_events', SolanaEventsSchema);
 export const AccessCodeModel = mongoose.model('AccessCode', AccessCodeSchema);
 export const AuthorizedWalletModel = mongoose.model('AuthorizedWallet', AuthorizedWalletSchema);

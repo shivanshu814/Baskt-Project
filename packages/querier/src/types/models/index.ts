@@ -11,6 +11,7 @@ export * from './LiquidityDeposit';
 export * from './WithdrawalRequest';
 export * from './RebalanceRequestMetadata';
 export * from './BasktRebalanceHistory';
+export * from './SolanaEventsMetadata';
 
 export * from './schemas/AssetMetdataSchema';
 export * from './schemas/BasktMetadataSchema';
@@ -22,3 +23,4 @@ export * from './schemas/WithdrawalRequestSchema';
 export * from './schemas/FeeEventMetadataSchema';
 export * from './schemas/RebalanceRequestSchema';
 export * from './schemas/BasktRebalanceHistorySchema';
+export * from './schemas/SolanaEventsSchema';

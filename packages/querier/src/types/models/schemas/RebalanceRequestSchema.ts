@@ -1,5 +1,11 @@
 import mongoose from 'mongoose';
 
+export enum RebalanceRequestStatus {
+  Pending = 'pending',
+  Processed = 'processed',
+  Failed = 'failed',
+}
+
 export const RebalanceRequestSchema = new mongoose.Schema(
   {
     baskt: {
@@ -7,6 +13,11 @@ export const RebalanceRequestSchema = new mongoose.Schema(
       required: true,
       ref: 'baskt_metadata',
       index: true,
+    },
+    status: {
+      type: String,
+      enum: Object.values(RebalanceRequestStatus),
+      default: RebalanceRequestStatus.Pending,
     },
     basktId: {
       type: String,

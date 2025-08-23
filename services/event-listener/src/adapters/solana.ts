@@ -21,7 +21,7 @@ export function initSolanaAdapter(router: ObserverRouter) {
           source: EventSource.SOLANA,
           name: anchorEvent,
           payload: { event, slot, signature },
-        });
+        }, signature); // Pass the transaction signature
       },
       'confirmed',
     );

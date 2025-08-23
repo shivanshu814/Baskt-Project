@@ -1,4 +1,4 @@
-import { BasktCreatedMessage, DataBus, OrderAccepted, OrderRequest, serializeMessage, STREAMS, type StreamName } from '@baskt/data-bus';
+import { BasktCreatedMessage, DataBus, OrderAccepted, OrderRequest, RebalanceRequestedMessage, serializeMessage, STREAMS, type StreamName } from '@baskt/data-bus';
 import { OrderAction } from '@baskt/types';
 import BN from 'bn.js';
 
@@ -111,6 +111,12 @@ export class StreamPublisher {
 
   async publishBasktCreated(payload: BasktCreatedMessage): Promise<void> {
     await this.safePublish(STREAMS.baskt.created, payload, { basktId: payload.basktId });
+  }
+
+  async publishRebalanceRequested(payload: RebalanceRequestedMessage): Promise<void> {
+    await this.safePublish(STREAMS.rebalance.requested, payload, {
+      basktId: payload.rebalanceRequest.basktId,
+    });
   }
 
 

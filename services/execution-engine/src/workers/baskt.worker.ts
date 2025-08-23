@@ -1,15 +1,15 @@
 import { Job } from 'bullmq';
-import { BasktCreatedMessage, logger, DataBus } from '@baskt/data-bus';
+import { BasktCreatedMessage, logger, DataBus, STREAMS, RebalanceRequestedMessage, RebalanceRequestPayload } from '@baskt/data-bus';
 import { BasktExecutor } from '../executors/baskt.executor';
 import { TransactionPublisher } from '../publishers/transaction.publisher';
 import { IdempotencyTracker } from '../utils/idempotency';
 import { BaseWorker, JobInfo } from './base.worker';
+import { RebalanceRequestEvent } from '@baskt/types';
 
 export class BasktWorker extends BaseWorker {
   private executor: BasktExecutor;
   private publisher: TransactionPublisher;
 
-  public static readonly ACTIVATION_JOB_NAME = 'baskt-activation';
   public static readonly QUEUE_NAME = 'baskt-execution';
 
   constructor(dataBus: DataBus) {
@@ -26,23 +26,27 @@ export class BasktWorker extends BaseWorker {
     this.publisher = new TransactionPublisher(dataBus);
   }
 
-  protected async processJob(jobInfo: JobInfo, job: Job): Promise<void> {
+  private async ensureJobIsNotAlreadyProcessing(baskId: string, jobInfo: JobInfo, job: Job): Promise<void> {
+    // Check idempotency
+    const existingTx = await IdempotencyTracker.getTransaction(baskId, jobInfo.jobType);
+    if (existingTx) {
+      logger.info('Baskt already processed', { basktId: baskId, tx: existingTx });
+      return;
+    }
+
+    // Acquire processing lock
+    const acquired = await IdempotencyTracker.checkAndSet(baskId, jobInfo.jobType);
+    if (!acquired) {
+      logger.warn('Baskt already being processed', { basktId: baskId });
+      return;
+    }
+  }
+
+  private async processBasktCreated(jobInfo: JobInfo, job: Job): Promise<void> {
     const basktMessage = jobInfo.data as BasktCreatedMessage;
 
     try {
-      // Check idempotency
-      const existingTx = await IdempotencyTracker.getTransaction(basktMessage.basktId, 'ACTIVATE');
-      if (existingTx) {
-        logger.info('Baskt already processed', { basktId: basktMessage.basktId, tx: existingTx });
-        return;
-      }
-
-      // Acquire processing lock
-      const acquired = await IdempotencyTracker.checkAndSet(basktMessage.basktId, 'ACTIVATE');
-      if (!acquired) {
-        logger.warn('Baskt already being processed', { basktId: basktMessage.basktId });
-        return;
-      }
+      await this.ensureJobIsNotAlreadyProcessing(basktMessage.basktId, jobInfo, job);
 
       logger.info('Processing baskt activation', { basktId: basktMessage.basktId });
 
@@ -50,7 +54,7 @@ export class BasktWorker extends BaseWorker {
       const txSignature = await this.executor.activateBaskt(basktMessage);
 
       // Record for idempotency
-      await IdempotencyTracker.recordTransaction(basktMessage.basktId, 'ACTIVATE', txSignature);
+      await IdempotencyTracker.recordTransaction(basktMessage.basktId, jobInfo.jobType, txSignature);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -66,9 +70,33 @@ export class BasktWorker extends BaseWorker {
     }
   }
 
+  private async processRebalanceRequested(jobInfo: JobInfo, job: Job): Promise<void> {
+  const rebalanceRequest = jobInfo.data as RebalanceRequestedMessage;
+    try {
+      await this.ensureJobIsNotAlreadyProcessing(rebalanceRequest.rebalanceRequest.basktId.toString(), jobInfo, job);
+      logger.info('Processing rebalance requested', { basktId: rebalanceRequest.rebalanceRequest.basktId.toString() });
+      const txSignature = await this.executor.rebalanceBaskt(jobInfo.data);
+      await IdempotencyTracker.recordTransaction(rebalanceRequest.rebalanceRequest.basktId.toString(), jobInfo.jobType, txSignature);
+      logger.info('Rebalance requested processed', { basktId: rebalanceRequest.rebalanceRequest.basktId.toString() });
+
+    } catch (error) {
+      console.log(error);
+      logger.error('Rebalance requested failed', { error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+
+  protected async processJob(jobInfo: JobInfo, job: Job): Promise<void> {
+    if (jobInfo.jobType === STREAMS.baskt.created) {
+      await this.processBasktCreated(jobInfo, job);
+    } else if (jobInfo.jobType === STREAMS.rebalance.requested) {
+      await this.processRebalanceRequested(jobInfo, job);
+    }
+  }
+
   async addJob(jobInfo: JobInfo): Promise<void> {
     await this.addJobInternal(
-      BasktWorker.ACTIVATION_JOB_NAME,
+      jobInfo.jobType,
       jobInfo,
       {
         jobId: jobInfo.jobId,

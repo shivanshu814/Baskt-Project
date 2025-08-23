@@ -1,4 +1,4 @@
-import { DataBus, STREAMS, MessageEnvelope, OrderAccepted, logger, BasktCreatedMessage } from '@baskt/data-bus';
+import { DataBus, STREAMS, MessageEnvelope, OrderAccepted, logger, BasktCreatedMessage, RebalanceRequestedMessage } from '@baskt/data-bus';
 import { OrderWorker } from './workers/order.worker';
 import { ExecutionConfig } from './types';
 import { BasktWorker } from './workers';
@@ -45,11 +45,28 @@ export class ExecutionService {
       }
     );
 
+    this.dataBus.consume(
+      STREAMS.rebalance.requested,
+      'execution',
+      `execution-${process.env.INSTANCE_ID || '1'}`,
+      async (envelope: MessageEnvelope<RebalanceRequestedMessage>) => {
+        await this.handleRebalanceRequested(envelope);
+      }
+    );
+
     // Start worker
     await this.asyncWorkers.order.start();
     await this.asyncWorkers.baskt.start();
     this.isRunning = true;
     logger.info('Execution service started');
+  }
+
+  private async handleRebalanceRequested(envelope: MessageEnvelope<RebalanceRequestedMessage>): Promise<void> {
+    await this.asyncWorkers.baskt.addJob({
+      data: envelope.payload,
+      jobType: STREAMS.rebalance.requested,
+      jobId: envelope.id
+    });
   }
 
 

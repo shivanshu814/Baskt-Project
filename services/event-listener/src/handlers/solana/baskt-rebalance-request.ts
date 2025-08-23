@@ -2,7 +2,9 @@ import { RebalanceRequestEvent} from '@baskt/types';
 import { ObserverEvent } from '../../types';
 import { EventSource } from '../../types';
 import { querierClient } from '../../utils/config';
-import { FeeEventMetadata, FeeEvents } from '@baskt/querier';
+import { FeeEventMetadata, FeeEvents, RebalanceRequestStatus } from '@baskt/querier';
+import { BN } from 'bn.js';
+import { getStreamPublisher } from 'src/utils/stream-publisher';
 
 
 async function createRebalanceRequest(rebalanceRequestData: RebalanceRequestEvent, signature: string) {
@@ -15,9 +17,10 @@ async function createRebalanceRequest(rebalanceRequestData: RebalanceRequestEven
         baskt: baskt.data._id!,
         basktId: rebalanceRequestData.basktId.toString(),
         creator: rebalanceRequestData.creator.toString(),
-        rebalanceRequestFee: rebalanceRequestData.rebalanceRequestFee.toString(),
+        rebalanceRequestFee: Number(rebalanceRequestData.rebalanceRequestFee.toString()),
         timestamp: rebalanceRequestData.timestamp.toNumber(),
         txSignature: signature,
+        status: RebalanceRequestStatus.Pending,
   });
 }
 
@@ -38,13 +41,19 @@ export default {
         feePaidIn: 'SOL',
         basktFee: {
           basktId: rebalanceRequestData.basktId.toString(),
-          rebalanceRequestFee: rebalanceRequestData.rebalanceRequestFee.toString(),
+          creationFee: new BN(0),
+          rebalanceRequestFee: new BN(rebalanceRequestData.rebalanceRequestFee.toString()),
         }
       } as FeeEventMetadata),
       createRebalanceRequest(rebalanceRequestData, signature),
+      (await getStreamPublisher()).publishRebalanceRequested({
+        rebalanceRequest: rebalanceRequestData,
+        timestamp: rebalanceRequestData.timestamp.toString(),
+        txSignature: signature,
+      }),
     ];
 
-      await Promise.all(actions);
+    await Promise.all(actions);
 
     
 
