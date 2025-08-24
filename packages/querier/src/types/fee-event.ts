@@ -44,19 +44,6 @@ export interface FeeEventFilterOptions {
   offset?: number;
 }
 
-/**
- * Fee event statistics
- */
-export interface FeeEventStats {
-  totalEvents: number;
-  eventTypeStats: {
-    _id: string;
-    count: number;
-    totalFeesToTreasury: number;
-    totalFeesToBlp: number;
-    totalFees: number;
-  }[];
-}
 
 /**
  * Fee event query options

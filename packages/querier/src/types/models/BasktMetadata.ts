@@ -33,10 +33,10 @@ export interface BasktMetadata{
     liquidationThresholdBps?: number;
   };
   stats: {
-    change24h: number;
-    change7d: number;
-    change30d: number;
-    change365d: number;
+    change24h?: number;
+    change7d?: number;
+    change30d?: number;
+    change365d?: number;
     longAllTimeVolume: BN;
     shortAllTimeVolume: BN;
     longOpenInterestContracts: BN;

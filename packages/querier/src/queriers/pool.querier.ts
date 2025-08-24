@@ -40,6 +40,11 @@ export class PoolQuerier {
       const data = await LiquidityPoolModel.findOne({
         poolAddress: liquidityPoolPDA.toString(),
       }).lean<LiquidityPoolMetadata>();
+      const protocolMetadata = await ProtocolQuerier.getInstance(
+        this.sdkClient,
+      ).getProtocolMetadata();
+      const minDeposit = protocolMetadata?.config.minLiquidity;
+      const [tokenVault] = await this.sdkClient.getUsdcVaultPda();
 
       if (!data) {
         try {
@@ -50,11 +55,6 @@ export class PoolQuerier {
           }).lean<LiquidityPoolMetadata>();
 
           if (syncedData) {
-            const protocolMetadata = await ProtocolQuerier.getInstance(
-              this.sdkClient,
-            ).getProtocolMetadata();
-            const minDeposit = protocolMetadata?.config.minLiquidity;
-            const [tokenVault] = await this.sdkClient.getUsdcVaultPda();
 
             return {
               success: true,
@@ -74,13 +74,7 @@ export class PoolQuerier {
           error: 'Liquidity pool not found and sync failed',
         };
       }
-
-      const protocolMetadata = await ProtocolQuerier.getInstance(
-        this.sdkClient,
-      ).getProtocolMetadata();
-      const minDeposit = protocolMetadata?.config.minLiquidity;
-      const [tokenVault] = await this.sdkClient.getUsdcVaultPda();
-
+      
       return {
         success: true,
         data: {

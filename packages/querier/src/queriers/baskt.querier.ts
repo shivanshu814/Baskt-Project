@@ -363,11 +363,11 @@ export class BasktQuerier {
         baselinePrice: asset.baselinePrice.toString(),
       })),
       price: toNumber(price),
-      change24h: basktMetadata.stats.change24h,
+      change24h: basktMetadata.stats.change24h ?? 0,
       aum: 0,
       sparkline: [],
       performance:  {
-        daily: basktMetadata.stats.change24h,
+        daily: basktMetadata.stats.change24h ,
         weekly: basktMetadata.stats.change7d,
         monthly: basktMetadata.stats.change30d,
         year: basktMetadata.stats.change365d,

@@ -1,7 +1,7 @@
 import { PRICE_PRECISION } from '@baskt/sdk';
 import { FeeEventMetadataModel } from '../models/mongodb';
 import { QueryResult } from '../models/types';
-import { FeeEventFilterOptions, FeeEventStats } from '../types/fee-event';
+import { FeeEventFilterOptions } from '../types/fee-event';
 import { FeeEventMetadata } from '../types/models';
 import { handleQuerierError } from '../utils/error-handling';
 import BN  from 'bn.js';
@@ -23,93 +23,69 @@ export class FeeEventQuerier {
   }
 
   /**
-   * Calculate APR based on fee data and liquidity
+   * Calculate APR based on fee data and liquidity over a time window in seconds
    */
   private calculateAPR(
-    totalFeesToBlp: number,
-    totalLiquidity: number,
-    timeWindowDays: number = 30,
+    totalFeesToBlp: BN,
+    totalLiquidity: BN,
+    timeWindowSeconds: number = 30 * 24 * 60 * 60, // Default to 30 days in seconds
   ): number {
-    if (totalLiquidity === 0) return 0;
-
-    const dailyFeeRate = totalFeesToBlp / totalLiquidity / timeWindowDays;
-    const annualizedRate = dailyFeeRate * 365;
-    const apr = annualizedRate * 100;
-
-    let maxReasonableAPR = 10;
-
-    if (totalLiquidity < 100) {
-      maxReasonableAPR = 15;
-    } else if (totalLiquidity < 1000) {
-      maxReasonableAPR = 20;
-    } else if (totalLiquidity < 10000) {
-      maxReasonableAPR = 25;
-    }
-
-    if (apr > 100) {
-      maxReasonableAPR = Math.min(maxReasonableAPR, 10);
-    }
-
-    return Math.min(apr, maxReasonableAPR);
+    if (totalLiquidity.eq(new BN(0))) return 0;
+    const secondsInYear = 365 * 24 * 60 * 60;
+    const annualizedRate = totalFeesToBlp.mul(new BN(secondsInYear)).mul(new BN(100)).div(totalLiquidity).div(new BN(timeWindowSeconds));
+    return annualizedRate.toNumber();
   }
 
   /**
-   * Get fee data for a specific time window
+   * Get fee data for a specific time window in days
    */
   async getFeeDataForTimeWindow(daysBack: number = 30): Promise<
     QueryResult<{
-      totalFees: number;
-      totalFeesToBlp: number;
+      totalFees: BN;
+      totalFeesToBlp: BN;
       eventCount: number;
-      timeWindowDays: number;
+      timeWindowSeconds: number;
     }>
   > {
     try {
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(endDate.getDate() - daysBack);
+      // Set end date to end of current day for inclusivity
+      endDate.setHours(23, 59, 59, 999);
 
       const feeEventResult = await this.getFeeEventsWithFilters({
-        startDate,
-        endDate,
-        limit: 10000, // Get all events in the time window
-        offset: 0,
+        startDate: startDate,
+        endDate: endDate,
       });
 
       if (!feeEventResult.success) {
         return {
           success: true,
           data: {
-            totalFees: 0,
-            totalFeesToBlp: 0,
+            totalFees: new BN(0),
+            totalFeesToBlp: new BN(0),
             eventCount: 0,
-            timeWindowDays: daysBack,
+            timeWindowSeconds: daysBack * 24 * 60 * 60, // Convert days to seconds
           },
         };
       }
 
+
       const events = feeEventResult.data || [];
+      const lastEventTime = events[0].createdAt;
+
       const totalFees = events.reduce((sum, event) => {
-        let eventFees = 0;
-        if (event.positionFee) {
-          eventFees += parseFloat(event.positionFee.totalFee || '0');
-        }
-        if (event.liquidityFee) {
-          eventFees += parseFloat(event.liquidityFee.totalFee || '0');
-        }
-        return sum + eventFees;
-      }, 0);
+        sum = sum.add(new BN(event.positionFee?.totalFee || '0'));
+        sum = sum.add(new BN(event.liquidityFee?.totalFee || '0'));
+        return sum;
+      }, new BN(0));
 
       const totalFeesToBlp = events.reduce((sum, event) => {
-        let eventFeesToBlp = 0;
-        if (event.positionFee) {
-          eventFeesToBlp += parseFloat(event.positionFee.feeToBlp || '0');
-        }
-        if (event.liquidityFee) {
-          eventFeesToBlp += parseFloat(event.liquidityFee.feeToBlp || '0');
-        }
-        return sum + eventFeesToBlp;
-      }, 0);
+        sum = sum.add(new BN(event.positionFee?.feeToBlp || '0'));
+        sum = sum.add(new BN(event.liquidityFee?.feeToBlp || '0'));
+        return sum;
+      }, new BN(0));
 
       return {
         success: true,
@@ -117,7 +93,7 @@ export class FeeEventQuerier {
           totalFees,
           totalFeesToBlp,
           eventCount: events.length,
-          timeWindowDays: daysBack,
+          timeWindowSeconds: (endDate.getTime() - lastEventTime.getTime()) / 1000,
         },
       };
     } catch (error) {
@@ -134,60 +110,50 @@ export class FeeEventQuerier {
    * Get pool analytics including APR and fee data
    */
   async getPoolAnalytics(
-    totalLiquidity: BN,
+    totalLiquidityUSDC: BN,
     timeWindowDays: number = 30,
   ): Promise<
     QueryResult<{
-      apr: string;
-      totalFeesEarned: string;
+      apr: number;
+      totalFees: BN;
       recentFeeData: {
-        totalFees: string;
-        totalFeesToBlp: string;
+        totalFees: BN;
+        totalFeesToBlp: BN;
         eventCount: number;
-        timeWindowDays: number;
+        timeWindowSeconds: number;
       };
-      feeStats: any;
     }>
   > {
     try {
-      const [feeStatsResult, recentFeeDataResult] = await Promise.all([
-        this.getFeeEventStatsOnly(),
+      const [recentFeeDataResult, feeStatsResult] = await Promise.all([
         this.getFeeDataForTimeWindow(timeWindowDays),
+        this.getFeeStats(),
       ]);
 
-      const totalLiquidityUSDC = totalLiquidity.div(new BN(PRICE_PRECISION)).toNumber();
-      const recentFeeData =
-        recentFeeDataResult.success && recentFeeDataResult.data
-          ? recentFeeDataResult.data
-          : {
-              totalFees: 0,
-              totalFeesToBlp: 0,
-              eventCount: 0,
-              timeWindowDays,
-            };
+      const recentFeeData = recentFeeDataResult.success && recentFeeDataResult.data ? recentFeeDataResult.data : {
+        totalFees: 0,
+        totalFeesToBlp: 0,
+        eventCount: 0,
+        timeWindowSeconds: timeWindowDays * 24 * 60 * 60, // Convert days to seconds
+      };
 
       const apr = this.calculateAPR(
-        recentFeeData.totalFeesToBlp / 1_000_000,
+        new BN(recentFeeData.totalFeesToBlp),
         totalLiquidityUSDC,
-        timeWindowDays,
+        recentFeeData.timeWindowSeconds,
       );
-
-      const totalFeesEarned = feeStatsResult.success
-        ? feeStatsResult.data.totalFees / 1_000_000
-        : 0;
 
       return {
         success: true,
         data: {
-          apr: apr.toFixed(2),
-          totalFeesEarned: totalFeesEarned.toFixed(2),
+          apr: apr,
+          totalFees: feeStatsResult.data?.categoryStats.aggregate.totalFees || new BN(0),
           recentFeeData: {
-            totalFees: (recentFeeData.totalFees / 1_000_000).toFixed(2),
-            totalFeesToBlp: (recentFeeData.totalFeesToBlp / 1_000_000).toFixed(2),
+            totalFees: new BN(recentFeeData.totalFees),
+            totalFeesToBlp: new BN(recentFeeData.totalFeesToBlp),
             eventCount: recentFeeData.eventCount,
-            timeWindowDays: recentFeeData.timeWindowDays,
+            timeWindowSeconds: recentFeeData.timeWindowSeconds,
           },
-          feeStats: feeStatsResult.success ? feeStatsResult.data : null,
         },
       };
     } catch (error) {
@@ -222,143 +188,6 @@ export class FeeEventQuerier {
     }
   }
 
-  /**
-   * Find fee event by event ID
-   */
-  async findFeeEventByEventId(eventId: string): Promise<QueryResult<any>> {
-    try {
-      const feeEvent = await FeeEventMetadataModel.findOne({ eventId }).exec();
-
-      return {
-        success: true,
-        data: feeEvent,
-      };
-    } catch (error) {
-      const querierError = handleQuerierError(error);
-      return {
-        success: false,
-        message: 'Failed to find fee event by event ID',
-        error: querierError.message,
-      };
-    }
-  }
-
-  /**
-   * Find fee events by transaction signature
-   */
-  async findFeeEventsByTransactionSignature(
-    transactionSignature: string,
-  ): Promise<QueryResult<any[]>> {
-    try {
-      const feeEvents = await FeeEventMetadataModel.find({ transactionSignature })
-        .sort({ timestamp: -1 })
-        .exec();
-
-      return {
-        success: true,
-        data: feeEvents,
-      };
-    } catch (error) {
-      const querierError = handleQuerierError(error);
-      return {
-        success: false,
-        message: 'Failed to find fee events by transaction signature',
-        error: querierError.message,
-      };
-    }
-  }
-
-  /**
-   * Find fee events by event type
-   */
-  async findFeeEventsByEventType(eventType: string): Promise<QueryResult<any[]>> {
-    try {
-      const feeEvents = await FeeEventMetadataModel.find({ eventType })
-        .sort({ timestamp: -1 })
-        .exec();
-
-      return {
-        success: true,
-        data: feeEvents,
-      };
-    } catch (error) {
-      const querierError = handleQuerierError(error);
-      return {
-        success: false,
-        message: 'Failed to find fee events by event type',
-        error: querierError.message,
-      };
-    }
-  }
-
-  /**
-   * Find fee events by owner
-   */
-  async findFeeEventsByOwner(owner: string): Promise<QueryResult<any[]>> {
-    try {
-      const feeEvents = await FeeEventMetadataModel.find({ owner }).sort({ timestamp: -1 }).exec();
-
-      return {
-        success: true,
-        data: feeEvents,
-      };
-    } catch (error) {
-      const querierError = handleQuerierError(error);
-      return {
-        success: false,
-        message: 'Failed to find fee events by owner',
-        error: querierError.message,
-      };
-    }
-  }
-
-  /**
-   * Find fee events by baskt ID
-   */
-  async findFeeEventsByBasktId(basktId: string): Promise<QueryResult<any[]>> {
-    try {
-      const feeEvents = await FeeEventMetadataModel.find({ basktId })
-        .sort({ timestamp: -1 })
-        .exec();
-
-      return {
-        success: true,
-        data: feeEvents,
-      };
-    } catch (error) {
-      const querierError = handleQuerierError(error);
-      return {
-        success: false,
-        message: 'Failed to find fee events by baskt ID',
-        error: querierError.message,
-      };
-    }
-  }
-
-  /**
-   * Get all fee events with pagination
-   */
-  async getAllFeeEvents(limit: number = 100, offset: number = 0): Promise<QueryResult<any[]>> {
-    try {
-      const feeEvents = await FeeEventMetadataModel.find()
-        .sort({ timestamp: -1 })
-        .limit(limit)
-        .skip(offset)
-        .exec();
-
-      return {
-        success: true,
-        data: feeEvents,
-      };
-    } catch (error) {
-      const querierError = handleQuerierError(error);
-      return {
-        success: false,
-        message: 'Failed to get all fee events',
-        error: querierError.message,
-      };
-    }
-  }
 
   /**
    * Get fee events with advanced filtering
@@ -372,15 +201,13 @@ export class FeeEventQuerier {
       if (filters.basktId) query.basktId = filters.basktId;
 
       if (filters.startDate || filters.endDate) {
-        query.timestamp = {};
-        if (filters.startDate) query.timestamp.$gte = filters.startDate;
-        if (filters.endDate) query.timestamp.$lte = filters.endDate;
+        query.createdAt = {};
+        if (filters.startDate) query.createdAt.$gte = filters.startDate;
+        if (filters.endDate) query.createdAt.$lte = filters.endDate;
       }
 
       const feeEvents = await FeeEventMetadataModel.find(query)
-        .sort({ timestamp: -1 })
-        .limit(filters.limit || 100)
-        .skip(filters.offset || 0)
+        .sort({ createdAt: -1 })
         .exec();
 
       return {
@@ -398,9 +225,18 @@ export class FeeEventQuerier {
   }
 
   /**
-   * Get fee event statistics
+   * Get fee event statistics (legacy method - now uses comprehensive stats)
    */
-  async getFeeEventStats(): Promise<QueryResult<FeeEventStats>> {
+  async getFeeEventStats(): Promise<QueryResult<{
+    totalEvents: number;
+    eventTypeStats: Array<{
+      _id: string;
+      count: number;
+      totalFeesToTreasury: number;
+      totalFeesToBlp: number;
+      totalFees: number;
+    }>;
+  }>> {
     try {
       const [totalEvents, eventTypeStats] = await Promise.all([
         FeeEventMetadataModel.countDocuments(),
@@ -409,9 +245,9 @@ export class FeeEventQuerier {
             $group: {
               _id: '$eventType',
               count: { $sum: 1 },
-              totalFeesToTreasury: { $sum: { $toDouble: '$feeToTreasury' } },
-              totalFeesToBlp: { $sum: { $toDouble: '$feeToBlp' } },
-              totalFees: { $sum: { $toDouble: '$totalFee' } },
+              totalFeesToTreasury: { $sum: { $toDouble: '$positionFee.feeToTreasury' } },
+              totalFeesToBlp: { $sum: { $toDouble: '$positionFee.feeToBlp' } },
+              totalFees: { $sum: { $toDouble: '$positionFee.totalFee' } },
             },
           },
         ]),
@@ -440,7 +276,7 @@ export class FeeEventQuerier {
   async getFeeEvents(limit: number = 100, offset: number = 0): Promise<QueryResult<any[]>> {
     try {
       const feeEvents = await FeeEventMetadataModel.find()
-        .sort({ timestamp: -1 })
+        .sort({ createdAt: -1 })
         .limit(limit)
         .skip(offset)
         .exec();
@@ -459,99 +295,229 @@ export class FeeEventQuerier {
     }
   }
 
-  /**
-   * Get aggregated fee statistics only
-   */
-  async getFeeEventStatsOnly(): Promise<QueryResult<any>> {
+  async getFeeStats(): Promise<QueryResult<{
+    totalFees: BN;
+    eventCount: number;
+    eventTypeStats: Array<{
+      eventType: string;
+      count: number;
+      totalFees: BN;
+      totalFeesToTreasury: BN;
+      totalFeesToBlp: BN;
+    }>;
+    categoryStats: {
+      baskt: {
+        totalFees: BN;
+        totalFeesToTreasury: BN;
+        totalFeesToBlp: BN;
+        eventCount: number;
+      };
+      position: {
+        totalFees: BN;
+        totalFeesToTreasury: BN;
+        totalFeesToBlp: BN;
+        eventCount: number;
+      };
+      liquidity: {
+        totalFees: BN;
+        totalFeesToTreasury: BN;
+        totalFeesToBlp: BN;
+        eventCount: number;
+      };
+      aggregate: {
+        totalFees: BN;
+        totalFeesToTreasury: BN;
+        totalFeesToBlp: BN;
+        eventCount: number;
+      };
+    };
+  }>> {
     try {
-      const [totalEvents, aggregatedStats] = await Promise.all([
-        FeeEventMetadataModel.countDocuments(),
-        FeeEventMetadataModel.aggregate([
-          {
-            $project: {
-              eventType: 1,
-              feeToTreasury: {
-                $add: [
-                  { $ifNull: [{ $toDouble: '$positionFee.feeToTreasury' }, 0] },
-                  { $ifNull: [{ $toDouble: '$liquidityFee.feeToTreasury' }, 0] },
-                ],
+      const aggregationResult = await FeeEventMetadataModel.aggregate([
+        {
+          $facet: {
+            // Group by individual event types
+            eventTypeStats: [
+              {
+                $group: {
+                  _id: '$eventType',
+                  count: { $sum: 1 },
+                  totalFees: { $sum: { $toDouble: '$positionFee.totalFee' } },
+                  totalFeesToTreasury: { $sum: { $toDouble: '$positionFee.feeToTreasury' } },
+                  totalFeesToBlp: { $sum: { $toDouble: '$positionFee.feeToBlp' } },
+                }
               },
-              feeToBlp: {
-                $add: [
-                  { $ifNull: [{ $toDouble: '$positionFee.feeToBlp' }, 0] },
-                  { $ifNull: [{ $toDouble: '$liquidityFee.feeToBlp' }, 0] },
-                ],
+              {
+                $addFields: {
+                  eventType: '$_id',
+                  totalFees: { $ifNull: ['$totalFees', 0] },
+                  totalFeesToTreasury: { $ifNull: ['$totalFeesToTreasury', 0] },
+                  totalFeesToBlp: { $ifNull: ['$totalFeesToBlp', 0] }
+                }
               },
-              totalFee: {
-                $add: [
-                  { $ifNull: [{ $toDouble: '$positionFee.totalFee' }, 0] },
-                  { $ifNull: [{ $toDouble: '$liquidityFee.totalFee' }, 0] },
-                ],
+              { $unset: '_id' }
+            ],
+            // Group by category (baskt, position, liquidity)
+            categoryStats: [
+              {
+                $group: {
+                  _id: {
+                    category: {
+                      $switch: {
+                        branches: [
+                          { case: { $in: ['$eventType', ['BASKT_CREATED', 'REBALANCE_REQUESTED']] }, then: 'baskt' },
+                          { case: { $in: ['$eventType', ['POSITION_OPENED', 'POSITION_CLOSED', 'POSITION_LIQUIDATED']] }, then: 'position' },
+                          { case: { $in: ['$eventType', ['LIQUIDITY_ADDED', 'LIQUIDITY_REMOVED']] }, then: 'liquidity' }
+                        ],
+                        default: 'other'
+                      }
+                    }
+                  },
+                  count: { $sum: 1 },
+                  totalFees: { $sum: { $toDouble: '$positionFee.totalFee' } },
+                  totalFeesToTreasury: { $sum: { $toDouble: '$positionFee.feeToTreasury' } },
+                  totalFeesToBlp: { $sum: { $toDouble: '$positionFee.feeToBlp' } },
+                }
               },
-            },
-          },
-          {
-            $group: {
-              _id: '$eventType',
-              count: { $sum: 1 },
-              totalFeesToTreasury: { $sum: '$feeToTreasury' },
-              totalFeesToBlp: { $sum: '$feeToBlp' },
-              totalFees: { $sum: '$totalFee' },
-            },
-          },
-        ]),
+              {
+                $addFields: {
+                  category: '$_id.category',
+                  totalFees: { $ifNull: ['$totalFees', 0] },
+                  totalFeesToTreasury: { $ifNull: ['$totalFeesToTreasury', 0] },
+                  totalFeesToBlp: { $ifNull: ['$totalFeesToBlp', 0] }
+                }
+              },
+              { $unset: '_id' }
+            ],
+            // Overall aggregate stats
+            aggregateStats: [
+              {
+                $group: {
+                  _id: null,
+                  count: { $sum: 1 },
+                  totalFees: { $sum: { $toDouble: '$positionFee.totalFee' } },
+                  totalFeesToTreasury: { $sum: { $toDouble: '$positionFee.feeToTreasury' } },
+                  totalFeesToBlp: { $sum: { $toDouble: '$positionFee.feeToBlp' } },
+                }
+              },
+              {
+                $addFields: {
+                  totalFees: { $ifNull: ['$totalFees', 0] },
+                  totalFeesToTreasury: { $ifNull: ['$totalFeesToTreasury', 0] },
+                  totalFeesToBlp: { $ifNull: ['$totalFeesToBlp', 0] }
+                }
+              },
+              { $unset: '_id' }
+            ]
+          }
+        }
       ]);
 
-      const totalFees = aggregatedStats.reduce((sum, stat) => sum + stat.totalFees, 0);
-      const totalFeesToTreasury = aggregatedStats.reduce(
-        (sum, stat) => sum + stat.totalFeesToTreasury,
-        0,
-      );
-      const totalFeesToBlp = aggregatedStats.reduce((sum, stat) => sum + stat.totalFeesToBlp, 0);
+      if (!aggregationResult || aggregationResult.length === 0) {
+        return {
+          success: true,
+          data: {
+            totalFees: new BN(0),
+            eventCount: 0,
+            eventTypeStats: [],
+            categoryStats: {
+              baskt: { totalFees: new BN(0), totalFeesToTreasury: new BN(0), totalFeesToBlp: new BN(0), eventCount: 0 },
+              position: { totalFees: new BN(0), totalFeesToTreasury: new BN(0), totalFeesToBlp: new BN(0), eventCount: 0 },
+              liquidity: { totalFees: new BN(0), totalFeesToTreasury: new BN(0), totalFeesToBlp: new BN(0), eventCount: 0 },
+              aggregate: { totalFees: new BN(0), totalFeesToTreasury: new BN(0), totalFeesToBlp: new BN(0), eventCount: 0 }
+            }
+          }
+        };
+      }
+
+      const result = aggregationResult[0];
+      const aggregateStats = result.aggregateStats[0] || { count: 0, totalFees: 0, totalFeesToTreasury: 0, totalFeesToBlp: 0 };
+      
+      // Process category stats
+      const categoryStats = {
+        baskt: { totalFees: new BN(0), totalFeesToTreasury: new BN(0), totalFeesToBlp: new BN(0), eventCount: 0 },
+        position: { totalFees: new BN(0), totalFeesToTreasury: new BN(0), totalFeesToBlp: new BN(0), eventCount: 0 },
+        liquidity: { totalFees: new BN(0), totalFeesToTreasury: new BN(0), totalFeesToBlp: new BN(0), eventCount: 0 },
+        aggregate: { 
+          totalFees: new BN(aggregateStats.totalFees.toString()), 
+          totalFeesToTreasury: new BN(aggregateStats.totalFeesToTreasury.toString()), 
+          totalFeesToBlp: new BN(aggregateStats.totalFeesToBlp.toString()), 
+          eventCount: aggregateStats.count 
+        }
+      };
+
+      // Map category stats from aggregation
+      result.categoryStats.forEach((cat: any) => {
+        if (cat.category === 'baskt') {
+          categoryStats.baskt = {
+            totalFees: new BN(cat.totalFees.toString()),
+            totalFeesToTreasury: new BN(cat.totalFeesToTreasury.toString()),
+            totalFeesToBlp: new BN(cat.totalFeesToBlp.toString()),
+            eventCount: cat.count
+          };
+        } else if (cat.category === 'position') {
+          categoryStats.position = {
+            totalFees: new BN(cat.totalFees.toString()),
+            totalFeesToTreasury: new BN(cat.totalFeesToTreasury.toString()),
+            totalFeesToBlp: new BN(cat.totalFeesToBlp.toString()),
+            eventCount: cat.count
+          };
+        } else if (cat.category === 'liquidity') {
+          categoryStats.liquidity = {
+            totalFees: new BN(cat.totalFees.toString()),
+            totalFeesToTreasury: new BN(cat.totalFeesToTreasury.toString()),
+            totalFeesToBlp: new BN(cat.totalFeesToBlp.toString()),
+            eventCount: cat.count
+          };
+        }
+      });
+
+      // Process event type stats
+      const eventTypeStats = result.eventTypeStats.map((stat: any) => ({
+        eventType: stat.eventType,
+        count: stat.count,
+        totalFees: new BN(stat.totalFees.toString()),
+        totalFeesToTreasury: new BN(stat.totalFeesToTreasury.toString()),
+        totalFeesToBlp: new BN(stat.totalFeesToBlp.toString())
+      }));
 
       return {
         success: true,
         data: {
-          totalEvents,
-          totalFees,
-          totalFeesToTreasury,
-          totalFeesToBlp,
-          eventTypeBreakdown: aggregatedStats,
-        },
+          totalFees: categoryStats.aggregate.totalFees,
+          eventCount: categoryStats.aggregate.eventCount,
+          eventTypeStats,
+          categoryStats
+        }
       };
     } catch (error) {
       const querierError = handleQuerierError(error);
       return {
         success: false,
-        message: 'Failed to get fee event statistics',
+        message: 'Failed to get fee statistics',
         error: querierError.message,
       };
     }
   }
+
+
 
   /**
    * Get all fee event data (events + stats combined)
    */
   async getAllFeeEventData(limit: number = 100, offset: number = 0): Promise<QueryResult<any>> {
     try {
-      const [eventsResult, statsResult] = await Promise.all([
-        this.getFeeEvents(limit, offset),
-        this.getFeeEventStatsOnly(),
-      ]);
+      const eventsResult = await this.getFeeEvents(limit, offset);
 
       if (!eventsResult.success) {
         return eventsResult;
       }
 
-      if (!statsResult.success) {
-        return statsResult;
-      }
 
       return {
         success: true,
         data: {
           events: eventsResult.data,
-          stats: statsResult.data,
         },
       };
     } catch (error) {

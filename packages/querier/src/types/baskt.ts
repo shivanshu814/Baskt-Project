@@ -6,10 +6,10 @@ import { BasktMetadata } from './models';
  * Performance metrics for a baskt
  */
 export interface BasktPerformance {
-  daily: number;
-  weekly: number;
-  monthly: number;
-  year: number;
+  daily?: number;
+  weekly?: number;
+  monthly?: number;
+  year?: number;
 }
 
 /**

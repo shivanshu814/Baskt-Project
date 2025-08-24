@@ -137,23 +137,19 @@ export const BasktMetadataSchema = new mongoose.Schema(
       // Updated once a day
       change24h: {
         type: Number,
-        required: true,
-        default: 0,
+        required: false,
       },
       change7d: {
         type: Number,
-        required: true,
-        default: 0,
+        required: false,
       },
       change30d: {
         type: Number,
-        required: true,
-        default: 0,
+        required: false,
       },
       change365d: {
         type: Number,
-        required: true,
-        default: 0,
+        required: false,
       },
       // Update Live as we open/close positions
       longAllTimeVolume: BNAndDecimal128(true),

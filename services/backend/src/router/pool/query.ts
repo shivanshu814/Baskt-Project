@@ -31,7 +31,7 @@ export const getLiquidityPool = publicProcedure.query(async () => {
         apr: analyticsResult.success && analyticsResult.data ? analyticsResult.data.apr : '0.00',
         totalFeesEarned:
           analyticsResult.success && analyticsResult.data
-            ? analyticsResult.data.totalFeesEarned
+            ? analyticsResult.data.totalFees.toString()
             : '0.00',
         recentFeeData:
           analyticsResult.success && analyticsResult.data
@@ -42,8 +42,6 @@ export const getLiquidityPool = publicProcedure.query(async () => {
                 eventCount: 0,
                 timeWindowDays: 30,
               },
-        feeStats:
-          analyticsResult.success && analyticsResult.data ? analyticsResult.data.feeStats : null,
       },
     };
   } catch (error) {
@@ -55,22 +53,7 @@ export const getLiquidityPool = publicProcedure.query(async () => {
   }
 });
 
-export const resyncLiquidityPool = publicProcedure.mutation(async () => {
-  try {
-    await querier.pool.resyncLiquidityPool();
 
-    return {
-      success: true,
-      message: 'Liquidity pool resynced successfully',
-    };
-  } catch (error) {
-    logger.error('Error resyncing liquidity pool:', error);
-    return {
-      success: false,
-      error: 'Failed to resync liquidity pool',
-    };
-  }
-});
 
 export const getPoolDeposits = publicProcedure.query(async () => {
   try {
@@ -87,6 +70,5 @@ export const getPoolDeposits = publicProcedure.query(async () => {
 
 export const getRouter = {
   getLiquidityPool,
-  resyncLiquidityPool,
   getPoolDeposits,
 };

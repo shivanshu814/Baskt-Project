@@ -11,6 +11,7 @@ import { Querier } from "@baskt/querier/";
     abstract run(): Promise<void>;
 
     async start(): Promise<void> {
+        this.run();
         setInterval(async () => {
             await this.run();
         }, this.scheduleSeconds * 1000);

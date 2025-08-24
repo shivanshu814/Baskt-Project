@@ -27,44 +27,9 @@ export const getAssetPrice = publicProcedure
     }
   });
 
-export const getLatestAssetPrice = publicProcedure
-  .input(
-    z.object({
-      assetId: z.string().min(1),
-    }),
-  )
-  .query(async ({ input }) => {
-    try {
-      const result = await querier.price.getLatestPrice(input.assetId);
-      return result;
-    } catch (error) {
-      console.error('Error fetching latest asset price:', error);
-      return {
-        success: false,
-        error: 'Failed to fetch latest asset price',
-      };
-    }
-  });
-
-export const getLatestAssetPrices = publicProcedure
-  .input(z.array(z.object({ assetId: z.string().min(1) })))
-  .query(async ({ input }) => {
-    try {
-      const result = await querier.price.getLatestPrices(input.map((asset) => asset.assetId));
-      return result;
-    } catch (error) {
-      console.error('Error fetching latest asset prices:', error);
-      return {
-        success: false,
-        error: 'Failed to fetch latest asset prices',
-      };
-    }
-  });
 
 
 
 export const getRouter = {
   getAssetPrice,
-  getLatestAssetPrice,
-  getLatestAssetPrices,
 };
