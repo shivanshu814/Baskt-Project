@@ -1,7 +1,8 @@
-import { publicProcedure } from '../../trpc/trpc';
-import { z } from 'zod';
-import { querier } from '../../utils/';
 import { OrderAction } from '@baskt/types';
+import { z } from 'zod';
+import { publicProcedure } from '../../trpc/trpc';
+import { querier } from '../../utils/';
+import logger from '../../utils/logger';
 
 // get all orders
 export const getOrders = publicProcedure
@@ -20,7 +21,7 @@ export const getOrders = publicProcedure
       const result = await querier.order.getOrders(input);
       return result;
     } catch (error) {
-      console.error('Error fetching orders:', error);
+      logger.error('Error fetching orders:', error);
       return {
         success: false,
         message: 'Failed to fetch orders',
@@ -28,5 +29,3 @@ export const getOrders = publicProcedure
       };
     }
   });
-
-

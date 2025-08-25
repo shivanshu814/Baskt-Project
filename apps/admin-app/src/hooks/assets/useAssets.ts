@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { trpc } from '../../utils/trpc';
-import { Asset } from '../../types/assets';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { Asset } from '../../types/assets';
+import { trpc } from '../../utils/trpc';
 
 export function useAssets() {
   const {
@@ -10,7 +10,8 @@ export function useAssets() {
     isLoading,
     error,
     refetch,
-  } = trpc.asset.getAllAssets.useQuery( {withConfig: true });
+  } = trpc.asset.getAllAssets.useQuery({ withConfig: true });
+  console.log(assetsRaw, 'yeh hai main data');
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [assetToModify, setAssetToModify] = useState<Asset | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -31,9 +32,17 @@ export function useAssets() {
         name: asset.name,
         logo: asset.logo,
         price: asset.price,
-        config: asset.config,
-        account: asset.account,
-        latestPrice: asset.price,
+        config: asset.priceConfig,
+        account: {
+          address: asset.assetAddress || asset.account?.address || '',
+          listingTime: asset.listingTime,
+          permissions: asset.permissions ||
+            asset.account?.permissions || {
+              allowLongs: false,
+              allowShorts: false,
+            },
+          isActive: asset.isActive || asset.account?.isActive || false,
+        },
       })),
     [assetsRaw],
   );

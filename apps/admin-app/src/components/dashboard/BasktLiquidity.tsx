@@ -1,15 +1,15 @@
-import React from 'react';
 import { Button } from '@baskt/ui';
 import { RefreshCw } from 'lucide-react';
-import { PoolInitializationForm } from '../pool/PoolInitializationForm';
-import { PoolInformation } from '../pool/PoolInformation';
-import { PoolParticipants } from '../pool/PoolParticipants';
-import { StatCard } from '../pool/StatCard';
-import { WithdrawQueueStats } from '../pool/WithdrawQueueStats';
-import { WithdrawQueueItems } from '../pool/WithdrawQueueItems';
+import React from 'react';
+import { POOL_STATS } from '../../constants/pool';
 import { usePool } from '../../hooks/pool/usePool';
 import { useWithdrawQueue } from '../../hooks/pool/useWithdrawQueue';
-import { POOL_STATS } from '../../constants/pool';
+import { PoolInformation } from '../pool/PoolInformation';
+import { PoolInitializationForm } from '../pool/PoolInitializationForm';
+import { PoolParticipants } from '../pool/PoolParticipants';
+import { StatCard } from '../pool/StatCard';
+import { WithdrawQueueItems } from '../pool/WithdrawQueueItems';
+import { WithdrawQueueStats } from '../pool/WithdrawQueueStats';
 
 export function LiquidityPoolManagement() {
   const {
@@ -143,7 +143,7 @@ export function LiquidityPoolManagement() {
                 isProcessing={isProcessing}
                 onPageChange={handleQueuePageChange}
                 onPageSizeChange={handleQueuePageSizeChange}
-                onProcessQueue={async (x,y) => {
+                onProcessQueue={async (x, y) => {
                   alert('Processing queue | To be implemented');
                   return true;
                 }}

@@ -1,24 +1,39 @@
-import { OnchainOrder } from '@baskt/types';
-
-export interface Order {
+export interface order {
+  _id: string;
   owner: string;
-  orderId: string;
-  basktId: string;
-  size: number;
-  collateral: number;
-  isLong: boolean;
-  action: 'Open' | 'Close';
-  status: 'Pending' | 'Filled' | 'Cancelled';
-  timestamp: number;
-  targetPosition?: string;
+  orderPDA: string;
+  orderId: number;
+  baskt: string;
+  basktAddress: string;
+  orderStatus: string;
+  orderAction: string;
+  orderType: string;
+  openParams: {
+    notionalValue: string;
+    leverageBps: number;
+    collateral: string;
+    isLong: boolean;
+  };
+  closeParams: {
+    sizeAsContracts: string;
+  };
+  createOrder: {
+    tx: string;
+    ts: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
 }
+
 export interface FillPositionDialogProps {
-  order: OnchainOrder | null;
+  order: order | null;
   isOpen: boolean;
   onClose: () => void;
 }
+
 export interface ClosePositionDialogProps {
-  order: OnchainOrder | null;
+  order: order | null;
   isOpen: boolean;
   onClose: () => void;
 }

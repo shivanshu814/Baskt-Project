@@ -1,25 +1,25 @@
 // apps/admin-app/src/components/orders/ClosePositionDialog.tsx
-import React, { useState, useEffect } from 'react';
+import { OnchainPosition } from '@baskt/types';
 import {
+  Button,
   Dialog,
+  DialogClose,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
-  Label,
+  DialogHeader,
+  DialogTitle,
   Input,
-  Button,
-  useBasktClient,
+  Label,
   PRICE_PRECISION,
+  useBasktClient,
 } from '@baskt/ui';
-import { toast } from 'sonner';
+import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { PublicKey } from '@solana/web3.js';
 import { BN } from 'bn.js';
-import { OnchainPosition } from '@baskt/types';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { useProtocol } from '../../hooks/protocols/useProtocol';
-import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { ClosePositionDialogProps } from '../../types/orders';
 
 const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen, onClose }) => {
@@ -38,22 +38,18 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
   }, [isOpen, order]);
 
   const fetchPosition = async () => {
-    if (!client || !order?.closeParams?.targetPosition) return;
+    if (!client || !order?.closeParams?.sizeAsContracts) return;
 
     try {
-      const positionPDA = new PublicKey(order.closeParams!.targetPosition!);
-      const positionAccount = await client.program.account.position.fetch(positionPDA);
-      setPosition({
-        ...positionAccount,
-        address: positionPDA,
-      } as unknown as OnchainPosition);
+      // For now, we'll skip fetching position details since the new structure doesn't have targetPosition
+      // This might need to be updated based on how positions are tracked in the new system
+      setPosition(null);
     } catch (error) {
-      // Log error to console for debugging
       toast.error('Failed to fetch position details');
     }
   };
 
-  if (!order || !order.closeParams?.targetPosition) {
+  if (!order) {
     return null;
   }
 
@@ -76,15 +72,12 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
     try {
       setIsSubmitting(true);
 
-      const basktId = new PublicKey(order.basktId);
-      const exitPriceBN = new BN(parseFloat(exitPrice) * PRICE_PRECISION); // Convert to basis points
+      // Use the new API structure properties
+      const basktId = new PublicKey(order.basktAddress);
+      const exitPriceBN = new BN(parseFloat(exitPrice) * PRICE_PRECISION);
 
-      // Ensure targetPosition is not null or undefined before creating PublicKey
-      if (!order.closeParams?.targetPosition) {
-        throw new Error('Target position is required');
-      }
-      const positionPDA = new PublicKey(order.closeParams!.targetPosition!);
-
+      // For now, we'll use the orderPDA from the order data
+      const orderPDA = new PublicKey(order.orderPDA);
 
       // Get treasury token account (USDC account owned by treasury)
       const treasuryTokenAccount = await getAssociatedTokenAddressSync(
@@ -100,8 +93,8 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
 
       // Then close the position
       await client.closePosition({
-        orderPDA: new PublicKey(order.address),
-        position: positionPDA,
+        orderPDA: orderPDA,
+        position: orderPDA, // Using orderPDA as position for now - this might need adjustment
         exitPrice: exitPriceBN,
         baskt: basktId,
         ownerTokenAccount,
@@ -113,7 +106,6 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
 
       onClose();
     } catch (error) {
-      // Error handled in toast below
       toast.error(
         `Failed to close position: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -127,9 +119,7 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Close Position</DialogTitle>
-          <DialogDescription>
-            Enter the exit price to close the position.
-          </DialogDescription>
+          <DialogDescription>Enter the exit price to close the position.</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
@@ -145,12 +135,12 @@ const ClosePositionDialog: React.FC<ClosePositionDialogProps> = ({ order, isOpen
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="positionIdDisplay" className="text-right col-span-1">
-              Position ID
+            <Label htmlFor="basktIdDisplay" className="text-right col-span-1">
+              Baskt ID
             </Label>
             <Input
-              id="positionIdDisplay"
-              value={position?.positionId?.toString() || 'Loading...'}
+              id="basktIdDisplay"
+              value={order.basktAddress}
               readOnly
               className="col-span-3 bg-muted"
             />

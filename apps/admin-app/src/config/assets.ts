@@ -5,8 +5,8 @@ import { ASSET_TABLE_IDS } from '../constants/assets';
 
 export const ASSET_TABLE_CONFIG = [
   {
-    id: ASSET_TABLE_IDS.TICKER,
-    label: 'Ticker',
+    id: ASSET_TABLE_IDS.NAME,
+    label: 'Name',
   },
   {
     id: ASSET_TABLE_IDS.ADDRESS,
@@ -31,5 +31,5 @@ export const ASSET_TABLE_CONFIG = [
   {
     id: ASSET_TABLE_IDS.STATUS,
     label: 'Status',
-  }
+  },
 ] as const;

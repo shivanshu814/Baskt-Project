@@ -1,7 +1,7 @@
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@baskt/ui';
-import { PoolFeeStats, EventTypeBreakdownItem } from '../../hooks/pool/usePoolFeeEvents';
-import { Loader2, DollarSign, Activity, TrendingUp, Hash, Target, X } from 'lucide-react';
+import { Activity, DollarSign, Hash, Loader2, Target, TrendingUp, X } from 'lucide-react';
+import React from 'react';
+import { EventTypeBreakdownItem, PoolFeeStats } from '../../hooks/pool/usePoolFeeEvents';
 
 interface PoolFeeStatsProps {
   feeStats: PoolFeeStats | null;

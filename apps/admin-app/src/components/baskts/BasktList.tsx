@@ -1,11 +1,11 @@
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@baskt/ui';
-import { BasktListProps, BasktData } from '../../types/baskt';
-import { BasktRow } from './BasktRow';
-import { useBaskts } from '../../hooks/baskts/useBaskts';
-import { toast } from 'sonner';
 import { useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
+import { useBaskts } from '../../hooks/baskts/useBaskts';
+import { BasktData, BasktListProps } from '../../types/baskt';
+import { BasktRow } from './BasktRow';
 
 export function BasktList({ onActivate, activatingBasktId, onViewDetails }: BasktListProps) {
   const { basktList, isLoading, error } = useBaskts();
@@ -18,13 +18,13 @@ export function BasktList({ onActivate, activatingBasktId, onViewDetails }: Bask
 
   const validBaskts = basktList.filter((baskt: any): baskt is BasktData => {
     return (
-      baskt !== null &&
-      baskt !== undefined &&
-      !!baskt.basktId &&
-      typeof baskt.basktId === 'string' &&
-      !!baskt.account
+      baskt !== null && baskt !== undefined && !!baskt.basktId && typeof baskt.basktId === 'string'
     );
   });
+
+  // Debug: Log the data to see what we're getting
+  console.log('basktList:', basktList);
+  console.log('validBaskts:', validBaskts);
 
   // Calculate baskt counts
   const basktCounts = useMemo(() => {
@@ -54,15 +54,20 @@ export function BasktList({ onActivate, activatingBasktId, onViewDetails }: Bask
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Baskt Name</TableHead>
-              <TableHead>Baskt Address</TableHead>
+              <TableHead>Baskt ID</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Assets</TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead>Change 24h</TableHead>
+              <TableHead>Open Positions</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow key="loading">
-                <TableCell colSpan={3} className="h-32 text-center">
+                <TableCell colSpan={8} className="h-32 text-center">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <p className="text-white/60 text-sm">Loading baskts...</p>
                   </div>
@@ -83,7 +88,7 @@ export function BasktList({ onActivate, activatingBasktId, onViewDetails }: Bask
               })
             ) : (
               <TableRow key="empty">
-                <TableCell colSpan={3} className="text-center text-white/60">
+                <TableCell colSpan={8} className="text-center text-white/60">
                   No baskts found.
                 </TableCell>
               </TableRow>

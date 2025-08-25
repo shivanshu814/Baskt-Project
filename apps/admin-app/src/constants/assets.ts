@@ -2,7 +2,7 @@
  * Asset-related constants used in the admin dashboard
  */
 export const ASSET_TABLE_IDS = {
-  TICKER: 'ticker',
+  NAME: 'name',
   ADDRESS: 'address',
   LISTING_TIME: 'listingTime',
   PRICE: 'price',

@@ -10,7 +10,7 @@ export const TvlDisplay = React.memo(({ totalValueLocked }: TvlDisplayProps) => 
       <div className="flex flex-col items-end">
         <span className="text-xs font-medium text-muted-foreground">Total value locked</span>
         <span className="text-2xl font-bold text-primary">
-          <NumberFormat value={totalValueLocked} showCurrency={true} />
+          <NumberFormat value={totalValueLocked} isPrice={true} showCurrency={true} />
         </span>
       </div>
     </div>

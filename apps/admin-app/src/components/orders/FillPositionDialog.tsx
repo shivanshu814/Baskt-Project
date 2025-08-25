@@ -1,22 +1,22 @@
 // apps/admin-app/src/components/orders/FillPositionDialog.tsx
-import React, { useState, useEffect } from 'react';
 import {
+  Button,
   Dialog,
+  DialogClose,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
-  Label,
+  DialogHeader,
+  DialogTitle,
   Input,
-  Button,
-  useBasktClient,
+  Label,
   PRICE_PRECISION,
+  useBasktClient,
 } from '@baskt/ui';
-import { toast } from 'sonner';
 import { PublicKey } from '@solana/web3.js';
 import { BN } from 'bn.js';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { FillPositionDialogProps } from '../../types/orders';
 
 const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, onClose }) => {
@@ -64,10 +64,9 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
     try {
       setIsSubmitting(true);
 
-      const basktId = new PublicKey(order.basktId);
+      const basktId = new PublicKey(order.basktAddress);
       const entryPriceBN = new BN(entryPriceNum * PRICE_PRECISION);
       const oraclePriceBN = new BN(oraclePriceNum * PRICE_PRECISION);
-
 
       await client.openPosition({
         order: await client.getOrderPDA(order.orderId, new PublicKey(order.owner)),
@@ -112,7 +111,7 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
             </Label>
             <Input
               id="basktIdDisplay"
-              value={order.basktId.toBase58()}
+              value={order.basktAddress}
               readOnly
               className="col-span-3 bg-muted"
             />
@@ -134,7 +133,11 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
             </Label>
             <Input
               id="sizeDisplay"
-              value={order.openParams?.notionalValue?.toString() || order.closeParams?.sizeAsContracts?.toString() || '0'}
+              value={
+                (parseFloat(order.openParams?.notionalValue || '0') / 1e6).toFixed(2) ||
+                (parseFloat(order.closeParams?.sizeAsContracts || '0') / 1e6).toFixed(2) ||
+                '0'
+              }
               readOnly
               className="col-span-3 bg-muted"
             />
@@ -145,7 +148,7 @@ const FillPositionDialog: React.FC<FillPositionDialogProps> = ({ order, isOpen, 
             </Label>
             <Input
               id="collateralDisplay"
-              value={order.openParams?.collateral?.toString() || '0'}
+              value={(parseFloat(order.openParams?.collateral || '0') / 1e6).toFixed(2)}
               readOnly
               className="col-span-3 bg-muted"
             />

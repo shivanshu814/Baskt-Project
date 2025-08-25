@@ -1,14 +1,4 @@
-import React, { useMemo, useCallback, useState } from 'react';
-import { usePositions } from '../../hooks/position/usePositions';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  NumberFormat,
-  PublicKeyText,
   Badge,
   Button,
   Dialog,
@@ -16,18 +6,27 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  NumberFormat,
+  PublicKeyText,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@baskt/ui';
-import { formatDate } from '../../utils/date';
-import { PositionStatus } from '@baskt/types';
 import {
-  Loader2,
   AlertCircle,
-  FileText,
-  Scissors,
   ChevronDown,
   ChevronUp,
+  FileText,
   History,
+  Loader2,
+  Scissors,
 } from 'lucide-react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { usePositions } from '../../hooks/position/usePositions';
+import { formatDate } from '../../utils/date';
 
 const LoadingState: React.FC<{ colSpan: number }> = ({ colSpan }) => (
   <TableRow>
@@ -73,16 +72,17 @@ const PositionList = () => {
   const { positions, isLoading, error } = usePositions();
   const [expandedPositions, setExpandedPositions] = useState<Set<string>>(new Set());
   console.log(positions);
+  // Use the logger instead of console.log
+  // logger.info('Positions loaded', { count: positions.length });
+
   const positionCounts = useMemo(() => {
     const total = positions.length;
-    const open = positions.filter(
-      (position: any) => position.status === PositionStatus.OPEN,
-    ).length;
+    const open = positions.filter((position: any) => position.status === 'OPEN').length;
     const partiallyClosed = positions.filter(
       (position: any) =>
-        position.status === PositionStatus.OPEN &&
-        (position as any).partialCloseHistory &&
-        (position as any).partialCloseHistory.length > 0,
+        position.status === 'OPEN' &&
+        position.partialCloseHistory &&
+        position.partialCloseHistory.length > 0,
     ).length;
     return { total, open, partiallyClosed };
   }, [positions]);
@@ -95,51 +95,41 @@ const PositionList = () => {
     'Size',
     'Collateral',
     'Entry Price',
-    'Exit Price',
     'Status',
     'Partial Closes',
     'Opened',
-    'Closed',
     'Actions',
   ];
 
   const renderPositionIdCell = useCallback(
-    (
-      position: any, // eslint-disable-line
-    ) => (
+    (position: any) => (
       <div className="text-sm font-medium text-gray-200 truncate cursor-pointer">
-        <PublicKeyText publicKey={position.positionId.toString()} isCopy={true} noFormat={false} />
+        <PublicKeyText publicKey={position.positionId} isCopy={true} noFormat={false} />
       </div>
     ),
     [],
   );
 
   const renderOwnerCell = useCallback(
-    (
-      position: any, // eslint-disable-line
-    ) => (
+    (position: any) => (
       <div className="text-sm text-gray-500 whitespace-nowrap cursor-pointer">
-        <PublicKeyText publicKey={position.owner.toString()} isCopy={true} />
+        <PublicKeyText publicKey={position.owner} isCopy={true} />
       </div>
     ),
     [],
   );
 
   const renderBasktIdCell = useCallback(
-    (
-      position: any, // eslint-disable-line
-    ) => (
+    (position: any) => (
       <div className="text-sm text-gray-200">
-        <PublicKeyText publicKey={position.basktId.toString()} isCopy={true} />
+        <PublicKeyText publicKey={position.basktAddress} isCopy={true} />
       </div>
     ),
     [],
   );
 
   const renderDirectionCell = useCallback(
-    (
-      position: any, // eslint-disable-line
-    ) => (
+    (position: any) => (
       <div className={`text-sm font-medium ${position.isLong ? 'text-green-500' : 'text-red-500'}`}>
         {position.isLong ? 'Long' : 'Short'}
       </div>
@@ -148,66 +138,48 @@ const PositionList = () => {
   );
 
   const renderSizeCell = useCallback(
-    (
-      position: any, // eslint-disable-line
-    ) => (
+    (position: any) => (
       <div className="text-sm text-gray-200">
-        <NumberFormat value={position.remainingSize / 1e6 || position.size / 1e6 || 0} />
+        <NumberFormat value={parseFloat((parseFloat(position.remainingSize) / 1e6).toFixed(2))} />
       </div>
     ),
     [],
   );
 
   const renderCollateralCell = useCallback(
-    (
-      position: any, // eslint-disable-line
-    ) => (
+    (position: any) => (
       <div className="text-sm text-gray-200">
-        <NumberFormat value={position.collateral || 0} isPrice={true} showCurrency={true} />
+        <NumberFormat
+          value={parseFloat(parseFloat(position.remainingCollateral).toFixed(2))}
+          isPrice={true}
+          showCurrency={true}
+        />
       </div>
     ),
     [],
   );
 
   const renderEntryPriceCell = useCallback(
-    (
-      position: any, // eslint-disable-line
-    ) => (
+    (position: any) => (
       <div className="text-sm text-gray-200">
-        <NumberFormat value={position.entryPrice} isPrice={true} showCurrency={true} />
+        <NumberFormat
+          value={parseFloat(position.entryPrice.toFixed(2))}
+          isPrice={true}
+          showCurrency={true}
+        />
       </div>
     ),
     [],
   );
 
-  const renderExitPriceCell = useCallback(
-    (
-      position: any, // eslint-disable-line
-    ) => (
-      <div className="text-sm text-gray-200">
-        {position.closePosition?.exitPrice ? (
-          <NumberFormat
-            value={position.closePosition.exitPrice}
-            isPrice={true}
-            showCurrency={true}
-          />
-        ) : (
-          <span className="text-gray-500">-</span>
-        )}
-      </div>
-    ),
-    [],
-  );
-
-  // eslint-disable-next-line
   const renderStatusCell = useCallback((position: any) => {
-    const getStatusColor = (status: PositionStatus) => {
+    const getStatusColor = (status: string) => {
       switch (status) {
-        case PositionStatus.OPEN:
+        case 'OPEN':
           return 'text-green-500';
-        case PositionStatus.CLOSED:
+        case 'CLOSED':
           return 'text-gray-400';
-        case PositionStatus.LIQUIDATED:
+        case 'LIQUIDATED':
           return 'text-red-500';
         default:
           return 'text-gray-400';
@@ -222,10 +194,8 @@ const PositionList = () => {
   }, []);
 
   const renderPartialClosesCell = useCallback(
-    (
-      position: any, // eslint-disable-line
-    ) => {
-      const partialCloses = (position as any).partialCloseHistory || [];
+    (position: any) => {
+      const partialCloses = position.partialCloseHistory || [];
       const hasPartialCloses = partialCloses.length > 0;
 
       return (
@@ -244,16 +214,16 @@ const PositionList = () => {
                 size="sm"
                 onClick={() => {
                   const newExpanded = new Set(expandedPositions);
-                  if (newExpanded.has(position.positionPDA.toString())) {
-                    newExpanded.delete(position.positionPDA.toString());
+                  if (newExpanded.has(position.positionPDA)) {
+                    newExpanded.delete(position.positionPDA);
                   } else {
-                    newExpanded.add(position.positionPDA.toString());
+                    newExpanded.add(position.positionPDA);
                   }
                   setExpandedPositions(newExpanded);
                 }}
                 className="h-6 w-6 p-0"
               >
-                {expandedPositions.has(position.positionPDA.toString()) ? (
+                {expandedPositions.has(position.positionPDA) ? (
                   <ChevronUp className="w-4 h-4" />
                 ) : (
                   <ChevronDown className="w-4 h-4" />
@@ -270,9 +240,7 @@ const PositionList = () => {
   );
 
   const renderOpenedCell = useCallback(
-    (
-      position: any, // eslint-disable-line
-    ) => (
+    (position: any) => (
       <div className="text-sm text-gray-500 whitespace-nowrap">
         {position.openPosition?.ts ? formatDate(parseInt(position.openPosition.ts)) : '-'}
       </div>
@@ -280,199 +248,193 @@ const PositionList = () => {
     [],
   );
 
-  const renderClosedCell = useCallback(
-    (
-      position: any, // eslint-disable-line
-    ) => (
-      <div className="text-sm text-gray-500 whitespace-nowrap">
-        {position.closePosition?.ts ? formatDate(parseInt(position.closePosition.ts)) : '-'}
-      </div>
-    ),
-    [],
-  );
+  const renderActionsCell = useCallback((position: any) => {
+    const partialCloses = position.partialCloseHistory || [];
+    const hasPartialCloses = partialCloses.length > 0;
 
-  const renderActionsCell = useCallback(
-    (
-      position: any, // eslint-disable-line
-    ) => {
-      const partialCloses = (position as any).partialCloseHistory || [];
-      const hasPartialCloses = partialCloses.length > 0;
-
-      return (
-        <div className="flex items-center gap-2">
-          {hasPartialCloses && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8">
-                  <History className="w-4 h-4 mr-1" />
-                  History
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl">
-                <DialogHeader>
-                  <DialogTitle>Partial Close History</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-800 rounded-lg">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-400">Position Statistics</h4>
-                      <div className="mt-2 space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span>Original Size:</span>
-                          <NumberFormat value={position.size / 1e6 || 0} />
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Remaining Size:</span>
-                          <NumberFormat
-                            value={position.remainingSize / 1e6 || position.size / 1e6 || 0}
-                          />
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Total Closed:</span>
-                          <NumberFormat
-                            value={
-                              partialCloses.length > 0
-                                ? partialCloses.reduce(
-                                    (sum: number, close: any) =>
-                                      sum + parseInt(close.closeAmount) / 1e6,
-                                    0,
-                                  )
-                                : 0
-                            }
-                            showCurrency={true}
-                          />
-                        </div>
+    return (
+      <div className="flex items-center gap-2">
+        {hasPartialCloses && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8">
+                <History className="w-4 h-4 mr-1" />
+                History
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Partial Close History</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-800 rounded-lg">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-400">Position Statistics</h4>
+                    <div className="mt-2 space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Original Size:</span>
+                        <NumberFormat
+                          value={parseFloat((parseFloat(position.size) / 1e6).toFixed(2))}
+                        />
                       </div>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-400">PnL Summary</h4>
-                      <div className="mt-2 space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span>Total PnL:</span>
-                          <NumberFormat
-                            value={partialCloses.reduce(
-                              (sum: number, close: any) => sum + (parseInt(close.pnl) || 0),
-                              0,
-                            )}
-                            isPrice={true}
-                            showCurrency={true}
-                          />
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Total Fees:</span>
-                          <NumberFormat
-                            value={partialCloses.reduce(
-                              (sum: number, close: any) =>
-                                sum + (parseInt(close.feeCollected) || 0),
-                              0,
-                            )}
-                            isPrice={true}
-                            showCurrency={true}
-                          />
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Total Closed:</span>
-                          <NumberFormat
-                            value={partialCloses.reduce(
-                              (sum: number, close: any) => sum + (parseInt(close.closeAmount) || 0),
-                              0,
-                            )}
-                            isPrice={true}
-                            showCurrency={true}
-                          />
-                        </div>
+                      <div className="flex justify-between">
+                        <span>Remaining Size:</span>
+                        <NumberFormat
+                          value={parseFloat((parseFloat(position.remainingSize) / 1e6).toFixed(2))}
+                        />
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total Closed:</span>
+                        <NumberFormat
+                          value={
+                            partialCloses.length > 0
+                              ? parseFloat(
+                                  partialCloses
+                                    .reduce(
+                                      (sum: number, close: any) =>
+                                        sum + parseFloat(close.closeAmount) / 1e6,
+                                      0,
+                                    )
+                                    .toFixed(2),
+                                )
+                              : 0
+                          }
+                        />
                       </div>
                     </div>
                   </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-400">PnL Summary</h4>
+                    <div className="mt-2 space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Total PnL:</span>
+                        <NumberFormat
+                          value={parseFloat(
+                            partialCloses
+                              .reduce(
+                                (sum: number, close: any) =>
+                                  sum + parseFloat(close.settlementDetails.pnl),
+                                0,
+                              )
+                              .toFixed(2),
+                          )}
+                          isPrice={true}
+                          showCurrency={true}
+                        />
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total Fees:</span>
+                        <NumberFormat
+                          value={parseFloat(
+                            partialCloses
+                              .reduce(
+                                (sum: number, close: any) =>
+                                  sum + parseFloat(close.settlementDetails.feeToTreasury),
+                                0,
+                              )
+                              .toFixed(2),
+                          )}
+                          isPrice={true}
+                          showCurrency={true}
+                        />
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Total Closed:</span>
+                        <NumberFormat
+                          value={parseFloat(
+                            partialCloses
+                              .reduce(
+                                (sum: number, close: any) => sum + parseFloat(close.closeAmount),
+                                0,
+                              )
+                              .toFixed(2),
+                          )}
+                          isPrice={true}
+                          showCurrency={true}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-gray-400">
-                      Partial Close Transactions
-                    </h4>
-                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {partialCloses.map((close: any, index: number) => (
-                        <div
-                          key={index}
-                          className="p-3 bg-gray-800 rounded-lg border border-gray-700"
-                        >
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <div className="flex justify-between mb-1">
-                                <span className="text-gray-400">Size Closed:</span>
-                                <NumberFormat value={parseInt(close.closeAmount) / 1e6 || 0} />
-                              </div>
-                              <div className="flex justify-between mb-1">
-                                <span className="text-gray-400">Exit Price:</span>
-                                <NumberFormat
-                                  value={parseInt(close.closePrice) / 1e8 || 0}
-                                  isPrice={true}
-                                  showCurrency={true}
-                                />
-                              </div>
-                              <div className="flex justify-between mb-1">
-                                <span className="text-gray-400">PnL:</span>
-                                <span
-                                  className={
-                                    parseInt(close.pnl) > 0 ? 'text-green-500' : 'text-red-500'
-                                  }
-                                >
-                                  <NumberFormat
-                                    value={parseInt(close.pnl) / 1e6 || 0}
-                                    isPrice={true}
-                                  />
-                                </span>
-                              </div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-gray-400">Partial Close Transactions</h4>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {partialCloses.map((close: any, index: number) => (
+                      <div
+                        key={index}
+                        className="p-3 bg-gray-800 rounded-lg border border-gray-700"
+                      >
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <div className="flex justify-between mb-1">
+                              <span className="text-gray-400">Size Closed:</span>
+                              <NumberFormat
+                                value={parseFloat((parseFloat(close.closeAmount) / 1e6).toFixed(2))}
+                              />
                             </div>
-                            <div>
-                              <div className="flex justify-between mb-1">
-                                <span className="text-gray-400">Fees:</span>
+                            <div className="flex justify-between mb-1">
+                              <span className="text-gray-400">Exit Price:</span>
+                              <NumberFormat
+                                value={parseFloat(parseFloat(close.closePrice).toFixed(2))}
+                                isPrice={true}
+                                showCurrency={true}
+                              />
+                            </div>
+                            <div className="flex justify-between mb-1">
+                              <span className="text-gray-400">PnL:</span>
+                              <span
+                                className={
+                                  parseFloat(close.settlementDetails.pnl) > 0
+                                    ? 'text-green-500'
+                                    : 'text-red-500'
+                                }
+                              >
                                 <NumberFormat
-                                  value={parseInt(close.feeCollected) / 1e6 || 0}
+                                  value={parseFloat(
+                                    parseFloat(close.settlementDetails.pnl).toFixed(2),
+                                  )}
                                   isPrice={true}
-                                  showCurrency={true}
                                 />
-                              </div>
-                              <div className="flex justify-between mb-1">
-                                <span className="text-gray-400">Transaction:</span>
-                                <span className="text-xs text-gray-400">
-                                  <PublicKeyText
-                                    publicKey={close.closePosition.tx}
-                                    isCopy={true}
-                                    noFormat={false}
-                                  />
-                                </span>
-                              </div>
-                              <div className="flex justify-between mb-1">
-                                <span className="text-gray-400">Date:</span>
-                                <span>{formatDate(parseInt(close.closePosition.ts))}</span>
-                              </div>
+                              </span>
                             </div>
                           </div>
-                          {close.closePosition.tx && (
-                            <div className="mt-2 pt-2 border-t border-gray-700">
-                              <div className="flex justify-between items-center">
-                                <span className="text-xs text-gray-400">Transaction:</span>
+                          <div>
+                            <div className="flex justify-between mb-1">
+                              <span className="text-gray-400">Fees:</span>
+                              <NumberFormat
+                                value={parseFloat(close.settlementDetails.feeToTreasury.toFixed(2))}
+                                isPrice={true}
+                                showCurrency={true}
+                              />
+                            </div>
+                            <div className="flex justify-between mb-1">
+                              <span className="text-gray-400">Transaction:</span>
+                              <span className="text-xs text-gray-400">
                                 <PublicKeyText
                                   publicKey={close.closePosition.tx}
                                   isCopy={true}
                                   noFormat={false}
                                 />
-                              </div>
+                              </span>
                             </div>
-                          )}
+                            <div className="flex justify-between mb-1">
+                              <span className="text-gray-400">Date:</span>
+                              <span>{formatDate(parseInt(close.closePosition.ts))}</span>
+                            </div>
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
-      );
-    },
-    [],
-  );
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+    );
+  }, []);
 
   const cellRenderers = useMemo(
     () => [
@@ -483,11 +445,9 @@ const PositionList = () => {
       renderSizeCell,
       renderCollateralCell,
       renderEntryPriceCell,
-      renderExitPriceCell,
       renderStatusCell,
       renderPartialClosesCell,
       renderOpenedCell,
-      renderClosedCell,
       renderActionsCell,
     ],
     [
@@ -498,11 +458,9 @@ const PositionList = () => {
       renderSizeCell,
       renderCollateralCell,
       renderEntryPriceCell,
-      renderExitPriceCell,
       renderStatusCell,
       renderPartialClosesCell,
       renderOpenedCell,
-      renderClosedCell,
       renderActionsCell,
     ],
   );
@@ -520,32 +478,34 @@ const PositionList = () => {
       return <EmptyState colSpan={tableHeaders.length} />;
     }
 
-    return positions.map((position) => (
-      <React.Fragment key={position.positionPDA.toString()}>
+    return positions.map((position: any) => (
+      <React.Fragment key={position.positionPDA}>
         <TableRow>
           {cellRenderers.map((renderer, index) => (
             <TableCell key={index}>{renderer(position)}</TableCell>
           ))}
         </TableRow>
 
-        {expandedPositions.has(position.positionPDA.toString()) &&
-          (position as any).partialCloseHistory &&
-          (position as any).partialCloseHistory.length > 0 && (
+        {expandedPositions.has(position.positionPDA) &&
+          position.partialCloseHistory &&
+          position.partialCloseHistory.length > 0 && (
             <TableRow>
               <TableCell colSpan={tableHeaders.length} className="p-0 whitespace-nowrap">
                 <div className="bg-gray-800/50 p-4 border-t border-gray-700">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4 ">
-                    {(position as any).partialCloseHistory.map((close: any, index: number) => (
+                    {position.partialCloseHistory.map((close: any, index: number) => (
                       <div key={index} className="p-3 bg-gray-700 rounded-lg">
                         <div className="text-sm space-y-1">
                           <div className="flex justify-between">
                             <span className="text-gray-400">Closed:</span>
-                            <NumberFormat value={parseInt(close.closeAmount) / 1e6 || 0} />
+                            <NumberFormat
+                              value={parseFloat((parseFloat(close.closeAmount) / 1e6).toFixed(2))}
+                            />
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-400">Price:</span>
                             <NumberFormat
-                              value={parseInt(close.closePrice) / 1e8 || 0}
+                              value={parseFloat(parseFloat(close.closePrice).toFixed(2))}
                               isPrice={true}
                               showCurrency={true}
                             />
@@ -554,10 +514,17 @@ const PositionList = () => {
                             <span className="text-gray-400">PnL:</span>
                             <span
                               className={
-                                parseInt(close.pnl) > 0 ? 'text-green-500' : 'text-red-500'
+                                parseFloat(close.settlementDetails.pnl) > 0
+                                  ? 'text-green-500'
+                                  : 'text-red-500'
                               }
                             >
-                              <NumberFormat value={parseInt(close.pnl) / 1e6 || 0} isPrice={true} />
+                              <NumberFormat
+                                value={parseFloat(
+                                  parseFloat(close.settlementDetails.pnl).toFixed(2),
+                                )}
+                                isPrice={true}
+                              />
                             </span>
                           </div>
                           <div className="flex justify-between">

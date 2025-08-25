@@ -1,11 +1,25 @@
 import { NumberFormat, PublicKeyText, TableCell, getSolscanAddressUrl } from '@baskt/ui';
+import Image from 'next/image';
 import { ASSET_TABLE_IDS, DATE_FORMAT_OPTIONS } from '../../constants/assets';
 import { AssetTableCellProps } from '../../types/assets';
 
 export function AssetTableCell({ asset, id }: AssetTableCellProps) {
   switch (id) {
-    case ASSET_TABLE_IDS.TICKER:
-      return <TableCell className="font-medium">{asset.ticker}</TableCell>;
+    case ASSET_TABLE_IDS.NAME:
+      return (
+        <TableCell className="font-medium flex items-center gap-2">
+          {asset.logo && (
+            <Image
+              src={asset.logo}
+              alt={asset.name || asset.ticker}
+              width={20}
+              height={20}
+              className="rounded-full"
+            />
+          )}
+          <span>{asset.name || asset.ticker}</span>
+        </TableCell>
+      );
 
     case ASSET_TABLE_IDS.ADDRESS:
       return (
@@ -31,7 +45,7 @@ export function AssetTableCell({ asset, id }: AssetTableCellProps) {
     case ASSET_TABLE_IDS.PRICE:
       return (
         <TableCell>
-          <NumberFormat value={asset?.price} isPrice={true} />
+          <NumberFormat value={asset?.price} isPrice={true} showCurrency={true} />
         </TableCell>
       );
 

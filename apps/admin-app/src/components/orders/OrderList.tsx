@@ -1,47 +1,44 @@
-import React, { useState, useMemo } from 'react'; // Added React and useState
-import { useOrders } from '../../hooks/orders/useOrders';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  NumberFormat,
+  PublicKeyText,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  PublicKeyText,
-  NumberFormat,
 } from '@baskt/ui';
-import { formatDate } from '../../utils/pool';
 import { MoreHorizontal } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { useOrders } from '../../hooks/orders/useOrders';
 import { useCopyWithTimeout } from '../../hooks/useCopyWithTimeout';
-import { getStatusColor, getActionColor } from '../../utils/orderUtils';
-import FillPositionDialog from './FillPositionDialog';
+import { order } from '../../types/orders';
+import { getActionColor, getStatusColor } from '../../utils/orderUtils';
+import { formatDate } from '../../utils/pool';
 import ClosePositionDialog from './ClosePositionDialog';
-import { OnchainOrder, OrderAction, OnchainOrderStatus } from '@baskt/types';
+import FillPositionDialog from './FillPositionDialog';
 
 const OrderList = () => {
   const { orders = [] } = useOrders();
   const { handleCopy } = useCopyWithTimeout();
 
   const [isFillDialogOpen, setIsFillDialogOpen] = useState(false);
-  const [selectedOrderForFill, setSelectedOrderForFill] = useState<OnchainOrder | null>(null);
+  const [selectedOrderForFill, setSelectedOrderForFill] = useState<order | null>(null);
 
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
-  const [selectedOrderForClose, setSelectedOrderForClose] = useState<OnchainOrder | null>(null);
+  const [selectedOrderForClose, setSelectedOrderForClose] = useState<order | null>(null);
 
-  // Calculate order counts
   const orderCounts = useMemo(() => {
     const total = orders.length;
-    const pending = orders.filter(
-      (order: OnchainOrder) => order.status === OnchainOrderStatus.PENDING,
-    ).length;
+    const pending = orders.filter((order: order) => order.orderStatus === 'PENDING').length;
     return { total, pending };
   }, [orders]);
 
-  const openFillDialog = (order: OnchainOrder) => {
+  const openFillDialog = (order: order) => {
     setSelectedOrderForFill(order);
     setIsFillDialogOpen(true);
   };
@@ -51,7 +48,7 @@ const OrderList = () => {
     setIsFillDialogOpen(false);
   };
 
-  const openCloseDialog = (order: OnchainOrder) => {
+  const openCloseDialog = (order: order) => {
     setSelectedOrderForClose(order);
     setIsCloseDialogOpen(true);
   };
@@ -81,8 +78,6 @@ const OrderList = () => {
               <TableHead>Collateral</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Time</TableHead>
-              <TableHead>Limit Price</TableHead>
-              <TableHead>Max Slippage</TableHead>
               <TableHead>Order Type</TableHead>
               <TableHead className="text-right"></TableHead>
             </TableRow>
@@ -90,12 +85,12 @@ const OrderList = () => {
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center text-gray-400 py-8">
+                <TableCell colSpan={9} className="text-center text-gray-400 py-8">
                   No orders found.
                 </TableCell>
               </TableRow>
             ) : (
-              orders.map((order: OnchainOrder) => (
+              orders.map((order: order) => (
                 <TableRow key={order.orderId.toString()}>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -115,51 +110,45 @@ const OrderList = () => {
                     <div className="flex items-center gap-2 mt-1">
                       <div
                         className="text-sm text-gray-500 cursor-pointer"
-                        onClick={() => handleCopy(order.owner.toBase58(), `owner-${order.orderId}`)}
+                        onClick={() => handleCopy(order.owner, `owner-${order.orderId}`)}
                       >
-                        <PublicKeyText publicKey={order.owner.toBase58()} isCopy={true} />
+                        <PublicKeyText publicKey={order.owner} isCopy={true} />
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm text-gray-200">
-                      <PublicKeyText publicKey={order.basktId.toBase58()} isCopy={true} />
+                      <PublicKeyText publicKey={order.basktAddress} isCopy={true} />
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className={`text-sm font-medium ${getActionColor(order.openParams?.isLong ?? false)}`}>
+                    <div
+                      className={`text-sm font-medium ${getActionColor(
+                        order.openParams?.isLong ?? false,
+                      )}`}
+                    >
                       {order.openParams?.isLong ? 'Long' : 'Short'}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm text-gray-200">{order.action}</div>
+                    <div className="text-sm text-gray-200">{order.orderAction}</div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm text-gray-200">
-                      <NumberFormat 
-                        value={parseFloat(order.openParams?.collateral?.toString() || '0')} 
-                        isPrice 
+                      <NumberFormat
+                        value={parseFloat(order.openParams?.collateral || '0')}
+                        isPrice
                       />
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className={`text-sm font-medium ${getStatusColor(order.status)}`}>
-                      {order.status}
+                    <div className={`text-sm font-medium ${getStatusColor(order.orderStatus)}`}>
+                      {order.orderStatus}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm text-gray-500">
-                      {formatDate(order.timestamp.toNumber())}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm text-gray-500">
-                      {order.limitParams?.limitPrice?.toString() || 'N/A'}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm text-gray-500">
-                      {order.limitParams?.maxSlippageBps?.toString() || 'N/A'}
+                      {formatDate(Math.floor(new Date(order.createdAt).getTime() / 1000))}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -176,10 +165,7 @@ const OrderList = () => {
                         <DropdownMenuItem
                           onClick={() => openFillDialog(order)}
                           disabled={
-                            !(
-                              order.action === OrderAction.Open &&
-                              order.status === OnchainOrderStatus.PENDING
-                            )
+                            !(order.orderAction === 'OPEN' && order.orderStatus === 'PENDING')
                           }
                         >
                           Fill Position
@@ -187,10 +173,7 @@ const OrderList = () => {
                         <DropdownMenuItem
                           onClick={() => openCloseDialog(order)}
                           disabled={
-                            !(
-                              order.action === OrderAction.Close &&
-                              order.status === OnchainOrderStatus.PENDING
-                            )
+                            !(order.orderAction === 'CLOSE' && order.orderStatus === 'PENDING')
                           }
                         >
                           Close Position
@@ -206,14 +189,14 @@ const OrderList = () => {
       </div>
       {isFillDialogOpen && selectedOrderForFill && (
         <FillPositionDialog
-          order={selectedOrderForFill}
+          order={selectedOrderForFill as any}
           isOpen={isFillDialogOpen}
           onClose={closeFillDialog}
         />
       )}
       {isCloseDialogOpen && selectedOrderForClose && (
         <ClosePositionDialog
-          order={selectedOrderForClose}
+          order={selectedOrderForClose as any}
           isOpen={isCloseDialogOpen}
           onClose={closeCloseDialog}
         />

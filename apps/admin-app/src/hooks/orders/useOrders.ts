@@ -1,24 +1,34 @@
 import { useEffect, useState } from 'react';
-import { useBasktClient } from '@baskt/ui';
-import { OnchainOrder } from '@baskt/types';
+import { trpc } from '../../utils/trpc';
 
 export const useOrders = () => {
-  const { client } = useBasktClient();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [orders, setOrders] = useState<OnchainOrder[]>([]);
+  // Use tRPC query to fetch orders from backend
+  const { data, isLoading: queryLoading, error: queryError } = trpc.order.getOrders.useQuery({});
 
   useEffect(() => {
-    if (!client) return;
-    const fetchOrders = async () => {
-      const orders = await client.getAllOrders();
-      setOrders(orders || []);
-    };
-    fetchOrders();
-  }, [client]);
+    if (data?.success && data.data) {
+      setOrders(data.data);
+      setError(null);
+    } else if (data?.success === false) {
+      setError(data.message || 'Failed to fetch orders');
+    }
+    setIsLoading(false);
+  }, [data]);
+
+  useEffect(() => {
+    if (queryError) {
+      setError(queryError.message || 'Failed to fetch orders');
+      setIsLoading(false);
+    }
+  }, [queryError]);
 
   return {
     orders,
-    isLoading: false,
-    error: null,
+    isLoading: isLoading || queryLoading,
+    error,
   };
 };

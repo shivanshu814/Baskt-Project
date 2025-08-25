@@ -1,20 +1,19 @@
-import React from 'react';
 import {
+  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  Button,
+  PublicKeyText,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  PublicKeyText,
 } from '@baskt/ui';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { PoolParticipantsProps } from '../../types/pool';
 import { PAGE_SIZE_OPTIONS } from '../../constants/pool';
+import type { PoolParticipantsProps } from '../../types/pool';
 
 export function PoolParticipants({
   participants,
@@ -27,7 +26,7 @@ export function PoolParticipants({
   const handlePageSizeChange = (size: (typeof PAGE_SIZE_OPTIONS)[number]) => {
     onPageSizeChange(size);
   };
-
+  console.log('participants', participants);
   return (
     <Card className="bg-white/5 border-white/10 shadow-xl">
       <CardHeader>

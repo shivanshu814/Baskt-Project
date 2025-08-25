@@ -29,7 +29,6 @@ export function UsersTable({ roles, isLoading, onCopyAddress, onFaucet }: UsersT
   const [loadingBalances, setLoadingBalances] = useState(false);
   const [userPositions, setUserPositions] = useState<Record<string, number>>({});
   const [userBaskts, setUserBaskts] = useState<Record<string, number>>({});
-  const [loadingUserData, setLoadingUserData] = useState(false);
 
   const { data: positionsData } = trpc.position.getPositions.useQuery(
     {},
