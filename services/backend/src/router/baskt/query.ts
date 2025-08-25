@@ -350,6 +350,49 @@ const getExplorePageBaskts = publicProcedure
     }
   });
 
+// get baskt rebalance history
+const getBasktRebalanceHistory = publicProcedure
+  .input(
+    z.object({
+      basktId: z.string(),
+      limit: z.number().min(1).max(100).optional().default(50),
+    }),
+  )
+  .query(async ({ input }) => {
+    try {
+      const result = await querier.baskt.getRebalanceHistory(input.basktId, input.limit);
+      return result;
+    } catch (error) {
+      logger.error('Error fetching baskt rebalance history:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch baskt rebalance history',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
+
+// get latest baskt rebalance
+const getLatestBasktRebalance = publicProcedure
+  .input(
+    z.object({
+      basktId: z.string(),
+    }),
+  )
+  .query(async ({ input }) => {
+    try {
+      const result = await querier.baskt.getLatestRebalance(input.basktId);
+      return result;
+    } catch (error) {
+      logger.error('Error fetching latest baskt rebalance:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch latest baskt rebalance',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
+
 export const getRouter = {
   getBasktMetadataByAddress,
   getBasktMetadataByName,
@@ -358,4 +401,6 @@ export const getRouter = {
   getBatchBasktNAV,
   getTradingData,
   getExplorePageBaskts,
+  getBasktRebalanceHistory,
+  getLatestBasktRebalance,
 };

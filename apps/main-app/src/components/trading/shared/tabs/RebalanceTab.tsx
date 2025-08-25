@@ -1,6 +1,9 @@
 import { Button, PublicKeyText } from '@baskt/ui';
-import { Activity, Clock, RefreshCw, Settings } from 'lucide-react';
+import { Activity, Clock, History, RefreshCw, Settings } from 'lucide-react';
+import { useState } from 'react';
+import { useRebalanceHistory } from '../../../../hooks/trade/action/use-rebalance-history';
 import { RebalanceTabProps } from '../../../../types/baskt/trading/orders';
+import { RebalanceHistoryModal } from '../modals/RebalanceHistoryModal';
 
 export function RebalanceTab({
   baskt,
@@ -9,6 +12,17 @@ export function RebalanceTab({
   onRebalance,
 }: RebalanceTabProps) {
   const isCreator = userAddress && userAddress === baskt?.account?.creator.toString();
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const { latestRebalance } = useRebalanceHistory(baskt?.basktId || '');
+
+  const handleShowHistory = () => {
+    setIsHistoryModalOpen(true);
+  };
+
+  const handleCloseHistory = () => {
+    setIsHistoryModalOpen(false);
+  };
+
   return (
     <div className="space-y-6 -mt-4 -ml-2">
       <div className="bg-muted/20 rounded-lg p-4 border border-border">
@@ -24,23 +38,36 @@ export function RebalanceTab({
               </span>
             )}
           </div>
-          {isCreator && (
+          <div className="flex items-center gap-2">
             <Button
-              onClick={onRebalance}
-              disabled={!baskt?.account?.status || isRebalancing}
+              onClick={handleShowHistory}
+              variant="outline"
               className="flex items-center gap-2"
             >
-              <RefreshCw className={`w-4 h-4 ${isRebalancing ? 'animate-spin' : ''}`} />
-              {isRebalancing ? 'Rebalancing...' : 'Rebalance'}
+              <History className="w-4 h-4" />
+              Show Rebalance History
             </Button>
-          )}
+
+            {isCreator && (
+              <Button
+                onClick={onRebalance}
+                disabled={!baskt?.account?.status || isRebalancing}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRebalancing ? 'animate-spin' : ''}`} />
+                {isRebalancing ? 'Rebalancing...' : 'Rebalance'}
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
           <div className="relative border border-border rounded-md p-3 bg-background/40">
             <Settings className="absolute right-3 top-3 w-3.5 h-3.5 text-muted-foreground/60" />
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Mode</div>
-            <div className="mt-1 text-sm text-foreground">Manual</div>
+            <div className="mt-1 text-sm text-foreground">
+              {baskt?.account?.rebalancePeriod === '0' ? 'Manual' : 'Automatic'}
+            </div>
           </div>
           <div className="relative border border-border rounded-md p-3 bg-background/40">
             <Activity className="absolute right-3 top-3 w-3.5 h-3.5 text-muted-foreground/60" />
@@ -58,10 +85,11 @@ export function RebalanceTab({
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
               Last Rebalance
             </div>
+
             <div className="mt-1 text-sm text-foreground">
-              {baskt?.account?.lastRebalanceTime
-                ? new Date(Number(baskt.account.lastRebalanceTime) * 1000).toLocaleString()
-                : 'Never'}
+              {latestRebalance?.updatedAt
+                ? new Date(latestRebalance.updatedAt).toLocaleString()
+                : '-'}
             </div>
           </div>
           <div className="relative border border-border rounded-md p-3 bg-background/40">
@@ -84,6 +112,12 @@ export function RebalanceTab({
           </div>
         )}
       </div>
+
+      <RebalanceHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={handleCloseHistory}
+        basktId={baskt?.basktId || ''}
+      />
     </div>
   );
 }

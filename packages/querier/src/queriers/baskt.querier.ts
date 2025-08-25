@@ -1,16 +1,20 @@
-import { BaseClient, calculateNav, PRICE_PRECISION } from '@baskt/sdk';
+import { BaseClient, calculateNav } from '@baskt/sdk';
 import { PublicKey } from '@solana/web3.js';
 import { BN } from 'bn.js';
-import { BasktMetadataModel, RebalanceRequestModel, BasktRebalanceHistoryModel } from '../models/mongodb';
+import { metadataManager } from '../models/metadata-manager';
+import {
+  BasktMetadataModel,
+  BasktRebalanceHistoryModel,
+  RebalanceRequestModel,
+} from '../models/mongodb';
 import { QueryResult } from '../models/types';
 import { BasktMetadata, CombinedAsset } from '../types';
-import { BasktNAV,  BasktQueryOptions, CombinedBaskt } from '../types/baskt';
-import { createQuerierError, handleQuerierError } from '../utils/error-handling';
+import { BasktNAV, BasktQueryOptions, CombinedBaskt } from '../types/baskt';
+import { BasktRebalanceHistory, RebalanceRequestMetadata } from '../types/models';
+import { handleQuerierError } from '../utils/error-handling';
+import { toNumber } from '../utils/helpers';
 import { AssetQuerier } from './asset.querier';
 import { PriceQuerier } from './price.querier';
-import { toNumber } from '../utils/helpers';
-import { metadataManager } from '../models/metadata-manager';
-import { RebalanceRequestMetadata, BasktRebalanceHistory } from '../types/models';
 
 /**
  * Baskt Querier
@@ -44,23 +48,20 @@ export class BasktQuerier {
    * Get all baskts with asset integration
    */
   async getAllBaskts(
-    options: BasktQueryOptions = {  
+    options: BasktQueryOptions = {
       hidePrivateBaskts: true,
       userAddress: undefined,
     },
   ): Promise<QueryResult<CombinedBaskt[]>> {
     try {
-
       const query: any = {
         isPublic: options.hidePrivateBaskts,
-      }
-      if(options.userAddress) {
+      };
+      if (options.userAddress) {
         query['creator'] = options.userAddress;
       }
       const [basktConfigs, allAssetsResult] = await Promise.all([
-        BasktMetadataModel.find(query)
-          .sort({ createdAt: -1 })
-          .lean<BasktMetadata[]>(),
+        BasktMetadataModel.find(query).sort({ createdAt: -1 }).lean<BasktMetadata[]>(),
         this.assetQuerier.getAllAssets({ withConfig: false }),
       ]);
 
@@ -84,10 +85,7 @@ export class BasktQuerier {
       // Combine baskts with asset data
       const combinedBaskts = await Promise.all(
         basktConfigs.map(async (basktConfig) => {
-          const result = await this.combineBasktData(
-            basktConfig,
-            assetLookup,
-          );
+          const result = await this.combineBasktData(basktConfig, assetLookup);
           return result;
         }),
       );
@@ -114,9 +112,7 @@ export class BasktQuerier {
   /**
    * Get baskt by ID
    */
-  async getBasktByAddress(
-    basktId: string,
-  ): Promise<QueryResult<CombinedBaskt>> {
+  async getBasktByAddress(basktId: string): Promise<QueryResult<CombinedBaskt>> {
     try {
       const [basktMetadata, allAssetsResult] = await Promise.all([
         BasktMetadataModel.findOne({ basktId }).lean<BasktMetadata>(),
@@ -163,9 +159,7 @@ export class BasktQuerier {
   /**
    * Get baskt by name
    */
-  async getBasktByUID(
-    basktUID: string,
-  ): Promise<QueryResult<CombinedBaskt>> {
+  async getBasktByUID(basktUID: string): Promise<QueryResult<CombinedBaskt>> {
     try {
       const basktId = await this.basktClient.getBasktPDA(parseInt(basktUID));
       return this.getBasktByAddress(basktId.toString());
@@ -225,12 +219,14 @@ export class BasktQuerier {
       const basktAccount = await this.basktClient.getBasktAccount(new PublicKey(basktId));
 
       // Get asset metadata to map assetObjectIds using metadata manager directly
-      const assetAddresses = basktAccount.currentAssetConfigs.map(config => config.assetId.toString());
+      const assetAddresses = basktAccount.currentAssetConfigs.map((config) =>
+        config.assetId.toString(),
+      );
       const assetMetadatas = await metadataManager.getAllAssets();
-      
+
       // Create a map of asset address to asset metadata ID
       const assetIdMap = new Map<string, string>();
-      assetMetadatas.forEach(asset => {
+      assetMetadatas.forEach((asset) => {
         if (assetAddresses.includes(asset.assetAddress)) {
           assetIdMap.set(asset.assetAddress, asset._id?.toString() || '');
         }
@@ -264,11 +260,11 @@ export class BasktQuerier {
       //   currentAssetConfigs: basktAccount.currentAssetConfigs.map(config => {
       //     const assetAddress = config.assetId.toString();
       //     const assetObjectId = assetIdMap.get(assetAddress);
-          
+
       //     if (!assetObjectId) {
       //       console.warn(`Asset metadata not found for asset: ${assetAddress}`);
       //     }
-          
+
       //     return {
       //       assetObjectId: assetObjectId || '', // Use empty string if not found, but log warning
       //       assetId: assetAddress,
@@ -279,7 +275,7 @@ export class BasktQuerier {
       //   }),
       //   updatedAt: new Date(),
       // });
-      
+
       console.log(`Baskt metadata resynced for baskt: ${basktId}`);
     } catch (error) {
       console.error('Failed to resync baskt metadata:', error);
@@ -366,8 +362,8 @@ export class BasktQuerier {
       change24h: basktMetadata.stats.change24h ?? 0,
       aum: 0,
       sparkline: [],
-      performance:  {
-        daily: basktMetadata.stats.change24h ,
+      performance: {
+        daily: basktMetadata.stats.change24h,
         weekly: basktMetadata.stats.change7d,
         monthly: basktMetadata.stats.change30d,
         year: basktMetadata.stats.change365d,
@@ -385,22 +381,32 @@ export class BasktQuerier {
   }
 
   // Rebalance history methods
-  async createRebalanceHistory(rebalanceHistory: Omit<BasktRebalanceHistory, '_id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+  async createRebalanceHistory(
+    rebalanceHistory: Omit<BasktRebalanceHistory, '_id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<void> {
     await BasktRebalanceHistoryModel.create(rebalanceHistory);
   }
 
-  async getRebalanceHistory(basktId: string, limit: number = 50): Promise<QueryResult<BasktRebalanceHistory[]>> {
+  async getRebalanceHistory(
+    basktId: string,
+    limit: number = 50,
+  ): Promise<QueryResult<BasktRebalanceHistory[]>> {
     try {
-      const history = await BasktRebalanceHistoryModel
-        .find({ basktId })
-        .sort({ timestamp: -1 })
+      const history = await BasktRebalanceHistoryModel.find({ basktId })
+        .sort({ createdAt: -1 })
         .limit(limit)
-        .lean<BasktRebalanceHistory[]>()
+        .lean<BasktRebalanceHistory[]>({ getters: true })
         .exec();
+
+      const processedHistory = history.map((item) => ({
+        ...item,
+        _id: item._id?.toString() || '',
+        baskt: item.baskt?.toString() || '',
+      }));
 
       return {
         success: true,
-        data: history as BasktRebalanceHistory[],
+        data: processedHistory as unknown as BasktRebalanceHistory[],
       };
     } catch (error) {
       return {
@@ -413,15 +419,27 @@ export class BasktQuerier {
 
   async getLatestRebalance(basktId: string): Promise<QueryResult<BasktRebalanceHistory | null>> {
     try {
-      const latest = await BasktRebalanceHistoryModel
-        .findOne({ basktId })
-        .sort({ timestamp: -1 })
-        .lean<BasktRebalanceHistory>()
+      const latest = await BasktRebalanceHistoryModel.findOne({ basktId })
+        .sort({ createdAt: -1 })
+        .lean<BasktRebalanceHistory>({ getters: true })
         .exec();
+
+      if (!latest) {
+        return {
+          success: true,
+          data: null,
+        };
+      }
+
+      const processedLatest = {
+        ...latest,
+        _id: latest._id?.toString() || '',
+        baskt: latest.baskt?.toString() || '',
+      };
 
       return {
         success: true,
-        data: latest,
+        data: processedLatest as unknown as BasktRebalanceHistory,
       };
     } catch (error) {
       return {
