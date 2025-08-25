@@ -1,13 +1,13 @@
+import { z } from 'zod';
 import { publicProcedure } from '../../trpc/trpc';
 import { querier } from '../../utils/';
-import { z } from 'zod';
 
 export const getAllFeeEventData = publicProcedure
   .input(
     z.object({
       limit: z.number().optional().default(100),
       offset: z.number().optional().default(0),
-    })
+    }),
   )
   .query(async ({ input }) => {
     try {
@@ -25,7 +25,7 @@ export const getAllFeeEventData = publicProcedure
 
 export const getFeeEventStats = publicProcedure.query(async () => {
   try {
-    const result = await querier.feeEvent.getFeeEventStatsOnly();
+    const result = await querier.feeEvent.getFeeEventStats();
     return result;
   } catch (error) {
     console.error('Error fetching fee event stats:', error);
@@ -41,7 +41,7 @@ export const getFeeEvents = publicProcedure
     z.object({
       limit: z.number().optional().default(100),
       offset: z.number().optional().default(0),
-    })
+    }),
   )
   .query(async ({ input }) => {
     try {
@@ -61,4 +61,4 @@ export const getRouter = {
   getAllFeeEventData,
   getFeeEventStats,
   getFeeEvents,
-}; 
+};

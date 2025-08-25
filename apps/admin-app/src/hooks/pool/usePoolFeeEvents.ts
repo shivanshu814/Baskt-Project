@@ -161,7 +161,37 @@ export function usePoolFeeEvents(options: UsePoolFeeEventsOptions = {}): UsePool
 
   const feeStats = useMemo(() => {
     if (!feeStatsData?.success || !feeStatsData.data) return null;
-    return feeStatsData.data as PoolFeeStats;
+
+    const data = feeStatsData.data as any;
+
+    if (data.eventTypeStats && !data.eventTypeBreakdown) {
+      let totalFees = 0;
+      let totalFeesToTreasury = 0;
+      let totalFeesToBlp = 0;
+
+      data.eventTypeStats.forEach((stat: any) => {
+        totalFees += stat.totalFees || 0;
+        totalFeesToTreasury += stat.totalFeesToTreasury || 0;
+        totalFeesToBlp += stat.totalFeesToBlp || 0;
+      });
+
+      return {
+        totalEvents: data.totalEvents || 0,
+        totalFees,
+        totalFeesToTreasury,
+        totalFeesToBlp,
+        eventTypeBreakdown: data.eventTypeStats.map((stat: any) => ({
+          _id: stat._id,
+          count: stat.count,
+          totalFeesToTreasury: stat.totalFeesToTreasury,
+          totalFeesToBlp: stat.totalFeesToBlp,
+          totalFees: stat.totalFees,
+          avgLiquidityAmount: 0,
+        })),
+      } as PoolFeeStats;
+    }
+
+    return data as PoolFeeStats;
   }, [feeStatsData]);
 
   const totalFeesFormatted = useMemo(() => {
