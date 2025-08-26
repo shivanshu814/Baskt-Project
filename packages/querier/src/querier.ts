@@ -93,6 +93,12 @@ export class Querier {
     try {
       console.log('Initializing Querier...');
 
+
+      if(this.mongoConnection && this.timescaleConnection && this.solanaConnection) {
+        console.log('Querier already initialized');
+        return;
+      }
+
       // Initialize MongoDB
       await connectMongoDB();
       this.mongoConnection = mongoose.connection;
@@ -104,6 +110,9 @@ export class Querier {
       // Initialize Solana connection
       await connectOnchain();
       this.solanaConnection = getOnchainConfig().connection;
+
+
+      
 
       // Pass the basktClient to all queriers as needed (if they accept it)
       // (You may want to update queriers to accept the client in their constructors)

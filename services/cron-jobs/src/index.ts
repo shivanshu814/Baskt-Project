@@ -3,6 +3,7 @@ import { AssetPriceTracker } from "./trackers/asset-price.tracker";
 import { BasktPerformanceTracker } from "./trackers/baskt-performance.tracker";
 import { LPTracker } from "./trackers/lp.tracker";
 import { RebalanceTracker } from "./rebalance/rebalance.tracker";
+import { WithdrawalQueueTracker } from "./trackers/withdrawal-queue.tracker";
 
 async function main() {
     // Load all the jobs 
@@ -11,7 +12,8 @@ async function main() {
         // new AssetPriceTracker(),
         // new BasktPerformanceTracker(),
         // new LPTracker(),
-        new RebalanceTracker(),
+        // new RebalanceTracker(),
+        new WithdrawalQueueTracker(),
     ];
 
     // Start all the jobs
