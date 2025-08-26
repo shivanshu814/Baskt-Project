@@ -762,6 +762,9 @@ importers:
 
   services/cron-jobs:
     dependencies:
+      '@baskt/data-bus':
+        specifier: workspace:*
+        version: link:../../packages/data-bus
       '@baskt/querier':
         specifier: workspace:*
         version: link:../../packages/querier

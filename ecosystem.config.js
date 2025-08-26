@@ -28,34 +28,20 @@ module.exports = {
     //     NODE_ENV: 'production',
     //   },
     // },
-    // {
-    //   name: 'oracle:rebalance-manager',
-    //   cwd: './services/oracle',
-    //   script: 'bash',
-    //   args: "-c 'node dist/rebalance/manager.js'",
-    //   interpreter: 'none',
-    //   exec_mode: 'fork',
-    //   autorestart: true,
-    //   watch: false,
-    //   env_file: '.env', // Absolute path to root .env
-    //   env: {
-    //     NODE_ENV: 'production',
-    //   },
-    // },
-    // {
-    //   name: 'oracle:rebalance-worker',
-    //   cwd: './services/oracle',
-    //   script: 'bash',
-    //   args: "-c 'node dist/rebalance/worker.js'",
-    //   interpreter: 'none',
-    //   exec_mode: 'fork',
-    //   autorestart: true,
-    //   watch: false,
-    //   env_file: '.env', // Absolute path to root .env
-    //   env: {
-    //     NODE_ENV: 'production',
-    //   },
-    // },
+    {
+      name: 'cron-jobs:rebalance-manager',
+      cwd: './services/cron-jobs',
+      script: 'bash',
+      args: "-c 'node dist/rebalance/manager.js'",
+      interpreter: 'none',
+      exec_mode: 'fork',
+      autorestart: true,
+      watch: false,
+      env_file: '.env', // Absolute path to root .env
+      env: {
+        NODE_ENV: 'production',
+      },
+    },
     {
       name: 'backend',
       cwd: './services/backend',

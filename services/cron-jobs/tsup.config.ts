@@ -1,7 +1,7 @@
 import { createStandaloneConfig } from '../../tsup.base.config';
 
 export default createStandaloneConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts', 'src/rebalance/manager.ts'],
   platform: 'node',
   external: [
     // Keep heavy/native packages external
