@@ -786,7 +786,7 @@ export abstract class BaseClient {
     } as OnchainBasktAccount;
   }
 
-  public async getBasktPDA(uid: number) {
+  public getBasktPDA(uid: number) {
     const uidBN = new BN(uid);
     const [basktId] = PublicKey.findProgramAddressSync(
       [Buffer.from('baskt'), uidBN.toArrayLike(Buffer, 'le', 4)],

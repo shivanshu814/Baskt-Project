@@ -4,27 +4,30 @@ import { DataBus, STREAMS } from '@baskt/data-bus';
 import { RebalanceRequestEvent } from '@baskt/types';
 import { PublicKey } from '@solana/web3.js';
 import { BN } from 'bn.js';
-import { CombinedBaskt } from '@baskt/querier';
+import { CombinedBaskt, RebalanceRequestStatus } from '@baskt/querier';
 
 // Check every hour by default
-const REBALANCE_CHECK_INTERVAL_MINUTES = parseInt(process.env.REBALANCE_CHECK_INTERVAL_MINUTES || '60');
+const REBALANCE_CHECK_INTERVAL_SECONDS = parseInt(process.env.REBALANCE_CHECK_INTERVAL_SECONDS || '3600');
 const NAV_DEVIATION_THRESHOLD = parseFloat(process.env.NAV_DEVIATION_THRESHOLD || '0.005'); // 0.5%
 
 export class RebalanceTracker extends BaseJob {
   private dataBus: DataBus;
 
   constructor() {
-    super('rebalance-tracker', REBALANCE_CHECK_INTERVAL_MINUTES * 60);
+    super('rebalance-tracker', REBALANCE_CHECK_INTERVAL_SECONDS);
     
     // Initialize DataBus
     this.dataBus = new DataBus({
       redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+      autoConnect: false
     });
   }
 
   private async getAllBaskts(): Promise<CombinedBaskt[]> {
     try {
-      const result = await querierClient.baskt.getAllBaskts();
+      const result = await querierClient.baskt.getAllBaskts({
+        hidePrivateBaskts: false
+      });
       if (!result.success) {
         console.error('Failed to fetch Baskts:', result.error || result.message || 'Unknown error');
         return [];
@@ -50,8 +53,6 @@ export class RebalanceTracker extends BaseJob {
     try {
       // Initialize clients
       await querierClient.init();
-      await this.dataBus.connect();
-
       const baskts = await this.getAllBaskts();
       
       if (!baskts.length) {
@@ -64,8 +65,8 @@ export class RebalanceTracker extends BaseJob {
       for (const baskt of baskts) {
         try {
           // Skip if no rebalance period configured
-          if (!baskt.rebalancePeriod || baskt.rebalancePeriod === 0) {
-            console.log(`⏭️  ${baskt.basktId} - No rebalance period configured`);
+          if (baskt.rebalancePeriod === 0) {
+            console.log(`⏭️  ${baskt.basktId} - Skipping Manual rebalance`);
             continue;
           }
 
@@ -83,8 +84,8 @@ export class RebalanceTracker extends BaseJob {
           // Check 2: NAV deviation check
           const currentNav = baskt.price; // Current NAV from getAllBaskts
           const baselineNav = typeof baskt.baselineNav === 'string' 
-            ? parseFloat(baskt.baselineNav) / 1e6 
-            : baskt.baselineNav.toNumber() / 1e6; // Convert from BN/string to decimal
+            ? parseFloat(baskt.baselineNav) 
+            : baskt.baselineNav.toNumber(); // Convert from BN/string to decimal
           
           const navDeviation = this.calculateNavDeviation(currentNav, baselineNav);
           
@@ -105,6 +106,17 @@ export class RebalanceTracker extends BaseJob {
 
           // Generate a unique signature for this cron job request
           const txSignature = `cron-rebalance-${baskt.basktId}-${Date.now()}`;
+
+
+          await querierClient.baskt.createRebalanceRequest({
+            baskt: baskt._id!,
+            creator: baskt.creator,
+            timestamp: Date.now(),
+            rebalanceRequestFee: 0,
+            txSignature,
+            status: RebalanceRequestStatus.Pending,
+            basktId: baskt.basktId,
+          });
 
           await this.dataBus.publish(STREAMS.rebalance.requested, {
             rebalanceRequest,

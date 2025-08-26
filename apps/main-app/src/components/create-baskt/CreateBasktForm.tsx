@@ -129,7 +129,7 @@ export function CreateBasktForm() {
           basktName={createdBasktData.basktId}
           basktDescription={`Custom weighted baskt with ${createdBasktData.assets.length} assets`}
           assets={createdBasktData.assets}
-          basktId={createdBasktData.uid}
+          basktId={createdBasktData.basktId}
         />
       )}
     </div>

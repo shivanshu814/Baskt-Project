@@ -10,7 +10,7 @@ async function main() {
         // new NavTracker(),
         // new AssetPriceTracker(),
         // new BasktPerformanceTracker(),
-        new LPTracker(),
+        // new LPTracker(),
         new RebalanceTracker(),
     ];
 

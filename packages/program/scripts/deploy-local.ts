@@ -225,6 +225,9 @@ async function main() {
   // Lets also just create a baskt
   const basket = await client.createBaskt(assetsConfig, true);
   console.log('Basket created', basket);
+
+
+  await querier.shutdown();
   console.log('Deployment complete! Info saved to deployment-localnet.json');
 }
 

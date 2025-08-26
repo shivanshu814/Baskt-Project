@@ -10,7 +10,9 @@ const getBasktMetadataByAddress = publicProcedure
   .input(z.object({ basktId: z.string(), withPerformance: z.boolean().default(false) }))
   .query(async ({ input }) => {
     try {
+      logger.info('[Backend] getBasktMetadataByAddress input:', input);
       const result = await querier.baskt.getBasktByAddress(input.basktId);
+      logger.info('[Backend] getBasktMetadataByAddress result:', result);
       return result;
     } catch (error) {
       console.error('Error fetching baskt metadata:', error);
@@ -26,13 +28,13 @@ const getBasktMetadataByAddress = publicProcedure
 const getAllBaskts = publicProcedure
   .input(
     z.object({
-      hidePrivateBaskts: z.boolean().default(true),
+      hidePrivateBaskts: z.boolean().default(false),
     }),
   )
   .query(async ({ input }) => {
     try {
       const result = await querier.baskt.getAllBaskts({
-        hidePrivateBaskts: input.hidePrivateBaskts,
+        hidePrivateBaskts: false,
       });
       return result;
     } catch (error) {
@@ -58,61 +60,6 @@ const getBasktNAV = publicProcedure
     }
   });
 
-// get batch baskt nav for multiple baskts
-const getBatchBasktNAV = publicProcedure
-  .input(z.object({ basktIds: z.array(z.string()) }))
-  .query(async ({ input }) => {
-    try {
-      console.log('[Backend] getBatchBasktNAV input:', input);
-
-      if (!input.basktIds || input.basktIds.length === 0) {
-        return {
-          success: true,
-          data: [],
-          message: 'No baskt IDs provided',
-        };
-      }
-
-      const navPromises = input.basktIds.map(async (basktId) => {
-        try {
-          const result = await querier.baskt.getBasktNAV(basktId);
-          return {
-            basktId,
-            success: result.success,
-            nav: result.success ? result.data?.nav : null,
-            error: result.success ? null : result.message,
-          };
-        } catch (error) {
-          return {
-            basktId,
-            success: false,
-            nav: null,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          };
-        }
-      });
-
-      const navResults = await Promise.all(navPromises);
-
-      console.log('[Backend] getBatchBasktNAV result:', {
-        success: true,
-        count: navResults.length,
-      });
-
-      return {
-        success: true,
-        data: navResults,
-        message: `Successfully fetched NAV data for ${navResults.length} baskts`,
-      };
-    } catch (error) {
-      console.error('Error fetching batch baskt NAV:', error);
-      return {
-        success: false,
-        message: 'Failed to fetch batch baskt NAV',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  });
 
 // get baskt metadata by name
 const getBasktMetadataByName = publicProcedure
@@ -247,8 +194,7 @@ const getExplorePageBaskts = publicProcedure
       logger.info('[Backend] getExplorePageBaskts triggered');
 
       let basktsResult = await querier.baskt.getAllBaskts({
-        hidePrivateBaskts: true,
-        userAddress: input.dataType === 'yourBaskts' ? input.userAddress : undefined,
+        hidePrivateBaskts: false
       });
 
       if (!basktsResult.success || !basktsResult.data) {
@@ -318,7 +264,7 @@ const getExplorePageBaskts = publicProcedure
       });
 
       const publicBaskts = basktsRefined.filter((b) => b.baskt.isPublic);
-      const trendingBaskts = basktsRefined.sort((a, b) => {
+      const trendingBaskts = publicBaskts.sort((a, b) => {
         const dailyPerformanceA = a.metrics.performance.daily || 0;
         const dailyPerformanceB = b.metrics.performance.daily || 0;
         return dailyPerformanceB - dailyPerformanceA;
@@ -398,7 +344,6 @@ export const getRouter = {
   getBasktMetadataByName,
   getAllBaskts,
   getBasktNAV,
-  getBatchBasktNAV,
   getTradingData,
   getExplorePageBaskts,
   getBasktRebalanceHistory,

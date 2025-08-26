@@ -54,11 +54,12 @@ export class BasktQuerier {
     },
   ): Promise<QueryResult<CombinedBaskt[]>> {
     try {
-      const query: any = {
-        isPublic: options.hidePrivateBaskts,
-      };
+      const query: any = {};
       if (options.userAddress) {
         query['creator'] = options.userAddress;
+      }
+      if(options.hidePrivateBaskts) {
+        query['isPublic'] = true;
       }
       const [basktConfigs, allAssetsResult] = await Promise.all([
         BasktMetadataModel.find(query).sort({ createdAt: -1 }).lean<BasktMetadata[]>(),
