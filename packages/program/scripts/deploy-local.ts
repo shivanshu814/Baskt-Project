@@ -130,10 +130,12 @@ async function main() {
 
   const client = new TestClient(program);
   client.setPublicKey(wallet.publicKey);
+  const querier = createQuerier(client);
+  await querier.init();
 
   await client.initializeProtocol(wallet.publicKey);
 
-  const querier = createQuerier(client);
+
 
 
   // Create ATA for the treasury
