@@ -14,16 +14,10 @@ import { AssetPrice } from '../../../services/cron-jobs/src/config/sequelize';
 
 import assetConfig from './assets.json';
 import { getMint, getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';
+import { createQuerier, Querier } from '../../querier/src/querier';
+import { BN } from '@coral-xyz/anchor';
 
-const shouldCreateFakePrices = process.argv.includes('--create-fake-prices');
 
-const trpc = createTRPCProxyClient<AppRouter>({
-  links: [
-    httpBatchLink({
-      url: 'http://localhost:4000/trpc',
-    }),
-  ],
-});
 
 async function addAssetsToTrpc(
   assets: {
@@ -37,12 +31,15 @@ async function addAssetsToTrpc(
       name: string;
     };
   }[],
+  querier: Querier,
 ) {
   for (const asset of assets) {
-    await trpc.asset.createAsset.mutate({
+
+    const assetMetadata = await querier.metadata.createAsset({
+      assetAddress: asset.address,
+      basktIds: [],
       name: asset.name,
       ticker: asset.ticker,
-      assetAddress: asset.address,
       logo: asset.logo,
       priceConfig: {
         provider: asset.provider,
@@ -50,8 +47,21 @@ async function addAssetsToTrpc(
           seconds: 300,
         },
         updateFrequencySeconds: 15,
+        units: 1,
       },
+      isActive: true,
+      listingTime: Date.now(),
+      permissions: {
+        allowLongs: true,
+        allowShorts: true,
+      },  
+      allTimeLongVolume: new BN(0),
+      allTimeShortVolume: new BN(0),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
+
+
     console.log('Asset added to Trpc:', asset.ticker);
   }
 }
@@ -91,29 +101,6 @@ export const getProvider = () => {
   };
 };
 
-async function createFakePrices(assetConfig: any[]) {
-  // We need to create a price feed for each asset which will be for an interval of 15 seconds
-  // Then we store this price feed in the timescale DB
-  const allAssetPrices = [];
-  for (const asset of assetConfig) {
-    let hour = Date.now();
-    for (let i = 0; i < 24 * 365; i++) {
-      allAssetPrices.push({
-        asset_id: asset.address,
-        price: new anchor.BN(Math.random() * 10000).mul(new anchor.BN(1e9)),
-        time: hour,
-      });
-      hour -= 60 * 60 * 1000; // decrement by 1 hour
-    }
-  }
-  console.log('Creating fake prices for assets');
-  try {
-    await AssetPrice.bulkCreate(allAssetPrices);
-  } catch (error) {
-    console.error('Error creating fake prices:', error);
-  }
-}
-
 async function main() {
   // Delete the entire DB
 
@@ -146,6 +133,9 @@ async function main() {
 
   await client.initializeProtocol(wallet.publicKey);
 
+  const querier = createQuerier(client);
+
+
   // Create ATA for the treasury
   const treasuryATA = await getOrCreateAssociatedTokenAccount(
     provider.connection,
@@ -177,10 +167,7 @@ async function main() {
   }
 
   try {
-    await addAssetsToTrpc(assetsWithAddress);
-    if (shouldCreateFakePrices) {
-      await createFakePrices(assetsWithAddress);
-    }
+    await addAssetsToTrpc(assetsWithAddress, querier);
   } catch (error) {
     console.error('Error adding assets to backend:', error);
   }

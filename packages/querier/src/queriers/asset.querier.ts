@@ -22,7 +22,6 @@ export class AssetQuerier {
   public basktClient: BaseClient;
   private static instance: AssetQuerier;
 
-  public assetMetadataCache: Map<string, AssetMetadata[]> = new Map();
 
   public static getInstance(basktClient: BaseClient): AssetQuerier {
     if (!AssetQuerier.instance) {
@@ -61,8 +60,6 @@ export class AssetQuerier {
         livePrices,
         withConfig,
       );
-
-      this.assetMetadataCache.set(assetMetadatas.map((asset) => asset.assetAddress.toString()).join(','), assetMetadatas);
 
       const result: QueryResult<CombinedAsset[]> = {
         success: true,
