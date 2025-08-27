@@ -83,6 +83,7 @@ export interface BasktInfo {
     month: number;
     year?: number;
   };
+
   sparkline: number[];
   priceHistory?: PriceHistory;
   categories: string[];
@@ -100,6 +101,16 @@ export interface BasktInfo {
       weekly?: number;
       year?: number;
     };
+  };
+  stats?: {
+    change24h: number;
+    change7d: number;
+    change30d: number;
+    change365d: number;
+    longAllTimeVolume: string;
+    shortAllTimeVolume: string;
+    longOpenInterestContracts: string;
+    shortOpenInterestContracts: string;
   };
 }
 

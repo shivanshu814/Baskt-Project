@@ -16,7 +16,11 @@ export const AssetModalFooter = ({ selectedAssetIds, onClear, onDone }: AssetMod
           <Button variant="outline" size="sm" onClick={onClear} className="h-8 px-3 text-xs">
             Clear
           </Button>
-          <Button onClick={onDone} className="h-8 px-4 text-xs">
+          <Button
+            onClick={onDone}
+            disabled={selectedAssetIds.size < 2}
+            className="h-8 px-4 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             Done
           </Button>
         </div>

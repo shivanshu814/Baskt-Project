@@ -1,11 +1,14 @@
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Loading from '../../../../app/loading';
-import { useBasktOI } from '../../../../hooks/baskt/details/use-baskt-oi';
-import { useBasktVolume } from '../../../../hooks/baskt/details/use-baskt-volume';
 import { useOptimizedBasktList } from '../../../../hooks/baskt/use-explore-data';
-import { useMobileHeader } from '../../../../hooks/trade/mobile/use-mobile-header';
 import { useModalState } from '../../../../hooks/trade/modals/use-modal-state';
+import { ROUTES } from '../../../../routes/route';
 import { TradingPageContainerProps } from '../../../../types/baskt/trading/orders';
+import {
+  calculatePerformanceColor,
+  formatPriceChange,
+} from '../../../../utils/formatters/formatters';
 import { StatusBanner } from '../../../shared/StatusBanner';
 import { FavoritesSection } from '../../favorites/FavoritesSection';
 import { DesktopHeader } from '../../header/DesktopHeader';
@@ -28,11 +31,16 @@ export function TradingContainer({
     baskts: { trendingBaskts, combinedBaskts },
     isLoading: isLoadingBaskts,
   } = useOptimizedBasktList('all', true);
-  const { totalOpenInterest, isLoading: oiLoading } = useBasktOI(baskt?.basktId || '');
-  const { totalVolume, isLoading: volumeLoading } = useBasktVolume(baskt?.basktId || '');
-  const { performanceColor, performanceText, handleBasktSelect } = useMobileHeader(
-    baskt || ({} as any),
-  );
+
+  const router = useRouter();
+
+  const performance = baskt?.performance?.month || 0;
+  const performanceColor = calculatePerformanceColor(performance);
+  const performanceText = formatPriceChange(performance);
+
+  const handleBasktSelect = (basktId: string) => {
+    router.push(`${ROUTES.TRADE}/${encodeURIComponent(basktId)}`);
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
 
@@ -78,10 +86,16 @@ export function TradingContainer({
                 combinedBaskts={combinedBaskts || []}
                 performanceColor={performanceColor}
                 performanceText={performanceText}
-                oiLoading={oiLoading}
-                totalOpenInterest={totalOpenInterest}
-                volumeLoading={volumeLoading}
-                totalVolume={totalVolume}
+                oiLoading={isLoading}
+                totalOpenInterest={
+                  baskt.stats?.longOpenInterestContracts
+                    ? Number(baskt.stats.longOpenInterestContracts)
+                    : 0
+                }
+                volumeLoading={isLoading}
+                totalVolume={
+                  baskt?.stats?.longAllTimeVolume ? Number(baskt.stats.longAllTimeVolume) : 0
+                }
               />
             </div>
           </div>

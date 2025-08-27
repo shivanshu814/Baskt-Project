@@ -24,7 +24,7 @@ import { LogOut, Menu, WalletMinimal } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { NAVIGATION_ITEMS } from '../../constants/navigation';
-import { useUSDCBalance } from '../../hooks/pool/use-usdc-balance';
+import { useUSDCBalance } from '../../hooks/balance/use-usdc-balance';
 import { useWallet } from '../../hooks/wallet/use-wallet';
 import { ROUTES } from '../../routes/route';
 

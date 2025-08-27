@@ -8,7 +8,7 @@ import BN from 'bn.js';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { UseDepositProps, UseVaultTabsReturn, UseWithdrawProps } from '../../types/vault';
-import { useUSDCBalance } from '../pool/use-usdc-balance';
+import { useUSDCBalance } from '../balance/use-usdc-balance';
 import { useProtocol } from '../protocol/use-protocol';
 
 // handle vault tabs

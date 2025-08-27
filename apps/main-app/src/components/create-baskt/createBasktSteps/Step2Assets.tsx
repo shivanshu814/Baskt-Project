@@ -94,6 +94,18 @@ export function Step2Assets({
             </div>
           </div>
 
+          {/* insufficient assets warning */}
+          {formData.assets.length === 1 && (
+            <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-orange-500 flex-shrink-0"></div>
+                <span className="text-xs sm:text-sm text-orange-500 font-medium">
+                  You need at least 2 assets to create a baskt. Add one more asset to continue.
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* weight error messages */}
           {showValidationErrors && weightExceeded && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">

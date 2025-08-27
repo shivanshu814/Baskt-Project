@@ -1,7 +1,7 @@
 import { Card, CardContent, Tabs, TabsContent, TabsList, TabsTrigger } from '@baskt/ui';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { useState } from 'react';
-import { useUSDCBalance } from '../../../hooks/pool/use-usdc-balance';
+import { useUSDCBalance } from '../../../hooks/balance/use-usdc-balance';
 import { useDeposit, useVaultTabs, useWithdraw } from '../../../hooks/vault/use-vault-operations';
 import { VaultActionTabsProps } from '../../../types/vault';
 import { ActionCard } from './ActionCard';

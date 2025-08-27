@@ -1,14 +1,24 @@
 'use client';
 
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, NumberFormat } from '@baskt/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  NumberFormat,
+  useBasktClient,
+} from '@baskt/ui';
+import { usePrivy } from '@privy-io/react-auth';
 import { Sparkles } from 'lucide-react';
-import { useStep3Review } from '../../../hooks/create-baskt/steps/use-step-3-review';
 import { Step3ReviewProps } from '../../../types/baskt/creation';
 import { formatRebalancingDisplay } from '../../../utils/baskt/baskt';
 import { AssetLogo } from '../assetModal/AssetLogo';
 
 export function Step3Review({ formData, selectedAssets, assetDetails }: Step3ReviewProps) {
-  const { authenticated, login, wallet, basktClient } = useStep3Review();
+  const { authenticated, login } = usePrivy();
+  const { client: basktClient, wallet } = useBasktClient();
 
   // show wallet connection button if not connected
   if (!authenticated || !wallet || !basktClient) {

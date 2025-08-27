@@ -1,7 +1,8 @@
 import { Input } from '@baskt/ui';
-import { usePercentageSlider } from '../../../../hooks/trade/percentage/use-percentage-slider';
+import { useMemo } from 'react';
 import { PercentageSliderProps } from '../../../../types/baskt/trading/components/tabs';
-import { formatPercentageValue } from '../../../../utils/ui/ui';
+import { calculateCurrentPercentage } from '../../../../utils/calculation/calculations';
+import { formatPercentageValue, generateSliderGradient } from '../../../../utils/ui/ui';
 
 const PERCENTAGE_SLIDER_MARKERS = [
   { value: 0, label: '0%', position: 'left-0' },
@@ -17,7 +18,13 @@ export function PercentageSlider({
   onPercentageChange,
   isLoading,
 }: PercentageSliderProps) {
-  const { currentPercentage, sliderGradient } = usePercentageSlider(percentage);
+  const currentPercentage = useMemo(() => {
+    return calculateCurrentPercentage(percentage);
+  }, [percentage]);
+
+  const sliderGradient = useMemo(() => {
+    return generateSliderGradient(currentPercentage);
+  }, [currentPercentage]);
 
   return (
     <div className="w-full">

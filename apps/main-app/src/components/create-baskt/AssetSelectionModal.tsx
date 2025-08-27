@@ -1,6 +1,7 @@
 'use client';
 
 import { Dialog, DialogContent } from '@baskt/ui';
+import { useMemo } from 'react';
 import { useAssetSelection } from '../../hooks/asset/use-asset-selection';
 import { AssetSelectionModalProps } from '../../types/asset';
 import { AssetGrid } from './assetModal/AssetGrid';
@@ -15,7 +16,7 @@ export function AssetSelectionModal({
   selectedAssets = [],
 }: AssetSelectionModalProps) {
   const {
-    filteredAssets,
+    assets,
     selectedAssetsList,
     selectedAssetIds,
     isLoading,
@@ -23,14 +24,21 @@ export function AssetSelectionModal({
     searchQuery,
     setSearchQuery,
     handleAssetToggle,
-    handleAssetRemove,
-    handleSelectAllClick,
-    handleClearClick,
+    handleSelectAll,
     handleDone,
-    handleClose,
     handleOpenChange,
     onRetry,
+    resetSelection,
   } = useAssetSelection(selectedAssets, open, onAssetSelect, onOpenChange);
+
+  // Filter assets based on search query
+  const filteredAssets = useMemo(() => {
+    return assets.filter(
+      (asset) =>
+        asset.ticker.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        asset.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+  }, [assets, searchQuery]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -40,9 +48,9 @@ export function AssetSelectionModal({
           <AssetModalHeader
             selectedAssetIds={selectedAssetIds}
             selectedAssetsList={selectedAssetsList}
-            onSelectAll={handleSelectAllClick}
-            onClose={handleClose}
-            onAssetRemove={handleAssetRemove}
+            onSelectAll={() => handleSelectAll(filteredAssets)}
+            onClose={() => handleOpenChange(false)}
+            onAssetRemove={handleAssetToggle}
             isLoading={isLoading}
             filteredAssetsCount={filteredAssets.length}
           />
@@ -70,7 +78,7 @@ export function AssetSelectionModal({
           {/* footer actions */}
           <AssetModalFooter
             selectedAssetIds={selectedAssetIds}
-            onClear={handleClearClick}
+            onClear={resetSelection}
             onDone={handleDone}
           />
         </div>

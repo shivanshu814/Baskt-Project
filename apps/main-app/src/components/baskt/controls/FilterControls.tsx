@@ -3,11 +3,14 @@
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@baskt/ui';
 import { BarChart3, Filter, TrendingDown, TrendingUp } from 'lucide-react';
 import { memo } from 'react';
-import { useFilterControls } from '../../../hooks/baskt/filter/use-filter-controls';
 import { FilterControlsProps } from '../../../types/baskt';
 
 export const FilterControls = memo(({ sortBy, setSortBy }: FilterControlsProps) => {
-  const { isFilterApplied, handleFilterChange } = useFilterControls(sortBy, setSortBy);
+  const isFilterApplied = sortBy !== 'no_filter';
+
+  const handleFilterChange = (value: string) => {
+    setSortBy(value === sortBy ? 'no_filter' : (value as any));
+  };
 
   return (
     <div className="flex gap-2 w-full sm:w-auto">

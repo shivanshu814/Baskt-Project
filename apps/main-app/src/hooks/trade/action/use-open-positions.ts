@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { trpc } from '../../../lib/api/trpc';
 import { parseTradingError } from '../../../utils/error/error';
-import { useUSDCBalance } from '../../pool/use-usdc-balance';
+import { useUSDCBalance } from '../../balance/use-usdc-balance';
 
 export function useOpenPositions(
   basktId?: string,

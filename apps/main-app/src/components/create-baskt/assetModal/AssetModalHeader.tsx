@@ -19,10 +19,11 @@ export const AssetModalHeader = ({
       <div>
         <DialogTitle className="text-lg sm:text-xl font-semibold">Select Asset</DialogTitle>
         <div className="text-sm text-muted-foreground mt-1">
-          {selectedAssetIds.size} selected (max 10)
+          {selectedAssetIds.size} selected (min 2, max 10)
         </div>
         <div className="text-sm text-muted-foreground mt-2">
-          Choose up to 10 assets to add to your Baskt. You can search by name or ticker.
+          Choose at least 2 and up to 10 assets to add to your Baskt. You can search by name or
+          ticker.
         </div>
       </div>
       <div className="flex items-center gap-2">

@@ -8,7 +8,7 @@ import {
   calculatePercentage,
 } from '../../../utils/calculation/calculations';
 import { validateAmount, validatePercentage } from '../../../utils/validation/validation';
-import { useUSDCBalance } from '../../pool/use-usdc-balance';
+import { useUSDCBalance } from '../../balance/use-usdc-balance';
 import { useModalState } from '../modals/use-modal-state';
 
 export const useCollateral = (position?: any) => {

@@ -7,8 +7,8 @@ import { PortfolioHeader } from '../../components/portfolio/PortfolioHeader';
 import { PortfolioTabControls } from '../../components/portfolio/tabs/PortfolioTabControls';
 import { PortfolioTabContent } from '../../components/portfolio/tabs/tab-content/PortfolioTabContent';
 import { WalletBreakdown } from '../../components/portfolio/wallet-breakdown/WalletBreakdown';
+import { useUSDCBalance } from '../../hooks/balance/use-usdc-balance';
 import { useYourBaskts } from '../../hooks/baskt/use-explore-data';
-import { useUSDCBalance } from '../../hooks/pool/use-usdc-balance';
 import { usePortfolioData } from '../../hooks/portfolio/use-portfolio-data';
 import { PortfolioTabType } from '../../types/portfolio';
 
@@ -16,9 +16,9 @@ export default function PortfolioPage() {
   const [activeTab, setActiveTab] = useState<PortfolioTabType>('positions');
 
   const { balance: usdcBalance } = useUSDCBalance();
-  const { baskts: {
-    yourBaskts
-  } } = useYourBaskts(activeTab === 'baskts');
+  const {
+    baskts: { yourBaskts },
+  } = useYourBaskts(activeTab === 'baskts');
   const { data: portfolioData, isLoading } = usePortfolioData();
 
   if (isLoading) {

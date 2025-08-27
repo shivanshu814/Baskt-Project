@@ -105,7 +105,13 @@ export function PositionsTab({
                     </div>
                   </td>
                   <td className="py-2 px-2">
-                    <NumberFormat value={calculations.fees} isPrice={true} showCurrency={true} />
+                    <NumberFormat
+                      value={
+                        (position.openPosition.feeToBlp + position.openPosition.feeToTreasury) * 10
+                      }
+                      isPrice={true}
+                      showCurrency={true}
+                    />
                   </td>
                   <td className="py-2 px-2">
                     <button

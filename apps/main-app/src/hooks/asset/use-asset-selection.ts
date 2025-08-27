@@ -11,6 +11,7 @@ export function useAssetSelection(
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(new Set());
 
+  // get all assets
   const {
     data: assetsData,
     isLoading,
@@ -27,11 +28,29 @@ export function useAssetSelection(
     },
   );
 
+  // get initial asset ids
   const initialAssetIds = useMemo(
     () => selectedAssets.map((asset) => asset._id!).filter(Boolean),
     [selectedAssets],
   );
 
+  // get assets
+  const assets = useMemo(() => {
+    return (assetsData?.data || []).map((asset: any) => ({
+      ...asset,
+      _id: asset.assetAddress,
+      priceRaw: asset.price,
+      weight: 0,
+    }));
+  }, [assetsData?.data]);
+
+  // get selected assets list
+  const selectedAssetsList = useMemo(
+    () => assets.filter((asset) => selectedAssetIds.has(asset._id!)),
+    [assets, selectedAssetIds],
+  );
+
+  // reset selection
   useEffect(() => {
     if (open) {
       setSelectedAssetIds(new Set(initialAssetIds));
@@ -41,27 +60,7 @@ export function useAssetSelection(
     }
   }, [open, initialAssetIds]);
 
-  const { assets, filteredAssets } = useMemo(() => {
-    const assets: Asset[] = (assetsData?.data || []).map((asset: any) => ({
-      ...asset,
-      _id: asset.assetAddress,
-    }));
-
-    const filtered = assets.filter(
-      (asset) =>
-        asset.ticker.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        asset.assetAddress.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-
-    return { assets, filteredAssets: filtered };
-  }, [assetsData?.data, searchQuery]);
-
-  const selectedAssetsList = useMemo(
-    () => assets.filter((asset) => selectedAssetIds.has(asset._id!)),
-    [assets, selectedAssetIds],
-  );
-
+  // toggle asset selection
   const handleAssetToggle = useCallback((assetId: string) => {
     setSelectedAssetIds((prev) => {
       const newSelected = new Set(prev);
@@ -77,16 +76,14 @@ export function useAssetSelection(
     });
   }, []);
 
+  // select all assets
   const handleSelectAll = useCallback((filteredAssets: Asset[]) => {
     const allIds = new Set(filteredAssets.map((asset) => asset._id!).filter(Boolean));
     const limitedIds = new Set(Array.from(allIds).slice(0, 10));
     setSelectedAssetIds(limitedIds);
   }, []);
 
-  const handleClearSelection = useCallback(() => {
-    setSelectedAssetIds(new Set());
-  }, []);
-
+  // get selected assets
   const getSelectedAssets = useCallback(
     (allAssets: Asset[]) => {
       return allAssets.filter((asset) => selectedAssetIds.has(asset._id!));
@@ -94,25 +91,28 @@ export function useAssetSelection(
     [selectedAssetIds],
   );
 
+  // reset selection
   const resetSelection = useCallback(() => {
     setSelectedAssetIds(new Set());
     setSearchQuery('');
   }, []);
 
+  // done with asset selection
   const handleDone = useCallback(() => {
+    const selectedAssetsList = getSelectedAssets(assets);
+
+    if (selectedAssetsList.length < 2) {
+      return;
+    }
+
     if (onAssetSelect) {
-      const selectedAssetsList = getSelectedAssets(assets);
       onAssetSelect(selectedAssetsList);
     }
     resetSelection();
     onOpenChange?.(false);
   }, [getSelectedAssets, assets, onAssetSelect, resetSelection, onOpenChange]);
 
-  const handleClose = useCallback(() => {
-    resetSelection();
-    onOpenChange?.(false);
-  }, [resetSelection, onOpenChange]);
-
+  // handle open change
   const handleOpenChange = useCallback(
     (newOpen: boolean) => {
       if (!newOpen) {
@@ -123,37 +123,23 @@ export function useAssetSelection(
     [resetSelection, onOpenChange],
   );
 
-  const handleSelectAllClick = useCallback(() => {
-    handleSelectAll(filteredAssets);
-  }, [handleSelectAll, filteredAssets]);
-
-  const handleClearClick = useCallback(() => {
-    handleClearSelection();
-  }, [handleClearSelection]);
-
-  const handleAssetRemove = useCallback(
-    (id: string) => {
-      handleAssetToggle(id);
-    },
-    [handleAssetToggle],
-  );
-
   return {
     assets,
-    filteredAssets,
     selectedAssetsList,
     selectedAssetIds,
     isLoading,
     error,
+
     searchQuery,
     setSearchQuery,
+
     handleAssetToggle,
-    handleAssetRemove,
-    handleSelectAllClick,
-    handleClearClick,
+    handleSelectAll,
+
     handleDone,
-    handleClose,
     handleOpenChange,
+
     onRetry: refetch,
+    resetSelection,
   };
 }

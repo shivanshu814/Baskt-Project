@@ -2,6 +2,7 @@ import { useParams } from 'next/navigation';
 import { useMemo } from 'react';
 import { UseFilteredBasktsProps, UseFilteredBasktsReturn } from '../../types/baskt';
 
+// get filtered baskts
 export function useFilteredBaskts({
   combinedBaskts,
   searchQuery,
@@ -14,47 +15,52 @@ export function useFilteredBaskts({
       return { filteredBaskts: [], currentBaskt: undefined };
     }
 
-    let baskts = combinedBaskts;
+    let filteredBaskts = searchQuery
+      ? filterBasktsByQuery(combinedBaskts, searchQuery)
+      : combinedBaskts;
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      baskts = baskts.filter((basktData) => {
-        const name = basktData.baskt?.name || basktData.name;
-        const basktId = basktData.baskt?.basktId || basktData.basktId;
+    const currentBaskt = findCurrentBaskt(combinedBaskts, params?.id as string);
 
-        return (
-          name?.toLowerCase().includes(query) ||
-          basktId?.toLowerCase().includes(query) ||
-          basktData.assets?.some(
-            (asset: any) =>
-              asset.ticker?.toLowerCase().includes(query) ||
-              asset.name?.toLowerCase().includes(query),
-          )
-        );
-      });
-    }
-
-    const basktId = params?.id as string;
-
-    let currentBaskt;
-    if (!basktId || !combinedBaskts?.length) {
-      currentBaskt = baskts?.[0] || combinedBaskts?.[0];
-    } else {
-      const foundBaskt = combinedBaskts.find(
-        (baskt) => (baskt.baskt?.basktId || baskt.basktId) === basktId,
-      );
-      currentBaskt = foundBaskt || baskts?.[0] || combinedBaskts?.[0];
-    }
-
-    let finalFilteredBaskts = baskts;
     if (!includeCurrentBaskt && currentBaskt) {
-      finalFilteredBaskts = baskts.filter((basktItem) => {
-        const itemId = basktItem.baskt?.basktId || basktItem.basktId;
-        const currentId = currentBaskt?.baskt?.basktId || currentBaskt?.basktId;
-        return itemId !== currentId;
-      });
+      filteredBaskts = removeCurrentBaskt(filteredBaskts, currentBaskt);
     }
 
-    return { filteredBaskts: finalFilteredBaskts, currentBaskt };
+    return { filteredBaskts, currentBaskt };
   }, [combinedBaskts, searchQuery, params?.id, includeCurrentBaskt]);
+}
+
+function filterBasktsByQuery(baskts: any[], query: string) {
+  const searchTerm = query.toLowerCase();
+
+  return baskts.filter((basktData) => {
+    const name = basktData.baskt?.name || basktData.name;
+    const basktId = basktData.baskt?.basktId || basktData.basktId;
+
+    if (name?.toLowerCase().includes(searchTerm) || basktId?.toLowerCase().includes(searchTerm)) {
+      return true;
+    }
+
+    return basktData.assets?.some(
+      (asset: any) =>
+        asset.ticker?.toLowerCase().includes(searchTerm) ||
+        asset.name?.toLowerCase().includes(searchTerm),
+    );
+  });
+}
+
+function findCurrentBaskt(baskts: any[], basktId?: string) {
+  if (!basktId || !baskts?.length) {
+    return baskts[0];
+  }
+
+  return baskts.find((baskt) => (baskt.baskt?.basktId || baskt.basktId) === basktId) || baskts[0];
+}
+
+function removeCurrentBaskt(baskts: any[], currentBaskt: any) {
+  const currentId = currentBaskt?.baskt?.basktId || currentBaskt?.basktId;
+
+  return baskts.filter((basktItem) => {
+    const itemId = basktItem.baskt?.basktId || basktItem.basktId;
+    return itemId !== currentId;
+  });
 }

@@ -8,6 +8,7 @@ export const useOptimizedBasktList = (
   const { client } = useBasktClient();
   const userAddress = client?.wallet?.address?.toString();
 
+  // get baskts data authenticated
   const { data: basktsData, isLoading } = trpc.baskt.getExplorePageBaskts.useQuery(
     {
       userAddress,

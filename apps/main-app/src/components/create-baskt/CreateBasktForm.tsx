@@ -105,7 +105,7 @@ export function CreateBasktForm() {
               (!formData.name ||
                 checkProfanity(formData.name) ||
                 (formData.rebalancingType === 'automatic' && formData.rebalancingPeriod === 0))) ||
-            (currentStep === 2 && formData.assets.length === 0) ||
+            (currentStep === 2 && formData.assets.length < 2) ||
             (currentStep === 2 && !isWeightExactly100()) ||
             (currentStep === 2 && formData.assets.length > 10) ||
             (currentStep === 3 && isSubmitting)

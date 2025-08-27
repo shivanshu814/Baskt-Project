@@ -9,7 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from '@baskt/ui';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { SortDirection, SortField } from '../../types/baskt/ui/ui';
 import { PositionsTableProps } from '../../types/portfolio';
@@ -88,11 +89,11 @@ export const PositionsTable = ({ positions }: PositionsTableProps) => {
   };
 
   const getPositionTypeColor = (isLong: boolean) => {
-    return isLong ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+    return !isLong ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
   };
 
-  const getPositionTypeLabel = (isLong: boolean) => {
-    return isLong ? 'Long' : 'Short';
+  const getPositionTypeLabel = (type: string) => {
+    return type !== 'long' ? 'Long' : 'Short';
   };
 
   const sortedPositions = getSortedPositions();
@@ -162,7 +163,18 @@ export const PositionsTable = ({ positions }: PositionsTableProps) => {
           {sortedPositions.map((position) => (
             <TableRow key={position.basktId}>
               <TableCell>
-                <span className="text-sm font-medium">{position.basktName}</span>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/trade/${position.basktId}`}
+                    className="group flex items-center gap-1 text-sm font-medium cursor-pointer text-white hover:underline"
+                  >
+                    {position.basktName}
+                    <ExternalLink
+                      size={14}
+                      className="text-muted-foreground group-hover:text-primary"
+                    />
+                  </Link>
+                </div>
               </TableCell>
               <TableCell>
                 <span className={`text-sm font-medium ${getPositionTypeColor(position.isLong)}`}>
@@ -202,14 +214,14 @@ export const PositionsTable = ({ positions }: PositionsTableProps) => {
                     <>
                       {Number(position.pnl) >= 0 ? '+' : ''}
                       <NumberFormat
-                        value={Number(position.pnl)}
+                        value={Number(position.pnl) / 1e9}
                         isPrice={true}
                         showCurrency={true}
                       />{' '}
                       (
                       {position.pnlPercentage !== undefined
-                        ? (position.pnlPercentage >= 0 ? '+' : '') +
-                          position.pnlPercentage.toFixed(2)
+                        ? (position.pnlPercentage / 1e9 >= 0 ? '+' : '') +
+                          (position.pnlPercentage / 1e9).toFixed(2)
                         : '0.00'}
                       %)
                     </>
