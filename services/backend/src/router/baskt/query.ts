@@ -60,7 +60,6 @@ const getBasktNAV = publicProcedure
     }
   });
 
-
 // get baskt metadata by name
 const getBasktMetadataByName = publicProcedure
   .input(z.object({ basktName: z.string() }))
@@ -194,7 +193,7 @@ const getExplorePageBaskts = publicProcedure
       logger.info('[Backend] getExplorePageBaskts triggered');
 
       let basktsResult = await querier.baskt.getAllBaskts({
-        hidePrivateBaskts: false
+        hidePrivateBaskts: false,
       });
 
       if (!basktsResult.success || !basktsResult.data) {

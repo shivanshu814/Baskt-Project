@@ -1,7 +1,7 @@
 import { PositionStatus } from '@baskt/types';
 import BN from 'bn.js';
 import { z } from 'zod';
-import { publicProcedure } from '../../trpc/trpc';
+import { protectedProcedure } from '../../trpc/trpc';
 import { querier } from '../../utils/';
 import logger from '../../utils/logger';
 
@@ -11,7 +11,7 @@ const portfolioInputSchema = z.object({
   includeHistory: z.boolean().default(true),
 });
 
-export const getPortfolioData = publicProcedure
+export const getPortfolioData = protectedProcedure
   .input(portfolioInputSchema)
   .query(async ({ input }) => {
     try {

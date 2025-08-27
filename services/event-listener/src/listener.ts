@@ -1,9 +1,9 @@
 // Event Engine Listener Entrypoint
 // Wires up adapters and handlers using the enhanced observer pattern with events storage
 
-import { ObserverRouter } from './observer-router';
 import { initSolanaAdapter } from './adapters/solana';
 import registerAllHandlers from './handlers/solana';
+import { ObserverRouter } from './observer-router';
 import { querierClient } from './utils/config';
 
 /**
@@ -57,11 +57,11 @@ export async function initEventEngine(): Promise<void> {
 async function gracefulShutdown(): Promise<void> {
   try {
     console.log('[event-listener] Starting graceful shutdown...');
-    
+
     // Shutdown querier client
     await querierClient.shutdown();
     console.log('[event-listener] Querier client shutdown');
-    
+
     console.log('[event-listener] Graceful shutdown completed');
     process.exit(0);
   } catch (error) {

@@ -1,6 +1,4 @@
 import { useBasktClient } from '@baskt/ui';
-import { usePrivy } from '@privy-io/react-auth';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { trpc } from '../../lib/api/trpc';
@@ -10,8 +8,6 @@ import { AssetWithPosition, CreateBasktFormData } from '../../types/baskt/creati
 import { createBasktAssetConfigs, getErrorMessage } from '../../utils/baskt/baskt';
 
 export const useCreateBasktForm = () => {
-  const router = useRouter();
-  const { authenticated } = usePrivy();
   const { client: basktClient, wallet } = useBasktClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -64,11 +60,6 @@ export const useCreateBasktForm = () => {
       return;
     }
 
-    if (!authenticated) {
-      toast.error('Please authenticate first');
-      return;
-    }
-
     if (checkProfanity(formData.name)) {
       toast.error('Please choose a different name without inappropriate language');
       return;
@@ -99,7 +90,6 @@ export const useCreateBasktForm = () => {
 
       toast.success('Baskt created successfully!');
 
-      // Store the created baskt data and show congratulations modal
       setCreatedBasktData({
         basktId: basktId.toString(),
         uid: uid.toString(),

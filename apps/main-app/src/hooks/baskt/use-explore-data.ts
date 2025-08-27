@@ -2,9 +2,7 @@ import { useBasktClient } from '@baskt/ui';
 import { trpc } from '../../lib/api/trpc';
 
 export const useOptimizedBasktList = (
-  dataType:
-    | 'yourBaskts'
-    | 'all' = 'all',
+  dataType: 'yourBaskts' | 'all' = 'all',
   isActive: boolean = false,
 ) => {
   const { client } = useBasktClient();
@@ -19,7 +17,7 @@ export const useOptimizedBasktList = (
       staleTime: 5 * 60 * 1000,
       cacheTime: 30 * 60 * 1000,
       refetchOnWindowFocus: false,
-      enabled: isActive 
+      enabled: isActive,
     },
   );
 
@@ -35,6 +33,4 @@ export const useOptimizedBasktList = (
   };
 };
 
-export const useYourBaskts = (isActive?: boolean) =>
-  useOptimizedBasktList('yourBaskts',  isActive);
-
+export const useYourBaskts = (isActive?: boolean) => useOptimizedBasktList('yourBaskts', isActive);

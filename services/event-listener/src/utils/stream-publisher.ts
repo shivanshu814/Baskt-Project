@@ -1,12 +1,19 @@
-import { BasktCreatedMessage, DataBus, OrderAccepted, OrderRequest, RebalanceRequestedMessage, serializeMessage, STREAMS, type StreamName } from '@baskt/data-bus';
+import {
+  BasktCreatedMessage,
+  DataBus,
+  OrderAccepted,
+  OrderRequest,
+  RebalanceRequestedMessage,
+  STREAMS,
+  type StreamName,
+} from '@baskt/data-bus';
 import { OrderAction } from '@baskt/types';
 import BN from 'bn.js';
-
 
 /**
  * StreamPublisher handles publishing blockchain events to Redis streams
  * This bridges the Event Engine with the Data Bus for real-time event distribution
- * 
+ *
  * Features:
  * - Singleton per process to avoid multiple Redis connections
  * - Automatic reconnection on connection loss
@@ -22,7 +29,7 @@ export class StreamPublisher {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     this.dataBus = new DataBus({
       redisUrl,
-      autoConnect: false // We'll connect manually in init()
+      autoConnect: false, // We'll connect manually in init()
     });
   }
 
@@ -31,7 +38,7 @@ export class StreamPublisher {
       try {
         this.isConnected = true;
         console.log('[StreamPublisher] Connected to Data Bus');
-        
+
         // Clear any reconnect timer
         if (this.reconnectTimer) {
           clearTimeout(this.reconnectTimer);
@@ -82,7 +89,7 @@ export class StreamPublisher {
   private async safePublish<T>(
     stream: StreamName,
     payload: T,
-    context: Record<string, any>
+    context: Record<string, any>,
   ): Promise<void> {
     try {
       await this.dataBus.publish(stream, payload);
@@ -97,20 +104,28 @@ export class StreamPublisher {
   /**
    * Publish order creation event - matches OrderRequest interface exactly
    */
-  async publishOrderCreated(payload: OrderRequest): Promise<void> {  
-    // await this.safePublish(STREAMS.order.request, payload, { orderId: payload.order.orderId }); 
+  async publishOrderCreated(payload: OrderRequest): Promise<void> {
+    // await this.safePublish(STREAMS.order.request, payload, { orderId: payload.order.orderId });
 
     const randomPrice = Math.random() * 10 * 1e6;
     const executionPrice = new BN(randomPrice).add(new BN(95 * 1e6)); // +-% 5% of the random price
 
-    await this.safePublish(STREAMS.order.accepted, {
-      executionPrice: payload.order.action === OrderAction.Open ? new BN(100 * 1e6) : executionPrice,
-      request: payload,
-    } as OrderAccepted, { orderId: payload.order.orderId });
+    await this.safePublish(
+      STREAMS.order.accepted,
+      {
+        executionPrice:
+          payload.order.action === OrderAction.Open ? new BN(100 * 1e6) : executionPrice,
+        request: payload,
+      } as OrderAccepted,
+      { orderId: payload.order.orderId },
+    );
   }
 
   async publishBasktCreated(payload: BasktCreatedMessage): Promise<void> {
-    await this.safePublish(STREAMS.baskt.created, payload, { basktId: payload.basktId });
+    await this.safePublish(STREAMS.baskt.created, payload, {
+      basktId: payload.basktId,
+      name: payload.name,
+    });
   }
 
   async publishRebalanceRequested(payload: RebalanceRequestedMessage): Promise<void> {
@@ -118,7 +133,6 @@ export class StreamPublisher {
       basktId: payload.rebalanceRequest.basktId,
     });
   }
-
 
   // /**
   //  * Publish position opened event - matches PositionOpened interface exactly
@@ -153,7 +167,7 @@ export class StreamPublisher {
   //     timestamp: data.timestamp,
   //     txSignature: data.txSignature,
   //   };
-    
+
   //   await this.safePublish(STREAMS.position.opened, payload, { positionId: data.positionId });
   // }
 
@@ -192,7 +206,7 @@ export class StreamPublisher {
   //     timestamp: data.timestamp,
   //     txSignature: data.txSignature,
   //   };
-    
+
   //   await this.safePublish(STREAMS.position.closed, payload, { positionId: data.positionId });
   // }
 
@@ -229,10 +243,9 @@ export class StreamPublisher {
   //     timestamp: data.timestamp,
   //     txSignature: data.txSignature,
   //   };
-    
+
   //   await this.safePublish(STREAMS.position.liquidated, payload, { positionId: data.positionId });
   // }
-
 }
 
 // Singleton instance

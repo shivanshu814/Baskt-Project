@@ -1,7 +1,7 @@
 import { BasktCreatedMessage, logger, STREAMS } from '@baskt/data-bus';
 import { PublicKey } from '@solana/web3.js';
 import { z } from 'zod';
-import { publicProcedure } from '../../trpc/trpc';
+import { protectedProcedure } from '../../trpc/trpc';
 import { querier } from '../../utils';
 import { publishToDataBus } from '../../utils/databus';
 
@@ -11,48 +11,58 @@ const createBasktSchema = z.object({
   txSignature: z.string(),
 });
 
-const createBasktMetadata = publicProcedure.input(createBasktSchema).mutation(async ({ input }) => {
-  try {
-    const basktAccount = await querier
-      .getBasktClient()
-      .readWithRetry(
-        async () =>
-          await querier.getBasktClient().getBasktRaw(new PublicKey(input.basktId), 'confirmed'),
-        5,
-        2000,
-      );
-
-    if (!basktAccount) {
-      throw new Error('Failed to read baskt account after confirmation');
-    }
-
-    logger.info('Baskt transaction confirmed, publishing to databus', { basktId: input.basktId });
-
-    const basketCreatedPayload: BasktCreatedMessage = {
-      basktId: input.basktId,
-      basktName: input.basktName,
-      creator: basktAccount.creator.toString(),
-      timestamp: new Date().toISOString(),
-      txSignature: input.txSignature,
-    };
-
+const createBasktMetadata = protectedProcedure
+  .input(createBasktSchema)
+  .mutation(async ({ input }) => {
     try {
-      await publishToDataBus(STREAMS.baskt.created, basketCreatedPayload);
+      const basktAccount = await querier
+        .getBasktClient()
+        .readWithRetry(
+          async () =>
+            await querier.getBasktClient().getBasktRaw(new PublicKey(input.basktId), 'confirmed'),
+          5,
+          2000,
+        );
 
-      logger.info('Basket created event published to databus', {
+      if (!basktAccount) {
+        throw new Error('Failed to read baskt account after confirmation');
+      }
+
+      logger.info('Baskt transaction confirmed, publishing to databus', { basktId: input.basktId });
+
+      const basketCreatedPayload: BasktCreatedMessage = {
         basktId: input.basktId,
-        stream: STREAMS.baskt.created,
-      });
-    } catch (dataBusError) {
-      logger.error(
-        'Failed to publish to DataBus, continuing without event publishing:',
-        dataBusError,
-      );
+        basktName: input.basktName,
+        creator: basktAccount.creator.toString(),
+        timestamp: new Date().toISOString(),
+        txSignature: input.txSignature,
+      };
+
+      try {
+        await publishToDataBus(STREAMS.baskt.created, basketCreatedPayload);
+
+        logger.info('Basket created event published to databus', {
+          basktId: input.basktId,
+          stream: STREAMS.baskt.created,
+        });
+      } catch (dataBusError) {
+        logger.error(
+          'Failed to publish to DataBus, continuing without event publishing:',
+          dataBusError,
+        );
+      }
+      return {
+        success: true,
+        message: 'Baskt created successfully',
+      };
+    } catch (error) {
+      logger.error('Error processing baskt creation:', error);
+      return {
+        success: false,
+        message: 'Failed to create baskt metadata',
+      };
     }
-  } catch (error) {
-    logger.error('Error processing baskt creation:', error);
-  }
-});
+  });
 
 export const mutationRouter = {
   createBasktMetadata,

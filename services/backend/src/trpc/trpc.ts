@@ -5,9 +5,12 @@ import BN from 'bn.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
+export interface Context {
+  user?: any;
+  headers?: Record<string, string | string[] | undefined>;
+}
 
-
-const t = initTRPC.create({
+const t = initTRPC.context<Context>().create({
   errorFormatter({ shape, error }) {
     return {
       ...shape,
@@ -19,34 +22,43 @@ const t = initTRPC.create({
   },
 });
 
+const isAuthed = t.middleware(({ ctx, next }) => {
+  if (!ctx?.user) {
+    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication required' });
+  }
+
+  return next();
+});
+
 const bnToStringMiddleware = t.middleware(async ({ next }) => {
   const result = await next();
-  
+
   // Convert BN objects to strings in the response
   const convertBNToStrings = (obj: any, depth: number = 0): any => {
-
     try {
-      if(depth > 10) {
+      if (depth > 10) {
         return obj;
       }
-      
+
       if (obj === null || obj === undefined || Object.keys(obj).length === 0) {
         return obj;
       }
 
-      if (obj._bsontype === 'ObjectID' || 
-        (obj.constructor && obj.constructor.name === 'ObjectId')) {
+      if (
+        obj._bsontype === 'ObjectID' ||
+        (obj.constructor && obj.constructor.name === 'ObjectId')
+      ) {
         return '';
       }
-      
+
       if (obj instanceof BN) {
         return obj.toString();
       }
-      
+
       if (Array.isArray(obj)) {
         return obj.map((item) => convertBNToStrings(item, depth + 1));
       }
-      
+
       if (typeof obj === 'object') {
         const converted: any = {};
         for (const [key, value] of Object.entries(obj)) {
@@ -57,19 +69,19 @@ const bnToStringMiddleware = t.middleware(async ({ next }) => {
 
       return obj;
     } catch (error) {
-      console.error("Error converting BN to string", error);
+      console.error('Error converting BN to string', error);
       return obj;
     }
   };
-  
+
   // Apply the conversion to the result
   if (result.ok) {
     result.data = convertBNToStrings(result.data, 0);
   }
-  
+
   return result;
 });
 
-
 export const router = t.router;
 export const publicProcedure = t.procedure.use(bnToStringMiddleware);
+export const protectedProcedure = t.procedure.use(isAuthed);

@@ -5,7 +5,9 @@ dotenv.config();
 import * as trpcExpress from '@trpc/server/adapters/express';
 import cors from 'cors';
 import express from 'express';
+import { verifyPrivyJWT } from '../middleware/auth';
 import { appRouter } from '../router';
+import { Context } from '../trpc/trpc';
 import { initializeQuerier, shutdownQuerier } from '../utils';
 import { initializeDataBus, shutdownDataBus } from '../utils/databus';
 import logger from '../utils/logger';
@@ -20,11 +22,21 @@ Promise.all([initializeQuerier(), initializeDataBus()]).catch((error) => {
 app.use(cors());
 app.use(express.json());
 
+const createContext = async (opts: trpcExpress.CreateExpressContextOptions): Promise<Context> => {
+  const { req } = opts;
+
+  return {
+    user: req.user,
+    headers: req.headers,
+  };
+};
+
 app.use(
   '/trpc',
+  verifyPrivyJWT,
   trpcExpress.createExpressMiddleware({
     router: appRouter,
-    createContext: () => ({}),
+    createContext,
   }),
 );
 
