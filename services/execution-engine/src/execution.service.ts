@@ -1,27 +1,34 @@
-import { DataBus, STREAMS, MessageEnvelope, OrderAccepted, logger, BasktCreatedMessage, RebalanceRequestedMessage } from '@baskt/data-bus';
-import { OrderWorker } from './workers/order.worker';
+import {
+  BasktCreatedMessage,
+  DataBus,
+  MessageEnvelope,
+  OrderAccepted,
+  RebalanceRequestedMessage,
+  STREAMS,
+  logger,
+} from '@baskt/data-bus';
 import { ExecutionConfig } from './types';
 import { BasktWorker } from './workers';
+import { OrderWorker } from './workers/order.worker';
 
 export class ExecutionService {
   private dataBus: DataBus;
   private isRunning = false;
 
- 
   private asyncWorkers: {
     order: OrderWorker;
     baskt: BasktWorker;
-  }
+  };
 
   constructor(private config: ExecutionConfig) {
     this.dataBus = new DataBus({
       redisUrl: config.redis.url,
-      autoConnect: false
+      autoConnect: false,
     });
 
     this.asyncWorkers = {
       order: new OrderWorker(this.dataBus),
-      baskt: new BasktWorker(this.dataBus)
+      baskt: new BasktWorker(this.dataBus),
     };
   }
 
@@ -33,7 +40,7 @@ export class ExecutionService {
       `execution-${process.env.INSTANCE_ID || '1'}`,
       async (envelope: MessageEnvelope<OrderAccepted>) => {
         await this.handleOrderAccepted(envelope);
-      }
+      },
     );
 
     this.dataBus.consume(
@@ -42,7 +49,7 @@ export class ExecutionService {
       `execution-${process.env.INSTANCE_ID || '1'}`,
       async (envelope: MessageEnvelope<BasktCreatedMessage>) => {
         await this.handleBasktCreated(envelope);
-      }
+      },
     );
 
     this.dataBus.consume(
@@ -51,7 +58,7 @@ export class ExecutionService {
       `execution-${process.env.INSTANCE_ID || '1'}`,
       async (envelope: MessageEnvelope<RebalanceRequestedMessage>) => {
         await this.handleRebalanceRequested(envelope);
-      }
+      },
     );
 
     // Start worker
@@ -61,20 +68,21 @@ export class ExecutionService {
     logger.info('Execution service started');
   }
 
-  private async handleRebalanceRequested(envelope: MessageEnvelope<RebalanceRequestedMessage>): Promise<void> {
+  private async handleRebalanceRequested(
+    envelope: MessageEnvelope<RebalanceRequestedMessage>,
+  ): Promise<void> {
     await this.asyncWorkers.baskt.addJob({
       data: envelope.payload,
       jobType: STREAMS.rebalance.requested,
-      jobId: envelope.id
+      jobId: envelope.id,
     });
   }
-
 
   private async handleBasktCreated(envelope: MessageEnvelope<BasktCreatedMessage>): Promise<void> {
     await this.asyncWorkers.baskt.addJob({
       data: envelope.payload,
       jobType: STREAMS.baskt.created,
-      jobId: envelope.id
+      jobId: envelope.id,
     });
   }
 
@@ -82,7 +90,7 @@ export class ExecutionService {
     await this.asyncWorkers.order.addJob({
       data: envelope.payload,
       jobType: STREAMS.order.accepted,
-      jobId: envelope.id
+      jobId: envelope.id,
     });
   }
 
@@ -90,10 +98,7 @@ export class ExecutionService {
     logger.info('Stopping execution service...');
 
     // Stop workers (they handle their own queue cleanup)
-    await Promise.all([
-      this.asyncWorkers.order.stop(),
-      this.asyncWorkers.baskt.stop()
-    ]);
+    await Promise.all([this.asyncWorkers.order.stop(), this.asyncWorkers.baskt.stop()]);
 
     // Close data bus
     await this.dataBus.close();
@@ -104,7 +109,7 @@ export class ExecutionService {
   async getHealth() {
     const [orderStats, basktStats] = await Promise.all([
       this.asyncWorkers.order.getQueueStats(),
-      this.asyncWorkers.baskt.getQueueStats()
+      this.asyncWorkers.baskt.getQueueStats(),
     ]);
 
     return {
@@ -113,8 +118,8 @@ export class ExecutionService {
       uptime: process.uptime(),
       queues: {
         'order-execution': orderStats,
-        'baskt-execution': basktStats
-      }
+        'baskt-execution': basktStats,
+      },
     };
   }
 }

@@ -5,16 +5,16 @@ dotenv.config();
 import * as trpcExpress from '@trpc/server/adapters/express';
 import cors from 'cors';
 import express from 'express';
-import { appRouter } from '../router/';
-import { initializeQuerier, shutdownQuerier } from '../utils/';
+import { appRouter } from '../router';
+import { initializeQuerier, shutdownQuerier } from '../utils';
+import { initializeDataBus, shutdownDataBus } from '../utils/databus';
 import logger from '../utils/logger';
 
 const app = express();
 const port = process.env.PORT || 4000;
 
-// Initialize querier
-initializeQuerier().catch((error) => {
-  logger.error('Failed to initialize querier:', error);
+Promise.all([initializeQuerier(), initializeDataBus()]).catch((error) => {
+  logger.error('Failed to initialize services:', error);
 });
 
 app.use(cors());
@@ -41,6 +41,6 @@ process.on('SIGTERM', () => {
   logger.info('SIGTERM received. Shutting down gracefully');
   server.close(async () => {
     logger.info('Process terminated');
-    await shutdownQuerier();
+    await Promise.all([shutdownQuerier(), shutdownDataBus()]);
   });
 });

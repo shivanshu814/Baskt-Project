@@ -3,6 +3,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { trpc } from '../../lib/api/trpc';
 import { checkProfanity } from '../../lib/validation/profanity';
 import { Asset } from '../../types/asset';
 import { AssetWithPosition, CreateBasktFormData } from '../../types/baskt/creation';
@@ -13,6 +14,8 @@ export const useCreateBasktForm = () => {
   const { authenticated } = usePrivy();
   const { client: basktClient, wallet } = useBasktClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const createBasketMutation = trpc.baskt.createBasktMetadata.useMutation();
 
   const [formData, setFormData] = useState<CreateBasktFormData>({
     name: '',
@@ -87,6 +90,12 @@ export const useCreateBasktForm = () => {
       if (!basktId || !txSignature) {
         throw new Error('Failed to create baskt');
       }
+
+      await createBasketMutation.mutateAsync({
+        basktId: basktId.toString(),
+        basktName: formData.name,
+        txSignature: txSignature,
+      });
 
       toast.success('Baskt created successfully!');
 

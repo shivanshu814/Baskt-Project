@@ -1,36 +1,32 @@
-import Redis, { Cluster } from 'ioredis';
-import { EventEmitter } from 'events';
-import { ulid } from 'ulid';
 import BN from 'bn.js';
+import { EventEmitter } from 'events';
+import Redis, { Cluster } from 'ioredis';
+import { ulid } from 'ulid';
+
+import { logger, MAX_PAYLOAD_SIZE, MAX_RETRY_ATTEMPTS } from './utils';
 
 import {
-  logger,
-  MAX_PAYLOAD_SIZE,
-  MAX_RETRY_ATTEMPTS
-} from './utils';
-
-import {
-  pendingMessagesGauge,
-  deadLetterCount,
-  streamLengthGauge,
-  messageSizeHistogram,
-  messageRejectedCount,
-  retryAttemptsGauge,
   connectionErrorCount,
-  reconnectCount,
-  messagePublishedCount,
+  deadLetterCount,
   messageConsumedCount,
   messageProcessingTime,
+  messagePublishedCount,
+  messageRejectedCount,
+  messageSizeHistogram,
+  pendingMessagesGauge,
+  reconnectCount,
+  retryAttemptsGauge,
+  streamLengthGauge,
 } from './monitoring';
 
-import { createRetryStrategy } from './retry-strategy';
+import { PublicKey } from '@solana/web3.js';
+import SuperJSON from 'superjson';
 import { CircuitBreaker, sleep } from './circuit-breaker';
 import { HealthMonitor, HealthStatus } from './health';
-import { MessageEnvelope, DataBusConfig, ConsumerConfig, RedisClusterConfig } from './types';
-import { STREAMS, StreamName } from './types/streams';
+import { createRetryStrategy } from './retry-strategy';
 import { getStreamConfig } from './stream-config';
-import SuperJSON from 'superjson';
-import { PublicKey } from '@solana/web3.js';
+import { ConsumerConfig, DataBusConfig, MessageEnvelope, RedisClusterConfig } from './types';
+import { StreamName, STREAMS } from './types/streams';
 
 export class DataBus extends EventEmitter {
   private redis: Redis | Cluster;
@@ -49,18 +45,18 @@ export class DataBus extends EventEmitter {
     this.validateConfig(config);
     this.config = config;
     this.maxPayloadSize = config.maxPayloadSize ?? MAX_PAYLOAD_SIZE;
-    
+
     // Initialize Redis client
     this.redis = this.createRedisClient(config);
-    
+
     // Initialize health monitoring and circuit breakers
     this.health = new HealthMonitor(this.redis);
     this.publishBreaker = new CircuitBreaker({}, 'publish');
-    
+
     // Setup event handlers and graceful shutdown
     this.setupEventHandlers();
     this.setupGracefulShutdown();
-    
+
     // Auto-connect if needed
     if (config.autoConnect !== false) {
       this.startupValidation();
@@ -80,9 +76,9 @@ export class DataBus extends EventEmitter {
     const baseOptions = {
       maxRetriesPerRequest: config.maxRetriesPerRequest ?? 10,
       retryStrategy: createRetryStrategy(
-        config.redisUrl || `cluster-${config.redisCluster?.nodes[0].host}`
+        config.redisUrl || `cluster-${config.redisCluster?.nodes[0].host}`,
       ),
-      lazyConnect: config.autoConnect === false, 
+      lazyConnect: config.autoConnect === false,
     };
 
     if (config.redisCluster) {
@@ -93,42 +89,39 @@ export class DataBus extends EventEmitter {
   }
 
   private createClusterClient(clusterConfig: RedisClusterConfig, baseOptions: any): Cluster {
-    const nodes = clusterConfig.nodes.map(node => ({
+    const nodes = clusterConfig.nodes.map((node) => ({
       host: node.host,
-      port: node.port
+      port: node.port,
     }));
 
     return new Cluster(nodes, {
       redisOptions: {
         ...baseOptions,
-        ...clusterConfig.redisOptions
+        ...clusterConfig.redisOptions,
       },
       enableReadyCheck: true,
       scaleReads: 'slave',
-      clusterRetryStrategy: (times) => Math.min(times * 100, 3000)
+      clusterRetryStrategy: (times) => Math.min(times * 100, 3000),
     });
   }
 
   private setupEventHandlers(): void {
     // Add error event handlers to prevent unhandled errors
-    ['error', 'close', 'end'].forEach(event => {
+    ['error', 'close', 'end'].forEach((event) => {
       this.redis.on(event, (err?: Error) => {
-        logger.error(
-          `Redis ${event}`,
-          { err: err?.message, host: this.getRedisHost() }
-        );
+        logger.error(`Redis ${event}`, { err: err?.message, host: this.getRedisHost() });
         connectionErrorCount.inc({ event });
         this.emit(event, err);
       });
     });
-    
+
     // Track reconnection attempts
     this.redis.on('reconnecting', (delay: number) => {
       logger.info('Redis reconnecting', { host: this.getRedisHost() });
       reconnectCount.inc();
       this.emit('reconnecting', delay);
     });
-    
+
     this.redis.on('ready', () => {
       logger.info('Redis connection ready', { host: this.getRedisHost() });
       this.emit('ready');
@@ -136,29 +129,29 @@ export class DataBus extends EventEmitter {
   }
 
   private startupValidation(): void {
-    this.redis.connect()
+    this.redis
+      .connect()
       .then(() => this.redis.ping())
       .then(() => {
         logger.info('DataBus startup validation passed');
         this.emit('startup:success');
       })
-      .catch(err => {
+      .catch((err) => {
         console.log('err', err);
         logger.error('DataBus startup validation failed', { err });
         this.emit('startup:error', err);
-        
+
         if (this.config.exitOnStartupFailure !== false) {
           process.exit(1);
         }
       });
   }
 
-  async connect(): Promise<void> {    
+  async connect(): Promise<void> {
     await this.redis.connect();
   }
 
   async publish<T>(stream: StreamName, payload: T): Promise<string> {
-    
     // Check payload size using custom serialization
     const payloadStr = serializeMessage(payload);
     const payloadSize = Buffer.byteLength(payloadStr);
@@ -176,9 +169,8 @@ export class DataBus extends EventEmitter {
       ts: Date.now(),
       payload: payload,
       v: 1,
-      producer: process.env.SERVICE_NAME || 'unknown'
+      producer: process.env.SERVICE_NAME || 'unknown',
     };
-
 
     // Get stream config for retention policy
     const config = getStreamConfig(stream);
@@ -202,8 +194,8 @@ export class DataBus extends EventEmitter {
 
     try {
       // Cast to any to avoid TypeScript rest-parameter tuple mismatch during d.ts generation
-      const id = await (this.redis as any).xadd(...args) as string;
-      
+      const id = (await (this.redis as any).xadd(...args)) as string;
+
       this.health.recordPublish();
       this.publishBreaker.reset();
       messagePublishedCount.inc({ stream });
@@ -211,21 +203,21 @@ export class DataBus extends EventEmitter {
       return id;
     } catch (err) {
       this.health.recordError();
-      
+
       // Apply circuit breaker backoff on Redis errors
       const attempt = 1; // Simple retry attempt tracking
       const delay = this.publishBreaker.onFailure(attempt);
       if (delay > 0) {
         await sleep(delay);
       }
-      
+
       throw err;
     }
   }
 
   /**
    * Consume messages from a Redis stream with guaranteed cleanup
-   * 
+   *
    * IMPORTANT: This method uses a try/finally pattern to ensure the AbortController
    * is always removed from activeConsumers, even if an unexpected exception occurs.
    * This prevents hanging during graceful shutdown (fixes issue where leaked controllers
@@ -236,7 +228,7 @@ export class DataBus extends EventEmitter {
     group: string,
     consumer: string,
     handler: (msg: MessageEnvelope<T>) => Promise<void>,
-    options?: Partial<ConsumerConfig>
+    options?: Partial<ConsumerConfig>,
   ): Promise<void> {
     const config: ConsumerConfig = {
       stream,
@@ -244,12 +236,12 @@ export class DataBus extends EventEmitter {
       consumer,
       blockMs: options?.blockMs ?? 1000,
       count: options?.count ?? 10,
-      claimMinIdleMs: options?.claimMinIdleMs ?? 300000
+      claimMinIdleMs: options?.claimMinIdleMs ?? 300000,
     };
 
     const abortController = new AbortController();
     this.activeConsumers.add(abortController);
-    
+
     try {
       // Get or create circuit breaker for this consumer
       const consumerKey = `${stream}:${group}`;
@@ -273,12 +265,18 @@ export class DataBus extends EventEmitter {
 
       while (!this.isShuttingDown && !abortController.signal.aborted) {
         try {
-          const messages = await this.redis.xreadgroup(
-            'GROUP', group, consumer,
-            'COUNT', config.count!,
-            'BLOCK', config.blockMs!,
-            'STREAMS', stream, '>'
-          ) as [string, [string, string[]][]][] | null;
+          const messages = (await this.redis.xreadgroup(
+            'GROUP',
+            group,
+            consumer,
+            'COUNT',
+            config.count!,
+            'BLOCK',
+            config.blockMs!,
+            'STREAMS',
+            stream,
+            '>',
+          )) as [string, [string, string[]][]][] | null;
 
           if (!messages) continue;
 
@@ -292,10 +290,15 @@ export class DataBus extends EventEmitter {
               } catch (err) {
                 logger.error('Message deserialization error', { err, id, stream });
                 deadLetterCount.inc({ stream, reason: 'parse_error' });
-                await this.redis.xadd(`${stream}:dead`, '*',
-                  'data', fields[1],
-                  'error', 'DESERIALIZATION_ERROR',
-                  'originalId', id
+                await this.redis.xadd(
+                  `${stream}:dead`,
+                  '*',
+                  'data',
+                  fields[1],
+                  'error',
+                  'DESERIALIZATION_ERROR',
+                  'originalId',
+                  id,
                 );
                 await this.redis.xack(stream, group, id);
                 timer();
@@ -307,7 +310,7 @@ export class DataBus extends EventEmitter {
                 logger.warn('Message version higher than supported', {
                   version: data.v,
                   supportedVersion: 1,
-                  id
+                  id,
                 });
                 // For now, attempt to process anyway - future versions should handle gracefully
               }
@@ -335,7 +338,7 @@ export class DataBus extends EventEmitter {
                 const retries = (this.retryTracking.get(id) || 0) + 1;
                 this.retryTracking.set(id, retries);
                 retryAttemptsGauge.set({ stream, messageId: id }, retries);
-                
+
                 // Apply circuit breaker backoff for handler errors (recoverable)
                 const delay = consumerBreaker.onFailure(retries);
                 if (delay > 0) {
@@ -345,11 +348,17 @@ export class DataBus extends EventEmitter {
                 if (retries >= MAX_RETRY_ATTEMPTS) {
                   logger.error('Max retries exceeded, moving to dead letter', { id, retries });
                   deadLetterCount.inc({ stream, reason: 'max_retries' });
-                  await this.redis.xadd(`${stream}:dead`, '*',
-                    'data', fields[1],
-                    'error', 'MAX_RETRIES_EXCEEDED',
-                    'originalId', id,
-                    'retries', retries.toString()
+                  await this.redis.xadd(
+                    `${stream}:dead`,
+                    '*',
+                    'data',
+                    fields[1],
+                    'error',
+                    'MAX_RETRIES_EXCEEDED',
+                    'originalId',
+                    id,
+                    'retries',
+                    retries.toString(),
                   );
                   await this.redis.xack(stream, group, id);
                   this.retryTracking.delete(id);
@@ -387,35 +396,21 @@ export class DataBus extends EventEmitter {
     return ulid();
   }
 
-
-
   private isHighFrequencyStream(stream: StreamName): boolean {
     // High-frequency streams that should use size-based trimming
-    const highFrequencyStreams: StreamName[] = [
-      STREAMS.price.update,
-      STREAMS.risk.funding
-    ];
-    
+    const highFrequencyStreams: StreamName[] = [STREAMS.price.update, STREAMS.risk.funding];
+
     return highFrequencyStreams.includes(stream);
   }
 
-  private async startPendingMonitor(
-    config: ConsumerConfig,
-    signal: AbortSignal
-  ): Promise<void> {
+  private async startPendingMonitor(config: ConsumerConfig, signal: AbortSignal): Promise<void> {
     const checkInterval = 60000; // Check every minute
 
     const monitor = async () => {
       while (!signal.aborted) {
         try {
           // Get pending entries
-          const pending = await this.redis.xpending(
-            config.stream,
-            config.group,
-            '-',
-            '+',
-            100
-          );
+          const pending = await this.redis.xpending(config.stream, config.group, '-', '+', 100);
 
           if (pending && Array.isArray(pending)) {
             const pendingCount = pending.length;
@@ -431,12 +426,12 @@ export class DataBus extends EventEmitter {
                     config.group,
                     config.consumer,
                     config.claimMinIdleMs!,
-                    id
+                    id,
                   );
                   logger.info('Claimed stale message', {
                     stream: config.stream,
                     id,
-                    previousConsumer: consumer
+                    previousConsumer: consumer,
                   });
                 } catch (err) {
                   logger.error('Failed to claim message', { err, id });
@@ -457,7 +452,7 @@ export class DataBus extends EventEmitter {
     };
 
     // Start monitor in background
-    monitor().catch(err => {
+    monitor().catch((err) => {
       logger.error('Pending monitor crashed', { err });
     });
   }
@@ -468,7 +463,7 @@ export class DataBus extends EventEmitter {
       this.isShuttingDown = true;
 
       // Abort all active consumers
-      this.activeConsumers.forEach(controller => {
+      this.activeConsumers.forEach((controller) => {
         controller.abort();
       });
 
@@ -500,53 +495,52 @@ export class DataBus extends EventEmitter {
       logger.debug('Error during close (ignored)', { err: (err as Error).message });
     }
   }
-  
+
   private getRedisHost(): string {
     if (this.redis instanceof Cluster) {
       return 'cluster';
     }
     return (this.redis as any).options?.host || 'unknown';
   }
-  
+
   async getHealth(): Promise<HealthStatus> {
     return this.health.getHealth();
   }
 }
 
 // Export everything needed
+export type { HealthStatus } from './health';
 export { getStreamConfig } from './stream-config';
 export type {
-  MessageEnvelope,
-  StreamConfig,
   ConsumerConfig,
   DataBusConfig,
+  MessageEnvelope,
   RedisClusterConfig,
-  RedisClusterNode
+  RedisClusterNode,
+  StreamConfig,
 } from './types';
-export type { HealthStatus } from './health';
 
 // Export BN utilities for big number operations
-export * from './utils/';
 export * from './types';
+export * from './utils/';
 
 SuperJSON.registerCustom<BN, string>(
   {
     isApplicable: (v): v is BN => v instanceof BN,
-    serialize: v => v.toString(16),
-    deserialize: v => new BN(v, 16),
+    serialize: (v) => v.toString(16),
+    deserialize: (v) => new BN(v, 16),
   },
-  'bn.js'
+  'bn.js',
 );
 
 SuperJSON.registerCustom<PublicKey, string>(
   {
     isApplicable: (v): v is PublicKey => v instanceof PublicKey,
-    serialize: v => v.toString(),
-    deserialize: v => new PublicKey(v),
+    serialize: (v) => v.toString(),
+    deserialize: (v) => new PublicKey(v),
   },
-  'public-key'
+  'public-key',
 );
-
 
 /**
  * Static utility function to serialize payloads with BN support
@@ -567,5 +561,3 @@ export function serializeMessage<T>(payload: T): string {
 export function deserializeMessage<T>(data: string): T {
   return SuperJSON.parse(data);
 }
-
-

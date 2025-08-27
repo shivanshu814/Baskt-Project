@@ -1,10 +1,8 @@
-import { BasktCreatedEvent} from '@baskt/types';
-import { ObserverEvent } from '../../types';
-import { EventSource } from '../../types';
-import { getStreamPublisher } from 'src/utils/stream-publisher';
-import { querierClient } from '../../utils/config';
 import { FeeEventMetadata, FeeEvents } from '@baskt/querier';
+import { BasktCreatedEvent } from '@baskt/types';
 import BN from 'bn.js';
+import { EventSource, ObserverEvent } from '../../types';
+import { querierClient } from '../../utils/config';
 
 export default {
   source: EventSource.SOLANA,
@@ -25,14 +23,10 @@ export default {
           basktId: basktCreatedData.basktId.toString(),
           creationFee: new BN(basktCreatedData.basktCreationFee),
           rebalanceRequestFee: new BN(0),
-        }
+        },
       } as FeeEventMetadata);
-
-      return (await getStreamPublisher()).publishBasktCreated({
-          basktId: basktCreatedData.basktId.toString(),
-          timestamp: Date.now().toString(),
-          txSignature: signature.toString(),
-        });
+      // DataBus events are handled by the backend when frontend creates basket
+      return { success: true, message: 'Fee event created for baskt creation' };
     } catch (error) {
       console.error('Error processing baskt created event:', error);
       throw error;

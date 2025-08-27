@@ -13,6 +13,7 @@
     "test": "mocha"
   },
   "dependencies": {
+    "@baskt/data-bus": "workspace:*",
     "@baskt/querier": "workspace:*",
     "@baskt/sdk": "workspace:*",
     "@baskt/types": "workspace:*",
