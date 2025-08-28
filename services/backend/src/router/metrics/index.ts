@@ -1,11 +1,10 @@
 import { router } from '../../trpc/trpc';
 import {
-  getOpenInterestForBaskt,
+  getOpenInterestForAllAssets,
 } from './oi';
-import {  getVolumeForBaskt } from './volume';
 
 export const metricsRouter = router({
-  getOpenInterestForBaskt,
-  getVolumeForBaskt,
+  getOpenInterestForAllAssets,
 });
+
 export type MetricsRouter = typeof metricsRouter;

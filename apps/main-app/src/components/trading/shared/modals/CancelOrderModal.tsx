@@ -2,15 +2,16 @@
 
 import { Button, NumberFormat } from '@baskt/ui';
 import { X } from 'lucide-react';
-import { useCancelOrder } from '../../../../hooks/trade/action/use-cancel-order';
+import { useCloseOrder } from '../../../../hooks/trade/action/order/closeOrder';
 import { CancelOrderModalProps } from '../../../../types/baskt/trading/modals';
 import { ModalBackdrop } from './ModalBackdrop';
 
 export function CancelOrderModal({ isOpen, onClose, order }: CancelOrderModalProps) {
-  const { isLoading, handleCancel } = useCancelOrder(order, onClose);
+  const { isLoading, handleCancel } = useCloseOrder(order, onClose);
   const orderType = order?.isLong ? 'Long' : 'Short';
   const orderTypeColor = order?.isLong ? 'text-green-500' : 'text-red-500';
-  const orderSize = order?.size || 0;
+
+  const orderSize = Number(order?.sizeAsContracts) || 0;
   const orderCollateral = order?.collateral || 0;
 
   if (!isOpen) return null;
@@ -43,7 +44,7 @@ export function CancelOrderModal({ isOpen, onClose, order }: CancelOrderModalPro
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Position Value</span>
               <span className="font-semibold text-foreground">
-                <NumberFormat value={orderSize} isPrice={true} />
+                <NumberFormat value={orderSize * 100} isPrice={true} />
               </span>
             </div>
             <div className="flex justify-between items-center">

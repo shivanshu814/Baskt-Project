@@ -24,7 +24,6 @@ export interface PortfolioTabContentProps {
   activeTab: PortfolioTabType;
   positions: Position[];
   openOrders: any[];
-  orderHistory: any[];
   userBaskts: any[];
 }
 
@@ -52,8 +51,6 @@ export interface AssetBreakdownItem {
   assetTicker: string;
   totalValue: string;
   portfolioPercentage: number;
-  longCount: number;
-  shortCount: number;
 }
 
 export interface WalletTabControlsProps {

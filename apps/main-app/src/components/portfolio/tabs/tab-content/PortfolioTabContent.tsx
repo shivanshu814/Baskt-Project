@@ -10,7 +10,6 @@ export const PortfolioTabContent = ({
   activeTab,
   positions,
   openOrders,
-  orderHistory,
   userBaskts,
 }: PortfolioTabContentProps) => {
   switch (activeTab) {
@@ -21,7 +20,7 @@ export const PortfolioTabContent = ({
     case 'open-orders':
       return <OpenOrdersTable openOrders={openOrders} />;
     case 'order-history':
-      return <OrderHistoryTable orderHistory={orderHistory} />;
+      return <OrderHistoryTable />;
     default:
       return <PositionsTable positions={positions} />;
   }

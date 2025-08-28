@@ -2,9 +2,12 @@
 
 import { Button, Input, NumberFormat } from '@baskt/ui';
 import { X } from 'lucide-react';
-import { useClosePosition } from '../../../../hooks/trade/action/use-close-position';
-import { usePositionInfo } from '../../../../hooks/trade/action/use-position-info';
+import { useClosePosition } from '../../../../hooks/trade/action/position/closePosition';
 import { ClosePositionModalProps } from '../../../../types/baskt/trading/components/tabs';
+import {
+  getPositionTypeColor,
+  getPositionTypeLabel,
+} from '../../../../utils/formatters/formatters';
 import { PercentageSlider } from '../percentage/PercentageSlider';
 import { ModalBackdrop } from './ModalBackdrop';
 
@@ -13,17 +16,13 @@ export function ClosePositionModal({ isOpen, onClose, position }: ClosePositionM
     closeAmount,
     closePercentage,
     isLoading,
-    error,
     handleAmountChange,
     handleSliderChange,
     handlePercentageChange,
     handleMaxClick,
     handleSubmit,
   } = useClosePosition(position, onClose);
-  const { positionType, positionTypeColor, formattedCloseAmount, positionValue } = usePositionInfo(
-    position,
-    closeAmount,
-  );
+
   if (!isOpen) return null;
 
   return (
@@ -45,12 +44,14 @@ export function ClosePositionModal({ isOpen, onClose, position }: ClosePositionM
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Position Type</span>
-              <span className={positionTypeColor}>{positionType}</span>
+              <span className={getPositionTypeColor(position.isLong)}>
+                {getPositionTypeLabel(position.isLong)}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Position Value</span>
               <span className="font-semibold text-foreground">
-                <NumberFormat value={Math.round(positionValue * 100) / 100} isPrice={true} />
+                <NumberFormat value={position.positionValue} isPrice={true} />
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -66,7 +67,7 @@ export function ClosePositionModal({ isOpen, onClose, position }: ClosePositionM
                   onChange={(e) => handleAmountChange(e.target.value)}
                   min="0.01"
                   step="0.01"
-                  max={positionValue}
+                  max={position.positionValue}
                   aria-label="Amount to close"
                   disabled={isLoading}
                 />
@@ -91,10 +92,6 @@ export function ClosePositionModal({ isOpen, onClose, position }: ClosePositionM
           positionSize={position?.size || 0}
           isLoading={isLoading}
         />
-
-        <div className="px-1 py-1">
-          <div className="text-sm text-red-500 font-medium">{error}</div>
-        </div>
       </div>
 
       <div className="flex gap-3 pt-8">

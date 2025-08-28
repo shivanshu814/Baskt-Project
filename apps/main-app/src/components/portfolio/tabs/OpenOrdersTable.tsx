@@ -8,15 +8,48 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  useBasktClient,
 } from '@baskt/ui';
+import { useGetOrders } from '../../../hooks/trade/action/order/getOrders';
 import { OpenOrdersTableProps } from '../../../types/portfolio';
 import { formatOrderTime } from '../../../utils/formatters/formatters';
 
 export function OpenOrdersTable({ openOrders }: OpenOrdersTableProps) {
-  if (!openOrders || openOrders.length === 0) {
+  // Get current user's address
+  const { client } = useBasktClient();
+  const userAddress = client?.wallet?.address?.toString();
+
+  // Use the existing useGetOrders hook
+  const { orders, loading: isLoading, error } = useGetOrders(undefined, userAddress);
+  console.log('orders', orders);
+  if (!userAddress) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">No open orders found</p>
+        <p className="text-muted-foreground">Please connect your wallet to view orders</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Loading your orders...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">Error loading orders: {error.message}</p>
+      </div>
+    );
+  }
+
+  if (!orders || orders.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No orders found for your wallet</p>
       </div>
     );
   }
@@ -26,52 +59,38 @@ export function OpenOrdersTable({ openOrders }: OpenOrdersTableProps) {
       <Table>
         <TableHeader className="bg-muted">
           <TableRow>
-            <TableHead>Baskt</TableHead>
             <TableHead>Time</TableHead>
+            <TableHead>Order ID</TableHead>
             <TableHead>Type</TableHead>
-            <TableHead>Direction</TableHead>
-            <TableHead>Size</TableHead>
-            <TableHead>Current Price</TableHead>
-            <TableHead>Fees</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Position Value</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {openOrders.map((order: any, index: number) => (
+          {orders.map((order: any, index: number) => (
             <TableRow key={order.orderId || index}>
               <TableCell>
-                <span className="text-sm font-medium">{order.basktName}</span>
-              </TableCell>
-              <TableCell>{formatOrderTime(order.orderTime)}</TableCell>
-              <TableCell>
-                <span className="text-blue-500 capitalize">{order.orderType}</span>
-              </TableCell>
-              <TableCell>
-                <span className={order.direction === 'long' ? 'text-green-500' : 'text-red-500'}>
-                  {order.direction.charAt(0).toUpperCase() + order.direction.slice(1)}
-                </span>
+                <div className="text-xs">
+                  <div className="">
+                    {formatOrderTime(order.createdAt || new Date().toISOString())}
+                  </div>
+                </div>
               </TableCell>
               <TableCell>
-                <NumberFormat value={order.size} isPrice={true} />
+                <span className="text-sm font-mono">{order.orderId || 'N/A'}</span>
               </TableCell>
               <TableCell>
-                <NumberFormat value={order.currentPrice} isPrice={true} showCurrency={true} />
+                <span className="text-blue-500 capitalize">{order.orderType || 'Unknown'}</span>
               </TableCell>
               <TableCell>
-                <NumberFormat value={order.fees} isPrice={true} showCurrency={true} />
+                <span className="text-yellow-500">Pending</span>
               </TableCell>
               <TableCell>
-                <span
-                  className={`px-2 py-1 rounded-sm text-xs font-medium ${
-                    order.status === 'PENDING'
-                      ? 'bg-yellow-500/20 text-yellow-500'
-                      : order.status === 'FILLED'
-                      ? 'bg-green-500/20 text-green-500'
-                      : 'bg-gray-500/20 text-gray-500'
-                  }`}
-                >
-                  {order.status}
-                </span>
+                <NumberFormat
+                  value={Number(order.sizeAsContracts) * 100}
+                  isPrice={true}
+                  showCurrency={true}
+                />
               </TableCell>
             </TableRow>
           ))}

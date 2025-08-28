@@ -4,11 +4,11 @@ import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { trpc } from '../../../lib/api/trpc';
-import { parseTradingError } from '../../../utils/error/error';
-import { useUSDCBalance } from '../../balance/use-usdc-balance';
+import { trpc } from '../../../../lib/api/trpc';
+import { parseTradingError } from '../../../../utils/error/error';
+import { useUSDCBalance } from '../../../balance/use-usdc-balance';
 
-export function useOpenPositions(
+export function useOpenPosition(
   basktId?: string,
   userAddress?: string,
   baskt?: any,

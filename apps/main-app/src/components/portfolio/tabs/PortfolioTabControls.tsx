@@ -49,7 +49,7 @@ export const PortfolioTabControls = ({ activeTab, onTabChange }: PortfolioTabCon
         }`}
       >
         <History className="h-4 w-4" />
-        Order History
+        Position History
       </Button>
     </div>
   );

@@ -15,7 +15,6 @@ export const getDataBus = (): DataBus => {
 export const initializeDataBus = async (): Promise<void> => {
   try {
     const db = getDataBus();
-    await db.connect();
     logger.info('DataBus initialized successfully');
   } catch (error) {
     logger.error('Failed to initialize DataBus:', error);

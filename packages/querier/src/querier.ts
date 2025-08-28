@@ -71,7 +71,7 @@ export class Querier {
     this.protocol = ProtocolQuerier.getInstance(basktClient);
     this.feeEvent = FeeEventQuerier.getInstance();
     this.history = new HistoryQuerier();
-    this.metrics = new MetricsQuerier(this.asset, this.baskt);
+    this.metrics = new MetricsQuerier(basktClient);
     this.access = new AccessQuerier();
     this.faucet = new FaucetQuerier(basktClient);
     this.pool = new PoolQuerier(basktClient);

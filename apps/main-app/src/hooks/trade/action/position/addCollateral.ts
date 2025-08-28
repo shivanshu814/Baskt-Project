@@ -6,20 +6,23 @@ import { toast } from 'sonner';
 import {
   calculateAmountFromPercentage,
   calculatePercentage,
-} from '../../../utils/calculation/calculations';
-import { validateAmount, validatePercentage } from '../../../utils/validation/validation';
-import { useUSDCBalance } from '../../balance/use-usdc-balance';
-import { useModalState } from '../modals/use-modal-state';
+} from '../../../../utils/calculation/calculations';
+import { validateAmount, validatePercentage } from '../../../../utils/validation/validation';
+import { useUSDCBalance } from '../../../balance/use-usdc-balance';
+import { useModalState } from '../../modals/use-modal-state';
 
-export const useCollateral = (position?: any) => {
+export const useAddCollateral = (position?: any) => {
   const { client } = useBasktClient();
   const modalState = useModalState();
   const userAddress = client?.wallet?.address?.toString();
   const { balance: usdcBalance } = useUSDCBalance(userAddress);
+
   const [amount, setAmount] = useState<string>('');
   const [amountPercentage, setAmountPercentage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
   const selectedPosition = position || modalState.selectedPositionForModal;
+  const balanceNum = Number(usdcBalance);
 
   const clearData = useCallback(() => {
     setAmount('');
@@ -34,34 +37,31 @@ export const useCollateral = (position?: any) => {
 
   const handleAmountChange = useCallback(
     (value: string) => {
-      const numValue = parseFloat(value);
-      const maxAmount = Number(usdcBalance);
-
-      if (!validateAmount(value, maxAmount)) {
+      if (!validateAmount(value, balanceNum)) {
         setAmount(value);
         return;
       }
 
       setAmount(value);
+      const numValue = parseFloat(value);
 
-      if (numValue > 0 && maxAmount > 0) {
-        const percentage = calculatePercentage(numValue, maxAmount);
+      if (numValue > 0 && balanceNum > 0) {
+        const percentage = calculatePercentage(numValue, balanceNum);
         setAmountPercentage(percentage);
       } else {
         setAmountPercentage('');
       }
     },
-    [usdcBalance],
+    [balanceNum],
   );
 
   const handleSliderChange = useCallback(
     (percentage: number) => {
-      const maxAmount = Number(usdcBalance);
-      const amount = calculateAmountFromPercentage(percentage, maxAmount);
-      setAmount(amount);
+      const calculatedAmount = calculateAmountFromPercentage(percentage, balanceNum);
+      setAmount(calculatedAmount);
       setAmountPercentage(percentage.toFixed(1));
     },
-    [usdcBalance],
+    [balanceNum],
   );
 
   const handlePercentageChange = useCallback(
@@ -69,26 +69,33 @@ export const useCollateral = (position?: any) => {
       if (value === '') {
         setAmountPercentage('');
         setAmount('0');
-      } else {
-        const numValue = parseInt(value);
-        if (validatePercentage(numValue)) {
-          handleSliderChange(numValue);
-        }
+        return;
+      }
+
+      const numValue = parseInt(value);
+      if (validatePercentage(numValue)) {
+        handleSliderChange(numValue);
       }
     },
     [handleSliderChange],
   );
 
   const handleMaxAmount = useCallback(() => {
-    const maxAmount = Number(usdcBalance);
-    if (!isNaN(maxAmount)) {
-      const formattedAmount = maxAmount > 0 ? maxAmount.toFixed(6).replace(/\.?0+$/, '') : '0';
+    if (balanceNum > 0) {
+      const formattedAmount = balanceNum.toFixed(6).replace(/\.?0+$/, '');
       setAmount(formattedAmount);
       setAmountPercentage('100.0');
     }
-  }, [usdcBalance]);
+  }, [balanceNum]);
 
-  const handleAddCollateral = useCallback(
+  const openAddCollateralModal = useCallback(
+    (position: any) => {
+      modalState.openAddCollateralModal(position);
+    },
+    [modalState],
+  );
+
+  const addCollateral = useCallback(
     async (amount: string, position: any) => {
       if (!client) {
         toast.error('Wallet not connected');
@@ -114,11 +121,12 @@ export const useCollateral = (position?: any) => {
       } catch (error: any) {
         console.error('Error adding collateral:', error);
 
-        if (error?.message?.includes('insufficient')) {
+        const errorMessage = error?.message?.toLowerCase() || '';
+        if (errorMessage.includes('insufficient')) {
           toast.error('Insufficient USDC balance for this transaction');
-        } else if (error?.message?.includes('position')) {
+        } else if (errorMessage.includes('position')) {
           toast.error('Position not found or invalid');
-        } else if (error?.message?.includes('network')) {
+        } else if (errorMessage.includes('network')) {
           toast.error('Network error. Please try again');
         } else {
           toast.error('Failed to add collateral. Please try again');
@@ -127,13 +135,6 @@ export const useCollateral = (position?: any) => {
       }
     },
     [client],
-  );
-
-  const openAddCollateralModal = useCallback(
-    (position: any) => {
-      modalState.openAddCollateralModal(position);
-    },
-    [modalState],
   );
 
   const handleSubmit = useCallback(async () => {
@@ -148,8 +149,6 @@ export const useCollateral = (position?: any) => {
     }
 
     const amountNum = parseFloat(amount);
-    const balanceNum = Number(usdcBalance);
-
     if (amountNum > balanceNum) {
       toast.error(`Insufficient balance. You have ${balanceNum.toFixed(2)} USDC`);
       return;
@@ -159,8 +158,7 @@ export const useCollateral = (position?: any) => {
 
     try {
       const toastId = toast.loading(`Adding ${amount} USDC collateral...`);
-
-      await handleAddCollateral(amount, selectedPosition);
+      await addCollateral(amount, selectedPosition);
 
       toast.dismiss(toastId);
       toast.success(`Successfully added ${amount} USDC collateral to position`);
@@ -176,7 +174,7 @@ export const useCollateral = (position?: any) => {
     } finally {
       setIsLoading(false);
     }
-  }, [amount, selectedPosition, handleAddCollateral, clearData, handleClose, usdcBalance]);
+  }, [amount, selectedPosition, addCollateral, clearData, handleClose, balanceNum]);
 
   return {
     amount,

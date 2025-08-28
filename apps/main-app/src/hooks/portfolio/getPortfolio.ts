@@ -1,7 +1,7 @@
 import { useBasktClient } from '@baskt/ui';
 import { trpc } from '../../lib/api/trpc';
 
-export function usePortfolioData() {
+export function getPortfolio() {
   const { client } = useBasktClient();
   const userAddress = client?.wallet?.address?.toString();
 

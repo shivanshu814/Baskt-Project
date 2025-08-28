@@ -1,7 +1,7 @@
 import { Button, PublicKeyText } from '@baskt/ui';
 import { Activity, Clock, History, RefreshCw, Settings } from 'lucide-react';
 import { useState } from 'react';
-import { useRebalanceHistory } from '../../../../hooks/trade/action/use-rebalance-history';
+import { useGetRebalanceHistory } from '../../../../hooks/trade/action/rebalance/getRebalanceHistory';
 import { RebalanceTabProps } from '../../../../types/baskt/trading/orders';
 import { RebalanceHistoryModal } from '../modals/RebalanceHistoryModal';
 
@@ -13,7 +13,7 @@ export function RebalanceTab({
 }: RebalanceTabProps) {
   const isCreator = userAddress && userAddress === baskt?.account?.creator.toString();
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const { latestRebalance } = useRebalanceHistory(baskt?.basktId || '');
+  const { latestRebalance } = useGetRebalanceHistory(baskt?.basktId || '');
 
   const handleShowHistory = () => {
     setIsHistoryModalOpen(true);

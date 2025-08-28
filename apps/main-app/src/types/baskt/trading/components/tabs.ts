@@ -50,7 +50,6 @@ export interface MetricsTabProps {
   baskt: BasktInfo;
 }
 export interface OpenOrdersTabProps {
-  baskt: BasktInfo;
   orders: OrderDetails[];
   onCancelOrder: (order: OrderDetails) => void;
 }
@@ -65,9 +64,8 @@ export interface OrderDetails {
   orderPDA?: string;
   orderId?: string;
 }
-export interface OrdersHistoryTabProps {
+export interface PositionHistoryTabProps {
   baskt: BasktInfo;
-  orders: any[];
 }
 
 export interface OrderHistoryDetails {

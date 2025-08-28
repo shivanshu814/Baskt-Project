@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@baskt/ui';
-import { ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { SortDirection, SortField } from '../../types/baskt/ui/ui';
@@ -18,7 +18,7 @@ import { PositionsTableProps } from '../../types/portfolio';
 export const PositionsTable = ({ positions }: PositionsTableProps) => {
   const [sortField, setSortField] = useState<SortField>('baskt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-
+  console.log(positions);
   if (!positions || positions.length === 0) {
     return (
       <div className="text-center py-8">
@@ -77,23 +77,12 @@ export const PositionsTable = ({ positions }: PositionsTableProps) => {
     });
   };
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) {
-      return <ChevronUp className="w-4 h-4 text-gray-400" />;
-    }
-    return sortDirection === 'asc' ? (
-      <ChevronUp className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-    ) : (
-      <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-    );
-  };
-
   const getPositionTypeColor = (isLong: boolean) => {
-    return !isLong ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+    return !isLong ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
   };
 
-  const getPositionTypeLabel = (type: string) => {
-    return type !== 'long' ? 'Long' : 'Short';
+  const getPositionTypeLabel = (isLong: boolean) => {
+    return isLong ? 'Long' : 'Short';
   };
 
   const sortedPositions = getSortedPositions();
@@ -103,60 +92,12 @@ export const PositionsTable = ({ positions }: PositionsTableProps) => {
       <Table>
         <TableHeader className="bg-muted">
           <TableRow>
-            <TableHead>
-              <button
-                onClick={() => handleSort('baskt')}
-                className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                Baskt
-                <SortIcon field="baskt" />
-              </button>
-            </TableHead>
-            <TableHead>
-              <button
-                onClick={() => handleSort('size')}
-                className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                Type
-                <SortIcon field="size" />
-              </button>
-            </TableHead>
-            <TableHead>
-              <button
-                onClick={() => handleSort('positionValue')}
-                className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                Position Value
-                <SortIcon field="positionValue" />
-              </button>
-            </TableHead>
-            <TableHead>
-              <button
-                onClick={() => handleSort('entryPrice')}
-                className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                Entry Price
-                <SortIcon field="entryPrice" />
-              </button>
-            </TableHead>
-            <TableHead>
-              <button
-                onClick={() => handleSort('currentPrice')}
-                className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                Current Price
-                <SortIcon field="currentPrice" />
-              </button>
-            </TableHead>
-            <TableHead>
-              <button
-                onClick={() => handleSort('pnl')}
-                className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                PnL
-                <SortIcon field="pnl" />
-              </button>
-            </TableHead>
+            <TableHead>Baskt</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Position Value</TableHead>
+            <TableHead>Entry Price</TableHead>
+            <TableHead>Current Price</TableHead>
+            <TableHead>PnL</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -214,14 +155,14 @@ export const PositionsTable = ({ positions }: PositionsTableProps) => {
                     <>
                       {Number(position.pnl) >= 0 ? '+' : ''}
                       <NumberFormat
-                        value={Number(position.pnl) / 1e9}
+                        value={Number(position.pnl)}
                         isPrice={true}
                         showCurrency={true}
                       />{' '}
                       (
                       {position.pnlPercentage !== undefined
-                        ? (position.pnlPercentage / 1e9 >= 0 ? '+' : '') +
-                          (position.pnlPercentage / 1e9).toFixed(2)
+                        ? (position.pnlPercentage >= 0 ? '+' : '') +
+                          position.pnlPercentage.toFixed(2)
                         : '0.00'}
                       %)
                     </>

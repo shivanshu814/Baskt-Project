@@ -9,7 +9,7 @@ import { PortfolioTabContent } from '../../components/portfolio/tabs/tab-content
 import { WalletBreakdown } from '../../components/portfolio/wallet-breakdown/WalletBreakdown';
 import { useUSDCBalance } from '../../hooks/balance/use-usdc-balance';
 import { useYourBaskts } from '../../hooks/baskt/use-explore-data';
-import { usePortfolioData } from '../../hooks/portfolio/use-portfolio-data';
+import { getPortfolio } from '../../hooks/portfolio/getPortfolio';
 import { PortfolioTabType } from '../../types/portfolio';
 
 export default function PortfolioPage() {
@@ -19,7 +19,7 @@ export default function PortfolioPage() {
   const {
     baskts: { yourBaskts },
   } = useYourBaskts(activeTab === 'baskts');
-  const { data: portfolioData, isLoading } = usePortfolioData();
+  const { data: portfolioData, isLoading } = getPortfolio();
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -114,7 +114,6 @@ export default function PortfolioPage() {
             activeTab={activeTab}
             positions={portfolioData?.positions}
             openOrders={portfolioData?.openOrders}
-            orderHistory={portfolioData?.orderHistory}
             userBaskts={yourBaskts}
           />
         </div>

@@ -3,12 +3,12 @@
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from '@baskt/ui';
 import { Clock, History, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useRebalanceHistory } from '../../../../hooks/trade/action/use-rebalance-history';
+import { useGetRebalanceHistory } from '../../../../hooks/trade/action/rebalance/getRebalanceHistory';
 import { RebalanceHistoryModalProps } from '../../../../types/baskt/rebalance';
 import { RebalanceItem } from './rebalanceHistory/RebalanceItem';
 
 export function RebalanceHistoryModal({ isOpen, onClose, basktId }: RebalanceHistoryModalProps) {
-  const { rebalanceHistory, loading, error } = useRebalanceHistory(basktId);
+  const { rebalanceHistory, loading, error } = useGetRebalanceHistory(basktId);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {

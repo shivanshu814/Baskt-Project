@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useFilteredBaskts } from '../../../../hooks/baskt/use-filtered-baskts';
 import { useShareLink } from '../../../../hooks/shared/use-share-link';
-import { useOpenPositions } from '../../../../hooks/trade/action/use-open-positions';
+import { useOpenPosition } from '../../../../hooks/trade/action/position/openPosition';
 import { TradingPanelProps } from '../../../../types/baskt/trading/orders';
 
 export function TradingPanel({ combinedBaskts }: TradingPanelProps) {
@@ -45,7 +45,7 @@ export function TradingPanel({ combinedBaskts }: TradingPanelProps) {
     getLiquidationPrice,
     usdcBalance: hookUsdcBalance,
     userUSDCAccount,
-  } = useOpenPositions(
+  } = useOpenPosition(
     currentBaskt?.baskt?.basktId,
     publicKey,
     currentBaskt,

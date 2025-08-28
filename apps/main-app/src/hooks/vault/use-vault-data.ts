@@ -6,10 +6,9 @@ import { processEnhancedPoolData } from '../../utils/vault/vault-data-utils';
 
 export function useVaultData(userAddress?: string) {
   const { client } = useBasktClient();
-  const targetUserAddress = userAddress || client?.wallet?.address?.toString();
+  const targetUserAddress = userAddress;
 
-  const vaultQuery = trpc.vault.getVaultData.useQuery(
-    targetUserAddress ? { userAddress: targetUserAddress } : {},
+  const vaultQuery = trpc.vault.getVaultData.useQuery(undefined,
     {
       enabled: true,
       refetchInterval: false,

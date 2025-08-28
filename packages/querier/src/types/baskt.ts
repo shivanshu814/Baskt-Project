@@ -1,4 +1,4 @@
-import {  OnchainBasktAccount } from '@baskt/types';
+import {  BasktStatus, OnchainBasktAccount } from '@baskt/types';
 import { CombinedAsset } from './asset';
 import { BasktMetadata } from './models';
 
@@ -62,4 +62,5 @@ export interface BasktNAV {
 export interface BasktQueryOptions {
   hidePrivateBaskts?: boolean;
   userAddress?: string;
+  status?: BasktStatus;
 } 

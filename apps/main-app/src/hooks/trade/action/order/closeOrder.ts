@@ -4,7 +4,7 @@ import { PublicKey } from '@solana/web3.js';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-export const useCancelOrder = (order: any, onClose: () => void) => {
+export const useCloseOrder = (order: any, onClose: () => void) => {
   const { client } = useBasktClient();
   const [isLoading, setIsLoading] = useState(false);
 

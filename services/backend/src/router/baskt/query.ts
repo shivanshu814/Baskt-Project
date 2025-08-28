@@ -193,7 +193,7 @@ const getExplorePageBaskts = publicProcedure
       logger.info('[Backend] getExplorePageBaskts triggered');
 
       let basktsResult = await querier.baskt.getAllBaskts({
-        hidePrivateBaskts: false,
+        hidePrivateBaskts: false
       });
 
       if (!basktsResult.success || !basktsResult.data) {

@@ -136,7 +136,7 @@ export class DataBus extends EventEmitter {
         logger.info('DataBus startup validation passed');
         this.emit('startup:success');
       })
-      .catch((err) => {
+      .catch(err => {
         console.log('err', err);
         logger.error('DataBus startup validation failed', { err });
         this.emit('startup:error', err);

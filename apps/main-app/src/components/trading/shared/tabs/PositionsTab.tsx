@@ -1,8 +1,17 @@
 'use client';
 
-import { NumberFormat } from '@baskt/ui';
+import {
+  NumberFormat,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  useUser,
+} from '@baskt/ui';
 import { Pencil } from 'lucide-react';
-import { usePositionsTab } from '../../../../hooks/trade/tabs/use-positions-tab';
+import { useGetPositions } from '../../../../hooks/trade/action/position/getPositions';
 import { PositionsTabProps } from '../../../../types/baskt/trading/components/tabs';
 import {
   getPnlColor,
@@ -10,13 +19,13 @@ import {
   getPositionTypeLabel,
 } from '../../../../utils/formatters/formatters';
 
-export function PositionsTab({
-  baskt,
-  positions,
-  onAddCollateral,
-  onClosePosition,
-}: PositionsTabProps) {
-  const { processedPositions, hasPositions } = usePositionsTab(positions, baskt?.price || 0);
+export function PositionsTab({ baskt, onAddCollateral, onClosePosition }: PositionsTabProps) {
+  const { userAddress } = useUser();
+  const { positions, loading, error } = useGetPositions(
+    baskt?.price || 0,
+    baskt?.basktId,
+    userAddress,
+  );
 
   const handleAddCollateralClick = (position: any) => {
     onAddCollateral(position);
@@ -26,70 +35,83 @@ export function PositionsTab({
     onClosePosition(position);
   };
 
+  if (loading) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Loading positions...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">Error loading positions: {error.message}</p>
+      </div>
+    );
+  }
+
+  const hasPositions = positions && positions.length > 0;
+
   return (
     <div className="overflow-x-auto -mt-4 -ml-2">
-      <table className="w-full text-sm min-w-[800px]">
-        <thead className="sticky top-0 bg-zinc-900/95 z-10 border-b border-border">
-          <tr>
-            <th className="text-left py-2 px-2">Long/Short</th>
-            <th className="text-left py-2 px-2 whitespace-nowrap">Position Value</th>
-            <th className="text-left py-2 px-2 whitespace-nowrap">Entry Price</th>
-            <th className="text-left py-2 px-2 whitespace-nowrap">Current Price</th>
-            <th className="text-left py-2 px-2 whitespace-nowrap">PNL (ROE) %</th>
-            <th className="text-left py-2 px-2">Collateral</th>
-            <th className="text-left py-2 px-2">Fees</th>
-            <th className="text-left py-2 px-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <TableHeader className="bg-zinc-900">
+          <TableRow>
+            <TableHead className="p-2 h-8 text-text">Long/Short</TableHead>
+            <TableHead className="p-2 h-8 text-text">Position Value</TableHead>
+            <TableHead className="p-2 h-8 text-text">Entry Price</TableHead>
+            <TableHead className="p-2 h-8 text-text">Current Price</TableHead>
+            <TableHead className="p-2 h-8 text-text">PNL (ROE) %</TableHead>
+            <TableHead className="p-2 h-8 text-text">Collateral</TableHead>
+            <TableHead className="p-2 h-8 text-text">Fees</TableHead>
+            <TableHead className="p-2 h-8 text-text">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {!hasPositions ? (
-            <tr>
-              <td colSpan={8} className="py-8 px-2 text-center text-muted-foreground">
+            <TableRow>
+              <TableCell colSpan={8} className="py-8 p-2 text-center text-muted-foreground">
                 No positions found
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ) : (
-            processedPositions.map((position, index) => {
-              const { calculations } = position;
+            positions.map((position: any, index: number) => {
               const positionTypeLabel = getPositionTypeLabel(position.isLong);
               const positionTypeColor = getPositionTypeColor(position.isLong);
-              const pnlColor = getPnlColor(calculations.pnl);
+              const pnlColor = getPnlColor(position.pnl);
 
               return (
-                <tr key={index} className="border-b border-border/50">
-                  <td className="py-2 px-2">
+                <TableRow key={index}>
+                  <TableCell className="p-2">
                     <span className={positionTypeColor}>{positionTypeLabel}</span>
-                  </td>
-                  <td className="py-2 px-2">
+                  </TableCell>
+                  <TableCell className="p-2">
                     <NumberFormat
-                      value={calculations.positionValue}
+                      value={position.positionValue}
                       isPrice={true}
                       showCurrency={true}
                     />
-                  </td>
-                  <td className="py-2 px-2">
+                  </TableCell>
+                  <TableCell className="p-2">
+                    <NumberFormat value={position.entryPrice} isPrice={true} showCurrency={true} />
+                  </TableCell>
+                  <TableCell className="p-2">
                     <NumberFormat
-                      value={calculations.entryPrice}
+                      value={position.currentPrice}
                       isPrice={true}
                       showCurrency={true}
                     />
-                  </td>
-                  <td className="py-2 px-2">
-                    <NumberFormat
-                      value={calculations.currentPrice}
-                      isPrice={true}
-                      showCurrency={true}
-                    />
-                  </td>
-                  <td className="whitespace-nowrap py-2 px-2">
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap p-2">
                     <span className={pnlColor}>
-                      {calculations.pnl >= 0 ? '+' : ''}
-                      <NumberFormat value={calculations.pnl} isPrice={true} showCurrency={true} /> (
-                      {calculations.pnl >= 0 ? '+' : ''}
-                      {calculations.pnlPercentage.toFixed(2)}%)
+                      {position.pnl >= 0 ? '+' : ''}
+                      <NumberFormat value={position.pnl} isPrice={true} showCurrency={true} /> (
+                      {position.pnl >= 0 ? '+' : ''}
+                      {position.pnlPercentage.toFixed(2)}%)
                     </span>
-                  </td>
-                  <td className="py-2 px-2">
+                  </TableCell>
+                  <TableCell className="p-2">
                     <div className="flex items-center gap-1">
                       <NumberFormat
                         value={position.remainingCollateral}
@@ -103,30 +125,24 @@ export function PositionsTab({
                         <Pencil size={12} />
                       </button>
                     </div>
-                  </td>
-                  <td className="py-2 px-2">
-                    <NumberFormat
-                      value={
-                        (position.openPosition.feeToBlp + position.openPosition.feeToTreasury) * 10
-                      }
-                      isPrice={true}
-                      showCurrency={true}
-                    />
-                  </td>
-                  <td className="py-2 px-2">
+                  </TableCell>
+                  <TableCell className="p-2">
+                    <NumberFormat value={position.fees} isPrice={true} showCurrency={true} />
+                  </TableCell>
+                  <TableCell className="p-2">
                     <button
                       onClick={() => handleClosePositionClick(position)}
                       className="text-xs px-2 py-1 bg-red-500/20 text-red-500 rounded hover:bg-red-500/30 transition-colors"
                     >
                       Close
                     </button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               );
             })
           )}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

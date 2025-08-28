@@ -2,7 +2,7 @@
 
 import { Button, Input, NumberFormat } from '@baskt/ui';
 import { HandCoins, X } from 'lucide-react';
-import { useCollateral } from '../../../../hooks/trade/action/use-collateral';
+import { useAddCollateral } from '../../../../hooks/trade/action/position/addCollateral';
 import { preventNegativeInput } from '../../../../lib/trading/helper';
 import { AddCollateralModalProps } from '../../../../types/baskt/trading/components/tabs';
 import { PercentageSlider } from '../percentage/PercentageSlider';
@@ -19,7 +19,7 @@ export function AddCollateralModal({ isOpen, position }: AddCollateralModalProps
     handleSubmit,
     handleClose,
     usdcBalance,
-  } = useCollateral(position);
+  } = useAddCollateral(position);
 
   if (!isOpen) return null;
 
@@ -52,7 +52,7 @@ export function AddCollateralModal({ isOpen, position }: AddCollateralModalProps
                 <span className="text-sm text-muted-foreground">Current Collateral</span>
                 <div className="text-sm font-bold text-foreground">
                   <NumberFormat
-                    value={position?.collateral || 0}
+                    value={position?.remainingCollateral || 0}
                     isPrice={true}
                     showCurrency={true}
                   />

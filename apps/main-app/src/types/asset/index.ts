@@ -100,8 +100,6 @@ export interface AssetBreakdownItem {
   assetTicker: string;
   totalValue: string;
   portfolioPercentage: number;
-  longCount: number;
-  shortCount: number;
 }
 
 export interface AssetBreakdownProps {

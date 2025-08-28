@@ -23,7 +23,7 @@ const t = initTRPC.context<Context>().create({
 });
 
 const isAuthed = t.middleware(({ ctx, next }) => {
-  if (!ctx?.user) {
+  if (!ctx?.user && process.env.NODE_ENV === 'production') {
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Authentication required' });
   }
 

@@ -4,7 +4,7 @@ import { PublicKey } from '@solana/web3.js';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-export const useBasktRebalance = () => {
+export const useGetRebalance = () => {
   const [isRebalancing, setIsRebalancing] = useState(false);
   const { client } = useBasktClient();
 

@@ -1,68 +1,74 @@
 'use client';
 
-import { NumberFormat } from '@baskt/ui';
+import {
+  PublicKeyText,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@baskt/ui';
 import { OpenOrdersTabProps } from '../../../../types/baskt/trading/components/tabs';
-import { formatOrderTime } from '../../../../utils/formatters/formatters';
 
-export function OpenOrdersTab({ baskt, orders, onCancelOrder }: OpenOrdersTabProps) {
-  const hasOrders = orders.length > 0;
-
+export function OpenOrdersTab({ orders, onCancelOrder }: OpenOrdersTabProps) {
   return (
     <div className="overflow-x-auto -mt-4 -ml-2">
-      <table className="w-full text-sm min-w-[800px]">
-        <thead className="sticky top-0 bg-zinc-900/95 z-10 border-b border-border">
-          <tr>
-            <th className="text-left py-2 px-2">Time</th>
-            <th className="text-left py-2 px-2">Type</th>
-            <th className="text-left py-2 px-2">Direction</th>
-            <th className="text-left py-2 px-2">Position Value</th>
-            <th className="text-left py-2 px-2">Limit Price</th>
-            <th className="text-left py-2 px-2">Collateral</th>
-            <th className="text-left py-2 px-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {!hasOrders ? (
-            <tr>
-              <td colSpan={8} className="py-8 px-2 text-center text-muted-foreground">
+      <Table>
+        <TableHeader className="bg-zinc-900">
+          <TableRow>
+            <TableHead className="p-2 h-8 text-text">Time</TableHead>
+            <TableHead className="p-2 h-8 text-text">Order ID</TableHead>
+            <TableHead className="p-2 h-8 text-text">Type</TableHead>
+            <TableHead className="p-2 h-8 text-text">Direction</TableHead>
+            <TableHead className="p-2 h-8 text-text">Position Value</TableHead>
+            <TableHead className="p-2 h-8 text-text">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {orders.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} className="py-8 p-2 text-center text-muted-foreground">
                 No open orders found
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ) : (
-            orders.map((order, index) => (
-              <tr key={index} className="border-b border-border/50">
-                <td className="py-2 px-2">{formatOrderTime(order.createdAt)}</td>
-                <td className="py-2 px-2">
+            orders.map((order: any, index) => (
+              <TableRow key={index}>
+                <TableCell className="p-2">{new Date(order.createdAt).toLocaleString()}</TableCell>
+                <TableCell className="p-2">
+                  <PublicKeyText publicKey={order.orderId?.toString() || ''} />
+                </TableCell>
+                <TableCell className="p-2">
                   <span className="text-blue-500">{order.orderType}</span>
-                </td>
-                <td className="py-2 px-2">
-                  <span className={order.direction === 'Long' ? 'text-green-500' : 'text-red-500'}>
-                    {order.direction}
-                  </span>
-                </td>
-                <td className="py-2 px-2">
-                  <NumberFormat value={order.size} isPrice={true} />
-                </td>
-
-                <td className="py-2 px-2">
-                  <NumberFormat value={order.limitPrice} isPrice={true} showCurrency={true} />
-                </td>
-                <td className="py-2 px-2">
-                  <NumberFormat value={order.collateral} isPrice={true} showCurrency={true} />
-                </td>
-                <td className="py-2 px-2">
+                </TableCell>
+                <TableCell className="p-2">
+                  {order.orderAction === 'CLOSE' ? (
+                    <span className="text-red-500">Close</span>
+                  ) : (
+                    <span
+                      className={order.direction === 'Long' ? 'text-green-500' : 'text-red-500'}
+                    >
+                      {order.direction}
+                    </span>
+                  )}
+                </TableCell>
+                <TableCell className="p-2">
+                  {order.sizeAsContracts ? Number(order.sizeAsContracts) / 1e4 : 0}
+                </TableCell>
+                <TableCell className="p-2">
                   <button
                     onClick={() => onCancelOrder(orders[index])}
                     className="text-xs px-2 py-1 bg-red-500/20 text-red-500 rounded hover:bg-red-500/30 transition-colors"
                   >
                     Cancel
                   </button>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))
           )}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

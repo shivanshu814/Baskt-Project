@@ -15,6 +15,7 @@ import { handleQuerierError } from '../utils/error-handling';
 import { toNumber } from '../utils/helpers';
 import { AssetQuerier } from './asset.querier';
 import { PriceQuerier } from './price.querier';
+import { BasktStatus } from '@baskt/types';
 
 /**
  * Baskt Querier
@@ -51,6 +52,7 @@ export class BasktQuerier {
     options: BasktQueryOptions = {
       hidePrivateBaskts: true,
       userAddress: undefined,
+      status: BasktStatus.Active,
     },
   ): Promise<QueryResult<CombinedBaskt[]>> {
     try {
@@ -60,6 +62,9 @@ export class BasktQuerier {
       }
       if(options.hidePrivateBaskts) {
         query['isPublic'] = true;
+      }
+      if(options.status) {
+        query['status'] = options.status;
       }
       const [basktConfigs, allAssetsResult] = await Promise.all([
         BasktMetadataModel.find(query).sort({ createdAt: -1 }).lean<BasktMetadata[]>(),

@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { protectedProcedure } from '../../trpc/trpc';
 import { querier } from '../../utils/';
 import logger from '../../utils/logger';
+import { CombinedBaskt, CombinedBasktAsset, CombinedPosition } from '@baskt/querier';
+import { PRICE_PRECISION } from '@baskt/sdk';
 
 const portfolioInputSchema = z.object({
   userId: z.string(),
@@ -11,6 +13,55 @@ const portfolioInputSchema = z.object({
   includeHistory: z.boolean().default(true),
 });
 
+
+const getCurrentUserPositions = (activePositions: CombinedPosition[], basktAddressToBasktMap: Map<string, CombinedBaskt>) => {
+  const positionData = activePositions.map((position) => {
+    const basktId = position.basktAddress;
+    const baskt = basktAddressToBasktMap.get(basktId);
+    const basktName = baskt!.name;
+    const currentPrice = baskt!.price;
+
+    let pnl = new BN(0);
+    let pnlPercentage = 0;
+
+    const entryPrice = new BN(position.entryPrice);
+    const usdcSize = new BN(position.usdcSize);
+    const isLong = position.isLong;
+    const collateral = new BN(position.collateral);
+
+    if (entryPrice.gt(new BN(0)) && currentPrice > 0 && usdcSize.gt(new BN(0))) {
+      const currentPriceBN = new BN(currentPrice);
+      const positionSize = usdcSize.mul(new BN(1e6)).div(entryPrice);
+      const currentValue = positionSize.mul(currentPriceBN).div(new BN(1e6));
+      const entryValue = usdcSize;
+
+      if (isLong) {
+        pnl = currentValue.sub(entryValue);
+      } else {
+        pnl = entryValue.sub(currentValue);
+      }
+
+      pnlPercentage = collateral.gt(new BN(0))
+        ? pnl.mul(new BN(100)).div(collateral).toNumber()
+        : 0;
+    }
+
+    return {
+      basktId,
+      basktName,
+      isLong: position.isLong,
+      positionValue: position.usdcSize,
+      entryPrice: position.entryPrice,
+      currentPrice: currentPrice.toString(),
+      pnl: pnl.toString(),
+      pnlPercentage: Number(pnlPercentage.toFixed(2)),
+      size: position.usdcSize,
+      collateral: position.collateral,
+      timestamp: position.createdAt?.toISOString() || new Date().toISOString(),
+    };
+  });
+  return positionData;
+}
 export const getPortfolioData = protectedProcedure
   .input(portfolioInputSchema)
   .query(async ({ input }) => {
@@ -41,7 +92,7 @@ export const getPortfolioData = protectedProcedure
       );
 
       const basktMap = new Map();
-      const basktAddressToBasktMap = new Map();
+      const basktAddressToBasktMap = new Map<string, CombinedBaskt>();
       const assetMap = new Map();
 
       basktResults.forEach((basktResult) => {
@@ -58,34 +109,36 @@ export const getPortfolioData = protectedProcedure
       });
 
       const basktPositions = new Map<string, any[]>();
-      const basktMetrics = new Map<string, { openInterest: BN; collateral: BN }>();
+      const basktMetrics = new Map<string, { longOpenInterest: BN; shortOpenInterest: BN; totalOpenInterest: BN; collateral: BN }>();
+      let totalOpenInterest = new BN(0);
+      let totalCollateral = new BN(0);
 
+      // Calculate total open interest and collateral, and baskt breakdown 
       activePositions.forEach((position) => {
         const basktId = position.basktAddress;
         if (basktId) {
           if (!basktPositions.has(basktId)) {
             basktPositions.set(basktId, []);
-            basktMetrics.set(basktId, { openInterest: new BN(0), collateral: new BN(0) });
+            basktMetrics.set(basktId, { longOpenInterest: new BN(0), shortOpenInterest: new BN(0), totalOpenInterest: new BN(0), collateral: new BN(0) });
           }
           basktPositions.get(basktId)!.push(position);
 
           const metrics = basktMetrics.get(basktId)!;
-          metrics.openInterest = metrics.openInterest.add(new BN(position.usdcSize || '0'));
-          metrics.collateral = metrics.collateral.add(new BN(position.collateral || '0'));
+          const openInterest = new BN(position.usdcSize);
+          const collateral = new BN(position.collateral);
+          metrics.longOpenInterest = position.isLong ? metrics.longOpenInterest.add(openInterest) : metrics.longOpenInterest;
+          metrics.shortOpenInterest = position.isLong ? metrics.shortOpenInterest : metrics.shortOpenInterest.add(openInterest);
+          metrics.totalOpenInterest = metrics.longOpenInterest.add(metrics.shortOpenInterest);
+          metrics.collateral = metrics.collateral.add(collateral);
+
+          totalOpenInterest = totalOpenInterest.add(openInterest);
+          totalCollateral = totalCollateral.add(collateral);
         }
       });
 
-      let totalOpenInterest = new BN(0);
-      let totalCollateral = new BN(0);
-
-      for (const metrics of Array.from(basktMetrics.values())) {
-        totalOpenInterest = totalOpenInterest.add(metrics.openInterest);
-        totalCollateral = totalCollateral.add(metrics.collateral);
-      }
-
-      const basktBreakdown = Array.from(basktPositions.entries()).map(([basktId, basktPos]) => {
+      const basktBreakdown = Array.from(basktPositions.entries()).map(([basktId]) => {
         const baskt = basktAddressToBasktMap.get(basktId);
-        const basktName = baskt?.name || 'Unknown Baskt';
+        const basktName = baskt!.name;
         const metrics = basktMetrics.get(basktId)!;
 
         const assetImages: string[] = [];
@@ -98,14 +151,17 @@ export const getPortfolioData = protectedProcedure
         }
 
         const totalValuePercentage = totalOpenInterest.gt(new BN(0))
-          ? (parseFloat(metrics.openInterest.toString()) /
-              parseFloat(totalOpenInterest.toString())) *
-            100
+          ? (parseFloat(metrics.totalOpenInterest.toString()) /
+            parseFloat(totalOpenInterest.toString())) *
+          100
           : 0;
 
         return {
           basktName,
           assets: assetImages,
+          totalValue: metrics.totalOpenInterest.toString(),
+          longOpenInterest: metrics.longOpenInterest.toString(),
+          shortOpenInterest: metrics.shortOpenInterest.toString(),
           totalValuePercentage,
         };
       });
@@ -114,143 +170,99 @@ export const getPortfolioData = protectedProcedure
         string,
         {
           totalValue: BN;
+          longOpenInterest: BN;
+          shortOpenInterest: BN;
           assetName: string;
           assetLogo: string;
           assetTicker: string;
-          longCount: number;
-          shortCount: number;
         }
       >();
 
-      for (const [basktId, basktPos] of Array.from(basktPositions.entries())) {
+      for (const [basktId, basktPositionList] of Array.from(basktPositions.entries())) {
         const baskt = basktAddressToBasktMap.get(basktId);
-        const basktOpenInterest = basktMetrics.get(basktId)!.openInterest;
+        if (!baskt) continue;
+        baskt.assets.forEach((asset: CombinedBasktAsset) => {
 
-        if (baskt?.assets) {
-          baskt.assets.forEach((asset: any) => {
-            const assetId = asset.assetId;
+          for (const position of basktPositionList) {
+            const isLong = position.isLong == asset.direction;
+            const positionValue = new BN(position.size).mul(new BN(baskt.price)).div(new BN(PRICE_PRECISION));
+
+            const assetId = asset.assetAddress;
             const weightPercentage = new BN(asset.weight || 0);
-            const assetValue = basktOpenInterest.mul(weightPercentage).div(new BN(100));
+            const assetValue = positionValue.mul(weightPercentage).div(new BN(100));
+            const currentAssetData = assetPortfolioMap.get(assetId) || {
+              totalValue: new BN(0),
+              longOpenInterest: new BN(0),
+              shortOpenInterest: new BN(0),
+              assetName: '',
+              assetLogo: '',
+              assetTicker: '',
+            };
 
-            if (assetPortfolioMap.has(assetId)) {
-              const existing = assetPortfolioMap.get(assetId)!;
-              existing.totalValue = existing.totalValue.add(assetValue);
-
-              const hasLongPosition = basktPos.some((pos) => pos.isLong === true);
-              const hasShortPosition = basktPos.some((pos) => pos.isLong === false);
-
-              if (hasLongPosition) existing.longCount++;
-              if (hasShortPosition) existing.shortCount++;
-            } else {
-              const hasLongPosition = basktPos.some((pos) => pos.isLong === true);
-              const hasShortPosition = basktPos.some((pos) => pos.isLong === false);
-
-              assetPortfolioMap.set(assetId, {
-                totalValue: assetValue,
-                assetName: asset.name || asset.ticker,
-                assetLogo: asset.logo || asset.image,
-                assetTicker: asset.ticker || 'UNKNOWN',
-                longCount: hasLongPosition ? 1 : 0,
-                shortCount: hasShortPosition ? 1 : 0,
-              });
-            }
-          });
-        }
-      }
-
-      const assetBreakdown = Array.from(assetPortfolioMap.entries())
-        .map(([assetId, assetData]) => {
-          const assetPercentage = totalOpenInterest.gt(new BN(0))
-            ? assetData.totalValue.mul(new BN(100)).div(totalOpenInterest).toNumber()
-            : 0;
-
-          return {
-            assetId,
-            assetName: assetData.assetName,
-            assetLogo: assetData.assetLogo,
-            assetTicker: assetData.assetTicker,
-            totalValue: assetData.totalValue.toString(),
-            portfolioPercentage: parseFloat(assetPercentage.toFixed(2)),
-            longCount: assetData.longCount,
-            shortCount: assetData.shortCount,
-          };
-        })
-        .sort((a, b) => b.portfolioPercentage - a.portfolioPercentage);
-
-      const positionData = activePositions.map((position) => {
-        const basktId = position.basktAddress;
-        const baskt = basktAddressToBasktMap.get(basktId);
-        const basktName = baskt?.name || 'Unknown Baskt';
-        const currentPrice = baskt?.price || 0;
-
-        let pnl = new BN(0);
-        let pnlPercentage = 0;
-
-        const entryPrice = new BN(position.entryPrice || 0);
-        const usdcSize = new BN(position.usdcSize || '0');
-        const isLong = position.isLong;
-        const collateral = new BN(position.collateral || '0');
-
-        if (entryPrice.gt(new BN(0)) && currentPrice > 0 && usdcSize.gt(new BN(0))) {
-          const currentPriceBN = new BN(Math.floor(currentPrice * 1e6));
-          const positionSize = usdcSize.mul(new BN(1e6)).div(entryPrice);
-          const currentValue = positionSize.mul(currentPriceBN).div(new BN(1e6));
-          const entryValue = usdcSize;
-
-          if (isLong) {
-            pnl = currentValue.sub(entryValue);
-          } else {
-            pnl = entryValue.sub(currentValue);
+            assetPortfolioMap.set(assetId, {
+              totalValue: currentAssetData!.totalValue.add(assetValue),
+              longOpenInterest: isLong ? currentAssetData!.longOpenInterest.add(assetValue) : currentAssetData!.longOpenInterest,
+              shortOpenInterest: isLong ? currentAssetData!.shortOpenInterest : currentAssetData!.shortOpenInterest.add(assetValue),
+              assetName: asset.name,
+              assetLogo: asset.logo,
+              assetTicker: asset.ticker,
+            });
           }
 
-          pnlPercentage = collateral.gt(new BN(0))
-            ? pnl.mul(new BN(100)).div(collateral).toNumber()
-            : 0;
+
+
+        });
+
+
+        const assetBreakdown = Array.from(assetPortfolioMap.entries())
+          .map(([assetId, assetData]) => {
+            const assetPercentage = totalOpenInterest.gt(new BN(0))
+              ? assetData.totalValue.mul(new BN(100)).div(totalOpenInterest).toNumber()
+              : 0;
+
+            return {
+              assetId,
+              assetName: assetData.assetName,
+              assetLogo: assetData.assetLogo,
+              assetTicker: assetData.assetTicker,
+              totalValue: assetData.totalValue.toString(),
+              longOpenInterest: assetData.longOpenInterest.toString(),
+              shortOpenInterest: assetData.shortOpenInterest.toString(),
+              portfolioPercentage: assetPercentage.toString(),
+            };
+          })
+          .sort((a, b) => b.portfolioPercentage > a.portfolioPercentage ? 1 : -1);
+
+
+        let totalPnlValue = new BN(0);
+        if (input.includeHistory) {
+          for (const position of positions) {
+            const positionPnl = new BN((position as any).pnl || '0');
+            totalPnlValue = totalPnlValue.add(positionPnl);
+          }
         }
+
+        const metrics = {
+          totalPortfolioValue: totalOpenInterest.toString(),
+          totalOpenInterest: totalOpenInterest.toString(),
+          totalCollateral: totalCollateral.toString(),
+          totalPnl: totalPnlValue.div(new BN(1e6)).toString(),
+          totalPnlPercentage: totalCollateral.gt(new BN(0))
+            ? totalPnlValue.mul(new BN(100)).div(totalCollateral).toNumber()
+            : 0,
+          totalPositions: activePositions.length,
+        };
 
         return {
-          basktId,
-          basktName,
-          type: position.isLong ? 'long' : 'short',
-          positionValue: position.usdcSize || '0',
-          entryPrice: position.entryPrice || '0',
-          currentPrice: currentPrice.toString(),
-          pnl: pnl.toString(),
-          pnlPercentage: Number(pnlPercentage.toFixed(2)),
-          size: position.usdcSize || '0',
-          collateral: position.collateral || '0',
-          timestamp: position.createdAt?.toISOString() || new Date().toISOString(),
+          success: true,
+          data: {
+            basktBreakdown,
+            assetBreakdown,
+            positions: getCurrentUserPositions(activePositions, basktAddressToBasktMap),
+            metrics,
+          },
         };
-      });
-
-      let totalPnlValue = new BN(0);
-      if (input.includeHistory) {
-        for (const position of positions) {
-          const positionPnl = new BN((position as any).pnl || '0');
-          totalPnlValue = totalPnlValue.add(positionPnl);
-        }
       }
-
-      const metrics = {
-        totalPortfolioValue: totalOpenInterest.toString(),
-        totalOpenInterest: totalOpenInterest.toString(),
-        totalCollateral: totalCollateral.toString(),
-        totalPnl: totalPnlValue.div(new BN(1e6)).toString(),
-        totalPnlPercentage: totalCollateral.gt(new BN(0))
-          ? totalPnlValue.mul(new BN(100)).div(totalCollateral).toNumber()
-          : 0,
-        totalPositions: activePositions.length,
-      };
-
-      return {
-        success: true,
-        data: {
-          basktBreakdown,
-          assetBreakdown,
-          positions: positionData,
-          metrics,
-        },
-      };
     } catch (error) {
       logger.error('Error fetching portfolio data:', error);
       return {

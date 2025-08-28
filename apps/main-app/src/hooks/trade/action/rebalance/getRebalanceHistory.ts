@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { trpc } from '../../../lib/api/trpc';
-import { RebalanceHistoryItem } from '../../../types/baskt/rebalance';
+import { trpc } from '../../../../lib/api/trpc';
+import { RebalanceHistoryItem } from '../../../../types/baskt/rebalance';
 
-export function useRebalanceHistory(basktId: string) {
+export function useGetRebalanceHistory(basktId: string) {
   const [rebalanceHistory, setRebalanceHistory] = useState<RebalanceHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);

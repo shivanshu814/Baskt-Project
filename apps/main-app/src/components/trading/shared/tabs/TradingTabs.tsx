@@ -1,10 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger, useBasktClient } from '@baskt/ui';
 import { BN } from '@coral-xyz/anchor';
 import { useState } from 'react';
-import { useBasktRebalance } from '../../../../hooks/trade/action/use-baskt-rebalance';
-import { useOpenOrders } from '../../../../hooks/trade/action/use-open-orders';
-import { useOpenPositions } from '../../../../hooks/trade/action/use-open-positions';
-import { useOrderHistory } from '../../../../hooks/trade/action/use-order-history';
+import { useGetOrders } from '../../../../hooks/trade/action/order/getOrders';
+import { usePositionHistory } from '../../../../hooks/trade/action/position-history/getPositionHistory';
+import { useOpenPosition } from '../../../../hooks/trade/action/position/openPosition';
+import { useGetRebalance } from '../../../../hooks/trade/action/rebalance/getRebalance';
 import { useModalState } from '../../../../hooks/trade/modals/use-modal-state';
 import { OrderDetails } from '../../../../types/baskt/trading/components/tabs';
 import { TradingTabsProps } from '../../../../types/baskt/trading/orders';
@@ -12,7 +12,7 @@ import { CompositionTab } from './CompositionTab';
 import { InfoTab } from './InfoTab';
 import { MetricsTab } from './MetricsTab';
 import { OpenOrdersTab } from './OpenOrdersTab';
-import { OrdersHistoryTab } from './OrdersHistoryTab';
+import { PositionHistoryTab } from './PositionHistoryTab';
 import { PositionsTab } from './PositionsTab';
 import { RebalanceTab } from './RebalanceTab';
 
@@ -23,17 +23,17 @@ export function TradingTabs({ baskt }: TradingTabsProps) {
   const userAddress = basktClient?.wallet?.address?.toString();
   const modalState = useModalState();
 
-  const { positions = [] } = useOpenPositions(
+  const { positions = [] } = useOpenPosition(
     baskt?.basktId,
     userAddress,
     baskt,
     0,
     baskt?.metrics?.currentNav ? new BN(baskt.metrics.currentNav) : undefined,
   );
-  // TODO: Shivanshu this can be done in one fetch.
-  const { orders = [], processedOrders = [] } = useOpenOrders(baskt?.basktId, userAddress, baskt);
-  const { orders: orderHistory = [] } = useOrderHistory(baskt?.basktId, userAddress);
-  const { isRebalancing, rebalanceBaskt } = useBasktRebalance();
+
+  const { orders: processedOrders = [] } = useGetOrders(baskt?.basktId, userAddress);
+  const { history: orderHistory = [] } = usePositionHistory(baskt?.basktId, userAddress);
+  const { isRebalancing, rebalanceBaskt } = useGetRebalance();
 
   const handleRebalance = () => {
     if (baskt) {
@@ -90,10 +90,10 @@ export function TradingTabs({ baskt }: TradingTabsProps) {
             <span>Positions ({positions.length})</span>
           </TabsTrigger>
           <TabsTrigger value="open-orders" className="flex-1 min-w-0 hidden sm:block">
-            <span>Open Orders ({orders.length})</span>
+            <span>Open Orders ({processedOrders.length})</span>
           </TabsTrigger>
           <TabsTrigger value="orders-history" className="flex-1 min-w-0 hidden sm:block">
-            <span>Order History</span>
+            <span>Position History</span>
           </TabsTrigger>
           <TabsTrigger value="info" className="flex-1 min-w-0 hidden sm:block">
             <span>Info</span>
@@ -120,11 +120,11 @@ export function TradingTabs({ baskt }: TradingTabsProps) {
         </TabsContent>
 
         <TabsContent value="open-orders" className="flex-1 overflow-y-auto p-4">
-          <OpenOrdersTab baskt={baskt} orders={processedOrders} onCancelOrder={onCancelOrder} />
+          <OpenOrdersTab orders={processedOrders} onCancelOrder={onCancelOrder} />
         </TabsContent>
 
         <TabsContent value="orders-history" className="flex-1 overflow-y-auto p-4">
-          <OrdersHistoryTab baskt={baskt} orders={orderHistory} />
+          <PositionHistoryTab baskt={baskt} />
         </TabsContent>
 
         <TabsContent value="info" className="flex-1 overflow-y-auto p-4">
