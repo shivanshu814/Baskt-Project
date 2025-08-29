@@ -72,22 +72,21 @@ export class FeeSkewCalculator {
   ): FeeCalculationResult {
     const warnings: string[] = [];
     
-    // 1. Calculate price impact fee (size-based)
-    const impactFeeUsd = this.calculateImpactFee(order.notionalValue);
+    // 1. Calculate price impact fee (size-based, only for opening orders)
+    const impactFeeUsd = order.isOpen ? this.calculateImpactFee(order.notionalValue) : new BN(0);
     
     // 2. Calculate utilization-based fee adjustment
-    const utilizationFeeUsd = this.calculateUtilizationFee(
+    const utilizationFeeUsd = order.isOpen ? this.calculateUtilizationFee(
       order.notionalValue,
       pool.utilization,
-      order.isOpen
-    );
+    ) : new BN(0);
     
     // 3. Calculate imbalance fee (skew penalty/reward)
-    const imbalanceFeeUsd = this.calculateImbalanceFee(
+    const imbalanceFeeUsd = order.isOpen ? this.calculateImbalanceFee(
       order,
       pool,
       warnings
-    );
+    ) : new BN(0);
     
     // 4. Sum all fee components
     const totalFeeUsd = impactFeeUsd
@@ -174,12 +173,8 @@ export class FeeSkewCalculator {
   private calculateUtilizationFee(
     notionalValue: BN,
     utilization: number,
-    isOpen: boolean
   ): BN {
-    // Only apply to opening positions (borrowing from pool)
-    if (!isOpen) {
-      return new BN(0);
-    }
+
     
     let borrowRate: number;
     
@@ -213,8 +208,7 @@ export class FeeSkewCalculator {
   ): BN {
     const totalNotional = pool.longNotional.add(pool.shortNotional);
     
-    // Skip if pool is empty or order is closing
-    if (totalNotional.isZero() || !order.isOpen) {
+    if (totalNotional.isZero()) {
       return new BN(0);
     }
     
