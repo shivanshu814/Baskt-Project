@@ -20,6 +20,8 @@ export interface OnchainPosition {
   exitPrice?: BN;
   lastFundingIndex: BN;
   fundingAccumulated: BN;
+  lastBorrowIndex: BN;
+  borrowAccumulated: BN;
   lastRebalanceFeeIndex: BN;
   status: PositionStatus;
   timestampOpen: BN;

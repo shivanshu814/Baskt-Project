@@ -566,6 +566,8 @@ export abstract class BaseClient {
       exitPrice: position.exitPrice ? new BN(position.exitPrice) : undefined,
       lastFundingIndex: new BN(position.lastFundingIndex || 0),
       fundingAccumulated: new BN(position.fundingAccumulated || 0),
+      lastBorrowIndex: new BN(position.lastBorrowIndex || 0),
+      borrowAccumulated: new BN(position.borrowAccumulated || 0),
       lastRebalanceFeeIndex: new BN(position.lastRebalanceFeeIndex || 0),
       status: position.status?.open
         ? PositionStatus.OPEN
@@ -773,10 +775,12 @@ export abstract class BaseClient {
         minCollateralRatioBps: (baskt.config.flags & 0x08) != 0 ? new BN(baskt.config.minCollateralRatioBps) : null,
         liquidationThresholdBps: (baskt.config.flags & 0x10) != 0 ? new BN(baskt.config.liquidationThresholdBps) : null,
       },
-      fundingIndex: {
-        cumulativeIndex: new BN(baskt.fundingIndex.cumulativeIndex),
-        lastUpdateTimestamp: new BN(baskt.fundingIndex.lastUpdateTimestamp),
-        currentRate: new BN(baskt.fundingIndex.currentRate),
+      marketIndices: {
+        cumulativeFundingIndex: new BN(baskt.marketIndices.cumulativeFundingIndex),
+        cumulativeBorrowIndex: new BN(baskt.marketIndices.cumulativeBorrowIndex),
+        currentFundingRate: new BN(baskt.marketIndices.currentFundingRate),
+        currentBorrowRate: new BN(baskt.marketIndices.currentBorrowRate),
+        lastUpdateTimestamp: new BN(baskt.marketIndices.lastUpdateTimestamp),
       },
       rebalanceFeeIndex: {
         cumulativeIndex: new BN(baskt.rebalanceFeeIndex.cumulativeIndex),
@@ -912,21 +916,24 @@ export abstract class BaseClient {
    * Rebalance a baskt with new asset weights
    * @param basktId The public key of the baskt to rebalance
    * @param assetConfigs Array of asset configurations with new weights
-   * @param newNav New NAV for the baskt after rebalance
-   * @param rebalanceFeePerUnit Optional rebalance fee per unit position size (defaults to 0)
+   * @param newNav New NAV after applying the new baseline prices
+   * @param rebalanceFeePerUnit Optional rebalance fee per unit position size (defaults to null)
    * @returns Transaction signature
    */
   public async rebalanceBaskt(
     basktId: PublicKey,
     assetConfigs: Array<OnchainAssetConfig>,
-    newNav: BN,
-    rebalanceFeePerUnit?: BN,
+    newNav: anchor.BN,
+    rebalanceFeePerUnit?: anchor.BN,
   ): Promise<string> {
     // Prepare the transaction builder
-    const txBuilder = this.program.methods.rebalance(assetConfigs, newNav, rebalanceFeePerUnit || null).accounts({
-      baskt: basktId,
-      payer: this.getPublicKey(),
-    });
+    const txBuilder = this.program.methods
+      .rebalance(assetConfigs, newNav, rebalanceFeePerUnit ?? null)
+      .accountsPartial({
+        baskt: basktId,
+        payer: this.getPublicKey(),
+        protocol: this.protocolPDA,
+      });
 
     const itx = await txBuilder.instruction();
 
@@ -945,11 +952,13 @@ export abstract class BaseClient {
     const protocol = await this.getProtocolAccount();
     const treasury = new PublicKey(protocol.treasury);
 
-    const txBuilder = this.program.methods.rebalanceRequest().accounts({
-      baskt: basktId,
-      creator: this.getPublicKey(),
-      treasury: treasury,
-    });
+    const txBuilder = this.program.methods
+      .rebalanceRequest()
+      .accounts({
+        baskt: basktId,
+        creator: this.getPublicKey(),
+        treasury: treasury,
+      });
 
     return await this.sendAndConfirmRpc(txBuilder);
   }
@@ -1447,14 +1456,15 @@ export abstract class BaseClient {
   }
 
   /**
-   * Update the funding index rate for a baskt
+   * Update the market indices (funding and borrow rates) for a baskt
    * @param basktId The public key of the baskt
-   * @param newRate The new funding rate in BPS (basis points)
+   * @param newFundingRate The new funding rate in BPS (can be positive or negative)
+   * @param newBorrowRate The new borrow rate in BPS (must be positive)
    * @returns Transaction signature
    */
-  public async updateFundingIndex(basktId: PublicKey, newRate: BN): Promise<string> {
+  public async updateMarketIndices(basktId: PublicKey, newFundingRate: BN, newBorrowRate: BN): Promise<string> {
     const tx = await this.program.methods
-      .updateFundingIndex(newRate)
+      .updateMarketIndices(newFundingRate, newBorrowRate)
       .accountsPartial({
         authority: this.getPublicKey(),
         baskt: basktId,
@@ -1462,6 +1472,18 @@ export abstract class BaseClient {
       .transaction();
 
     return await this.sendAndConfirmLegacy(tx);
+  }
+
+  /**
+   * @deprecated Use updateMarketIndices instead
+   * Update the funding index rate for a baskt (legacy method for backward compatibility)
+   * @param basktId The public key of the baskt
+   * @param newRate The new funding rate in BPS (basis points)
+   * @returns Transaction signature
+   */
+  public async updateFundingIndex(basktId: PublicKey, newRate: BN): Promise<string> {
+    // Default borrow rate to 0 for backward compatibility
+    return this.updateMarketIndices(basktId, newRate, new BN(0));
   }
 
   // Protocol Configuration Setters
@@ -1646,8 +1668,8 @@ export abstract class BaseClient {
       if (!baskt) {
         return null;
       }
-      // Return the embedded funding index
-      return baskt.fundingIndex;
+      // Return the embedded market indices
+      return baskt.marketIndices;
     } catch (error) {
       // Return null if the account doesn't exist or there's an error
       return null;
@@ -2013,5 +2035,62 @@ export abstract class BaseClient {
       }
     }
     throw lastError;
+  }
+
+  /**
+   * Parse raw on-chain order account status into a simple string.
+   * Handles both enum-object and numeric representations defensively.
+   */
+  private parseOrderStatus(raw: any): 'pending' | 'filled' | 'cancelled' | 'unknown' {
+    const status = raw?.status;
+    if (!status) return 'unknown';
+
+    // Anchor enum object form: { pending: {} } | { filled: {} } | { cancelled: {} }
+    if (typeof status === 'object') {
+      if (status.pending) return 'pending';
+      if (status.filled) return 'filled';
+      if (status.cancelled) return 'cancelled';
+      return 'unknown';
+    }
+
+    // Numeric fallback: 0 = pending, 1 = filled, 2 = cancelled
+    if (typeof status === 'number') {
+      switch (status) {
+        case 0: return 'pending';
+        case 1: return 'filled';
+        case 2: return 'cancelled';
+        default: return 'unknown';
+      }
+    }
+
+    return 'unknown';
+  }
+
+  /**
+   * Fetch an order account by id/owner with retries and return its status.
+   * Does not throw when account is missing; returns status 'not_found' instead.
+   */
+  public async getOrderStatusWithRetry(params: {
+    orderId: number;
+    owner: PublicKey;
+    commitment?: Commitment;
+    retries?: number;
+    delay?: number;
+  }): Promise<{ orderPDA: PublicKey; status: 'pending' | 'filled' | 'cancelled' | 'not_found' | 'unknown'; account?: any }>
+  {
+    const { orderId, owner, commitment = 'confirmed', retries = 3, delay = 1000 } = params;
+    const orderPDA = await this.getOrderPDA(orderId, owner);
+    try {
+      const account = await this.readWithRetry(
+        () => this.program.account.order.fetch(orderPDA, commitment),
+        retries,
+        delay,
+      );
+      const status = this.parseOrderStatus(account);
+      return { orderPDA, status, account };
+    } catch (err) {
+      // Treat missing account (e.g., closed after cancel) as not_found
+      return { orderPDA, status: 'not_found' };
+    }
   }
 }

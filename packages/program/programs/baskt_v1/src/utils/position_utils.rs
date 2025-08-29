@@ -27,6 +27,7 @@ pub struct SettlementDetails {
     pub base_fee: u64,
     pub rebalance_fee: u64,
     pub funding_accumulated: i128,
+    pub borrow_accumulated: i128,  // Borrow fee (negative from user perspective)
     pub pnl: i128,
     pub bad_debt_amount: u64,
     pub collateral_to_release: u64,
@@ -170,13 +171,14 @@ pub fn execute_settlement_transfers<'info>(
 pub fn update_pool_state(
     liquidity_pool: &mut LiquidityPool,
     settlement_details: &SettlementDetails,
-    bad_debt_amount: u64,
 ) -> Result<()> {
 
     // Calculate net change to pool using ACTUAL transferred amounts
-    // Pool gains from escrow and actual BLP fees, loses from payouts and bad debt
+    // Pool gains from escrow transfers, loses from payouts
+    // Note: Borrow and funding fees are already implicit in the equity calculation
+    // and reflected in the actual token transfers (escrow_to_pool, pool_to_user)
     let gains = settlement_details.escrow_to_pool as i128;
-    // Removed bad debt from pool losses
+    
     let losses = settlement_details.pool_to_user as i128;
 
     let net_change = gains
@@ -193,6 +195,14 @@ pub fn update_pool_state(
     Ok(())
 }
 
+/// Calculate settlement for closing a position (full or partial)
+/// Policy: funding and borrow are fully settled on every settlement.
+/// - We always apply the entire `position.funding_accumulated` and `position.borrow_accumulated`
+///   to equity regardless of `size_to_close`.
+/// - After transfers complete, `update_position_after_settlement()` resets both accumulators to 0
+///   and future accrual starts from current indices.
+/// - `collateral_to_release` is proportional to `size_to_close` (partial close releases only a
+///   proportional share of collateral), but funding/borrow are NOT prorated.
 pub fn calculate_position_settlement(
     position: &Position,
     size_to_close: u64,
@@ -205,15 +215,18 @@ pub fn calculate_position_settlement(
         return Err(PerpetualsError::InvalidInput.into());
     }
 
-    // 1. Calculate prorated collateral (handles partial close)
+    // 1. Calculate collateral portion for the requested `size_to_close` (handles partial close)
     let collateral_closed = if size_to_close == position.size {
         position.collateral
     } else {
         mul_div_u64(position.collateral, size_to_close, position.size)?
     };
 
-    // 2. Calculate PnL and funding (handles leverage)
+    // 2. Funding and borrow: settle FULL accumulated amounts on any settlement
+    // Accumulators will be reset post-settlement; no prorating by `size_to_close`.
     let funding_closed_i128 = position.funding_accumulated;
+    let borrow_closed_i128 = position.borrow_accumulated;
+    
     let realized_pnl_i128 = calculate_pnl(
         position.is_long, 
         position.entry_price, 
@@ -222,9 +235,11 @@ pub fn calculate_position_settlement(
     )? as i128;
 
     // 3. Calculate total equity (can be negative)
+    // Note: borrow_closed_i128 is negative, so adding it reduces equity
     let equity_i128 = (collateral_closed as i128)
         .checked_add(realized_pnl_i128).ok_or(PerpetualsError::MathOverflow)?
-        .checked_add(funding_closed_i128).ok_or(PerpetualsError::MathOverflow)?;
+        .checked_add(funding_closed_i128).ok_or(PerpetualsError::MathOverflow)?
+        .checked_add(borrow_closed_i128).ok_or(PerpetualsError::MathOverflow)?;
 
     // 4. Calculate total fees
     let exit_notional_u64 = mul_div_u64(size_to_close, exit_price, PRICE_PRECISION)?;
@@ -255,6 +270,7 @@ pub fn calculate_position_settlement(
             rebalance_fee: 0,
             pnl: realized_pnl_i128,
             funding_accumulated: funding_closed_i128,
+            borrow_accumulated: borrow_closed_i128,
             bad_debt_amount: bad_debt_amount.try_into().unwrap_or(u64::MAX),
             user_payout_u64: 0,
             collateral_to_release: collateral_closed,
@@ -270,7 +286,7 @@ pub fn calculate_position_settlement(
 
     // 7. Calculate user payout after fees
     let user_total_payout = (equity_i128 as u64).saturating_sub(collectible_fee);
-
+    
     // 8. Handle liquidation vs normal close
     if matches!(closing_type, ClosingType::Liquidation { .. }) {
         // In liquidation: user gets nothing, pool gets remainder after fees
@@ -287,6 +303,7 @@ pub fn calculate_position_settlement(
             rebalance_fee: rebalance_fee_owed,
             pnl: realized_pnl_i128,
             funding_accumulated: funding_closed_i128,
+            borrow_accumulated: borrow_closed_i128,
             bad_debt_amount: uncollected_fee,
             user_payout_u64: 0,
             collateral_to_release: collateral_closed,
@@ -311,6 +328,7 @@ pub fn calculate_position_settlement(
         rebalance_fee: rebalance_fee_owed,
         pnl: realized_pnl_i128,
         funding_accumulated: funding_closed_i128,
+        borrow_accumulated: borrow_closed_i128,
         bad_debt_amount: uncollected_fee,
         user_payout_u64: escrow_to_user + pool_to_user,
         collateral_to_release: collateral_closed,
@@ -348,15 +366,23 @@ pub fn calculate_pnl(
 }
 
 /// Update position state after settlement
+/// After settlement, all accumulated fees have been fully paid/received,
+/// so we reset the accumulators to 0. The indices are already updated
+/// in update_market_indices, so future accumulation will start fresh.
 pub fn update_position_after_settlement(
     position: &mut Position,
     size_to_close: u64,
     collateral_to_release: u64,
-    funding_to_release: u64,
 ) -> Result<()> {
     position.size -= size_to_close;
     position.collateral -= collateral_to_release;
-    position.funding_accumulated -= funding_to_release as i128;
+    
+    // Reset accumulators to 0 since all accumulated fees have been settled
+    // The indices (last_funding_index, last_borrow_index) are already updated
+    // in update_market_indices, so future accumulation starts from current indices
+    position.funding_accumulated = 0;
+    position.borrow_accumulated = 0;
+    
     Ok(())
 }
 

@@ -1,9 +1,12 @@
 import {
   BasktCreatedMessage,
   DataBus,
-  OrderAccepted,
   OrderRequest,
-  RebalanceRequestedMessage,
+  OrderCancelled,
+  PositionOpened,
+  PositionClosed,
+  PositionLiquidated,
+  RebalanceRequestedMessage, serializeMessage,
   STREAMS,
   type StreamName,
 } from '@baskt/data-bus';
@@ -104,27 +107,28 @@ export class StreamPublisher {
   /**
    * Publish order creation event - matches OrderRequest interface exactly
    */
-  async publishOrderCreated(payload: OrderRequest): Promise<void> {
-    // await this.safePublish(STREAMS.order.request, payload, { orderId: payload.order.orderId });
+  async publishOrderCreated(payload: OrderRequest): Promise<void> {  
+    await this.safePublish(STREAMS.order.request, payload, { orderId: payload.order.orderId }); 
+    // const randomPrice = Math.random() * 10 * 1e6;
+    // const executionPrice = new BN(randomPrice).add(new BN(95 * 1e6)); // +-% 5% of the random price
 
-    const randomPrice = Math.random() * 10 * 1e6;
-    const executionPrice = new BN(randomPrice).add(new BN(95 * 1e6)); // +-% 5% of the random price
+    // await this.safePublish(STREAMS.order.accepted, {
+    //   executionPrice: payload.order.action === OrderAction.Open ? new BN(100 * 1e6) : executionPrice,
+    //   request: payload,
+    // } as OrderAccepted, { orderId: payload.order.orderId });
+  }
 
-    await this.safePublish(
-      STREAMS.order.accepted,
-      {
-        executionPrice:
-          payload.order.action === OrderAction.Open ? new BN(100 * 1e6) : executionPrice,
-        request: payload,
-      } as OrderAccepted,
-      { orderId: payload.order.orderId },
-    );
+  /**
+   * Publish order cancellation event - matches OrderCancelled interface exactly
+   */
+  async publishOrderCancelled(payload: OrderCancelled): Promise<void> {
+    await this.safePublish(STREAMS.order.cancelled, payload, { orderId: payload.orderId });
   }
 
   async publishBasktCreated(payload: BasktCreatedMessage): Promise<void> {
     await this.safePublish(STREAMS.baskt.created, payload, {
       basktId: payload.basktId,
-      name: payload.name,
+      name: payload.basktName,
     });
   }
 
@@ -134,118 +138,118 @@ export class StreamPublisher {
     });
   }
 
-  // /**
-  //  * Publish position opened event - matches PositionOpened interface exactly
-  //  */
-  // async publishPositionOpened(data: {
-  //   orderId: string;
-  //   positionId: string;
-  //   owner: string;
-  //   basktId: string;
-  //   size: string;
-  //   collateral: string;
-  //   isLong: boolean;
-  //   entryPrice: string;
-  //   entryFundingIndex: string;
-  //   feeToTreasury: string;
-  //   feeToBlp: string;
-  //   timestamp: string;
-  //   txSignature: string;
-  // }): Promise<void> {
-  //   const payload: PositionOpened = {
-  //     orderId: data.orderId,
-  //     positionId: data.positionId,
-  //     owner: data.owner,
-  //     basktId: data.basktId,
-  //     size: data.size,
-  //     collateral: data.collateral,
-  //     isLong: data.isLong,
-  //     entryPrice: data.entryPrice,
-  //     entryFundingIndex: data.entryFundingIndex,
-  //     feeToTreasury: data.feeToTreasury,
-  //     feeToBlp: data.feeToBlp,
-  //     timestamp: data.timestamp,
-  //     txSignature: data.txSignature,
-  //   };
+  /**
+   * Publish position opened event - matches PositionOpened interface exactly
+   */
+  async publishPositionOpened(data: {
+    orderId: string;
+    positionId: string;
+    owner: string;
+    basktId: string;
+    size: string;
+    collateral: string;
+    isLong: boolean;
+    entryPrice: string;
+    entryFundingIndex: string;
+    feeToTreasury: string;
+    feeToBlp: string;
+    timestamp: string;
+    txSignature: string;
+  }): Promise<void> {
+    const payload: PositionOpened = {
+      orderId: data.orderId,
+      positionId: data.positionId,
+      owner: data.owner,
+      basktId: data.basktId,
+      size: data.size,
+      collateral: data.collateral,
+      isLong: data.isLong,
+      entryPrice: data.entryPrice,
+      entryFundingIndex: data.entryFundingIndex,
+      feeToTreasury: data.feeToTreasury,
+      feeToBlp: data.feeToBlp,
+      timestamp: data.timestamp,
+      txSignature: data.txSignature,
+    };
 
-  //   await this.safePublish(STREAMS.position.opened, payload, { positionId: data.positionId });
-  // }
+    await this.safePublish(STREAMS.position.opened, payload, { positionId: data.positionId });
+  }
 
-  // /**
-  //  * Publish position closed event - matches PositionClosed interface exactly
-  //  */
-  // async publishPositionClosed(data: {
-  //   orderId: string;
-  //   positionId: string;
-  //   owner: string;
-  //   basktId: string;
-  //   size: string;
-  //   exitPrice: string;
-  //   pnl: string;
-  //   feeToTreasury: string;
-  //   feeToBlp: string;
-  //   fundingPayment: string;
-  //   settlementAmount: string;
-  //   poolPayout: string;
-  //   timestamp: string;
-  //   txSignature: string;
-  // }): Promise<void> {
-  //   const payload: PositionClosed = {
-  //     orderId: data.orderId,
-  //     positionId: data.positionId,
-  //     owner: data.owner,
-  //     basktId: data.basktId,
-  //     size: data.size,
-  //     exitPrice: data.exitPrice,
-  //     pnl: data.pnl,
-  //     feeToTreasury: data.feeToTreasury,
-  //     feeToBlp: data.feeToBlp,
-  //     fundingPayment: data.fundingPayment,
-  //     settlementAmount: data.settlementAmount,
-  //     poolPayout: data.poolPayout,
-  //     timestamp: data.timestamp,
-  //     txSignature: data.txSignature,
-  //   };
+  /**
+   * Publish position closed event - matches PositionClosed interface exactly
+   */
+  async publishPositionClosed(data: {
+    orderId: string;
+    positionId: string;
+    owner: string;
+    basktId: string;
+    size: string;
+    exitPrice: string;
+    pnl: string;
+    feeToTreasury: string;
+    feeToBlp: string;
+    fundingPayment: string;
+    settlementAmount: string;
+    poolPayout: string;
+    timestamp: string;
+    txSignature: string;
+  }): Promise<void> {
+    const payload: PositionClosed = {
+      orderId: data.orderId,
+      positionId: data.positionId,
+      owner: data.owner,
+      basktId: data.basktId,
+      size: data.size,
+      exitPrice: data.exitPrice,
+      pnl: data.pnl,
+      feeToTreasury: data.feeToTreasury,
+      feeToBlp: data.feeToBlp,
+      fundingPayment: data.fundingPayment,
+      settlementAmount: data.settlementAmount,
+      poolPayout: data.poolPayout,
+      timestamp: data.timestamp,
+      txSignature: data.txSignature,
+    };
 
-  //   await this.safePublish(STREAMS.position.closed, payload, { positionId: data.positionId });
-  // }
+    await this.safePublish(STREAMS.position.closed, payload, { positionId: data.positionId });
+  }
 
-  // /**
-  //  * Publish position liquidated event - matches PositionLiquidated interface exactly
-  //  */
-  // async publishPositionLiquidated(data: {
-  //   positionId: string;
-  //   owner: string;
-  //   basktId: string;
-  //   size: string;
-  //   exitPrice: string;
-  //   pnl: string;
-  //   feeToTreasury: string;
-  //   feeToBlp: string;
-  //   fundingPayment: string;
-  //   remainingCollateral: string;
-  //   poolPayout: string;
-  //   timestamp: string;
-  //   txSignature: string;
-  // }): Promise<void> {
-  //   const payload: PositionLiquidated = {
-  //     positionId: data.positionId,
-  //     owner: data.owner,
-  //     basktId: data.basktId,
-  //     size: data.size,
-  //     exitPrice: data.exitPrice,
-  //     pnl: data.pnl,
-  //     feeToTreasury: data.feeToTreasury,
-  //     feeToBlp: data.feeToBlp,
-  //     fundingPayment: data.fundingPayment,
-  //     remainingCollateral: data.remainingCollateral,
-  //     poolPayout: data.poolPayout,
-  //     timestamp: data.timestamp,
-  //     txSignature: data.txSignature,
-  //   };
+  /**
+   * Publish position liquidated event - matches PositionLiquidated interface exactly
+   */
+  async publishPositionLiquidated(data: {
+    positionId: string;
+    owner: string;
+    basktId: string;
+    size: string;
+    exitPrice: string;
+    pnl: string;
+    feeToTreasury: string;
+    feeToBlp: string;
+    fundingPayment: string;
+    remainingCollateral: string;
+    poolPayout: string;
+    timestamp: string;
+    txSignature: string;
+  }): Promise<void> {
+    const payload: PositionLiquidated = {
+      positionId: data.positionId,
+      owner: data.owner,
+      basktId: data.basktId,
+      size: data.size,
+      exitPrice: data.exitPrice,
+      pnl: data.pnl,
+      feeToTreasury: data.feeToTreasury,
+      feeToBlp: data.feeToBlp,
+      fundingPayment: data.fundingPayment,
+      remainingCollateral: data.remainingCollateral,
+      poolPayout: data.poolPayout,
+      timestamp: data.timestamp,
+      txSignature: data.txSignature,
+    };
 
-  //   await this.safePublish(STREAMS.position.liquidated, payload, { positionId: data.positionId });
-  // }
+    await this.safePublish(STREAMS.position.liquidated, payload, { positionId: data.positionId });
+  }
 }
 
 // Singleton instance

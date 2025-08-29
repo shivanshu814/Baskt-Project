@@ -30,44 +30,56 @@ class SimpleLogger {
     return JSON.stringify(logEntry);
   }
 
-  debug(message: string | object, meta?: string): void {
+  // Overloads allow both (obj, msg?) and (msg, obj?) patterns
+  debug(meta: object, message?: string): void;
+  debug(message: string, meta?: any): void;
+  debug(messageOrMeta: string | object, metaOrMessage?: any): void {
     if (!this.shouldLog('debug')) return;
-    
-    if (typeof message === 'object') {
-      console.log(this.formatLog('debug', meta || 'Debug', message));
-    } else {
-      console.log(this.formatLog('debug', message, meta ? { context: meta } : undefined));
-    }
+    const { msg, meta } = this.normalizeArgs('Debug', messageOrMeta, metaOrMessage);
+    console.log(this.formatLog('debug', msg, meta));
   }
 
-  info(message: string | object, meta?: string): void {
+  info(meta: object, message?: string): void;
+  info(message: string, meta?: any): void;
+  info(messageOrMeta: string | object, metaOrMessage?: any): void {
     if (!this.shouldLog('info')) return;
-    
-    if (typeof message === 'object') {
-      console.log(this.formatLog('info', meta || 'Info', message));
-    } else {
-      console.log(this.formatLog('info', message, meta ? { context: meta } : undefined));
-    }
+    const { msg, meta } = this.normalizeArgs('Info', messageOrMeta, metaOrMessage);
+    console.log(this.formatLog('info', msg, meta));
   }
 
-  warn(message: string | object, meta?: string): void {
+  warn(meta: object, message?: string): void;
+  warn(message: string, meta?: any): void;
+  warn(messageOrMeta: string | object, metaOrMessage?: any): void {
     if (!this.shouldLog('warn')) return;
-    
-    if (typeof message === 'object') {
-      console.warn(this.formatLog('warn', meta || 'Warning', message));
-    } else {
-      console.warn(this.formatLog('warn', message, meta ? { context: meta } : undefined));
-    }
+    const { msg, meta } = this.normalizeArgs('Warning', messageOrMeta, metaOrMessage);
+    console.warn(this.formatLog('warn', msg, meta));
   }
 
-  error(message: string | object, meta?: string): void {
+  error(meta: object, message?: string): void;
+  error(message: string, meta?: any): void;
+  error(messageOrMeta: string | object, metaOrMessage?: any): void {
     if (!this.shouldLog('error')) return;
-    
-    if (typeof message === 'object') {
-      console.error(this.formatLog('error', meta || 'Error', message));
-    } else {
-      console.error(this.formatLog('error', message, meta ? { context: meta } : undefined));
+    const { msg, meta } = this.normalizeArgs('Error', messageOrMeta, metaOrMessage);
+    console.error(this.formatLog('error', msg, meta));
+  }
+
+  private normalizeArgs(defaultMessage: string, a: string | object, b?: any): { msg: string; meta?: any } {
+    // Supports:
+    // 1) (obj, msg?)
+    // 2) (msg, obj?)
+    // 3) (msg, string?) -> stored under { context: string }
+    if (typeof a === 'object') {
+      const meta = a;
+      const msg = typeof b === 'string' ? b : defaultMessage;
+      return { msg, meta };
     }
+    // a is string
+    if (b && typeof b === 'object') {
+      return { msg: a, meta: b };
+    }
+    // b is undefined or string
+    const meta = typeof b === 'string' ? { context: b } : undefined;
+    return { msg: a, meta };
   }
 }
 

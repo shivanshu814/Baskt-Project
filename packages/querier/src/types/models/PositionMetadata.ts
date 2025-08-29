@@ -19,6 +19,7 @@ export interface PartialCloseHistory {
     baseFee: number,
     rebalanceFee: number,
     fundingAccumulated: BN,
+    borrowAccumulated: BN,
     pnl: BN,
     badDebtAmount: BN,
     userPayout: BN,

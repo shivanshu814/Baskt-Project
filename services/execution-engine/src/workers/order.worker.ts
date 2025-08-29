@@ -66,6 +66,18 @@ export class OrderWorker extends BaseWorker {
           throw new Error(`Unknown order action: ${order.request.order.action}`);
       }
 
+      // If executor signalled cancellation, do not mark as filled
+      if (txSignature === 'CANCELLED') {
+        const orderPDA = basktClient.getOrderPDA(order.request.order.orderId, order.request.order.owner);
+        await querierClient.metadata.updateOrderByPDA(orderPDA.toString(), {
+          orderStatus: 'CANCELLED',
+          cancelTs: Date.now().toString(),
+          cancelTx: 'CANCELLED'
+        });
+        logger.info('Order marked as CANCELLED, skipping idempotency record', { orderId: order.request.order.orderId });
+        return;
+      }
+
       // Record for idempotency
       await IdempotencyTracker.recordTransaction(order.request.order.orderId.toString(), order.request.order.action, txSignature);
 

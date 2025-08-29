@@ -2,8 +2,8 @@ import BN from 'bn.js';
 import { BaseRiskCheck } from './base.check';
 import { RiskCheckContext, RiskCheckResult } from '../types';
 import { querierClient } from '../config/client';
-import { calculateWorstCaseNotional } from '../utils/risk-calculations';
-import { OnchainOrder, OrderAction } from '@baskt/types';
+import { calculateWorstCaseNotional, calculateNotional } from '../utils/risk-calculations';
+import { OnchainOrder, OrderAction, OrderType } from '@baskt/types';
 
 export class LiquidityCheck extends BaseRiskCheck {
   name = 'liquidity';
@@ -16,10 +16,8 @@ export class LiquidityCheck extends BaseRiskCheck {
 
   async performCheck(context: RiskCheckContext): Promise<RiskCheckResult> {
     const { orderRequest } = context;
-
-    
     // Calculate the liquidity impact of this order
-    const liquidityRequired = this.calculateLiquidityRequired(orderRequest.order);
+    const liquidityRequired = this.calculateLiquidityRequired(orderRequest.order, context.executionPrice);
 
     try {
       const poolResult = await querierClient.pool.getLiquidityPool();
@@ -36,13 +34,15 @@ export class LiquidityCheck extends BaseRiskCheck {
       const pool = poolResult.data;
       
       // Use totalLiquidity for now (effective liquidity calculation can be added when available)
-      const effectiveLiquidity = new BN(pool.totalLiquidity || '0');
-      
+      // Convert Decimal128 to string if it's an object
+      const liquidityValue = typeof pool.totalLiquidity === 'object' && pool.totalLiquidity !== null
+        ? pool.totalLiquidity.toString()
+        : pool.totalLiquidity || '0';
+      const effectiveLiquidity = new BN(liquidityValue);
       // Apply buffer to required liquidity
       const requiredWithBuffer = liquidityRequired
         .muln(Math.floor((1 + this.minLiquidityBufferRatio) * 10000))
         .divn(10000);
-
       if (effectiveLiquidity.lt(requiredWithBuffer)) {
         return {
           passed: false,
@@ -53,12 +53,10 @@ export class LiquidityCheck extends BaseRiskCheck {
             effectiveLiquidity: effectiveLiquidity.toString(),
             required: liquidityRequired.toString(),
             requiredWithBuffer: requiredWithBuffer.toString(),
-            totalLiquidity: pool.totalLiquidity || '0'
+            totalLiquidity: liquidityValue
           }
         };
       }
-
-      // Rate limiting check can be added when pool interface supports it
 
       return {
         passed: true,
@@ -73,6 +71,7 @@ export class LiquidityCheck extends BaseRiskCheck {
         }
       };
     } catch (error) {
+      console.log('Error verifying liquidity pool status:', error);
       return {
         passed: false,
         checkName: this.name,
@@ -83,21 +82,26 @@ export class LiquidityCheck extends BaseRiskCheck {
     }
   }
 
-  private calculateLiquidityRequired(order: OnchainOrder): BN {
+  private calculateLiquidityRequired(order: OnchainOrder, executionPrice: BN): BN {
 
-    if(order.action === OrderAction.Open) {
+    if (order.action === OrderAction.Open) {
       return order.openParams!.notionalValue;
     }
 
     const size = new BN(order.closeParams!.sizeAsContracts);
-    const limitPrice = new BN(order.limitParams!.limitPrice);
-    const maxSlippageBps = new BN(order.limitParams!.maxSlippageBps);
-    
-    // For opening positions, liquidity needed is the worst-case notional
-    // This represents the maximum the pool might need to pay out
+
+    // Market close: use guardian-provided execution price
+    if (order.orderType === OrderType.Market) {
+      return calculateNotional(size, executionPrice);
+    }
+
+    // Limit close: use limit price and configured max slippage
+    const limitPrice = new BN(order.limitParams?.limitPrice || executionPrice);
+    const maxSlippageBps = new BN(order.limitParams?.maxSlippageBps || 0);
+
+    // Worst-case notional = base + slippage
     const worstCaseNotional = calculateWorstCaseNotional(size, limitPrice, maxSlippageBps);
-    
-    // For leverage, the pool risk is the notional, not just collateral
+
     return worstCaseNotional;
   }
 }

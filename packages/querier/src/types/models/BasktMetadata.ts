@@ -42,10 +42,12 @@ export interface BasktMetadata{
     longOpenInterestContracts: BN;
     shortOpenInterestContracts: BN;
   };
-  fundingIndex: {
-    cumulativeIndex: BN;
+  marketIndices: {
+    cumulativeFundingIndex: BN;
+    cumulativeBorrowIndex: BN;
+    currentFundingRate: number;
+    currentBorrowRate: number;
     lastUpdateTimestamp: number;
-    currentRate: number;
   };
   rebalanceFeeIndex: {
     cumulativeIndex: BN;

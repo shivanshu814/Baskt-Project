@@ -1,8 +1,7 @@
 import { OrderAccepted } from '@baskt/data-bus';
 import { logger } from '@baskt/data-bus';
 import BN from 'bn.js';
-import { basktClient, querierClient } from '../config/client';
-import { PublicKey } from '@solana/web3.js';
+import { basktClient } from '../config/client';
 
 export class PositionExecutor {
   async openPosition(order: OrderAccepted): Promise<{txSignature: string, positionCreated: string}> {
@@ -14,9 +13,38 @@ export class PositionExecutor {
       const price = new BN(order.executionPrice);
       logger.info('Using fill price from Guardian', { price: price.toString(), basktId: order.request.order.basktId });
 
-      // Calculate PDA for order account
-      const orderPDA = await basktClient.getOrderPDA(Number(order.request.order.orderId), order.request.order.owner);
-      logger.info('Calculated order PDA', { orderPDA: orderPDA.toString(), orderId: order.request.order.orderId, owner: order.request.order.owner });
+      if (price.lte(new BN(0))) {
+        logger.error('Invalid execution price from Guardian', { price: price.toString(), orderId: order.request.order.orderId });
+        throw new Error('Invalid execution price');
+      }
+
+      // Ensure order exists and is still pending before execution
+      const { orderPDA, status } = await basktClient.getOrderStatusWithRetry({
+        orderId: Number(order.request.order.orderId),
+        owner: order.request.order.owner,
+        commitment: 'confirmed',
+        retries: 3,
+        delay: 1500,
+      });
+
+      logger.info('Checked order status', { orderPDA: orderPDA.toString(), status, orderId: order.request.order.orderId });
+
+      if (status === 'cancelled' || status === 'filled') {
+        logger.info('Skipping execution - order not pending', {
+          orderId: order.request.order.orderId,
+          owner: order.request.order.owner,
+          status,
+        });
+        return { txSignature: 'CANCELLED', positionCreated: '' };
+      }
+
+      if (status === 'not_found') {
+        logger.error('Order account not found on-chain after retries', {
+          orderId: order.request.order.orderId,
+          owner: order.request.order.owner,
+        });
+        throw new Error('Order does not exist on-chain after multiple attempts. It may not be created yet or RPC is out of sync.');
+      }
       
       const tx = await basktClient.openPosition({
         order: orderPDA,
@@ -60,7 +88,23 @@ export class PositionExecutor {
     const ownerTokenAccount = await basktClient.getUSDCAccount(order.request.order.owner);
     const treasuryTokenAccount = await basktClient.getUSDCAccount(protocolAccount.treasury);
 
-    const orderPDA = await basktClient.getOrderPDA(Number(order.request.order.orderId), order.request.order.owner);
+    // Ensure order exists and is still pending before close
+    const { orderPDA, status } = await basktClient.getOrderStatusWithRetry({
+        orderId: Number(order.request.order.orderId),
+        owner: order.request.order.owner,
+        commitment: 'confirmed',
+        retries: 3,
+        delay: 1500,
+      });
+
+      if (status === 'cancelled' || status === 'filled' || status === 'not_found') {
+        logger.info('Skipping close execution - order not pending', {
+          orderId: order.request.order.orderId,
+          owner: order.request.order.owner,
+          status,
+        });
+        return 'CANCELLED';
+      }
 
     // Execute on-chain
     const tx = await basktClient.closePosition({
@@ -72,7 +116,6 @@ export class PositionExecutor {
       treasury: protocolAccount.treasury,
       treasuryTokenAccount: treasuryTokenAccount.address,   
       orderOwner: order.request.order.owner,
-      sizeToClose: order.request.order.closeParams!.sizeAsContracts ? new BN(order.request.order.closeParams!.sizeAsContracts ) : undefined,
     });
 
     logger.info('Position closed', { position: position.positionPDA.toString(), tx });

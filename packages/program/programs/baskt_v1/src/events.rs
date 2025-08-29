@@ -90,6 +90,7 @@ pub struct PositionClosedEvent {
     pub fee_to_blp: u64,
     pub pnl: i128,
     pub funding_accumulated: i128,
+    pub borrow_accumulated: i128,
     pub escrow_to_treasury: u64,
     pub escrow_to_pool: u64,
     pub escrow_to_user: u64,
@@ -118,6 +119,7 @@ pub struct PositionLiquidatedEvent {
     pub collateral_remaining: u64,
     pub pnl: i128,
     pub funding_accumulated: i128,
+    pub borrow_accumulated: i128,
     pub escrow_to_treasury: u64,
     pub escrow_to_pool: u64,
     pub escrow_to_user: u64,
@@ -146,6 +148,7 @@ pub struct PositionForceClosed {
     pub collateral_remaining: u64,
     pub pnl: i128,
     pub funding_accumulated: i128,
+    pub borrow_accumulated: i128,
     pub escrow_to_treasury: u64,
     pub escrow_to_pool: u64,
     pub escrow_to_user: u64,
@@ -251,6 +254,18 @@ pub struct FundingIndexUpdatedEvent {
     pub baskt_id: Pubkey,
     pub cumulative_index: i128,
     pub current_rate: i64,
+    pub timestamp: i64,
+}
+
+#[event]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct MarketIndexUpdatedEvent {
+    pub baskt_id: Pubkey,
+    pub cumulative_funding_index: i128,
+    pub cumulative_borrow_index: i128,
+    pub current_funding_rate: i64,
+    pub current_borrow_rate: i64,
     pub timestamp: i64,
 }
 

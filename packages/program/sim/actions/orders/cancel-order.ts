@@ -10,13 +10,15 @@ const cancelOrder = async (args: string[]) => {
       throw new Error('Usage: cancel-order <orderId>');
     }
 
-    const orderId = new BN(args[0]);
+    const orderIdNum = parseInt(args[0]);
+    const orderIdBN = new BN(args[0]);
 
-    console.log('Canceling order:', orderId.toString());
+    console.log('Canceling order:', orderIdNum);
 
     // Find the order by ID
     const orders = await client.getAllOrders();
-    const order = orders.find((o) => o.orderId.eq(orderId));
+    // orderId is a number in OnchainOrder type
+    const order = orders.find((o) => o.orderId === orderIdNum);
     if (!order) {
       throw new Error('Order not found');
     }
@@ -27,9 +29,10 @@ const cancelOrder = async (args: string[]) => {
       order.owner,
     );
 
+    // cancelOrderTx expects a BN for orderIdNum
     const cancelTx = await client.cancelOrderTx(
       orderPDA,
-      orderId,
+      orderIdBN,
       ownerTokenAccount,
     );
 

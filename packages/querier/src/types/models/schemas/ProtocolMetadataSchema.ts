@@ -185,7 +185,6 @@ const ProtocolMetadataSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
-    index: true,
   }
 }, {
   timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },

@@ -140,10 +140,12 @@ export class BasktExecutor {
             ? Number(basktAccount.config.liquidationThresholdBps.toString())
             : undefined,
         },
-        fundingIndex: {
-          cumulativeIndex: new BN(basktAccount.fundingIndex.cumulativeIndex),
-          lastUpdateTimestamp: Number(basktAccount.fundingIndex.lastUpdateTimestamp.toString()),
-          currentRate: Number(basktAccount.fundingIndex.currentRate.toString()),
+        marketIndices: {
+          cumulativeFundingIndex: new BN(basktAccount.marketIndices.cumulativeFundingIndex),
+          cumulativeBorrowIndex: new BN(basktAccount.marketIndices.cumulativeBorrowIndex),
+          currentFundingRate: Number((basktAccount.marketIndices.currentFundingRate as any).toString()),
+          currentBorrowRate: Number((basktAccount.marketIndices.currentBorrowRate as any).toString()),
+          lastUpdateTimestamp: Number(basktAccount.marketIndices.lastUpdateTimestamp.toString()),
         },
         rebalanceFeeIndex: {
           cumulativeIndex: new BN(basktAccount.rebalanceFeeIndex.cumulativeIndex),

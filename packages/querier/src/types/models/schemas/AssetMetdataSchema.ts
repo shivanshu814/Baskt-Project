@@ -21,7 +21,6 @@ export const AssetMetadataSchema = new mongoose.Schema(
       required: true,
       trim: true,
       unique: true,
-      index: true,
     },
     permissions: {
       allowLongs: {

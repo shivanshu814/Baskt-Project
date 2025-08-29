@@ -153,10 +153,12 @@ export const processBasktData = (rawBasktData: RawBasktData[]): BasktInfo[] => {
           bump: 0,
           isActive: (baskt as any)?.status === 'Active',
           rebalancePeriod: (baskt as any)?.rebalancePeriod || '0',
-          fundingIndex: {
-            cumulativeIndex: '0',
+          marketIndices: {
+            cumulativeFundingIndex: '0',
+            cumulativeBorrowIndex: '0',
+            currentFundingRate: '0',
+            currentBorrowRate: '0',
             lastUpdateTimestamp: '0',
-            currentRate: '0',
           },
           rebalanceFeeIndex: {
             cumulativeIndex: '0',

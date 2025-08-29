@@ -54,7 +54,6 @@ export const LiquidityPoolSchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
-      index: true,
     },
     fees: {
       totalFeesCollected: BNAndDecimal128(true),

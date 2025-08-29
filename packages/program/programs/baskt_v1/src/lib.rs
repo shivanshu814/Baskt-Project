@@ -25,7 +25,7 @@ use crate::instructions::baskt_all::{
     close::{CloseBaskt},
     rebalance::{Rebalance},
     rebalance_request::{RebalanceRequest},
-    funding_index::{UpdateFundingIndex},
+    market_indices::{update_market_indices},
 };
 use crate::instructions::config::{SetFundingCutBps, SetTreasuryCutBps};
 use crate::instructions::protocol::UpdateFeatureFlagsParams;
@@ -287,8 +287,8 @@ pub mod baskt {
         instructions::liquidity::add_liquidity(ctx, amount, min_shares_out)
     }
 
-    pub fn update_funding_index(ctx: Context<UpdateFundingIndex>, new_rate: i64) -> Result<()> {
-        instructions::baskt_all::funding_index::update_funding_index(ctx, new_rate)
+    pub fn update_market_indices(ctx: Context<update_market_indices>, new_funding_rate: i64, new_borrow_rate: i64) -> Result<()> {
+        instructions::baskt_all::market_indices::update_market_indices(ctx, new_funding_rate, new_borrow_rate)
     }
 
     // Withdrawal Queue Management

@@ -114,9 +114,11 @@ describe('activate baskt', () => {
     // Verify baseline NAV was set
     expect(basktAfter.baselineNav.toString()).to.equal(BASE_NAV_BN.toString());
 
-    expect(basktAfter.fundingIndex.cumulativeIndex.toString()).to.equal('1000000');
-    expect(basktAfter.fundingIndex.currentRate.toString()).to.equal('0');
-    expect(basktAfter.fundingIndex.lastUpdateTimestamp.toString()).to.not.equal('0');
+    expect(basktAfter.marketIndices.cumulativeFundingIndex.toString()).to.equal('1000000');
+    expect(basktAfter.marketIndices.cumulativeBorrowIndex.toString()).to.equal('1000000');
+    expect(basktAfter.marketIndices.currentFundingRate.toString()).to.equal('0');
+    expect(basktAfter.marketIndices.currentBorrowRate.toString()).to.equal('0');
+    expect(basktAfter.marketIndices.lastUpdateTimestamp.toString()).to.not.equal('0');
 
     // Try to activate again - should fail with BasktAlreadyActive
     try {

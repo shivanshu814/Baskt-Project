@@ -692,9 +692,6 @@ importers:
       '@baskt/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@baskt/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       '@coral-xyz/anchor':
         specifier: 0.31.0
         version: 0.31.0(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)

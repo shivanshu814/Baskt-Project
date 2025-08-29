@@ -18,6 +18,14 @@ export interface OrderRejected {
   reason: string;
 }
 
+export interface OrderCancelled {
+  owner: string;
+  orderId: string;
+  basktId: string;
+  timestamp: string;
+  txSignature: string;
+}
+
 export interface BasktCreatedMessage {
   basktId: string;
   basktName: string;
@@ -90,13 +98,18 @@ export interface LiquidationSignal {
   timestamp: number;
 }
 
-// Funding events - matching blockchain events exactly
-export interface FundingUpdate {
-  basktId: string; // baskt_id from FundingIndexUpdatedEvent (was: basketId)
-  cumulativeIndex: string; // cumulative_index from FundingIndexUpdatedEvent (i128 as string)
-  currentRate: string; // current_rate from FundingIndexUpdatedEvent (i64 as string)
-  timestamp: string; // timestamp from FundingIndexUpdatedEvent (i64 as string)
+// Market indices events
+export interface MarketIndicesUpdate {
+  basktId: string;                  // baskt_id from MarketIndexUpdatedEvent
+  cumulativeFundingIndex: string;   // cumulative_funding_index from MarketIndexUpdatedEvent (i128 as string)
+  cumulativeBorrowIndex: string;    // cumulative_borrow_index from MarketIndexUpdatedEvent (i128 as string)
+  currentFundingRate: string;       // current_funding_rate from MarketIndexUpdatedEvent (i64 as string)
+  currentBorrowRate: string;        // current_borrow_rate from MarketIndexUpdatedEvent (i64 as string)
+  timestamp: string;                // timestamp from MarketIndexUpdatedEvent (i64 as string)
 }
+
+// Legacy interface for backward compatibility
+export interface FundingUpdate extends MarketIndicesUpdate {}
 
 export interface PriceUpdate {
   asset: string;

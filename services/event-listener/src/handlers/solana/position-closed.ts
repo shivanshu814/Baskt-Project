@@ -9,7 +9,7 @@ import {
 } from '../../utils/fee-utils';
 import { OnchainOrderStatus, PositionClosedEvent, PositionStatus } from '@baskt/types';
 import { PartialCloseHistory, FeeEvents } from '@baskt/querier';
-import { PRICE_PRECISION } from '@baskt/sdk/dist/math';
+import { PRICE_PRECISION } from '@baskt/sdk';
 
 /**
  * Create fee event for position closed

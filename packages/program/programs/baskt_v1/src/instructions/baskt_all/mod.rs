@@ -1,5 +1,5 @@
 pub mod baskt_config;
-pub mod funding_index;
+pub mod market_indices;
 pub mod rebalance;
 pub mod rebalance_request;
 pub mod create;
@@ -8,7 +8,7 @@ pub mod decomission;
 pub mod close;
 
 pub use baskt_config::*;
-pub use funding_index::*;
+pub use market_indices::*;
 pub use create::*;
 pub use activate::*;
 pub use decomission::*;

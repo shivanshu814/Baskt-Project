@@ -1,9 +1,7 @@
-use crate::constants::{BASE_NAV, BASKT_SEED, BPS_DIVISOR, PRICE_PRECISION, PROTOCOL_SEED};
+use crate::constants::{BASKT_SEED, PROTOCOL_SEED};
 use crate::error::PerpetualsError;
 use crate::events::*;
-use crate::state::asset::SyntheticAsset;
-use crate::state::baskt::{AssetConfig, Baskt, BasktStatus};
-use crate::state::funding_index::FundingIndex;
+use crate::state::baskt::{Baskt, BasktStatus};
 use crate::state::protocol::{Protocol, Role};
 use anchor_lang::prelude::*;
 

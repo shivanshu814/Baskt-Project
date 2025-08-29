@@ -130,12 +130,17 @@ pub fn force_close_position<'info>(
 
     // Extract settled values from baskt status
     let settlement_price = params.close_price;
-    let settlement_funding_index = baskt.funding_index.cumulative_index;
+    let settlement_funding_index = baskt.market_indices.cumulative_funding_index;
+    let settlement_borrow_index = baskt.market_indices.cumulative_borrow_index;
 
     require!(settlement_price > 0, PerpetualsError::InvalidOraclePrice);
 
-    // Update position funding to settlement index
-    position.update_funding(settlement_funding_index, params.close_price)?;
+    // Update both funding and borrow indices to settlement values
+    position.update_market_indices(
+        settlement_funding_index,
+        settlement_borrow_index,
+        params.close_price
+    )?;
 
     // Apply rebalance fee to position
     let rebalance_fee_owed = position.apply_rebalance_fee(baskt.rebalance_fee_index.cumulative_index, params.close_price)?;
@@ -192,7 +197,6 @@ pub fn force_close_position<'info>(
     update_pool_state(
         &mut ctx.accounts.liquidity_pool,
         &settlement_details,
-        settlement_details.bad_debt_amount,
     )?;
 
     // Update position state after settlement
@@ -200,7 +204,6 @@ pub fn force_close_position<'info>(
         position,
         size_to_close,
         settlement_details.collateral_to_release,
-        settlement_details.funding_accumulated as u64,
     )?;
 
 
@@ -219,6 +222,7 @@ pub fn force_close_position<'info>(
         fee_to_blp: settlement_details.fee_to_blp,
         pnl: settlement_details.pnl,
         funding_accumulated: settlement_details.funding_accumulated,
+        borrow_accumulated: settlement_details.borrow_accumulated,
         escrow_to_treasury: settlement_details.escrow_to_treasury,
         escrow_to_pool: settlement_details.escrow_to_pool,
         escrow_to_user: settlement_details.escrow_to_user,

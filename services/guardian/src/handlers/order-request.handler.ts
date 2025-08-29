@@ -1,22 +1,34 @@
 import { DataBus, STREAMS, MessageEnvelope, OrderRequest, OrderAccepted, OrderRejected } from '@baskt/data-bus';
 import { RiskCheckContext, RiskCheckResult, RiskCheck } from '../types';
 import { logger } from '../utils/logger';
-import { querierClient } from '../config/client';
+import { basktClient, querierClient } from '../config/client';
 import { OnchainOrder } from '@baskt/types';
 import BN from 'bn.js';
+import { FeeSkewCheck } from '../checks/fee-skew.check';
+import { GuardianCache } from '../utils/cache';
 
 export class OrderRequestHandler {
+  private feeSkewCheck: FeeSkewCheck;
+  
   constructor(
     private dataBus: DataBus,
-    private riskChecks: RiskCheck[]
-  ) { }
+    private riskChecks: RiskCheck[],
+    cache?: GuardianCache
+  ) {
+    // Initialize fee skew check separately - it runs after validation
+    this.feeSkewCheck = new FeeSkewCheck(cache || new GuardianCache({ ttl: 60000, maxSize: 100 }));
+  }
 
   private async fetchExecutionPrice(order: OnchainOrder): Promise<BN> {
     const navResult = await querierClient.baskt.getBasktNAV(order.basktId.toString());
-    if (navResult.success && navResult.data) {
-      return new BN(navResult.data.nav);
+    if (!navResult.success || !navResult.data) {
+      throw new Error(navResult.message || 'Failed to fetch NAV');
     }
-    throw new Error('Failed to fetch NAV');
+    const nav = navResult.data.nav;
+    if (typeof nav !== 'number' || !isFinite(nav) || nav <= 0) {
+      throw new Error('Invalid NAV value');
+    }
+    return new BN(nav);
   }
 
   async handleOrderRequest(envelope: MessageEnvelope<OrderRequest>): Promise<void> {
@@ -28,13 +40,13 @@ export class OrderRequestHandler {
 
       let executionPrice: BN;
       try {
-        executionPrice = order.limitParams?.limitPrice ?? await this.fetchExecutionPrice(order); // Default to limit price for limit ordersnew Error('Failed to fetch NAV');
+        executionPrice = order.limitParams?.limitPrice ?? await this.fetchExecutionPrice(order);
       } catch (error) {
         logger.error({ error, orderId: order.orderId }, 'Failed to fetch NAV for market order');
         await this.handleOrderRejection(orderRequest, {
           passed: false,
           checkName: 'price-fetch',
-          reason: 'Failed to fetch current NAV for market order',
+          reason: 'Failed to fetch valid current NAV for market order',
           severity: 'critical'
         });
         return;
@@ -55,7 +67,61 @@ export class OrderRequestHandler {
       if (failedCheck) {
         await this.handleOrderRejection(orderRequest, failedCheck);
       } else {
-        await this.handleOrderAcceptance(orderRequest, results, executionPrice);
+        // All validation checks passed, now apply fee skewing
+        // This modifies the execution price to embed fees
+        let finalExecutionPrice = executionPrice;
+        
+        try {
+          // Run fee skew check to calculate skewed price
+          // This runs AFTER validation to ensure liquidity checks use correct price
+          const feeSkewResult = await this.feeSkewCheck.check(context);
+          
+          if (!feeSkewResult.passed) {
+            // Fee skew failed (e.g., excessive fees)
+            await this.handleOrderRejection(orderRequest, feeSkewResult);
+            return;
+          }
+          
+          // Use the skewed price from context (modified by FeeSkewCheck)
+          finalExecutionPrice = context.executionPrice;
+          
+          logger.info({
+            orderId: order.orderId,
+            originalPrice: executionPrice.toString(),
+            skewedPrice: finalExecutionPrice.toString(),
+            feeSkewDetails: feeSkewResult.details
+          }, 'Price skewing applied for fee collection');
+          
+        } catch (error) {
+          logger.error({
+            error,
+            orderId: order.orderId
+          }, 'Fee skew calculation failed, using original price');
+          // On error, continue with original price
+        }
+        
+        // Verify on-chain state: order must still be pending
+        const { status } = await basktClient.getOrderStatusWithRetry({
+          orderId: Number(order.orderId),
+          owner: order.owner,
+          commitment: 'confirmed',
+          retries: 3,
+          delay: 1500,
+        });
+
+        if (status === 'cancelled' || status === 'filled' || status === 'not_found') {
+          logger.info({ orderId: order.orderId, status }, 'Order not pending; rejecting');
+          await this.handleOrderRejection(orderRequest, {
+            passed: false,
+            checkName: 'order_cancelled',
+            reason: status === 'not_found' ? 'Order was cancelled (account closed)' : 'Order was not pending',
+            severity: 'low'
+          });
+          return;
+        }
+
+        // Use the final (potentially skewed) execution price
+        await this.handleOrderAcceptance(orderRequest, results, finalExecutionPrice);
       }
 
     } catch (error) {

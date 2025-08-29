@@ -8,7 +8,6 @@ use {
     crate::math::mul_div_u64,
     crate::state::{
         baskt::Baskt,
-        funding_index::FundingIndex,
         liquidity::LiquidityPool,
         order::{Order, OrderAction, OrderStatus, OrderType},
         position::{Position, ProgramAuthority},
@@ -151,7 +150,7 @@ pub fn open_position<'info>(
 ) -> Result<()> {
     let order = &ctx.accounts.order; // Order is closed, access immutably
     let position = &mut ctx.accounts.position;
-    let funding_index = &ctx.accounts.baskt.funding_index;
+    let market_indices = &ctx.accounts.baskt.market_indices;
     let bump = ctx.bumps.position;
     let clock = Clock::get()?;
     
@@ -209,7 +208,8 @@ pub fn open_position<'info>(
         net_collateral_amount,
         open_params.is_long,
         params.entry_price,
-        funding_index.cumulative_index,
+        market_indices.cumulative_funding_index,
+        market_indices.cumulative_borrow_index,
         ctx.accounts.baskt.rebalance_fee_index.cumulative_index,
         clock.unix_timestamp as u32,
         bump,

@@ -16,10 +16,12 @@ export enum BasktStatus {
   Closed = 'closed',
 }
 
-export interface OnchainFunding {
-  cumulativeIndex: BN | string;
+export interface OnchainMarketIndices {
+  cumulativeFundingIndex: BN | string;
+  cumulativeBorrowIndex: BN | string;
+  currentFundingRate: BN | string;
+  currentBorrowRate: BN | string;
   lastUpdateTimestamp: BN | string;
-  currentRate: BN | string;
 }
 
 export interface OnchainRebalanceFee {
@@ -56,7 +58,7 @@ export interface OnchainBasktAccount {
   bump: number;
   isActive: boolean;
   rebalancePeriod: BN | string; // u32 timestamp
-  fundingIndex: OnchainFunding;
+  marketIndices: OnchainMarketIndices;
   rebalanceFeeIndex: OnchainRebalanceFee;
   config: OnchainBasktConfig;
   openPositions: BN | string;

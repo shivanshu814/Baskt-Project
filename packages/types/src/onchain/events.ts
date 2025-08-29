@@ -81,6 +81,7 @@ export interface PositionClosedEvent {
   feeToBlp: BN;
   pnl: BN;
   fundingAccumulated: BN;
+  borrowAccumulated: BN;
   escrowToTreasury: BN;
   escrowToPool: BN;
   escrowToUser: BN;
@@ -106,6 +107,7 @@ export interface PositionLiquidatedEvent {
   feeToBlp: BN;
   pnl: BN;
   fundingAccumulated: BN;
+  borrowAccumulated: BN;
   escrowToTreasury: BN;
   escrowToPool: BN;
   escrowToUser: BN;
@@ -131,6 +133,7 @@ export interface PositionForceClosed {
   feeToBlp: BN;
   pnl: BN;
   fundingAccumulated: BN;
+  borrowAccumulated: BN;
   escrowToTreasury: BN;
   escrowToPool: BN;
   escrowToUser: BN;

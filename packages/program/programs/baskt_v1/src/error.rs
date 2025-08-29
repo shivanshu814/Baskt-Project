@@ -120,4 +120,8 @@ pub enum PerpetualsError {
     TransferFailed,
     #[msg("Invalid LP token escrow")]
     InvalidLpTokenEscrow,
+    #[msg("Borrow rate exceeds maximum allowed")]
+    BorrowRateExceedsMaximum,
+    #[msg("Invalid borrow state - borrow accumulated should be negative")]
+    InvalidBorrowState,
 }

@@ -27,7 +27,7 @@ export class GuardianService {
 
     this.cache = new GuardianCache(config.cache);
     this.initializeRiskChecks();
-    this.orderHandler = new OrderRequestHandler(this.dataBus, this.riskChecks);
+    this.orderHandler = new OrderRequestHandler(this.dataBus, this.riskChecks, this.cache);
   }
 
   private initializeRiskChecks(): void {

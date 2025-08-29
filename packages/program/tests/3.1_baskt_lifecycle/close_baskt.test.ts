@@ -98,7 +98,7 @@ describe('Close Baskt - Core Logic', () => {
     // Update funding index (FundingManager only)
     const fundingManagerClient = await TestClient.forUser(fundingManager);
     await client.executeWithRetry(() =>
-      fundingManagerClient.updateFundingIndex(basktId, new BN(fundingRate)),
+      fundingManagerClient.updateMarketIndices(basktId, new BN(fundingRate), new BN(0)),
     );
 
     // Close baskt (BasktManager only)

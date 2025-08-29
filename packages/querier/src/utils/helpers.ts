@@ -27,3 +27,21 @@ export function toNumberWithFallback(value: BN | string | null | undefined, fall
   }
   return toNumber(value);
 }
+
+/**
+ * Convert BN-like, bigint, string, or number into BN safely.
+ */
+export function toBN(value: BN | bigint | string | number | null | undefined): BN {
+  if (value === null || value === undefined) return new BN(0);
+  if (value instanceof BN) return value;
+  if (typeof value === 'bigint') return new BN(value.toString());
+  if (typeof value === 'string') return new BN(value, 10);
+  if (typeof value === 'number') return new BN(value);
+  // Fallback to string conversion if possible
+  try {
+    // @ts-ignore
+    return new BN((value as any).toString());
+  } catch {
+    return new BN(0);
+  }
+}

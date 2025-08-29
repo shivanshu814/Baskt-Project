@@ -1,6 +1,5 @@
 import { BaseClient, calculateNav } from '@baskt/sdk';
 import { PublicKey } from '@solana/web3.js';
-import { BN } from 'bn.js';
 import { metadataManager } from '../models/metadata-manager';
 import {
   BasktMetadataModel,
@@ -12,7 +11,7 @@ import { BasktMetadata, CombinedAsset } from '../types';
 import { BasktNAV, BasktQueryOptions, CombinedBaskt } from '../types/baskt';
 import { BasktRebalanceHistory, RebalanceRequestMetadata } from '../types/models';
 import { handleQuerierError } from '../utils/error-handling';
-import { toNumber } from '../utils/helpers';
+import { toBN, toNumber } from '../utils/helpers';
 import { AssetQuerier } from './asset.querier';
 import { PriceQuerier } from './price.querier';
 import { BasktStatus } from '@baskt/types';
@@ -185,11 +184,25 @@ export class BasktQuerier {
   async getBasktNAV(basktId: string): Promise<QueryResult<BasktNAV>> {
     try {
       const basktMetadata = await this.getBasktByAddress(basktId);
+      if (!basktMetadata.success || !basktMetadata.data) {
+        return {
+          success: false,
+          message: basktMetadata.message || 'Failed to fetch baskt metadata for NAV',
+          error: (basktMetadata as any).error,
+        };
+      }
+
+      const nav = basktMetadata.data.price;
+      if (typeof nav !== 'number' || !isFinite(nav) || nav <= 0) {
+        return {
+          success: false,
+          message: 'NAV invalid or unavailable',
+        };
+      }
+
       return {
         success: true,
-        data: {
-          nav: basktMetadata.data?.price || 0,
-        },
+        data: { nav },
       };
     } catch (error) {
       console.error('Error fetching baskt NAV:', error);
@@ -294,27 +307,28 @@ export class BasktQuerier {
       assetId: new PublicKey(asset.assetId),
       weight: asset.weight,
       direction: asset.direction,
-      baselinePrice: new BN(asset.baselinePrice),
+      baselinePrice: toBN(asset.baselinePrice),
     }));
 
     const currentAssetConfigs =
-      basktMetadata.currentAssetConfigs?.map((asset: any) => {
+      (basktMetadata.currentAssetConfigs || []).map((asset: any) => {
         const assetId = asset.assetId;
         const fetchedAsset = assetLookup.get(assetId.toString());
-
-        const assetData = {
+        if (!fetchedAsset || fetchedAsset.price === undefined || fetchedAsset.price === null) {
+          throw new Error(`Missing live price for assetId: ${assetId}`);
+        }
+        return {
           assetId,
           weight: asset.weight,
           direction: asset.direction,
-          baselinePrice: new BN(fetchedAsset.price),
+          baselinePrice: toBN(fetchedAsset.price),
         };
-        return assetData;
-      }) || [];
+      });
 
     return calculateNav(
       baselineAssetConfigs,
       currentAssetConfigs,
-      new BN(basktMetadata?.baselineNav || 100 * 1e6),
+      toBN(basktMetadata?.baselineNav ?? (100 * 1e6)),
     );
   }
 
@@ -348,15 +362,7 @@ export class BasktQuerier {
         return assetData;
       }) || [];
 
-    let price = new BN(0);
-
-    try {
-      price = this.computeNav(basktMetadata, assetLookup);
-    } catch (error) {
-      //TODO nshmadhani: handle this error
-      console.error('Error calculating NAV:', error);
-      price = new BN(0);
-    }
+    const price = this.computeNav(basktMetadata, assetLookup);
 
     return {
       ...basktMetadata,

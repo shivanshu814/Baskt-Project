@@ -1,7 +1,7 @@
 pub mod asset;
 pub mod baskt;
 pub mod fee_index;
-pub mod funding_index;
+pub mod market_indices;
 pub mod liquidity;
 pub mod order;
 pub mod position;

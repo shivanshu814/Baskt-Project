@@ -133,13 +133,17 @@ pub fn liquidate_position<'info>(
     params: LiquidatePositionParams,
 ) -> Result<()> {
     let position = &mut ctx.accounts.position;
-    let funding_index = &ctx.accounts.baskt.funding_index;
+    let market_indices = &ctx.accounts.baskt.market_indices;
     let clock = Clock::get()?;
 
     require!(params.exit_price > 0, PerpetualsError::InvalidOraclePrice);
 
-    // Update funding for the full position first
-    position.update_funding(funding_index.cumulative_index, params.exit_price)?;
+    // Update both funding and borrow indices for the full position first
+    position.update_market_indices(
+        market_indices.cumulative_funding_index,
+        market_indices.cumulative_borrow_index,
+        params.exit_price
+    )?;
 
     // Apply rebalance fee to position
     let rebalance_fee_owed = position.apply_rebalance_fee(ctx.accounts.baskt.rebalance_fee_index.cumulative_index, params.exit_price)?;
@@ -217,7 +221,6 @@ pub fn liquidate_position<'info>(
     update_pool_state(
         &mut ctx.accounts.liquidity_pool,
         &settlement_details,
-        settlement_details.bad_debt_amount,
     )?;
 
     // Update position state after settlement
@@ -225,7 +228,6 @@ pub fn liquidate_position<'info>(
         position,
         size_to_liquidate,
         settlement_details.collateral_to_release,
-        settlement_details.funding_accumulated as u64,
     )?;
 
     // Emit liquidation event
@@ -243,6 +245,7 @@ pub fn liquidate_position<'info>(
         fee_to_blp: settlement_details.fee_to_blp,
         pnl: settlement_details.pnl,
         funding_accumulated: settlement_details.funding_accumulated,
+        borrow_accumulated: settlement_details.borrow_accumulated,
         escrow_to_treasury: settlement_details.escrow_to_treasury,
         escrow_to_pool: settlement_details.escrow_to_pool,
         escrow_to_user: settlement_details.escrow_to_user,

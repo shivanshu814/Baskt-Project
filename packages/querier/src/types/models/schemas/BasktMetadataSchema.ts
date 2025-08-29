@@ -26,14 +26,19 @@ const AssetConfigSchema = {
    
 };
 
-const FundingIndexSchema = {
-  cumulativeIndex: BNAndDecimal128(true),
-  lastUpdateTimestamp: {
-    type: Number,
+const MarketIndicesSchema = {
+  cumulativeFundingIndex: BNAndDecimal128(true),
+  cumulativeBorrowIndex: BNAndDecimal128(true),
+  currentFundingRate: {
+    type: String,
     required: true,
   },
-  currentRate: {
+  currentBorrowRate: {
     type: String,
+    required: true,
+  },
+  lastUpdateTimestamp: {
+    type: Number,
     required: true,
   },
 };
@@ -109,7 +114,6 @@ export const BasktMetadataSchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
-      index: true,
     },
     creator: {
       type: String,
@@ -170,7 +174,7 @@ export const BasktMetadataSchema = new mongoose.Schema(
       default: 0,
     },
     config: BasktConfigSchema,
-    fundingIndex: FundingIndexSchema,
+    marketIndices: MarketIndicesSchema,
     rebalanceFeeIndex: RebalanceFeeIndexSchema,
     creationTxSignature: {
       type: String,

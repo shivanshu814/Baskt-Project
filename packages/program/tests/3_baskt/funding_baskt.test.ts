@@ -76,24 +76,26 @@ describe('funding baskt', () => {
 
     // Get the baskt before funding index update
     const basktBefore = await client.getBaskt(basktId);
-    const initialCumulativeIndex = basktBefore.fundingIndex.cumulativeIndex;
-    const initialCurrentRate = basktBefore.fundingIndex.currentRate;
+    const initialCumulativeIndex = basktBefore.marketIndices.cumulativeFundingIndex;
+    const initialCurrentRate = basktBefore.marketIndices.currentFundingRate;
 
     // Create a client for the funding manager
     const fundingManagerClient = await TestClient.forUser(fundingManager);
 
-    // Update funding index with a positive rate
-    const newRate = new BN(50); // 0.5% hourly rate
-    await fundingManagerClient.updateFundingIndex(basktId, newRate);
+    // Update market indices with positive funding rate and zero borrow rate
+    const newFundingRate = new BN(50); // 0.5% hourly funding rate
+    const newBorrowRate = new BN(0); // 0% hourly borrow rate
+    await fundingManagerClient.updateMarketIndices(basktId, newFundingRate, newBorrowRate);
 
     // Get the baskt after funding index update
     const basktAfter = await client.getBaskt(basktId);
 
-    // Verify the funding index was updated
-    expect(basktAfter.fundingIndex.currentRate.toString()).to.equal(newRate.toString());
+    // Verify the market indices were updated
+    expect(basktAfter.marketIndices.currentFundingRate.toString()).to.equal(newFundingRate.toString());
+    expect(basktAfter.marketIndices.currentBorrowRate.toString()).to.equal(newBorrowRate.toString());
     // The cumulative index should NOT change on the first update since the previous rate was 0
-    expect(basktAfter.fundingIndex.cumulativeIndex.toString()).to.equal(initialCumulativeIndex.toString());
-    expect(new BN(basktAfter.fundingIndex.lastUpdateTimestamp.toString()).toNumber()).to.be.greaterThan(new BN(basktBefore.fundingIndex.lastUpdateTimestamp.toString()).toNumber());      
+    expect(basktAfter.marketIndices.cumulativeFundingIndex.toString()).to.equal(initialCumulativeIndex.toString());
+    expect(new BN(basktAfter.marketIndices.lastUpdateTimestamp.toString()).toNumber()).to.be.greaterThan(new BN(basktBefore.marketIndices.lastUpdateTimestamp.toString()).toNumber());      
   });
 
   it('Successfully updates funding index with negative rate', async () => {
@@ -118,13 +120,13 @@ describe('funding baskt', () => {
 
     // Update funding index with a negative rate
     const newRate = new BN(-30); // -0.3% hourly rate
-    await fundingManagerClient.updateFundingIndex(basktId, newRate);
+    await fundingManagerClient.updateMarketIndices(basktId, newRate, new BN(0));
 
     // Get the baskt after funding index update
     const basktAfter = await client.getBaskt(basktId);
 
     // Verify the funding index was updated with negative rate
-    expect(basktAfter.fundingIndex.currentRate.toString()).to.equal(newRate.toString());
+    expect(basktAfter.marketIndices.currentFundingRate.toString()).to.equal(newRate.toString());
   });
 
   it('Successfully updates funding index with zero rate', async () => {
@@ -149,13 +151,13 @@ describe('funding baskt', () => {
 
     // Update funding index with zero rate
     const newRate = new BN(0); // 0% hourly rate
-    await fundingManagerClient.updateFundingIndex(basktId, newRate);
+    await fundingManagerClient.updateMarketIndices(basktId, newRate, new BN(0));
 
     // Get the baskt after funding index update
     const basktAfter = await client.getBaskt(basktId);
 
     // Verify the funding index was updated with zero rate
-    expect(basktAfter.fundingIndex.currentRate.toString()).to.equal('0');
+    expect(basktAfter.marketIndices.currentFundingRate.toString()).to.equal('0');
   });
 
   it('Fails to update funding index with non-authorized user', async () => {
@@ -182,7 +184,7 @@ describe('funding baskt', () => {
     const newRate = new BN(25); // 0.25% hourly rate
 
     try {
-      await regularUserClient.updateFundingIndex(basktId, newRate);
+      await regularUserClient.updateMarketIndices(basktId, newRate, new BN(0));
       expect.fail('Should have thrown an error - non-authorized user should not be able to update funding index');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('UnauthorizedRole');
@@ -190,7 +192,7 @@ describe('funding baskt', () => {
 
     // Verify the funding index was not updated
     const basktAfter = await client.getBaskt(basktId);
-    expect(basktAfter.fundingIndex.currentRate.toString()).to.equal('0'); // Should still be initial value
+    expect(basktAfter.marketIndices.currentFundingRate.toString()).to.equal('0'); // Should still be initial value
   });
 
   it('Fails to update funding index with rate exceeding maximum', async () => {
@@ -217,7 +219,7 @@ describe('funding baskt', () => {
     const newRate = new BN(2000); // 20% hourly rate (exceeds 0.57% maximum)
 
     try {
-      await fundingManagerClient.updateFundingIndex(basktId, newRate);
+      await fundingManagerClient.updateMarketIndices(basktId, newRate, new BN(0));
       expect.fail('Should have thrown an error - rate exceeds maximum allowed');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('FundingRateExceedsMaximum');
@@ -225,7 +227,7 @@ describe('funding baskt', () => {
 
     // Verify the funding index was not updated
     const basktAfter = await client.getBaskt(basktId);
-    expect(basktAfter.fundingIndex.currentRate.toString()).to.equal('0'); // Should still be initial value
+    expect(basktAfter.marketIndices.currentFundingRate.toString()).to.equal('0'); // Should still be initial value
   });
 
   it('Fails to update funding index with negative rate exceeding maximum', async () => {
@@ -252,7 +254,7 @@ describe('funding baskt', () => {
     const newRate = new BN(-2000); // -20% hourly rate (exceeds -0.57% maximum)
 
     try {
-      await fundingManagerClient.updateFundingIndex(basktId, newRate);
+      await fundingManagerClient.updateMarketIndices(basktId, newRate, new BN(0));
       expect.fail('Should have thrown an error - negative rate exceeds maximum allowed');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('FundingRateExceedsMaximum');
@@ -260,7 +262,7 @@ describe('funding baskt', () => {
 
     // Verify the funding index was not updated
     const basktAfter = await client.getBaskt(basktId);
-    expect(basktAfter.fundingIndex.currentRate.toString()).to.equal('0'); // Should still be initial value
+    expect(basktAfter.marketIndices.currentFundingRate.toString()).to.equal('0'); // Should still be initial value
   });
 
   it('Successfully updates funding index with maximum allowed rate', async () => {
@@ -285,13 +287,13 @@ describe('funding baskt', () => {
 
     // Update funding index with maximum allowed rate (57 BPS)
     const newRate = new BN(57); // 0.57% hourly rate (maximum allowed)
-    await fundingManagerClient.updateFundingIndex(basktId, newRate);
+    await fundingManagerClient.updateMarketIndices(basktId, newRate, new BN(0));
 
     // Get the baskt after funding index update
     const basktAfter = await client.getBaskt(basktId);
 
     // Verify the funding index was updated with maximum rate
-    expect(basktAfter.fundingIndex.currentRate.toString()).to.equal(newRate.toString());
+    expect(basktAfter.marketIndices.currentFundingRate.toString()).to.equal(newRate.toString());
   });
 
   it('Successfully updates funding index with maximum allowed negative rate', async () => {
@@ -316,13 +318,13 @@ describe('funding baskt', () => {
 
     // Update funding index with maximum allowed negative rate (-57 BPS)
     const newRate = new BN(-57); // -0.57% hourly rate (maximum allowed negative)
-    await fundingManagerClient.updateFundingIndex(basktId, newRate);
+    await fundingManagerClient.updateMarketIndices(basktId, newRate, new BN(0));
 
     // Get the baskt after funding index update
     const basktAfter = await client.getBaskt(basktId);
 
     // Verify the funding index was updated with maximum negative rate
-    expect(basktAfter.fundingIndex.currentRate.toString()).to.equal(newRate.toString());
+    expect(basktAfter.marketIndices.currentFundingRate.toString()).to.equal(newRate.toString());
   });
 
   it('Fails to update funding index for inactive baskt', async () => {
@@ -345,7 +347,7 @@ describe('funding baskt', () => {
     const newRate = new BN(25); // 0.25% hourly rate
 
     try {
-      await fundingManagerClient.updateFundingIndex(basktId, newRate);
+      await fundingManagerClient.updateMarketIndices(basktId, newRate, new BN(0));
       expect.fail('Should have thrown an error - cannot update funding index for inactive baskt');
     } catch (error: unknown) {
       expect((error as Error).message).to.include('BasktNotActive');
@@ -374,48 +376,48 @@ describe('funding baskt', () => {
 
     // Get initial state
     const basktInitial = await client.getBaskt(basktId);
-    const initialCumulativeIndex = basktInitial.fundingIndex.cumulativeIndex;
+    const initialCumulativeIndex = basktInitial.marketIndices.cumulativeFundingIndex;
     expect(initialCumulativeIndex.toString()).to.equal('1000000'); // FUNDING_PRECISION (1.0)
 
     // First update: Set rate to 200 BPS (2% hourly) - higher rate for measurable effect
     // This should NOT change cumulative index since previous rate was 0
-    await fundingManagerClient.updateFundingIndex(basktId, new BN(200));
+    await fundingManagerClient.updateMarketIndices(basktId, new BN(200), new BN(0));
     
     const basktAfterFirstUpdate = await client.getBaskt(basktId);
-    expect(basktAfterFirstUpdate.fundingIndex.currentRate.toString()).to.equal('200');
-    expect(basktAfterFirstUpdate.fundingIndex.cumulativeIndex.toString()).to.equal(initialCumulativeIndex.toString());
+    expect(basktAfterFirstUpdate.marketIndices.currentFundingRate.toString()).to.equal('200');
+    expect(basktAfterFirstUpdate.marketIndices.cumulativeFundingIndex.toString()).to.equal(initialCumulativeIndex.toString());
 
     // Wait longer to ensure significant time passes for measurable funding accrual
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Second update: Set rate to 300 BPS (3% hourly)
     // This SHOULD change cumulative index using the previous rate (200 BPS)
-    await fundingManagerClient.updateFundingIndex(basktId, new BN(300));
+    await fundingManagerClient.updateMarketIndices(basktId, new BN(300), new BN(0));
     
     const basktAfterSecondUpdate = await client.getBaskt(basktId);
-    expect(basktAfterSecondUpdate.fundingIndex.currentRate.toString()).to.equal('300');
+    expect(basktAfterSecondUpdate.marketIndices.currentFundingRate.toString()).to.equal('300');
     // Cumulative index should have increased due to the previous rate (200 BPS) being applied
-    expect(basktAfterSecondUpdate.fundingIndex.cumulativeIndex.toString()).to.not.equal(initialCumulativeIndex.toString());
-    expect(basktAfterSecondUpdate.fundingIndex.cumulativeIndex.toString()).to.not.equal(basktAfterFirstUpdate.fundingIndex.cumulativeIndex.toString());
+    expect(basktAfterSecondUpdate.marketIndices.cumulativeFundingIndex.toString()).to.not.equal(initialCumulativeIndex.toString());
+    expect(basktAfterSecondUpdate.marketIndices.cumulativeFundingIndex.toString()).to.not.equal(basktAfterFirstUpdate.marketIndices.cumulativeFundingIndex.toString());
 
     // Wait longer for the third update
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Third update: Set rate to -100 BPS (-1% hourly)
     // This SHOULD change cumulative index using the previous rate (300 BPS)
-    await fundingManagerClient.updateFundingIndex(basktId, new BN(-100));
+    await fundingManagerClient.updateMarketIndices(basktId, new BN(-100), new BN(0));
 
     // TODO: We do not have time warp so cannot test this
     
     // const basktAfterThirdUpdate = await client.getBaskt(basktId);
-    // expect(basktAfterThirdUpdate.fundingIndex.currentRate.toString()).to.equal('-100');
+    // expect(basktAfterThirdUpdate.marketIndices.currentFundingRate.toString()).to.equal('-100');
     // // Cumulative index should have changed again due to the previous rate (300 BPS) being applied
-    // expect(basktAfterThirdUpdate.fundingIndex.cumulativeIndex.toString()).to.not.equal(basktAfterSecondUpdate.fundingIndex.cumulativeIndex.toString());
+    // expect(basktAfterThirdUpdate.marketIndices.cumulativeFundingIndex.toString()).to.not.equal(basktAfterSecondUpdate.marketIndices.cumulativeFundingIndex.toString());
 
     // // Verify the final state
     // const basktFinal = await client.getBaskt(basktId);
-    // expect(basktFinal.fundingIndex.currentRate.toString()).to.equal('-10');
-    // expect(basktFinal.fundingIndex.cumulativeIndex.toString()).to.not.equal(initialCumulativeIndex.toString());
+    // expect(basktFinal.marketIndices.currentFundingRate.toString()).to.equal('-10');
+    // expect(basktFinal.marketIndices.cumulativeFundingIndex.toString()).to.not.equal(initialCumulativeIndex.toString());
   });
 
   it('Demonstrates funding index lag behavior with immediate updates', async () => {
@@ -440,32 +442,32 @@ describe('funding baskt', () => {
 
     // Get initial state
     const basktInitial = await client.getBaskt(basktId);
-    const initialCumulativeIndex = basktInitial.fundingIndex.cumulativeIndex;
+    const initialCumulativeIndex = basktInitial.marketIndices.cumulativeFundingIndex;
     expect(initialCumulativeIndex.toString()).to.equal('1000000'); // FUNDING_PRECISION (1.0)
 
-    await fundingManagerClient.updateFundingIndex(basktId, new BN(1));
+    await fundingManagerClient.updateMarketIndices(basktId, new BN(1), new BN(0));
 
     // TODO: We do not have time warp so cannot test this
     
     // const basktAfterFirstUpdate = await client.getBaskt(basktId);
-    // expect(basktAfterFirstUpdate.fundingIndex.currentRate.toString()).to.equal('100');
-    // expect(basktAfterFirstUpdate.fundingIndex.cumulativeIndex.toString()).to.equal(initialCumulativeIndex.toString());
+    // expect(basktAfterFirstUpdate.marketIndices.currentFundingRate.toString()).to.equal('100');
+    // expect(basktAfterFirstUpdate.marketIndices.cumulativeFundingIndex.toString()).to.equal(initialCumulativeIndex.toString());
 
     // // Wait a bit to ensure time passes
     // await new Promise(resolve => setTimeout(resolve, 3000));
 
     // // Second update: Set rate to 0 BPS
     // // This SHOULD change cumulative index using the previous rate (500 BPS) for the elapsed time
-    // await fundingManagerClient.updateFundingIndex(basktId, new BN(0));
+    // await fundingManagerClient.updateMarketIndices(basktId, new BN(0), new BN(0));
     
     // const basktAfterSecondUpdate = await client.getBaskt(basktId);
-    // expect(basktAfterSecondUpdate.fundingIndex.currentRate.toString()).to.equal('0');
+    // expect(basktAfterSecondUpdate.marketIndices.currentFundingRate.toString()).to.equal('0');
     // // Cumulative index should have increased due to the previous rate (500 BPS) being applied for the elapsed time
-    // expect(basktAfterSecondUpdate.fundingIndex.cumulativeIndex.toString()).to.not.equal(initialCumulativeIndex.toString());
-    // expect(basktAfterSecondUpdate.fundingIndex.cumulativeIndex.toString()).to.not.equal(basktAfterFirstUpdate.fundingIndex.cumulativeIndex.toString());
+    // expect(basktAfterSecondUpdate.marketIndices.cumulativeFundingIndex.toString()).to.not.equal(initialCumulativeIndex.toString());
+    // expect(basktAfterSecondUpdate.marketIndices.cumulativeFundingIndex.toString()).to.not.equal(basktAfterFirstUpdate.marketIndices.cumulativeFundingIndex.toString());
 
     // // Verify that the cumulative index increased (positive funding rate was applied)
-    // const finalCumulativeIndex = new BN(basktAfterSecondUpdate.fundingIndex.cumulativeIndex.toString());
+    // const finalCumulativeIndex = new BN(basktAfterSecondUpdate.marketIndices.cumulativeFundingIndex.toString());
     // const initialCumulativeIndexBN = new BN(initialCumulativeIndex.toString());
     // expect(finalCumulativeIndex.gt(initialCumulativeIndexBN)).to.be.true;
   });
@@ -492,32 +494,32 @@ describe('funding baskt', () => {
 
     // Get initial state
     const basktInitial = await client.getBaskt(basktId);
-    const initialCumulativeIndex = basktInitial.fundingIndex.cumulativeIndex;
+    const initialCumulativeIndex = basktInitial.marketIndices.cumulativeFundingIndex;
     expect(initialCumulativeIndex.toString()).to.equal('1000000'); // FUNDING_PRECISION (1.0)
 
     // First update: Set rate to -300 BPS (-3% hourly) - higher rate for more measurable effect
     // This should NOT change cumulative index since previous rate was 0
-    await fundingManagerClient.updateFundingIndex(basktId, new BN(-300));
+    await fundingManagerClient.updateMarketIndices(basktId, new BN(-300), new BN(0));
     
     const basktAfterFirstUpdate = await client.getBaskt(basktId);
-    expect(basktAfterFirstUpdate.fundingIndex.currentRate.toString()).to.equal('-300');
-    expect(basktAfterFirstUpdate.fundingIndex.cumulativeIndex.toString()).to.equal(initialCumulativeIndex.toString());
+    expect(basktAfterFirstUpdate.marketIndices.currentFundingRate.toString()).to.equal('-300');
+    expect(basktAfterFirstUpdate.marketIndices.cumulativeFundingIndex.toString()).to.equal(initialCumulativeIndex.toString());
 
     // Wait a bit to ensure time passes
     await new Promise(resolve => setTimeout(resolve, 3000));
 
     // Second update: Set rate to 0 BPS
     // This SHOULD change cumulative index using the previous rate (-300 BPS) for the elapsed time
-    await fundingManagerClient.updateFundingIndex(basktId, new BN(0));
+    await fundingManagerClient.updateMarketIndices(basktId, new BN(0), new BN(0));
     
     const basktAfterSecondUpdate = await client.getBaskt(basktId);
-    expect(basktAfterSecondUpdate.fundingIndex.currentRate.toString()).to.equal('0');
+    expect(basktAfterSecondUpdate.marketIndices.currentFundingRate.toString()).to.equal('0');
     // Cumulative index should have decreased due to the previous rate (-300 BPS) being applied for the elapsed time
-    expect(basktAfterSecondUpdate.fundingIndex.cumulativeIndex.toString()).to.not.equal(initialCumulativeIndex.toString());
-    expect(basktAfterSecondUpdate.fundingIndex.cumulativeIndex.toString()).to.not.equal(basktAfterFirstUpdate.fundingIndex.cumulativeIndex.toString());
+    expect(basktAfterSecondUpdate.marketIndices.cumulativeFundingIndex.toString()).to.not.equal(initialCumulativeIndex.toString());
+    expect(basktAfterSecondUpdate.marketIndices.cumulativeFundingIndex.toString()).to.not.equal(basktAfterFirstUpdate.marketIndices.cumulativeFundingIndex.toString());
 
     // Verify that the cumulative index decreased (negative funding rate was applied)
-    const finalCumulativeIndex = new BN(basktAfterSecondUpdate.fundingIndex.cumulativeIndex.toString());
+    const finalCumulativeIndex = new BN(basktAfterSecondUpdate.marketIndices.cumulativeFundingIndex.toString());
     const initialCumulativeIndexBN = new BN(initialCumulativeIndex.toString());
     expect(finalCumulativeIndex.lt(initialCumulativeIndexBN)).to.be.true;
   });

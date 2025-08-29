@@ -31,8 +31,10 @@ pub struct Position {
     pub is_long: bool,
     pub entry_price: u64,
     pub exit_info: ExitInfo,
-    pub last_funding_index: i128,  // Last updated index (scaled by FUNDING_PRECISION)
+    pub last_funding_index: i128,  // Last updated funding index (scaled by FUNDING_PRECISION)
     pub funding_accumulated: i128, // Total funding paid/received (scaled by token decimals, NOT funding precision)
+    pub last_borrow_index: i128,   // Last updated borrow index (scaled by FUNDING_PRECISION)
+    pub borrow_accumulated: i128,  // Total borrow paid (always negative from user perspective)
     pub last_rebalance_fee_index: u64, // Last applied rebalance fee index (prevents double charging)
     pub status: PositionStatus,
     pub timestamp_open: u32,
@@ -69,6 +71,7 @@ impl Position {
         is_long: bool,
         entry_price: u64,
         entry_funding_index: i128,
+        entry_borrow_index: i128,
         entry_rebalance_fee_index: u64,
         timestamp_open: u32,
         bump: u8,
@@ -90,6 +93,8 @@ impl Position {
         self.exit_info = ExitInfo::None;
         self.last_funding_index = entry_funding_index;
         self.funding_accumulated = 0;
+        self.last_borrow_index = entry_borrow_index;
+        self.borrow_accumulated = 0;
         self.last_rebalance_fee_index = entry_rebalance_fee_index;
         self.status = PositionStatus::Open;
         self.timestamp_open = timestamp_open;
@@ -121,46 +126,63 @@ impl Position {
         Ok(())
     }
 
-    /// Update funding for this position based on the current funding index
-    /// The funding payment is based on:
-    /// - The difference between current index and last saved index
-    /// - The position size
-    /// - The position direction (long pays on positive index delta, short pays on negative)
-    /// Resulting payment is scaled by token decimals.
-    pub fn update_funding(&mut self, current_funding_index: i128, exit_price: u64) -> Result<()> {
-        // Calculate index delta (scaled by FUNDING_PRECISION)
-        let index_delta = current_funding_index
+    /// Update both funding and borrow indices for this position
+    /// Combines funding and borrow calculations to avoid duplicate notional calculation
+    pub fn update_market_indices(
+        &mut self, 
+        current_funding_index: i128, 
+        current_borrow_index: i128,
+        exit_price: u64
+    ) -> Result<()> {
+        // Calculate current notional value once for both calculations
+        let current_notional_u64 = mul_div_u64(self.size, exit_price, PRICE_PRECISION)?;
+        let current_notional = current_notional_u64 as i128;
+
+        // === FUNDING UPDATE ===
+        let funding_index_delta = current_funding_index
             .checked_sub(self.last_funding_index)
             .ok_or(PerpetualsError::MathOverflow)?;
 
-        if index_delta == 0 {
-            self.last_funding_index = current_funding_index;
-            return Ok(()); // No change in index, no funding payment
+        if funding_index_delta != 0 {
+            // For longs: positive index delta means they pay, negative means they receive
+            // For shorts: invert the payment direction
+            let direction_multiplier: i128 = if self.is_long { -1 } else { 1 };
+
+            // Calculate funding payment: notional * index_delta * direction / FUNDING_PRECISION
+            let funding_payment = current_notional
+                .checked_mul(funding_index_delta)
+                .ok_or(PerpetualsError::MathOverflow)?
+                .checked_mul(direction_multiplier)
+                .ok_or(PerpetualsError::MathOverflow)?
+                .checked_div(FUNDING_PRECISION as i128)
+                .ok_or(PerpetualsError::MathOverflow)?;
+
+            self.funding_accumulated = self.funding_accumulated
+                .checked_add(funding_payment)
+                .ok_or(PerpetualsError::MathOverflow)?;
         }
-
-        // For longs: positive index delta means they pay, negative means they receive
-        // For shorts: invert the payment direction
-        let direction_multiplier: i128 = if self.is_long { -1 } else { 1 };
-
-        let current_notional_u64 = mul_div_u64(self.size, exit_price, PRICE_PRECISION)?;
-
-        // Calculate funding payment: size * index_delta * direction / FUNDING_PRECISION
-        // Result is scaled by token decimals (implicitly, as size is scaled)
-        let funding_payment = (current_notional_u64 as i128)
-            .checked_mul(index_delta)
-            .ok_or(PerpetualsError::MathOverflow)?
-            .checked_mul(direction_multiplier)
-            .ok_or(PerpetualsError::MathOverflow)?
-            .checked_div(FUNDING_PRECISION as i128)
-            .ok_or(PerpetualsError::MathOverflow)?;
-
-        // Update accumulated funding and last index
-        self.funding_accumulated = self
-            .funding_accumulated
-            .checked_add(funding_payment)
-            .ok_or(PerpetualsError::MathOverflow)?;
-
         self.last_funding_index = current_funding_index;
+
+        // === BORROW UPDATE ===
+        let borrow_index_delta = current_borrow_index
+            .checked_sub(self.last_borrow_index)
+            .ok_or(PerpetualsError::MathOverflow)?;
+
+        if borrow_index_delta != 0 {
+            // Borrow index only increases (borrow_index_delta should always be >= 0)
+            // Both longs and shorts pay borrow fees
+            let borrow_payment = current_notional
+                .checked_mul(borrow_index_delta)
+                .ok_or(PerpetualsError::MathOverflow)?
+                .checked_div(FUNDING_PRECISION as i128)
+                .ok_or(PerpetualsError::MathOverflow)?;
+
+            // Store as negative (cost to user)
+            self.borrow_accumulated = self.borrow_accumulated
+                .checked_sub(borrow_payment)
+                .ok_or(PerpetualsError::MathOverflow)?;
+        }
+        self.last_borrow_index = current_borrow_index;
 
         Ok(())
     }
@@ -178,11 +200,14 @@ impl Position {
         // Calculate rebalance fee owed
         let rebalance_fee_owed = self.calculate_rebalance_fee_owed(current_rebalance_fee_index, current_price)?;
 
-        // Calculate total equity = collateral + unrealized_pnl + funding_accumulated - rebalance_fee_owed
+        // Calculate total equity = collateral + unrealized_pnl + funding_accumulated + borrow_accumulated - rebalance_fee_owed
+        // Note: borrow_accumulated is negative, so adding it reduces equity
         let total_equity = (self.collateral as i128)
             .checked_add(unrealized_pnl as i128)
             .ok_or(PerpetualsError::MathOverflow)?
             .checked_add(self.funding_accumulated)
+            .ok_or(PerpetualsError::MathOverflow)?
+            .checked_add(self.borrow_accumulated)  // Add negative borrow (reduces equity)
             .ok_or(PerpetualsError::MathOverflow)?
             .checked_sub(rebalance_fee_owed as i128)
             .ok_or(PerpetualsError::MathOverflow)?;

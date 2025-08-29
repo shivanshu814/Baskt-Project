@@ -117,6 +117,7 @@ export const PositionMetadataSchema = new mongoose.Schema(
           baseFee: { type: Number, required: true, trim: true },
           rebalanceFee: { type: Number, required: true, trim: true },
           fundingAccumulated: BNAndDecimal128(true),
+          borrowAccumulated: BNAndDecimal128(true),
           pnl: BNAndDecimal128(true),
           badDebtAmount: BNAndDecimal128(true),
           userPayout: BNAndDecimal128(true),

@@ -12,7 +12,8 @@ export const STREAMS = {
   order: {
     request: 'order.request',
     accepted: 'order.accepted',
-    rejected: 'order.rejected'
+    rejected: 'order.rejected',
+    cancelled: 'order.cancelled'
   },
   position: {
     opened: 'position.opened',

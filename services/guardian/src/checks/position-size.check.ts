@@ -3,12 +3,9 @@ import { BaseRiskCheck } from './base.check';
 import { RiskCheckContext, RiskCheckResult } from '../types';
 import { GuardianCache } from '../utils/cache';
 
-import {
-  isWholeNumberForPrecision
-} from '../utils/risk-calculations';
-import { MAX_ORDER_SIZE, PRICE_PRECISION, USDC_DECIMALS } from '@baskt/sdk';
+import { MAX_ORDER_SIZE } from '@baskt/sdk';
 import { querierClient } from '../config/client';
-import { OrderAction } from '@baskt/types';
+import { OrderAction, PositionStatus } from '@baskt/types';
 
 export class PositionSizeCheck extends BaseRiskCheck {
   name = 'position-size';
@@ -57,16 +54,16 @@ export class PositionSizeCheck extends BaseRiskCheck {
 
     try {
       const requestedSize = orderRequest.order.closeParams!.sizeAsContracts;
-      if (!isWholeNumberForPrecision(requestedSize, PRICE_PRECISION)) {
+      
+      // Validate that size is positive and a whole number (contracts are indivisible)
+      if (requestedSize.lte(new BN(0))) {
         return {
           passed: false,
           checkName: this.name,
-          reason: `Order size ${requestedSize.toString()} does not respect USDC decimal precision (${USDC_DECIMALS} decimals)`,
-          severity: 'medium',
+          reason: 'Requested close size must be greater than 0',
+          severity: 'high',
           details: {
-            size: requestedSize.toString(),
-            precisionRequired: `${USDC_DECIMALS} decimals`,
-            remainder: requestedSize.mod(PRICE_PRECISION).toString()
+            size: requestedSize.toString()
           }
         };
       }
@@ -76,10 +73,55 @@ export class PositionSizeCheck extends BaseRiskCheck {
           passed: false,
           checkName: this.name,
           reason: 'Target position not found',
-          severity: 'medium'
+          severity: 'high',
+          details: {
+            targetPosition: orderRequest.order.closeParams!.targetPosition.toString()
+          }
         };
       }
   
+      // Validate position ownership (not checked in create_order, only in close_position)
+      if (position.owner.toString() !== orderRequest.order.owner.toString()) {
+        return {
+          passed: false,
+          checkName: this.name,
+          reason: 'Position not owned by order creator',
+          severity: 'critical',
+          details: {
+            positionOwner: position.owner.toString(),
+            orderOwner: orderRequest.order.owner.toString()
+          }
+        };
+      }
+
+      // Validate position baskt matches order baskt (not checked in create_order)
+      if (position.basktId.toString() !== orderRequest.order.basktId.toString()) {
+        return {
+          passed: false,
+          checkName: this.name,
+          reason: 'Position baskt does not match order baskt',
+          severity: 'high',
+          details: {
+            positionBaskt: position.basktId.toString(),
+            orderBaskt: orderRequest.order.basktId.toString()
+          }
+        };
+      }
+
+      // Validate position status is OPEN (not checked in create_order)
+      // SDK already converts status to PositionStatus enum
+      if (position.status !== PositionStatus.OPEN) {
+        return {
+          passed: false,
+          checkName: this.name,
+          reason: `Position is not open (status: ${position.status})`,
+          severity: 'high',
+          details: { 
+            positionStatus: position.status,
+            positionId: position.positionId
+          }
+        };
+      }
     
       const positionSize = position.size;
   
@@ -96,15 +138,21 @@ export class PositionSizeCheck extends BaseRiskCheck {
         checkName: this.name,
         details: {
           requestedSize: requestedSize.toString(),
-          positionSize: positionSize.toString()
+          positionSize: positionSize.toString(),
+          positionOwner: position.owner.toString(),
+          isPartialClose: requestedSize.lt(positionSize)
         }
       };
     } catch(error) {
       return {
         passed: false,
         checkName: this.name,
-        reason: 'Failed to fetch position',
-        severity: 'medium'
+        reason: 'Failed to validate position',
+        severity: 'critical',
+        details: { 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          targetPosition: orderRequest.order.closeParams?.targetPosition?.toString()
+        }
       };
     }
 

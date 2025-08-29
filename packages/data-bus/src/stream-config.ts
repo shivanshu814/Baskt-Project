@@ -31,6 +31,11 @@ export const STREAM_CONFIGS: Record<string, StreamConfig> = {
     approxMaxLen: 20000,
     retentionMs: 86400000,
   },
+  [STREAMS.order.cancelled]: {
+    name: STREAMS.order.cancelled,
+    approxMaxLen: 20000,
+    retentionMs: 86400000  // 24 hours
+  },
 
   // Position lifecycle - longer retention for audit
   [STREAMS.position.opened]: {

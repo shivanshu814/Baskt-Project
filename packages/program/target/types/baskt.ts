@@ -3944,22 +3944,22 @@ export type Baskt = {
       ]
     },
     {
-      "name": "updateFundingIndex",
+      "name": "updateMarketIndices",
       "discriminator": [
-        27,
-        238,
-        109,
-        184,
-        62,
-        17,
-        163,
-        149
+        131,
+        49,
+        240,
+        128,
+        48,
+        95,
+        38,
+        254
       ],
       "accounts": [
         {
           "name": "authority",
           "docs": [
-            "@dev Requires FundingManager role to update funding indices"
+            "@dev Requires FundingManager role to update market indices"
           ],
           "writable": true,
           "signer": true
@@ -3967,7 +3967,7 @@ export type Baskt = {
         {
           "name": "baskt",
           "docs": [
-            "Baskt account associated with the funding index. Used only for seed verification."
+            "Baskt account associated with the market indices. Used only for seed verification."
           ],
           "writable": true,
           "pda": {
@@ -4013,7 +4013,11 @@ export type Baskt = {
       ],
       "args": [
         {
-          "name": "newRate",
+          "name": "newFundingRate",
+          "type": "i64"
+        },
+        {
+          "name": "newBorrowRate",
           "type": "i64"
         }
       ]
@@ -4307,6 +4311,19 @@ export type Baskt = {
         180,
         118,
         59
+      ]
+    },
+    {
+      "name": "marketIndexUpdatedEvent",
+      "discriminator": [
+        93,
+        35,
+        103,
+        143,
+        225,
+        46,
+        86,
+        224
       ]
     },
     {
@@ -4735,6 +4752,16 @@ export type Baskt = {
       "code": 6058,
       "name": "invalidLpTokenEscrow",
       "msg": "Invalid LP token escrow"
+    },
+    {
+      "code": 6059,
+      "name": "borrowRateExceedsMaximum",
+      "msg": "Borrow rate exceeds maximum allowed"
+    },
+    {
+      "code": 6060,
+      "name": "invalidBorrowState",
+      "msg": "Invalid borrow state - borrow accumulated should be negative"
     }
   ],
   "types": [
@@ -4971,10 +4998,10 @@ export type Baskt = {
             }
           },
           {
-            "name": "fundingIndex",
+            "name": "marketIndices",
             "type": {
               "defined": {
-                "name": "fundingIndex"
+                "name": "marketIndices"
               }
             }
           },
@@ -5524,26 +5551,6 @@ export type Baskt = {
       }
     },
     {
-      "name": "fundingIndex",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "cumulativeIndex",
-            "type": "i128"
-          },
-          {
-            "name": "lastUpdateTimestamp",
-            "type": "i64"
-          },
-          {
-            "name": "currentRate",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "fundingIndexUpdatedEvent",
       "type": {
         "kind": "struct",
@@ -5770,6 +5777,66 @@ export type Baskt = {
           },
           {
             "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "marketIndexUpdatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "basktId",
+            "type": "pubkey"
+          },
+          {
+            "name": "cumulativeFundingIndex",
+            "type": "i128"
+          },
+          {
+            "name": "cumulativeBorrowIndex",
+            "type": "i128"
+          },
+          {
+            "name": "currentFundingRate",
+            "type": "i64"
+          },
+          {
+            "name": "currentBorrowRate",
+            "type": "i64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "marketIndices",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cumulativeFundingIndex",
+            "type": "i128"
+          },
+          {
+            "name": "currentFundingRate",
+            "type": "i64"
+          },
+          {
+            "name": "cumulativeBorrowIndex",
+            "type": "i128"
+          },
+          {
+            "name": "currentBorrowRate",
+            "type": "i64"
+          },
+          {
+            "name": "lastUpdateTimestamp",
             "type": "i64"
           }
         ]
@@ -6128,6 +6195,14 @@ export type Baskt = {
             "type": "i128"
           },
           {
+            "name": "lastBorrowIndex",
+            "type": "i128"
+          },
+          {
+            "name": "borrowAccumulated",
+            "type": "i128"
+          },
+          {
             "name": "lastRebalanceFeeIndex",
             "type": "u64"
           },
@@ -6214,6 +6289,10 @@ export type Baskt = {
           },
           {
             "name": "fundingAccumulated",
+            "type": "i128"
+          },
+          {
+            "name": "borrowAccumulated",
             "type": "i128"
           },
           {
@@ -6309,6 +6388,10 @@ export type Baskt = {
             "type": "i128"
           },
           {
+            "name": "borrowAccumulated",
+            "type": "i128"
+          },
+          {
             "name": "escrowToTreasury",
             "type": "u64"
           },
@@ -6398,6 +6481,10 @@ export type Baskt = {
           },
           {
             "name": "fundingAccumulated",
+            "type": "i128"
+          },
+          {
+            "name": "borrowAccumulated",
             "type": "i128"
           },
           {

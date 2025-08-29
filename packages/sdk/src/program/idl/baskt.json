@@ -3938,22 +3938,22 @@
       ]
     },
     {
-      "name": "update_funding_index",
+      "name": "update_market_indices",
       "discriminator": [
-        27,
-        238,
-        109,
-        184,
-        62,
-        17,
-        163,
-        149
+        131,
+        49,
+        240,
+        128,
+        48,
+        95,
+        38,
+        254
       ],
       "accounts": [
         {
           "name": "authority",
           "docs": [
-            "@dev Requires FundingManager role to update funding indices"
+            "@dev Requires FundingManager role to update market indices"
           ],
           "writable": true,
           "signer": true
@@ -3961,7 +3961,7 @@
         {
           "name": "baskt",
           "docs": [
-            "Baskt account associated with the funding index. Used only for seed verification."
+            "Baskt account associated with the market indices. Used only for seed verification."
           ],
           "writable": true,
           "pda": {
@@ -4007,7 +4007,11 @@
       ],
       "args": [
         {
-          "name": "new_rate",
+          "name": "new_funding_rate",
+          "type": "i64"
+        },
+        {
+          "name": "new_borrow_rate",
           "type": "i64"
         }
       ]
@@ -4301,6 +4305,19 @@
         180,
         118,
         59
+      ]
+    },
+    {
+      "name": "MarketIndexUpdatedEvent",
+      "discriminator": [
+        93,
+        35,
+        103,
+        143,
+        225,
+        46,
+        86,
+        224
       ]
     },
     {
@@ -4729,6 +4746,16 @@
       "code": 6058,
       "name": "InvalidLpTokenEscrow",
       "msg": "Invalid LP token escrow"
+    },
+    {
+      "code": 6059,
+      "name": "BorrowRateExceedsMaximum",
+      "msg": "Borrow rate exceeds maximum allowed"
+    },
+    {
+      "code": 6060,
+      "name": "InvalidBorrowState",
+      "msg": "Invalid borrow state - borrow accumulated should be negative"
     }
   ],
   "types": [
@@ -4965,10 +4992,10 @@
             }
           },
           {
-            "name": "funding_index",
+            "name": "market_indices",
             "type": {
               "defined": {
-                "name": "FundingIndex"
+                "name": "MarketIndices"
               }
             }
           },
@@ -5518,26 +5545,6 @@
       }
     },
     {
-      "name": "FundingIndex",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "cumulative_index",
-            "type": "i128"
-          },
-          {
-            "name": "last_update_timestamp",
-            "type": "i64"
-          },
-          {
-            "name": "current_rate",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "FundingIndexUpdatedEvent",
       "type": {
         "kind": "struct",
@@ -5764,6 +5771,66 @@
           },
           {
             "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketIndexUpdatedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "baskt_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "cumulative_funding_index",
+            "type": "i128"
+          },
+          {
+            "name": "cumulative_borrow_index",
+            "type": "i128"
+          },
+          {
+            "name": "current_funding_rate",
+            "type": "i64"
+          },
+          {
+            "name": "current_borrow_rate",
+            "type": "i64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketIndices",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cumulative_funding_index",
+            "type": "i128"
+          },
+          {
+            "name": "current_funding_rate",
+            "type": "i64"
+          },
+          {
+            "name": "cumulative_borrow_index",
+            "type": "i128"
+          },
+          {
+            "name": "current_borrow_rate",
+            "type": "i64"
+          },
+          {
+            "name": "last_update_timestamp",
             "type": "i64"
           }
         ]
@@ -6122,6 +6189,14 @@
             "type": "i128"
           },
           {
+            "name": "last_borrow_index",
+            "type": "i128"
+          },
+          {
+            "name": "borrow_accumulated",
+            "type": "i128"
+          },
+          {
             "name": "last_rebalance_fee_index",
             "type": "u64"
           },
@@ -6208,6 +6283,10 @@
           },
           {
             "name": "funding_accumulated",
+            "type": "i128"
+          },
+          {
+            "name": "borrow_accumulated",
             "type": "i128"
           },
           {
@@ -6303,6 +6382,10 @@
             "type": "i128"
           },
           {
+            "name": "borrow_accumulated",
+            "type": "i128"
+          },
+          {
             "name": "escrow_to_treasury",
             "type": "u64"
           },
@@ -6392,6 +6475,10 @@
           },
           {
             "name": "funding_accumulated",
+            "type": "i128"
+          },
+          {
+            "name": "borrow_accumulated",
             "type": "i128"
           },
           {

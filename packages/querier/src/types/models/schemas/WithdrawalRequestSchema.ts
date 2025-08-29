@@ -8,7 +8,6 @@ export const WithdrawalRequestSchema = new mongoose.Schema(
       type: Number,
       required: true,
       unique: true,
-      index: true,
     },
     withdrawalProcessAddress: {
       type: String,

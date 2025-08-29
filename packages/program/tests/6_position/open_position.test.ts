@@ -196,9 +196,13 @@ describe('Position Opening', () => {
     expect(positionAccount.isLong).to.be.true;
     expect(positionAccount.entryPrice.toString()).to.equal(ENTRY_PRICE.toString());
     expect(positionAccount.lastFundingIndex.toString()).to.equal(
-      fundingIndexBefore?.cumulativeIndex.toString(),
+      fundingIndexBefore?.cumulativeFundingIndex.toString(),
+    );
+    expect(positionAccount.lastBorrowIndex.toString()).to.equal(
+      fundingIndexBefore?.cumulativeBorrowIndex.toString(),
     );
     expect(positionAccount.fundingAccumulated.toString()).to.equal('0');
+    expect(positionAccount.borrowAccumulated.toString()).to.equal('0');
     expect(positionAccount.status).to.equal(PositionStatus.OPEN);
     expect(positionAccount.exitPrice).to.be.undefined;
     expect(positionAccount.timestampClose).to.be.undefined;

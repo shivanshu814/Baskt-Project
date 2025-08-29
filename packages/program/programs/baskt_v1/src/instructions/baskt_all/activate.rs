@@ -3,7 +3,7 @@ use crate::error::PerpetualsError;
 use crate::events::*;
 use crate::state::asset::SyntheticAsset;
 use crate::state::baskt::{AssetConfig, Baskt, BasktStatus};
-use crate::state::funding_index::FundingIndex;
+use crate::state::market_indices::MarketIndices;
 use crate::state::protocol::{Protocol, Role};
 use anchor_lang::prelude::*;
 
@@ -54,7 +54,7 @@ pub fn activate_baskt(ctx: Context<ActivateBaskt>, params: ActivateBasktParams) 
     let clock = Clock::get()?;
     // Activate the baskt with the provided prices
     baskt.activate(params.prices, current_nav)?;
-    baskt.funding_index.initialize(clock.unix_timestamp)?;
+    baskt.market_indices.initialize(clock.unix_timestamp)?;
 
     emit!(BasktActivatedEvent {
         baskt_id: baskt.key(),

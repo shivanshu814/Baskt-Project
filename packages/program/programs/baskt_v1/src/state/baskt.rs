@@ -2,7 +2,7 @@ use crate::constants::BPS_DIVISOR;
 use crate::error::PerpetualsError;
 use crate::state::asset::SyntheticAsset;
 use crate::state::fee_index::RebalanceFeeIndex;
-use crate::state::funding_index::FundingIndex;
+use crate::state::market_indices::MarketIndices;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::account_info::AccountInfo;
 use std::collections::HashSet;
@@ -189,7 +189,7 @@ pub struct Baskt {
     pub rebalance_period: u32,
     pub baseline_nav: u64,
     pub config: BasktConfig,
-    pub funding_index: FundingIndex,
+    pub market_indices: MarketIndices,
     pub rebalance_fee_index: RebalanceFeeIndex,
     pub extra_space: [u8; 120],
 }
@@ -226,7 +226,8 @@ impl Baskt {
         self.baseline_nav = 0;
         // Initialize rebalance fee index
         self.rebalance_fee_index.initialize(creation_time as i64)?;
-
+        // Initialize market indices
+        self.market_indices.initialize(creation_time as i64)?;
         Ok(())
     }
 

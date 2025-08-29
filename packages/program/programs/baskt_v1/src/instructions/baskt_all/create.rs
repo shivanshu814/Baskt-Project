@@ -1,10 +1,9 @@
-use crate::constants::{ASSET_SEED, BASE_NAV, BASKT_SEED, BPS_DIVISOR, PRICE_PRECISION, PROTOCOL_SEED};
+use crate::constants::{ASSET_SEED, BASKT_SEED, BPS_DIVISOR, PROTOCOL_SEED};
 use crate::error::PerpetualsError;
 use crate::events::*;
 use crate::state::asset::SyntheticAsset;
-use crate::state::baskt::{AssetConfig, Baskt, BasktStatus};
-use crate::state::funding_index::FundingIndex;
-use crate::state::protocol::{Protocol, Role};
+use crate::state::baskt::{AssetConfig, Baskt};
+use crate::state::protocol::{Protocol};
 use crate::utils::{transfer_sol};
 use anchor_lang::prelude::*;
 use std::collections::HashSet;
