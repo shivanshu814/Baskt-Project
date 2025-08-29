@@ -2,6 +2,7 @@ import { OrderAccepted } from '@baskt/data-bus';
 import { logger } from '@baskt/data-bus';
 import BN from 'bn.js';
 import { basktClient } from '../config/client';
+import { OnchainOrderStatus } from '@baskt/types';
 
 export class PositionExecutor {
   async openPosition(order: OrderAccepted): Promise<{txSignature: string, positionCreated: string}> {
@@ -29,7 +30,7 @@ export class PositionExecutor {
 
       logger.info('Checked order status', { orderPDA: orderPDA.toString(), status, orderId: order.request.order.orderId });
 
-      if (status === 'cancelled' || status === 'filled') {
+      if (status === OnchainOrderStatus.CANCELLED || status === OnchainOrderStatus.FILLED) {
         logger.info('Skipping execution - order not pending', {
           orderId: order.request.order.orderId,
           owner: order.request.order.owner,
@@ -38,7 +39,7 @@ export class PositionExecutor {
         return { txSignature: 'CANCELLED', positionCreated: '' };
       }
 
-      if (status === 'not_found') {
+      if (!status) {
         logger.error('Order account not found on-chain after retries', {
           orderId: order.request.order.orderId,
           owner: order.request.order.owner,
@@ -97,7 +98,7 @@ export class PositionExecutor {
         delay: 1500,
       });
 
-      if (status === 'cancelled' || status === 'filled' || status === 'not_found') {
+      if (status === OnchainOrderStatus.CANCELLED || status === OnchainOrderStatus.FILLED || !status) {
         logger.info('Skipping close execution - order not pending', {
           orderId: order.request.order.orderId,
           owner: order.request.order.owner,

@@ -2,7 +2,7 @@ import { DataBus, STREAMS, MessageEnvelope, OrderRequest, OrderAccepted, OrderRe
 import { RiskCheckContext, RiskCheckResult, RiskCheck } from '../types';
 import { logger } from '../utils/logger';
 import { basktClient, querierClient } from '../config/client';
-import { OnchainOrder } from '@baskt/types';
+import { OnchainOrder, OnchainOrderStatus } from '@baskt/types';
 import BN from 'bn.js';
 import { FeeSkewCheck } from '../checks/fee-skew.check';
 import { GuardianCache } from '../utils/cache';
@@ -109,12 +109,12 @@ export class OrderRequestHandler {
           delay: 1500,
         });
 
-        if (status === 'cancelled' || status === 'filled' || status === 'not_found') {
-          logger.info({ orderId: order.orderId, status }, 'Order not pending; rejecting');
+        if (!status || status === OnchainOrderStatus.CANCELLED || status === OnchainOrderStatus.FILLED) {
+          logger.info({ orderId: order.orderId, status }, 'Order not pending; rejecting');  
           await this.handleOrderRejection(orderRequest, {
             passed: false,
             checkName: 'order_cancelled',
-            reason: status === 'not_found' ? 'Order was cancelled (account closed)' : 'Order was not pending',
+            reason: !status? 'Order was cancelled (account closed)' : 'Order was not pending',
             severity: 'low'
           });
           return;

@@ -2035,62 +2035,29 @@ export abstract class BaseClient {
       }
     }
     throw lastError;
-  }
-
-  /**
-   * Parse raw on-chain order account status into a simple string.
-   * Handles both enum-object and numeric representations defensively.
-   */
-  private parseOrderStatus(raw: any): 'pending' | 'filled' | 'cancelled' | 'unknown' {
-    const status = raw?.status;
-    if (!status) return 'unknown';
-
-    // Anchor enum object form: { pending: {} } | { filled: {} } | { cancelled: {} }
-    if (typeof status === 'object') {
-      if (status.pending) return 'pending';
-      if (status.filled) return 'filled';
-      if (status.cancelled) return 'cancelled';
-      return 'unknown';
-    }
-
-    // Numeric fallback: 0 = pending, 1 = filled, 2 = cancelled
-    if (typeof status === 'number') {
-      switch (status) {
-        case 0: return 'pending';
-        case 1: return 'filled';
-        case 2: return 'cancelled';
-        default: return 'unknown';
-      }
-    }
-
-    return 'unknown';
-  }
-
-  /**
-   * Fetch an order account by id/owner with retries and return its status.
-   * Does not throw when account is missing; returns status 'not_found' instead.
-   */
+  } 
+  
   public async getOrderStatusWithRetry(params: {
     orderId: number;
     owner: PublicKey;
     commitment?: Commitment;
     retries?: number;
     delay?: number;
-  }): Promise<{ orderPDA: PublicKey; status: 'pending' | 'filled' | 'cancelled' | 'not_found' | 'unknown'; account?: any }>
+  }): Promise<{ orderPDA: PublicKey; status: OnchainOrderStatus | undefined; account?: any }>
   {
     const { orderId, owner, commitment = 'confirmed', retries = 3, delay = 1000 } = params;
     const orderPDA = await this.getOrderPDA(orderId, owner);
     try {
       const account = await this.readWithRetry(
-        () => this.program.account.order.fetch(orderPDA, commitment),
+        () => this.getOrder(orderPDA, commitment),
         retries,
         delay,
-      );
-      const status = this.parseOrderStatus(account);
+      ) as OnchainOrder;
+      const status = account.status;
       return { orderPDA, status, account };
     } catch (err) {
       // Treat missing account (e.g., closed after cancel) as not_found
-      return { orderPDA, status: 'not_found' };
+      return { orderPDA, status: undefined };
     }
   }
 }
