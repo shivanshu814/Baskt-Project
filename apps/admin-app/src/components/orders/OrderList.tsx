@@ -137,7 +137,8 @@ const OrderList = () => {
                     <div className="text-sm text-gray-200">
                       <NumberFormat
                         value={parseFloat(order.openParams?.collateral || '0')}
-                        isPrice
+                        isPrice={true}
+                        showCurrency={true}
                       />
                     </div>
                   </TableCell>

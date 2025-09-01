@@ -12,7 +12,7 @@ export function RolesManagement() {
   const { roles, isLoading, isOwner, fetchRoles, handleRemoveRole } = useRoles();
   const { copiedAddress, handleCopyAddress } = useCopyAddress();
   const { open, openModal, closeModal } = useModal();
-  console.log('roles', roles);
+
   return (
     <div className="space-y-6">
       {isOwner && (

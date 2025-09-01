@@ -1,21 +1,21 @@
-import React, { useMemo, useCallback } from 'react';
 import {
+  Badge,
+  NumberFormat,
+  PublicKeyText,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  Badge,
-  PublicKeyText,
 } from '@baskt/ui';
-import { Loader2, FileText } from 'lucide-react';
-import { formatDate } from '../../utils/pool';
+import { FileText, Loader2 } from 'lucide-react';
+import React, { useCallback, useMemo } from 'react';
 import { useCopyWithTimeout } from '../../hooks/useCopyWithTimeout';
-import { getStatusColor, getActionColor } from '../../utils/orderUtils';
 import { HistoryTableProps } from '../../types/history';
-import { getPnlColor, formatSize } from '../../utils/historyUtils';
-import { NumberFormat } from '@baskt/ui';
+import { formatSize, getPnlColor } from '../../utils/historyUtils';
+import { getActionColor, getStatusColor } from '../../utils/orderUtils';
+import { formatDate } from '../../utils/pool';
 
 const LoadingState: React.FC<{ colSpan: number }> = ({ colSpan }) => (
   <TableRow>
@@ -47,7 +47,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
   const { handleCopy } = useCopyWithTimeout();
 
   const tableHeaders = [
-    'Type / ID',
+    'Position ID',
     'Baskt',
     'User',
     'Action',
@@ -64,20 +64,14 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
       item: any, //eslint-disable-line
     ) => (
       <div className="flex flex-col gap-1">
-        <Badge variant={item.type === 'order' ? 'default' : 'secondary'} className="w-fit">
-          {item.type.toUpperCase()}
+        <Badge variant="secondary" className="w-fit">
+          POSITION
         </Badge>
         <div
           className="text-sm text-gray-300 cursor-pointer"
-          onClick={() =>
-            handleCopy(item.type === 'order' ? item.orderId! : item.positionId!, `id-${item.id}`)
-          }
+          onClick={() => handleCopy(item.positionId!, `id-${item.id}`)}
         >
-          <PublicKeyText
-            publicKey={item.type === 'order' ? item.orderId! : item.positionId!}
-            isCopy={true}
-            noFormat={true}
-          />
+          <PublicKeyText publicKey={item.positionId!} isCopy={true} noFormat={true} />
         </div>
       </div>
     ),
@@ -118,7 +112,7 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
   const renderActionCell = useCallback(
     (
       item: any, //eslint-disable-line
-    ) => <div className="text-sm text-gray-200">{item.action}</div>,
+    ) => <div className="text-sm text-gray-200">Close</div>,
     [],
   );
 
@@ -145,7 +139,11 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
       item: any, //eslint-disable-line
     ) => (
       <div className="text-sm text-gray-200">
-        {item.collateral ? <NumberFormat value={parseFloat(item.collateral)} isPrice /> : '-'}
+        {item.collateral && item.collateral !== '0' ? (
+          <NumberFormat value={parseFloat(item.collateral)} isPrice />
+        ) : (
+          '-'
+        )}
       </div>
     ),
     [],
@@ -163,10 +161,10 @@ const HistoryTable: React.FC<HistoryTableProps> = ({ history, isLoading }) => {
       item: any, //eslint-disable-line
     ) => (
       <div className={`text-sm font-medium ${getPnlColor(item.pnl)}`}>
-        {item.pnl ? (
+        {item.pnl && item.pnl !== '0' ? (
           <>
             <NumberFormat value={parseFloat(item.pnl)} isPrice />
-            {item.pnlPercentage && ` (${item.pnlPercentage}%)`}
+            {item.pnlPercentage && item.pnlPercentage !== '0' && ` (${item.pnlPercentage}%)`}
           </>
         ) : (
           '-'

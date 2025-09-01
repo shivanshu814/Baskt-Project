@@ -71,9 +71,6 @@ const EmptyState: React.FC<{ colSpan: number }> = ({ colSpan }) => (
 const PositionList = () => {
   const { positions, isLoading, error } = usePositions();
   const [expandedPositions, setExpandedPositions] = useState<Set<string>>(new Set());
-  console.log(positions);
-  // Use the logger instead of console.log
-  // logger.info('Positions loaded', { count: positions.length });
 
   const positionCounts = useMemo(() => {
     const total = positions.length;

@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react';
-import { trpc } from '../../utils/trpc';
-import { OrderAction } from '@baskt/types';
 import { HistoryItem } from '../../types/history';
+import { trpc } from '../../utils/trpc';
 
 export const useHistory = (filters?: {
   basktId?: string;
   userId?: string;
-  status?: string;
-  action?: OrderAction;
   limit?: number;
   offset?: number;
 }) => {
@@ -20,14 +17,10 @@ export const useHistory = (filters?: {
     data,
     isLoading: queryLoading,
     error: queryError,
-  } = trpc.history.getHistory.useQuery(
+  } = trpc.history.getPositionHistory.useQuery(
     {
       basktId: filters?.basktId,
       userId: filters?.userId,
-      status: filters?.status,
-      action: filters?.action,
-      limit: filters?.limit || 50,
-      offset: filters?.offset || 0,
     },
     {
       refetchInterval: 10 * 1000, // 10 seconds
@@ -40,18 +33,37 @@ export const useHistory = (filters?: {
 
     if (data && 'success' in data) {
       if (data.success && 'data' in data) {
-        const historyData = data.data as HistoryItem[];
+        const positionHistoryData = data.data as any[];
+
+        // Transform position history data to match HistoryItem interface
+        const historyData: HistoryItem[] = positionHistoryData.map((position, index) => ({
+          id: `${position.positionId}-${index}`,
+          type: 'position',
+          positionId: position.positionId,
+          basktId: position.basktAddress,
+          basktName: 'Unknown', // Will be populated if needed
+          owner: filters?.userId || 'Unknown',
+          action: 'Close' as any, // Position history is for closed positions
+          status: position.status,
+          size: position.size,
+          collateral: '0', // Not available in position history
+          isLong: position.isLong,
+          entryPrice: position.entryPrice,
+          exitPrice: position.averageExitPrice,
+          pnl: position.totalPnl,
+          pnlPercentage: '0', // Calculate if needed
+          timestamp: position.lastExitTime || position.entryTime,
+          openTx: position.entryTime,
+          closeTx: position.lastExitTime,
+        }));
+
         setHistory(historyData);
-        if ('total' in data) {
-          setTotalCount(data.total as number);
-        } else {
-          setTotalCount(historyData.length);
-        }
-      } else if (!data.success && 'message' in data) {
-        setError(String(data.message));
+        setTotalCount(historyData.length);
+      } else if (!data.success && 'error' in data) {
+        setError(String(data.error));
       }
     }
-  }, [data, queryLoading, queryError]);
+  }, [data, queryLoading, queryError, filters?.userId]);
 
   return {
     history,

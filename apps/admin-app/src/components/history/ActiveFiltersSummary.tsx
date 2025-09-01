@@ -1,6 +1,6 @@
-import React from 'react';
 import { Badge } from '@baskt/ui';
 import { Filter, X } from 'lucide-react';
+import React from 'react';
 import { ActiveFiltersSummaryProps } from '../../types/history';
 
 const ActiveFiltersSummary: React.FC<ActiveFiltersSummaryProps> = ({ filters, onRemoveFilter }) => {
@@ -17,18 +17,6 @@ const ActiveFiltersSummary: React.FC<ActiveFiltersSummaryProps> = ({ filters, on
       value: filters.userId,
       displayValue: filters.userId ? `${filters.userId.slice(0, 8)}...` : '',
     },
-    {
-      key: 'status',
-      label: 'Status',
-      value: filters.status,
-      displayValue: filters.status,
-    },
-    {
-      key: 'action',
-      label: 'Action',
-      value: filters.action,
-      displayValue: filters.action,
-    },
   ];
 
   const activeFilters = filterFields.filter((field) => field.value);
@@ -39,7 +27,7 @@ const ActiveFiltersSummary: React.FC<ActiveFiltersSummaryProps> = ({ filters, on
     <div className="bg-blue-900/20 p-4 rounded-lg border border-blue-700/50">
       <div className="flex items-center gap-2 mb-3">
         <Filter className="w-4 h-4 text-blue-400" />
-        <h4 className="text-sm font-medium text-blue-300">Active Filters</h4>
+        <h4 className="text-sm font-medium text-blue-300">Active Position History Filters</h4>
       </div>
       <div className="flex flex-wrap gap-2">
         {activeFilters.map((field) => (

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useBasktClient } from '@baskt/ui';
 import { OnchainProtocolInterface } from '@baskt/types';
+import { useBasktClient } from '@baskt/ui';
+import { useCallback, useEffect, useState } from 'react';
 
 export function useProtocol() {
   const { client } = useBasktClient();

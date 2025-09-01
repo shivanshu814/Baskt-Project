@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@baskt/ui';
+import Image from 'next/image';
 import React from 'react';
 import { ExposureTableProps } from '../../../types/vault';
 
@@ -57,7 +58,7 @@ export const ExposureTable = React.memo(({ allocationData }: ExposureTableProps)
                 <TableRow key={`${asset.name}-${index}`}>
                   <TableCell className="flex items-center gap-3">
                     {asset.logo ? (
-                      <img
+                      <Image
                         src={asset.logo}
                         alt={asset.name || 'Asset'}
                         className="w-7 h-7 rounded-full"

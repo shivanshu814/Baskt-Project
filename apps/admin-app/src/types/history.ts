@@ -4,8 +4,6 @@ export interface ActiveFiltersSummaryProps {
   filters: {
     basktId: string;
     userId: string;
-    status: string;
-    action: OrderAction | undefined;
   };
   onRemoveFilter: (key: string) => void;
 }
@@ -18,8 +16,6 @@ export interface HistoryFiltersProps {
   filters: {
     basktId: string;
     userId: string;
-    status: string;
-    action: OrderAction | undefined;
   };
   onFilterChange: (key: string, value: string) => void;
   onClearFilters: () => void;

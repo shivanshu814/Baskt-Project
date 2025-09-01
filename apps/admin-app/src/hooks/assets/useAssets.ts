@@ -11,7 +11,7 @@ export function useAssets() {
     error,
     refetch,
   } = trpc.asset.getAllAssets.useQuery({ withConfig: true });
-  console.log(assetsRaw, 'yeh hai main data');
+
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [assetToModify, setAssetToModify] = useState<Asset | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);

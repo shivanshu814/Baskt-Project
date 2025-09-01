@@ -16,10 +16,14 @@ import {
   TableRow,
 } from '@baskt/ui';
 import { ArrowLeft } from 'lucide-react';
+import Image from 'next/image';
+import { useProtocol } from '../../hooks/protocols/useProtocol';
 import { BasktDetailPageProps } from '../../types/baskt';
 import { formatTimestamp } from '../../utils/format';
 
 export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
+  const { protocol } = useProtocol();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
@@ -32,7 +36,7 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
         <div className="flex items-center gap-2">
           <span className="text-sm text-white/60">Price:</span>
           <span className="text-lg font-medium">
-            <NumberFormat value={baskt.price || 0} isPrice={true} />
+            <NumberFormat value={baskt.price || 0} isPrice={true} showCurrency={true} />
           </span>
           <span className={(baskt.change24h || 0) >= 0 ? 'text-green-500' : 'text-red-500'}>
             <NumberFormat value={baskt.change24h || 0} />%
@@ -143,23 +147,24 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
           <CardHeader>
             <CardTitle>Configuration</CardTitle>
           </CardHeader>
+
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-2">
               <div className="flex justify-between">
                 <span className="text-white/60">Opening Fee:</span>
-                <span>{baskt.config?.openingFeeBps || 0} bps</span>
+                <span>{protocol?.config?.openingFeeBps?.toNumber() || 0} bps</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Closing Fee:</span>
-                <span>{baskt.config?.closingFeeBps || 0} bps</span>
+                <span>{protocol?.config?.closingFeeBps?.toNumber() || 0} bps</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Liquidation Fee:</span>
-                <span>{baskt.config?.liquidationFeeBps || 0} bps</span>
+                <span>{protocol?.config?.liquidationFeeBps?.toNumber() || 0} bps</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/60">Min Collateral Ratio:</span>
-                <span>{baskt.config?.minCollateralRatioBps || 0} bps</span>
+                <span>{protocol?.config?.minCollateralRatioBps?.toNumber() || 0} bps</span>
               </div>
             </div>
           </CardContent>
@@ -192,9 +197,9 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
                           <TableCell className="font-mono text-xs">
                             <div className="flex items-center gap-2">
                               {assetInfo?.logo && (
-                                <img
-                                  src={assetInfo.logo}
-                                  alt={assetInfo.ticker}
+                                <Image
+                                  src={assetInfo.logo || ''}
+                                  alt={assetInfo.ticker || ''}
                                   className="w-6 h-6 rounded-full"
                                 />
                               )}
@@ -213,10 +218,18 @@ export function BasktDetailPage({ baskt, onBack }: BasktDetailPageProps) {
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
-                            <NumberFormat value={parseInt(asset.baselinePrice)} isPrice />
+                            <NumberFormat
+                              value={parseInt(asset.baselinePrice)}
+                              isPrice={true}
+                              showCurrency={true}
+                            />
                           </TableCell>
                           <TableCell className="text-right">
-                            <NumberFormat value={assetInfo?.price || 0} isPrice />
+                            <NumberFormat
+                              value={assetInfo?.price || 0}
+                              isPrice={true}
+                              showCurrency={true}
+                            />
                           </TableCell>
                           <TableCell className="text-right">
                             <span

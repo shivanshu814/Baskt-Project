@@ -22,10 +22,6 @@ export function BasktList({ onActivate, activatingBasktId, onViewDetails }: Bask
     );
   });
 
-  // Debug: Log the data to see what we're getting
-  console.log('basktList:', basktList);
-  console.log('validBaskts:', validBaskts);
-
   // Calculate baskt counts
   const basktCounts = useMemo(() => {
     const total = validBaskts.length;

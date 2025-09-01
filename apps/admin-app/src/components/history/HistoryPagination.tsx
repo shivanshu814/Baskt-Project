@@ -1,6 +1,6 @@
-import React, { useMemo, useCallback } from 'react';
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@baskt/ui';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import React, { useCallback, useMemo } from 'react';
 import { HistoryPaginationProps } from '../../types/history';
 
 const HistoryPagination: React.FC<HistoryPaginationProps> = ({

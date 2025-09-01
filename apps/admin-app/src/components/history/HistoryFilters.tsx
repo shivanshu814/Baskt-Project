@@ -1,15 +1,14 @@
-import React from 'react';
 import {
-  Input,
   Button,
+  Input,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@baskt/ui';
-import { OrderAction, OnchainOrderStatus, PositionStatus } from '@baskt/types';
 import { Filter, RefreshCw } from 'lucide-react';
+import React from 'react';
 import { HistoryFiltersProps } from '../../types/history';
 
 const HistoryFilters: React.FC<HistoryFiltersProps> = ({
@@ -33,32 +32,6 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
       type: 'input',
       placeholder: 'Enter User ID',
       value: filters.userId,
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      type: 'select',
-      value: filters.status || 'all',
-      options: [
-        { value: 'all', label: 'All Status' },
-        { value: OnchainOrderStatus.PENDING, label: 'Pending' },
-        { value: OnchainOrderStatus.FILLED, label: 'Filled' },
-        { value: OnchainOrderStatus.CANCELLED, label: 'Cancelled' },
-        { value: PositionStatus.OPEN, label: 'Open' },
-        { value: PositionStatus.CLOSED, label: 'Closed' },
-        { value: PositionStatus.LIQUIDATED, label: 'Liquidated' },
-      ],
-    },
-    {
-      key: 'action',
-      label: 'Action',
-      type: 'select',
-      value: filters.action || 'all',
-      options: [
-        { value: 'all', label: 'All Actions' },
-        { value: OrderAction.Open, label: 'Open' },
-        { value: OrderAction.Close, label: 'Close' },
-      ],
     },
   ];
 
@@ -100,10 +73,10 @@ const HistoryFilters: React.FC<HistoryFiltersProps> = ({
     <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
       <div className="flex items-center gap-4 mb-4">
         <Filter className="w-5 h-5 text-gray-400" />
-        <h3 className="text-lg font-semibold text-gray-200">Filters</h3>
+        <h3 className="text-lg font-semibold text-gray-200">Position History Filters</h3>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filterFields.map((field) => (
           <div key={field.key}>
             <label className="block text-sm font-medium text-gray-400 mb-2">{field.label}</label>

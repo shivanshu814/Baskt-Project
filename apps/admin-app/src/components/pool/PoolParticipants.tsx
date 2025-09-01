@@ -26,7 +26,7 @@ export function PoolParticipants({
   const handlePageSizeChange = (size: (typeof PAGE_SIZE_OPTIONS)[number]) => {
     onPageSizeChange(size);
   };
-  console.log('participants', participants);
+
   return (
     <Card className="bg-white/5 border-white/10 shadow-xl">
       <CardHeader>
