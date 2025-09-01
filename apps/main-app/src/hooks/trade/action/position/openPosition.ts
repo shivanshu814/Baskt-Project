@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { trpc } from '../../../../lib/api/trpc';
 import { parseTradingError } from '../../../../utils/error/error';
 import { useUSDCBalance } from '../../../balance/use-usdc-balance';
+import { useProtocol } from '../../../protocol/use-protocol';
 
 export function useOpenPosition(
   basktId?: string,
@@ -15,6 +16,7 @@ export function useOpenPosition(
   usdcSize?: number,
   navPrice?: BN,
 ) {
+  const { protocol } = useProtocol();
   const [isLoading, setIsLoading] = useState(false);
   const { client } = useBasktClient();
   const publicKey = client?.wallet?.address;
@@ -75,8 +77,33 @@ export function useOpenPosition(
     );
   }
 
+  const calculateCollateral = (notionalValue: BN): BN => {
+    if (!protocol?.config) {
+      const defaultMinCollateralRatio = 10000;
+      const defaultOpeningFeeBps = 10;
+
+      const minCollateralAmount = notionalValue
+        .mul(new BN(defaultMinCollateralRatio))
+        .div(new BN(10000));
+      const openingFeeAmount = notionalValue.mul(new BN(defaultOpeningFeeBps)).div(new BN(10000));
+
+      return minCollateralAmount.add(openingFeeAmount);
+    }
+
+    const config = protocol.config;
+    const minCollateralRatioBps = config.minCollateralRatioBps.toNumber();
+    const openingFeeBps = config.openingFeeBps.toNumber();
+
+    const minCollateralAmount = notionalValue.mul(new BN(minCollateralRatioBps)).div(new BN(10000));
+    const openingFeeAmount = notionalValue.mul(new BN(openingFeeBps)).div(new BN(10000));
+
+    return minCollateralAmount.add(openingFeeAmount);
+  };
+
   const collateral =
-    usdcSize && navPrice ? new BN(usdcSize).mul(new BN(PRICE_PRECISION)).muln(1.05) : new BN(0);
+    usdcSize && navPrice
+      ? calculateCollateral(new BN(usdcSize).mul(new BN(PRICE_PRECISION)))
+      : new BN(0);
 
   const getLiquidationPrice = (collateral: number, position: 'long' | 'short') => {
     if (!navPrice) return null;
@@ -116,11 +143,13 @@ export function useOpenPosition(
         throw new Error('Collateral amount must be greater than 0');
       }
 
-      const collateralAmount = new BN(userInputSize).mul(new BN(PRICE_PRECISION)).muln(1.05);
+      const notionalValue = new BN(userInputSize).mul(new BN(PRICE_PRECISION));
+      const collateralAmount = calculateCollateral(notionalValue);
+
       const tx = await client.createMarketOpenOrder({
         orderId,
         basktId: new PublicKey(baskt.baskt?.basktId),
-        notionalValue: new BN(userInputSize).mul(new BN(PRICE_PRECISION)),
+        notionalValue: notionalValue,
         collateral: collateralAmount,
         isLong: position === 'long',
         leverageBps: new BN(10000),
