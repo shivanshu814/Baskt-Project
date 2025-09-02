@@ -1,5 +1,5 @@
 import { Button } from '@baskt/ui';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Gift } from 'lucide-react';
 import Link from 'next/link';
 import { ROUTES } from '../../routes/route';
 
@@ -24,6 +24,17 @@ export function Hero() {
           </Button>
           <Button variant="outline" size="lg" asChild>
             <Link href={ROUTES.EXPLORE}>Explore Baskts</Link>
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            asChild
+            className="bg-success/10 border-success/30 hover:bg-success/20 hover:border-success/50 text-success hover:text-success-foreground"
+          >
+            <Link href={ROUTES.REFER_AND_EARN}>
+              <Gift className="mr-2 h-5 w-5" />
+              Refer & Earn
+            </Link>
           </Button>
         </div>
       </div>
