@@ -19,6 +19,7 @@ import { OrderQuerier } from './queriers/order.querier';
 import { PoolQuerier } from './queriers/pool.querier';
 import { PositionQuerier } from './queriers/position.querier';
 import { PriceQuerier } from './queriers/price.querier';
+import { ReferralQuerier } from './queriers/referral.querier';
 import { WithdrawQueueQuerier } from './queriers/withdraw-queue.querier';
 
 // Import metadata manager
@@ -56,6 +57,7 @@ export class Querier {
   public pool: PoolQuerier;
   public feeEvent: FeeEventQuerier;
   public withdrawQueue: WithdrawQueueQuerier;
+  public referral: ReferralQuerier;
   public protocol: ProtocolQuerier;
   public eventsStorage: EventsStorageService;
   // Metadata manager
@@ -66,7 +68,7 @@ export class Querier {
     this.asset = AssetQuerier.getInstance(basktClient);
     this.price = PriceQuerier.getInstance(basktClient);
     this.baskt = BasktQuerier.getInstance(basktClient);
-    this.order = OrderQuerier.getInstance(basktClient); 
+    this.order = OrderQuerier.getInstance(basktClient);
     this.position = PositionQuerier.getInstance(basktClient);
     this.protocol = ProtocolQuerier.getInstance(basktClient);
     this.feeEvent = FeeEventQuerier.getInstance();
@@ -76,6 +78,7 @@ export class Querier {
     this.faucet = new FaucetQuerier(basktClient);
     this.pool = new PoolQuerier(basktClient);
     this.withdrawQueue = new WithdrawQueueQuerier(basktClient);
+    this.referral = new ReferralQuerier();
     this.eventsStorage = EventsStorageService.getInstance();
   }
 
@@ -93,8 +96,7 @@ export class Querier {
     try {
       console.log('Initializing Querier...');
 
-
-      if(this.mongoConnection && this.timescaleConnection && this.solanaConnection) {
+      if (this.mongoConnection && this.timescaleConnection && this.solanaConnection) {
         console.log('Querier already initialized');
         return;
       }
@@ -110,9 +112,6 @@ export class Querier {
       // Initialize Solana connection
       await connectOnchain();
       this.solanaConnection = getOnchainConfig().connection;
-
-
-      
 
       // Pass the basktClient to all queriers as needed (if they accept it)
       // (You may want to update queriers to accept the client in their constructors)

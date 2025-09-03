@@ -13,17 +13,33 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getReferralCode } from '../../hooks/referral/getReferralCode';
+import { getReferralData } from '../../hooks/referral/getReferralData';
+import { postReferralMail } from '../../hooks/referral/postReferralMail';
 
 export function ReferralDashboard() {
   const { userAddress } = useUser();
   const [copied, setCopied] = useState(false);
   const [email, setEmail] = useState('');
 
-  // Mock data - showing actual values instead of "Coming Soon"
-  const referralLink = userAddress
-    ? `https://baskt.app?via=${userAddress.slice(0, 8)}`
-    : 'https://baskt.app?via=DEMO123';
+  const { referralCode, isLoading, error, generateCode, isGenerating } = getReferralCode();
+  const { data: referralData, isLoading: isDataLoading } = getReferralData();
+  const {
+    sendReferralEmail,
+    isSending,
+    error: emailError,
+    success: emailSuccess,
+    clearMessages,
+  } = postReferralMail();
+
+  useEffect(() => {
+    if (userAddress && !referralCode && !isLoading) {
+      generateCode();
+    }
+  }, [userAddress, referralCode, isLoading, generateCode]);
+
+  const referralLink = referralCode ? `${window.location.origin}/?via=${referralCode}` : '';
 
   const handleCopyLink = async () => {
     try {
@@ -35,11 +51,16 @@ export function ReferralDashboard() {
     }
   };
 
-  const handleEmailInvite = (e: React.FormEvent) => {
+  const handleEmailInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      alert(`Invitation sent to ${email}`);
-      setEmail('');
+    if (email && userAddress) {
+      const result = await sendReferralEmail({ inviteeEmail: email });
+      if (result.success) {
+        setEmail('');
+        setTimeout(() => clearMessages(), 5000);
+      } else {
+        setEmail('');
+      }
     }
   };
 
@@ -47,7 +68,6 @@ export function ReferralDashboard() {
     <section className="bg-gradient-to-br from-primary/5 via-background to-primary/10 pt-16 pb-20 min-h-screen">
       <div className="container mx-auto px-4">
         <div className="max-w-7xl mx-auto">
-          {/* Beautiful Header */}
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-primary/20 to-purple-500/20 px-4 py-2 rounded-full border border-primary/30 mb-4">
               <Gift className="h-5 w-5 text-primary" />
@@ -68,7 +88,6 @@ export function ReferralDashboard() {
             </p>
           </div>
 
-          {/* Enhanced Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <Card className="group bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30 hover:border-primary/50 rounded-2xl hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 hover:-translate-y-1">
               <CardHeader className="pb-4">
@@ -83,10 +102,21 @@ export function ReferralDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-primary mb-2">125</div>
-                <div className="text-sm text-muted-foreground">+25 this week</div>
+                <div className="text-4xl font-bold text-primary mb-2">
+                  {isDataLoading ? '...' : referralData?.rewardsValue || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {referralData?.referralDetails?.length || 0} referrals
+                </div>
                 <div className="mt-3 w-full bg-primary/20 rounded-full h-2">
-                  <div className="bg-primary h-2 rounded-full" style={{ width: '60%' }}></div>
+                  <div
+                    className="bg-primary h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: referralData?.rewardsValue
+                        ? `${Math.min((referralData.rewardsValue / 100) * 100, 100)}%`
+                        : '0%',
+                    }}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -104,10 +134,17 @@ export function ReferralDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-warning mb-2">75%</div>
-                <div className="text-sm text-muted-foreground">Success Rate</div>
+                <div className="text-4xl font-bold text-warning mb-2">
+                  {isDataLoading ? '...' : referralData?.referralRate || 10}%
+                </div>
+                <div className="text-sm text-muted-foreground">Commission Rate</div>
                 <div className="mt-3 w-full bg-warning/20 rounded-full h-2">
-                  <div className="bg-warning h-2 rounded-full" style={{ width: '75%' }}></div>
+                  <div
+                    className="bg-warning h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${referralData?.referralRate || 10}%`,
+                    }}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -125,10 +162,19 @@ export function ReferralDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-success mb-2">24</div>
-                <div className="text-sm text-muted-foreground">+3 this month</div>
+                <div className="text-4xl font-bold text-success mb-2">
+                  {isDataLoading ? '...' : referralData?.referralDetails?.length || 0}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {referralData?.referralDetails?.length ? 'Active referrals' : 'No referrals yet'}
+                </div>
                 <div className="mt-3 w-full bg-success/20 rounded-full h-2">
-                  <div className="bg-success h-2 rounded-full" style={{ width: '75%' }}></div>
+                  <div
+                    className="bg-success h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: referralData?.referralDetails?.length ? '100%' : '0%',
+                    }}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -146,18 +192,29 @@ export function ReferralDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold text-purple-500 mb-2">#12</div>
-                <div className="text-sm text-muted-foreground">Top 15%</div>
+                <div className="text-4xl font-bold text-purple-500 mb-2">
+                  {isDataLoading
+                    ? '...'
+                    : referralData?.leaderboard?.rank
+                    ? `#${referralData.leaderboard.rank}`
+                    : 'N/A'}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {referralData?.leaderboard?.rank ? 'Leaderboard Rank' : 'Not ranked yet'}
+                </div>
                 <div className="mt-3 w-full bg-purple-500/20 rounded-full h-2">
-                  <div className="bg-purple-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                  <div
+                    className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: referralData?.leaderboard?.rank ? '85%' : '0%',
+                    }}
+                  />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-            {/* Enhanced Referral Link Section */}
             <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30 rounded-2xl hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 hover:scale-[1]">
               <CardHeader className="pb-6">
                 <div className="flex items-center gap-3 mb-2">
@@ -169,15 +226,49 @@ export function ReferralDashboard() {
                 <p className="text-muted-foreground">Share this link and start earning rewards</p>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="bg-gradient-to-r from-success/10 to-success/5 p-4 rounded-xl border border-success/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium text-success">Active Status</span>
+                {error ? (
+                  <div className="bg-gradient-to-r from-destructive/10 to-destructive/5 p-4 rounded-xl border border-destructive/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-destructive rounded-full"></div>
+                      <span className="text-sm font-medium text-destructive">Error</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{error}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Your referral code is active and ready to use!
-                  </p>
-                </div>
+                ) : isLoading || isGenerating ? (
+                  <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-xl border border-primary/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium text-primary">
+                        {isGenerating ? 'Generating...' : 'Loading...'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {isGenerating
+                        ? 'Creating your unique referral code...'
+                        : 'Loading your referral code...'}
+                    </p>
+                  </div>
+                ) : referralCode ? (
+                  <div className="bg-gradient-to-r from-success/10 to-success/5 p-4 rounded-xl border border-success/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium text-success">Active Status</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Your referral code is active and ready to use!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-gradient-to-r from-warning/10 to-warning/5 p-4 rounded-xl border border-warning/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-warning rounded-full"></div>
+                      <span className="text-sm font-medium text-warning">No Code</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Click the button below to generate your referral code
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   <Label className="text-sm font-medium text-foreground">Referral Link</Label>
@@ -188,13 +279,21 @@ export function ReferralDashboard() {
                         value={referralLink}
                         readOnly
                         className="pl-8 bg-background/70 border-border/30 font-mono text-sm h-12 focus:ring-2 focus:ring-primary/20"
+                        placeholder={
+                          isGenerating
+                            ? 'Generating...'
+                            : isLoading
+                            ? 'Loading...'
+                            : 'No referral code yet'
+                        }
                       />
                     </div>
                     <Button
                       onClick={handleCopyLink}
+                      disabled={!referralCode || isLoading || isGenerating}
                       size="lg"
                       variant="outline"
-                      className="border-primary/30 hover:border-primary/50 hover:bg-primary/10 px-6 min-w-[120px] transition-all duration-200 hover:scale-[1]"
+                      className="border-primary/30 hover:border-primary/50 hover:bg-primary/10 px-6 min-w-[120px] transition-all duration-200 hover:scale-[1] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {copied ? (
                         <>
@@ -217,16 +316,18 @@ export function ReferralDashboard() {
                       </p>
                     </div>
                   )}
+                  {referralCode && (
+                    <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 text-center">
+                      <p className="text-sm text-primary font-medium flex items-center justify-center gap-2">
+                        <Star className="h-4 w-4" />
+                        Your referral code: <span className="font-mono">{referralCode}</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
-
-                <Button className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200 hover:scale-[1] h-12 font-medium">
-                  <Zap className="h-4 w-4 mr-2" />
-                  Generate New Invite Code
-                </Button>
               </CardContent>
             </Card>
 
-            {/* Enhanced Email Invite Section */}
             <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/30 rounded-2xl hover:shadow-lg hover:shadow-success/20 transition-all duration-300 hover:scale-[1]">
               <CardHeader className="pb-6">
                 <div className="flex items-center gap-3 mb-2">
@@ -236,6 +337,12 @@ export function ReferralDashboard() {
                   <CardTitle className="text-xl">Invite your friends</CardTitle>
                 </div>
                 <p className="text-muted-foreground">Send personalized invitations to friends</p>
+                {userAddress && (
+                  <div className="mt-2 text-xs text-muted-foreground bg-background/50 rounded-lg p-2 border border-border/30">
+                    <span className="font-medium">From:</span> {userAddress.slice(0, 6)}...
+                    {userAddress.slice(-4)}
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 p-4 rounded-xl border border-blue-500/20">
@@ -244,7 +351,8 @@ export function ReferralDashboard() {
                     <span className="text-sm font-medium text-blue-500">Quick Invite</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Invite friends via email and track their progress
+                    Invite friends via email and track their progress. Emails will be sent from your
+                    referral address.
                   </p>
                 </div>
 
@@ -259,22 +367,60 @@ export function ReferralDashboard() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="bg-background/70 border-border/30 h-12 focus:ring-2 focus:ring-success/20"
+                      disabled={isSending}
+                      className="bg-background/70 border-border/30 h-12 focus:ring-2 focus:ring-success/20 disabled:opacity-50"
                     />
                   </div>
+
+                  {emailSuccess && (
+                    <div className="bg-success/10 border border-success/20 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="h-4 w-4 text-success" />
+                        <span className="text-sm font-medium text-success">Success!</span>
+                      </div>
+                      <p className="text-sm text-success">{emailSuccess}</p>
+                      {referralCode && (
+                        <p className="text-xs text-success/80 mt-2">
+                          Referral code{' '}
+                          <span className="font-mono font-medium">{referralCode}</span> sent
+                          successfully!
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {emailError && (
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 bg-destructive rounded-full"></div>
+                        <span className="text-sm font-medium text-destructive">Error</span>
+                      </div>
+                      <p className="text-sm text-destructive">{emailError}</p>
+                    </div>
+                  )}
+
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-success to-success/80 hover:from-success/90 hover:to-success/70 text-white shadow-lg shadow-success/25 hover:shadow-xl hover:shadow-success/30 transition-all duration-200 hover:scale-[1] h-12 font-medium"
+                    disabled={isSending || !email || !userAddress}
+                    className="w-full bg-gradient-to-r from-success to-success/80 hover:from-success/90 hover:to-success/70 text-white shadow-lg shadow-success/25 hover:shadow-xl hover:shadow-success/30 transition-all duration-200 hover:scale-[1] h-12 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Send Invitation
+                    {isSending ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4 mr-2" />
+                        Send Invitation
+                      </>
+                    )}
                   </Button>
                 </form>
               </CardContent>
             </Card>
           </div>
 
-          {/* Enhanced How It Works */}
           <Card className="bg-gradient-to-br from-background to-primary/5 border-primary/20 rounded-2xl hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 mb-16">
             <CardHeader className="text-center pb-8">
               <div className="inline-flex items-center gap-3 bg-gradient-to-r from-primary/20 to-purple-500/20 px-6 py-3 rounded-full border border-primary/30 mb-4">

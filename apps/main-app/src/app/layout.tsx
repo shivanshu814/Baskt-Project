@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ErrorBoundary } from '../components/shared/ErrorBoundary';
 import { Navbar } from '../components/shared/Navbar';
+import { ReferralTracker } from '../components/shared/ReferralTracker';
 import { TRPCProvider } from '../providers/backend';
 import { ToastProvider } from '../providers/toast';
 import '../styles/globals.css';
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <TRPCProvider>
               <ToastProvider>
                 <ErrorBoundary>
+                  <ReferralTracker />
                   <Navbar />
                   <main className="mt-16">{children}</main>
                 </ErrorBoundary>

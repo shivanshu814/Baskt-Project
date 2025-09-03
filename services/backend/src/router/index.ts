@@ -13,6 +13,7 @@ import { orderRouter } from './order';
 import { poolRouter } from './pool';
 import { portfolioRouter } from './portfolio';
 import { positionRouter } from './position';
+import { referralRouter } from './referral';
 import { vaultRouter } from './vault';
 
 export const appRouter = router({
@@ -34,8 +35,8 @@ export const appRouter = router({
   faucet: faucetRouter,
   feeEvent: feeEventRouter,
   portfolio: portfolioRouter,
+  referral: referralRouter,
   vault: vaultRouter,
 });
-
 
 export type AppRouter = typeof appRouter;
